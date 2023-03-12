@@ -1,6 +1,8 @@
 package channels
 
 import (
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 	"strconv"
 	"strings"
@@ -543,40 +545,62 @@ func openChannelHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	response, err := OpenChannel(db, openChannelRequest)
-	if err != nil {
-		// Check if the error was because the node could not connect to the peer
-		if strings.Contains(err.Error(), "Could not connect to peer.") {
-			serr := server_errors.ServerError{}
-			// TODO: Replace with error codes
-			serr.AddServerError("Could not connect to peer node.")
-			server_errors.SendBadRequestFieldError(c, &serr)
-			return
-		}
-		// Connecting to LND failed
-		if strings.Contains(err.Error(), "Connecting to LND") {
-			serr := server_errors.ServerError{}
-			// TODO: Replace with error codes
-			serr.AddServerError("Torq could not connect to your node")
-			server_errors.SendBadRequestFieldError(c, &serr)
-			return
-		}
-		// Cannot set both SatPerVbyte and TargetConf
-		if strings.Contains(err.Error(), "Cannot set both SatPerVbyte and TargetConf") {
-			serr := server_errors.ServerError{}
-			// TODO: Replace with error codes
-			serr.AddServerError("Cannot set both Sats Per vbyte and Target Confirmations")
-			server_errors.SendBadRequestFieldError(c, &serr)
-			return
-		}
-		// error decoding public key hex
-		if strings.Contains(err.Error(), "error decoding public key hex") {
-			serr := server_errors.ServerError{}
-			serr.AddServerError("Invalid public key")
-			server_errors.SendBadRequestFieldError(c, &serr)
-		}
-		server_errors.WrapLogAndSendServerError(c, err, "Open channel")
+	switch {
+	case err != nil && strings.Contains(err.Error(), "Connecting to LND"):
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Torq could not connect to your node.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "Could not connect to peer."):
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Could not connect to peer node. This could be because the node is offline or the node is " +
+			"not reachable from your node. Please check the node and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "Cannot set both SatPerVbyte and TargetConf"):
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Cannot set both Sat per vbyte and Target confirmations. Choose one and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "error decoding public key hex"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Invalid public key. Please check the public key and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "channels cannot be created before the wallet is fully synced"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Channels cannot be created before the wallet is fully synced. Please wait for the wallet to sync and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "unknown peer"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Unknown peer. Please check the public key and url.")
+		serr.AddServerError("The peer node may be offline or unreachable.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "channel funding aborted"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Channel funding aborted.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case status.Code(err) == codes.InvalidArgument:
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Invalid argument. Please check the values and try again or reach out to the Torq team for help using the \"Help\" button in the navigation bar.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case status.Code(err) == codes.FailedPrecondition:
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Failed precondition. Please check the values and try again or reach out to the Torq team for help using the \"Help\" button in the navigation bar.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil:
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+
 	c.JSON(http.StatusOK, response)
 }
 

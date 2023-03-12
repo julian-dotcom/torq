@@ -11,6 +11,8 @@ import (
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"io"
+	"time"
 
 	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
@@ -84,18 +86,12 @@ func OpenChannel(db *sqlx.DB, req OpenChannelRequest) (response OpenChannelRespo
 	}
 
 	// Send open channel request
-	cp, err := client.OpenChannelSync(ctx, openChanReq)
+	cp, err := openChannelProcess(client, openChanReq, req)
 	if err != nil {
 		return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
 	}
 
-	return OpenChannelResponse{
-		Request:                req,
-		Status:                 commons.Opening,
-		ChannelPoint:           fmt.Sprintf("%s:%d", cp.GetFundingTxidStr(), cp.GetOutputIndex()),
-		FundingTransactionHash: cp.GetFundingTxidStr(),
-		FundingOutputIndex:     cp.GetOutputIndex(),
-	}, nil
+	return cp, nil
 
 }
 
@@ -199,4 +195,57 @@ func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId 
 	}
 
 	return nil
+}
+
+func openChannelProcess(client lnrpc.LightningClient, openChannelReq *lnrpc.OpenChannelRequest,
+	ccReq OpenChannelRequest) (OpenChannelResponse, error) {
+
+	// Create a context with a timeout.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), closeChannelTimeoutInSeconds*time.Second)
+	defer cancel()
+
+	// Call OpenChannel with the timeout context.
+	openReq, err := client.OpenChannel(timeoutCtx, openChannelReq)
+	if err != nil {
+		return OpenChannelResponse{}, errors.Wrap(err, "Close channel request")
+	}
+
+	// Loop until we receive an open channel response or the context times out.
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			return OpenChannelResponse{}, errors.New("Close channel request timeout")
+		default:
+		}
+
+		// Receive the next close channel response message.
+		resp, err := openReq.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// No more messages to receive, the channel is open.
+				return OpenChannelResponse{}, nil
+			}
+			return OpenChannelResponse{}, errors.Wrap(err, "Close channel request receive")
+		}
+
+		r := OpenChannelResponse{
+			Request: ccReq,
+		}
+		if resp.Update == nil {
+			continue
+		}
+
+		switch resp.GetUpdate().(type) {
+		case *lnrpc.OpenStatusUpdate_ChanPending:
+			r.Status = commons.Opening
+			ch, err := chainhash.NewHash(resp.GetChanPending().Txid)
+			if err != nil {
+				return OpenChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
+			}
+			r.FundingTransactionHash = ch.String()
+			r.FundingOutputIndex = resp.GetChanPending().OutputIndex
+			r.ChannelPoint = fmt.Sprintf("%s:%d", ch.String(), resp.GetChanPending().OutputIndex)
+			return r, nil
+		}
+	}
 }

@@ -1,3 +1,6 @@
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { SerializedError } from "@reduxjs/toolkit";
+
 export type FieldName = string;
 export type ErrorDescription = string;
 
@@ -47,4 +50,17 @@ export function replaceMessageMergeTags(message: string, attributes: Record<stri
     }
   }
   return message;
+}
+
+export function RtqToServerError(rtqErrors: FetchBaseQueryError | SerializedError | undefined): ServerErrorType {
+  if (rtqErrors === undefined) {
+    return { errors: {} };
+  }
+  // check if the rtqErrors is a FetchBaseQueryError
+  if (!("status" in rtqErrors) || !("data" in rtqErrors)) {
+    return { errors: {} };
+  }
+
+  const rtqError = rtqErrors as FetchBaseQueryError;
+  return rtqError.data as ServerErrorType;
 }
