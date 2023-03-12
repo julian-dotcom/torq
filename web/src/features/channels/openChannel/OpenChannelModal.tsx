@@ -52,23 +52,22 @@ function OpenChannelModal() {
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
-  if (nodeConfigurations) {
-    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-    });
-  }
+  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<Array<SelectOptions>>();
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
+  const [selectedNodeId, setSelectedNodeId] = useState<number>();
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [errMessage, setErrorMEssage] = useState<string>("");
   const [openingTx, setOpeningTx] = useState<string>("");
 
   useEffect(() => {
-    if (nodeConfigurationOptions !== undefined) {
-      setSelectedNodeId(nodeConfigurationOptions[0].value);
+    if (nodeConfigurations !== undefined) {
+      const options = nodeConfigurations.map((node: nodeConfiguration) => {
+        return { label: node.name, value: node.nodeId };
+      });
+      setNodeConfigurationOptions(options);
+      setSelectedNodeId(options[0].value);
     }
-  }, [nodeConfigurationOptions]);
+  }, [nodeConfigurations]);
 
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);
@@ -144,7 +143,7 @@ function OpenChannelModal() {
                   handleNodeSelection(selectOptions?.value as number);
                 }}
                 options={nodeConfigurationOptions}
-                value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+                value={nodeConfigurationOptions?.find((option) => option.value === selectedNodeId)}
               />
             </FormRow>
           </div>
