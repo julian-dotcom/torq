@@ -96,13 +96,13 @@ func createLndAddressRequest(newAddressRequest NewAddressRequest) (r *walletrpc.
 func newAddress(client rpcClientNewAddress, newAddressRequest NewAddressRequest) (NewAddressResponse, error) {
 	lndAddressRequest, err := createLndAddressRequest(newAddressRequest)
 	if err != nil {
-		return NewAddressResponse{}, err
+		return NewAddressResponse{}, errors.Wrap(err, "Creating lnd address request")
 	}
 
 	ctx := context.Background()
 	lndResponse, err := client.NextAddr(ctx, lndAddressRequest)
 	if err != nil {
-		return NewAddressResponse{}, err
+		return NewAddressResponse{}, errors.Wrap(err, "Getting new address from lnd")
 	}
 
 	return NewAddressResponse{
