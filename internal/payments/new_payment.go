@@ -142,9 +142,14 @@ func sendPayment(client rrpcClientSendPayment,
 		}
 
 		if webSocketResponseChannel != nil {
-			// Write the payment status to the client
-			webSocketResponseChannel <- processResponse(resp, npReq, requestId)
+			// Do a non-blocking write as the pub sub + websockets current dead locks itself
+			// TODO: Make it so it can't deadlock itself
+			select {
+			case webSocketResponseChannel <- processResponse(resp, npReq, requestId):
+			default:
+			}
 		}
+
 	}
 }
 
