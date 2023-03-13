@@ -681,7 +681,7 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 		}
 	}
 
-	previousStatus = runningServices.Booted(node.NodeId, bootLock)
+	runningServices.Booted(node.NodeId, bootLock)
 	if serviceCmd.ServiceType == commons.LndService {
 		commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(node.NodeId, node.CustomSettings)
 	}

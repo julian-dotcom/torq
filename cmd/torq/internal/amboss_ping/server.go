@@ -26,7 +26,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int,
 
 	defer log.Info().Msgf("Amboss Ping Service terminated for nodeId: %v", nodeId)
 
-	previousStatus := commons.ServiceInactive
+	previousStatus := commons.ServicePending
 	_, monitorCancel := context.WithCancel(context.Background())
 
 	const ambossUrl = "https://api.amboss.space/graphql"

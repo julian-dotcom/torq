@@ -112,7 +112,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		}
 	}()
 
-	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.RebalanceService, nil)
+	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.RebalanceService, nil)
 
 	wg.Wait()
 }

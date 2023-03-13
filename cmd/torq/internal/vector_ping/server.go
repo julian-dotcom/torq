@@ -62,7 +62,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int,
 
 	defer log.Info().Msgf("Vector Ping Service terminated for nodeId: %v", nodeId)
 
-	previousStatus := commons.ServiceInactive
+	previousStatus := commons.ServicePending
 	_, monitorCancel := context.WithCancel(context.Background())
 
 	client := lnrpc.NewLightningClient(conn)

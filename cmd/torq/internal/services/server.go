@@ -65,7 +65,7 @@ func Start(ctx context.Context, db *sqlx.DB,
 		automation.ScheduledTriggerMonitor(ctx, db, lightningRequestChannel, rebalanceRequestChannel)
 	})()
 
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.AutomationService, nil)
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.AutomationService, nil)
 
 	wg.Wait()
 
@@ -137,7 +137,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, serviceEventChann
 		commons.MaintenanceServiceStart(ctx, db)
 	})()
 
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.MaintenanceService, nil)
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.MaintenanceService, nil)
 
 	wg.Wait()
 
@@ -162,7 +162,7 @@ func StartCronService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan
 		automation.CronTriggerMonitor(ctx, db)
 	})()
 
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.CronService, nil)
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.CronService, nil)
 
 	wg.Wait()
 

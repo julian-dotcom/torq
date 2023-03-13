@@ -132,7 +132,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
 
 	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", serviceEventChannel)
 
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.LndService, nil)
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.LndService, nil)
 
 	// HTLC events
 	wg.Add(1)

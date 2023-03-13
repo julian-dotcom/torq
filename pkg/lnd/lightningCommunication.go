@@ -94,7 +94,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 		}
 	}()
 
-	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.LightningCommunicationService, nil)
+	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.LightningCommunicationService, nil)
 
 	wg.Wait()
 }
