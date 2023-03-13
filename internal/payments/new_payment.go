@@ -150,6 +150,13 @@ func sendPayment(client rrpcClientSendPayment,
 			}
 		}
 
+		// TODO: If LND fails to update us that the payment succeeded or failed for whatever reason
+		// this for loop will run forever (a memory leak).
+		// We should probably have some kind of timeout which exits regarless after a certain amount of time
+		if resp.GetStatus() == lnrpc.Payment_SUCCEEDED || resp.GetStatus() == lnrpc.Payment_FAILED {
+			return nil
+		}
+
 	}
 }
 
