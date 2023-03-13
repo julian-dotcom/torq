@@ -225,7 +225,7 @@ func openChannelProcess(client lnrpc.LightningClient, openChannelReq *lnrpc.Open
 				// No more messages to receive, the channel is open.
 				return OpenChannelResponse{}, nil
 			}
-			return OpenChannelResponse{}, errors.Wrap(err, "Close channel request receive")
+			return OpenChannelResponse{}, errors.Wrap(err, "Open channel request receive")
 		}
 
 		r := OpenChannelResponse{
