@@ -223,7 +223,7 @@ function DashboardPage() {
                   heading={t.dashboardPage.totalOnChainBalance}
                   value={node.onChainBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCard}
+                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div>
                       <dl>
@@ -241,25 +241,25 @@ function DashboardPage() {
                   heading={t.dashboardPage.totalOffChainBalance}
                   value={node.localBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCard}
+                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.totalBalance}
                   value={node.totalBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCard}
+                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.channels}
                   value={node.channels}
                   valueLabel={""}
-                  summaryClassOverride={styles.nodeSummaryCard}
+                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.capacity}
                   value={node.capacity}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCard}
+                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
               </div>
             </SummaryNode>
