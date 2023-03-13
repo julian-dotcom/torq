@@ -37,7 +37,7 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				torqNodeIds := commons.GetAllTorqNodeIds()
 				for _, torqNodeId := range torqNodeIds {
 					// Force Response because we don't care about balance accuracy
-					channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
+					channelIdsByNode := commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)
 					allChannelIds = append(allChannelIds, channelIdsByNode...)
 				}
 				if len(allChannelIds) == 0 {
@@ -108,15 +108,12 @@ bootstrappingLoop:
 		case <-ctx.Done():
 			return
 		case <-ticker:
-			var allChannelIds []int
 			torqNodeIds := commons.GetAllTorqNodeIds()
 			for _, torqNodeId := range torqNodeIds {
 				// Force Response because we don't care about balance accuracy
-				channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
-				allChannelIds = append(allChannelIds, channelIdsByNode...)
-			}
-			if len(allChannelIds) != 0 {
-				break bootstrappingLoop
+				if len(commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)) != 0 {
+					break bootstrappingLoop
+				}
 			}
 		}
 	}

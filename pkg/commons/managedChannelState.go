@@ -6,6 +6,7 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 )
 
 const toleratedSubscriptionDowntimeSeconds = 15
@@ -21,6 +22,8 @@ const (
 	READ_ALL_CHANNELSTATES
 	// READ_ALL_CHANNELSTATE_CHANNELIDS please provide NodeId and ChannelIdsOut
 	READ_ALL_CHANNELSTATE_CHANNELIDS
+	// READ_SHARED_CHANNELSTATE_CHANNELIDS please provide NodeId and ChannelIdsOut
+	READ_SHARED_CHANNELSTATE_CHANNELIDS
 	// READ_CHANNELBALANCESTATE please provide NodeId, ChannelId, HtlcInclude and BalanceStateOut
 	READ_CHANNELBALANCESTATE
 	// READ_ALL_CHANNELBALANCESTATES please provide NodeId, StateInclude, HtlcInclude and BalanceStatesOut
@@ -253,6 +256,29 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			var channelIds []int
 			for _, channelState := range settingsByChannel {
 				channelIds = append(channelIds, channelState.ChannelId)
+			}
+			SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, channelIds)
+			break
+		}
+		SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, nil)
+	case READ_SHARED_CHANNELSTATE_CHANNELIDS:
+		if managedChannelState.NodeId == 0 {
+			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
+			SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, nil)
+			break
+		}
+		if isNodeReady(channelStateSettingsStatusCache, managedChannelState.NodeId,
+			channelStateSettingsDeactivationTimeCache, managedChannelState.ForceResponse) {
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+			if !exists {
+				SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, nil)
+				break
+			}
+			var channelIds []int
+			for _, channelState := range settingsByChannel {
+				if slices.Contains(GetAllTorqNodeIds(), channelState.RemoteNodeId) {
+					channelIds = append(channelIds, channelState.ChannelId)
+				}
 			}
 			SendToManagedChannelIdsChannel(managedChannelState.ChannelIdsOut, channelIds)
 			break
@@ -660,6 +686,30 @@ func GetChannelStateChannelIds(nodeId int, forceResponse bool) []int {
 	}
 	ManagedChannelStateChannel <- managedChannelState
 	return <-channelIdsResponseChannel
+}
+
+func GetChannelStateSharedChannelIds(nodeId int, forceResponse bool) []int {
+	channelIdsResponseChannel := make(chan []int)
+	managedChannelState := ManagedChannelState{
+		NodeId:        nodeId,
+		ForceResponse: forceResponse,
+		Type:          READ_SHARED_CHANNELSTATE_CHANNELIDS,
+		ChannelIdsOut: channelIdsResponseChannel,
+	}
+	ManagedChannelStateChannel <- managedChannelState
+	return <-channelIdsResponseChannel
+}
+
+func GetChannelStateNotSharedChannelIds(nodeId int, forceResponse bool) []int {
+	var notSharedChannelIds []int
+	allChannelIds := GetChannelStateChannelIds(nodeId, forceResponse)
+	sharedChannelIds := GetChannelStateSharedChannelIds(nodeId, forceResponse)
+	for _, channelId := range allChannelIds {
+		if slices.Contains(sharedChannelIds, channelId) {
+			notSharedChannelIds = append(notSharedChannelIds, channelId)
+		}
+	}
+	return notSharedChannelIds
 }
 
 func GetChannelState(nodeId, channelId int, forceResponse bool) *ManagedChannelStateSettings {

@@ -717,7 +717,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 					}
 				}
 				if torqNodeId != 0 {
-					channelIds = commons.GetChannelStateChannelIds(torqNodeId, true)
+					channelIds = commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)
 				}
 			case "event":
 				msg := fmt.Sprintf(
