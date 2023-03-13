@@ -45,7 +45,6 @@ export default function SummaryCard(props: SummaryCardProps) {
         <div className={styles.value}>{useFormatter ? formatter(value) : value}</div>
         <div className={styles.valueLabel}>{props.valueLabel}</div>
       </div>
-
       {showInspection && props.details && <div className={classNames(styles.inspectionContainer)}>{props.details}</div>}
     </div>
   );
