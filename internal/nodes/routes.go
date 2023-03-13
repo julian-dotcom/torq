@@ -3,6 +3,7 @@ package nodes
 import (
 	"fmt"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
 
@@ -79,7 +80,12 @@ func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB, lightningRequest
 	walletBalances := make([]NodeWalletBalance, 0)
 	for _, v := range nodes {
 		r := commons.GetNodeWalletBalance(v.NodeId, lightningRequestChannel)
-
+		if r.Error != "" {
+			errorMsg := fmt.Sprintf("Error retrieving wallet balance for nodeId: %v", v.NodeId)
+			server_errors.WrapLogAndSendServerError(c, err, errorMsg)
+			log.Error().Msg(errorMsg)
+			return
+		}
 		walletBalances = append(walletBalances, NodeWalletBalance{
 			NodeId:                    v.NodeId,
 			TotalBalance:              r.TotalBalance,

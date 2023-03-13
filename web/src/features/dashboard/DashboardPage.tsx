@@ -25,34 +25,43 @@ import { useGetChannelsQuery, useGetNodeConfigurationsQuery, useGetNodesWalletBa
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
+import { nodeWalletBalances } from "../../apiTypes";
 
 interface nodeSummary {
+  nodeId: number;
+  name: string;
   onChainBalance: number;
-  offChainBalance: number;
   localBalance: number;
   totalBalance: number;
+  channels: number;
+  capacity: number;
+
+  walletBalances: nodeWalletBalances;
+}
+
+interface nodeChannelSummary {
+  nodeId: number;
+  localBalance: number;
   channels: number;
   capacity: number;
 }
 
 interface allNodesSummary {
   onChainBalance: number;
-  offChainBalance: number;
   localBalance: number;
   totalBalance: number;
   channels: number;
 }
 
-function CalculateTotals(nodesSummary: Record<string, nodeSummary>): allNodesSummary | undefined {
-  if (!nodesSummary) return undefined;
+function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSummary {
+  if (!nodeSummaries) return {} as allNodesSummary;
 
-  return Object.entries(nodesSummary).reduce(
-    (acc, [_, nodeSummary]) => {
-      acc.localBalance += nodeSummary.localBalance;
-      acc.offChainBalance += nodeSummary.offChainBalance;
-      acc.onChainBalance += nodeSummary.onChainBalance;
-      acc.channels += nodeSummary.channels;
-      acc.totalBalance += nodeSummary.totalBalance;
+  return nodeSummaries.reduce(
+    (acc, node) => {
+      acc.localBalance += node.localBalance;
+      acc.onChainBalance += node.onChainBalance;
+      acc.channels += node.channels;
+      acc.totalBalance += node.totalBalance;
       return acc;
     },
     { onChainBalance: 0, offChainBalance: 0, localBalance: 0, totalBalance: 0, channels: 0 }
@@ -75,32 +84,55 @@ function DashboardPage() {
     isSuccess: boolean;
   }>({ network: activeNetwork }, { skip: !nodeConfigurations, pollingInterval: 10000 });
 
-  type channelReduceReturnType = Record<number, nodeSummary>;
+  type channelReduceReturnType = Record<number, nodeChannelSummary>;
 
   //process channels based on node
-  const nodesSummary = channelsResponse?.data?.reduce<channelReduceReturnType>((acc, channel) => {
-    if (!acc[channel.nodeId])
-      acc[channel.nodeId] = {
+  const nodesOpenChannelSummary = channelsResponse?.data?.reduce<channelReduceReturnType>((acc, channel) => {
+    let channelsSummary = acc[channel.nodeId];
+    if (!channelsSummary) {
+      channelsSummary = {
         channels: 0,
         onChainBalance: 0,
-        offChainBalance: 0,
         localBalance: 0,
         totalBalance: 0,
         capacity: 0,
       } as nodeSummary;
 
-    console.log(nodesWalletBalances);
-    const onChainBalance = 0;
-    const nodeSummary = acc[channel.nodeId];
-    nodeSummary.channels += 1;
-    nodeSummary.capacity += channel.capacity;
-    nodeSummary.onChainBalance += onChainBalance; // will require interegation?
-    nodeSummary.localBalance += channel.localBalance;
-    nodeSummary.totalBalance += channel.localBalance + onChainBalance;
+      acc[channel.nodeId] = channelsSummary;
+    }
+
+    channelsSummary.channels += 1;
+    channelsSummary.capacity += channel.capacity;
+    channelsSummary.localBalance += channel.localBalance;
     return acc;
   }, {});
 
-  const totalsSummary = CalculateTotals(nodesSummary);
+  //nodes
+  const nodeSummaries = nodeConfigurations?.map((x) => {
+    const node = {
+      nodeId: x.nodeId,
+      name: x.name,
+    } as nodeSummary;
+
+    const walletBalances = nodesWalletBalances?.find((x) => x.nodeId === node.nodeId);
+    if (walletBalances) {
+      node.walletBalances = walletBalances;
+      node.onChainBalance = walletBalances.totalBalance;
+    }
+
+    const channelSummary = nodesOpenChannelSummary ? nodesOpenChannelSummary[node.nodeId] : undefined;
+
+    if (channelSummary) {
+      node.channels = channelSummary.channels;
+      node.localBalance = channelSummary.localBalance;
+      node.capacity = channelSummary.capacity;
+      node.totalBalance = node.localBalance + node.onChainBalance;
+    }
+
+    return node;
+  });
+
+  const totalsSummary = CalculateTotals(nodeSummaries);
 
   const controls = (
     <TableControlSection>
@@ -173,7 +205,7 @@ function DashboardPage() {
           ></SummaryCard>
           <SummaryCard
             heading={t.dashboardPage.totalOffChainBalance}
-            value={totalsSummary?.offChainBalance}
+            value={totalsSummary?.localBalance}
             valueLabel={t.dashboardPage.btc}
           ></SummaryCard>
           <SummaryCard
@@ -183,60 +215,56 @@ function DashboardPage() {
           ></SummaryCard>
         </div>
 
-        {nodesSummary &&
-          nodeConfigurations?.map((node) => {
-            const nodeSummary = nodesSummary[node?.nodeId];
-            if (!nodeSummary) return <></>;
-
-            return (
-              <SummaryNode nodeName={node.name ?? ""} key={`node-${node.nodeId}`}>
-                <div className={styles.summaryNodeContainer}>
-                  <SummaryCard
-                    heading={t.dashboardPage.totalOnChainBalance}
-                    value={nodeSummary.onChainBalance}
-                    valueLabel={t.dashboardPage.btc}
-                    summaryClassOverride={styles.nodeSummaryCard}
-                    details={
-                      <div>
-                        <dl>
-                          <dt>Confirmed</dt>
-                          <dd>600,512,313</dd>
-                          <dt>Unconfirmed</dt>
-                          <dd>100,123,543</dd>
-                          <dt>Locked Balance</dt>
-                          <dd>0</dd>
-                        </dl>
-                      </div>
-                    }
-                  ></SummaryCard>
-                  <SummaryCard
-                    heading={t.dashboardPage.totalOffChainBalance}
-                    value={nodeSummary.offChainBalance}
-                    valueLabel={t.dashboardPage.btc}
-                    summaryClassOverride={styles.nodeSummaryCard}
-                  ></SummaryCard>
-                  <SummaryCard
-                    heading={t.dashboardPage.totalBalance}
-                    value={nodeSummary.totalBalance}
-                    valueLabel={t.dashboardPage.btc}
-                    summaryClassOverride={styles.nodeSummaryCard}
-                  ></SummaryCard>
-                  <SummaryCard
-                    heading={t.dashboardPage.channels}
-                    value={nodeSummary.channels}
-                    valueLabel={""}
-                    summaryClassOverride={styles.nodeSummaryCard}
-                  ></SummaryCard>
-                  <SummaryCard
-                    heading={t.dashboardPage.capacity}
-                    value={nodeSummary.capacity}
-                    valueLabel={t.dashboardPage.btc}
-                    summaryClassOverride={styles.nodeSummaryCard}
-                  ></SummaryCard>
-                </div>
-              </SummaryNode>
-            );
-          })}
+        {nodeSummaries?.map((node) => {
+          return (
+            <SummaryNode nodeName={node.name ?? ""} key={`node-${node.nodeId}`}>
+              <div className={styles.summaryNodeContainer}>
+                <SummaryCard
+                  heading={t.dashboardPage.totalOnChainBalance}
+                  value={node.onChainBalance}
+                  valueLabel={t.dashboardPage.btc}
+                  summaryClassOverride={styles.nodeSummaryCard}
+                  details={
+                    <div>
+                      <dl>
+                        <dt>{t.dashboardPage.onChain.confirmed}</dt>
+                        <dd>{node?.walletBalances?.confirmedBalance}</dd>
+                        <dt>{t.dashboardPage.onChain.unconfirmed}</dt>
+                        <dd>{node?.walletBalances?.unconfirmedBalance}</dd>
+                        <dt>{t.dashboardPage.onChain.lockedBalance}</dt>
+                        <dd>{node?.walletBalances?.lockedBalance}</dd>
+                      </dl>
+                    </div>
+                  }
+                ></SummaryCard>
+                <SummaryCard
+                  heading={t.dashboardPage.totalOffChainBalance}
+                  value={node.localBalance}
+                  valueLabel={t.dashboardPage.btc}
+                  summaryClassOverride={styles.nodeSummaryCard}
+                ></SummaryCard>
+                <SummaryCard
+                  heading={t.dashboardPage.totalBalance}
+                  value={node.totalBalance}
+                  valueLabel={t.dashboardPage.btc}
+                  summaryClassOverride={styles.nodeSummaryCard}
+                ></SummaryCard>
+                <SummaryCard
+                  heading={t.dashboardPage.channels}
+                  value={node.channels}
+                  valueLabel={""}
+                  summaryClassOverride={styles.nodeSummaryCard}
+                ></SummaryCard>
+                <SummaryCard
+                  heading={t.dashboardPage.capacity}
+                  value={node.capacity}
+                  valueLabel={t.dashboardPage.btc}
+                  summaryClassOverride={styles.nodeSummaryCard}
+                ></SummaryCard>
+              </div>
+            </SummaryNode>
+          );
+        })}
       </div>
     </DashboardPageTemplate>
   );

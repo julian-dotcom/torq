@@ -395,6 +395,11 @@
     "channels" : "Channels",
     "capacity" : "Capacity",
     "peers" : "peers",
-    "btc" : "btc"
+    "btc" : "btc",
+    "onChain" : {
+      "confirmed" : "Confirmed",
+      "unconfirmed" : "Unconfirmed",
+      "lockedBalance" : "Locked Balance"
+    }
   }
 }
