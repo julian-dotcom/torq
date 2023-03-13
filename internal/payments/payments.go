@@ -27,7 +27,7 @@ type Payment struct {
 	PaymentRequest          *string   `json:"paymentRequest" db:"payment_request"`
 	IsRebalance             *bool     `json:"isRebalance" db:"is_rebalance"`
 	IsMPP                   bool      `json:"isMpp" db:"is_mpp"`
-	CountSuccessfulAttempts int       `json:"countSuccessful_attempts" db:"count_successful_attempts"`
+	CountSuccessfulAttempts int       `json:"countSuccessfulAttempts" db:"count_successful_attempts"`
 	CountFailedAttempts     int       `json:"countFailedAttempts" db:"count_failed_attempts"`
 	SecondsInFlight         *float32  `json:"secondsInFlight" db:"seconds_in_flight"`
 }
