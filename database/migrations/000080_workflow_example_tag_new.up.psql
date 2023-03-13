@@ -1,0 +1,173 @@
+
+
+INSERT INTO workflow (name, status, created_on, updated_on)
+VALUES('1. Tag new [EXAMPLE]',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+
+INSERT INTO workflow_version (name, version, status, created_on, updated_on, workflow_id)
+SELECT 'Initial Version',1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,workflow_id
+FROM workflow
+WHERE name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Add Tag New',1,11,
+       '{"applyTo": "channel", "addedTags": [{"label": "New", "value": -5}]}',
+       '{"collapsed": false, "xPosition": 1330, "yPosition": 155}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'All Channels',1,19,
+       '{"source": "all"}',
+       '{"collapsed": false, "xPosition": 406, "yPosition": 4}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Cron Trigger',1,15,
+       '{"cronValue": "0 * * * *"}',
+       '{"collapsed": false, "xPosition": 0, "yPosition": 0}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Channel Opens',1,13,
+       '{}',
+       '{"collapsed": false, "xPosition": 0, "yPosition": 0}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Less than 7 days old',1,2,
+       '{"$and": [{"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "lt", "parameter": 604800}}]}',
+       '{"collapsed": false, "xPosition": 891, "yPosition": 142}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'More than 7 days old',1,2,
+       '{"$and": [{"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "gte", "parameter": 604800}}]}',
+       '{"collapsed": false, "xPosition": 892, "yPosition": -167}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Remove Tag New',1,12,
+       '{"applyTo": "channel", "removedTags": [{"label": "New", "value": -5}]}',
+       '{"collapsed": false, "xPosition": 1331, "yPosition": -201}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Trigger',1,10,
+       '{}',
+       '{"collapsed": null, "xPosition": null, "yPosition": null}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230310.084815.191887',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='All Channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='More than 7 days old'
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230310.084955.665188',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='All Channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Less than 7 days old'
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230310.085125.033352',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='More than 7 days old'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Remove Tag New'
+WHERE wf.name='1. Tag new [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230310.085153.710211',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Less than 7 days old'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Add Tag New'
+WHERE wf.name='1. Tag new [EXAMPLE]';
