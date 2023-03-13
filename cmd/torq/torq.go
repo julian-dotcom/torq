@@ -528,7 +528,7 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel <-chan co
 					if successful {
 						switch serviceCmd.ServiceType {
 						case commons.LndService:
-							go processLndBoot(db, c, node, bootLock, runningServices, serviceCmd,
+							go processLndBoot(db, node, bootLock, runningServices, serviceCmd,
 								lightningRequestChannel, broadcaster, serviceEventChannel)
 						default:
 							go processServiceBoot(name, db, c, node, bootLock, runningServices, serviceCmd,
@@ -590,6 +590,7 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 				if err != nil {
 					log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
 				}
+				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LightningCommunicationService}
 				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LndService}
 			case commons.ServiceActive:
 				serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.MaintenanceService, NodeId: commons.TorqDummyNodeId}
@@ -600,10 +601,6 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 		if serviceEvent.Type == commons.LndService {
 			if serviceEvent.Status == commons.ServiceActive && serviceEvent.SubscriptionStream == nil {
 				log.Debug().Msgf("LndService booted for nodeId: %v", serviceEvent.NodeId)
-				log.Debug().Msgf("Starting LightningCommunication Service for nodeId: %v", serviceEvent.NodeId)
-				if commons.RunningServices[commons.LightningCommunicationService].GetStatus(serviceEvent.NodeId) == commons.ServiceInactive {
-					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.LightningCommunicationService, NodeId: serviceEvent.NodeId}
-				}
 				log.Debug().Msgf("Starting Rebalance Service for nodeId: %v", serviceEvent.NodeId)
 				if commons.RunningServices[commons.RebalanceService].GetStatus(serviceEvent.NodeId) == commons.ServiceInactive {
 					serviceChannel <- commons.ServiceChannelMessage{ServiceCommand: commons.Boot, ServiceType: commons.RebalanceService, NodeId: serviceEvent.NodeId}
@@ -629,7 +626,7 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 	}
 }
 
-func processLndBoot(db *sqlx.DB, c *cli.Context, node settings.ConnectionDetails, bootLock *sync.Mutex,
+func processLndBoot(db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	runningServices *commons.Services, serviceCmd commons.ServiceChannelMessage,
 	lightningRequestChannel chan<- interface{},
 	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
