@@ -115,7 +115,9 @@ func closeChannelResp(db *sqlx.DB,
 	// Call CloseChannel with the timeout context.
 	closeChanRes, err := client.CloseChannel(timeoutCtx, closeChanReq)
 	if err != nil {
-		return CloseChannelResponse{}, errors.Wrap(err, "Close channel request")
+		err = errors.Wrap(err, "Problem sending closing channel request to LND")
+		log.Error().Err(err).Send()
+		return CloseChannelResponse{}, err
 	}
 
 	// Loop until we receive a close channel response or the context times out.
@@ -133,7 +135,8 @@ func closeChannelResp(db *sqlx.DB,
 				// No more messages to receive, the channel is closed.
 				return CloseChannelResponse{}, nil
 			}
-			return CloseChannelResponse{}, errors.Wrap(err, "Close channel request receive")
+			log.Error().Err(errors.Wrap(err, "LND close channel")).Send()
+			return CloseChannelResponse{}, errors.Wrap(err, "LND Close channel")
 		}
 
 		// Process the close channel response and see if the channel is pending closure.

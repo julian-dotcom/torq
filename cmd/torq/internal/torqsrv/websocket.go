@@ -2,6 +2,7 @@ package torqsrv
 
 import (
 	"fmt"
+	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
 	"net/url"
 
@@ -35,9 +36,9 @@ type AuthSuccess struct {
 }
 
 type wsError struct {
-	RequestId string `json:"id"`
-	Type      string `json:"type"`
-	Error     string `json:"error"`
+	RequestId string                    `json:"id"`
+	Type      string                    `json:"type"`
+	Error     server_errors.ServerError `json:"error"`
 }
 
 func processWsReq(db *sqlx.DB,
@@ -136,10 +137,11 @@ func processWebsocketRequests(conn *websocket.Conn,
 		case nil:
 			go processWsReq(db, webSocketResponseChannel, req)
 		default:
+			serverError := server_errors.SingleServerError("Could not parse request, please check that your JSON is correctly formated.")
 			wsr := wsError{
 				RequestId: req.RequestId,
 				Type:      "Error",
-				Error:     "Could not parse request, please check that your JSON is correctly formated.",
+				Error:     *serverError,
 			}
 			webSocketResponseChannel <- wsr
 		}
@@ -148,10 +150,11 @@ func processWebsocketRequests(conn *websocket.Conn,
 
 func sendError(err error, req wsRequest, webSocketResponseChannel chan<- interface{}) {
 	if err != nil {
+		serverError := server_errors.SingleServerError(err.Error())
 		webSocketResponseChannel <- wsError{
 			RequestId: req.RequestId,
 			Type:      "Error",
-			Error:     err.Error(),
+			Error:     *serverError,
 		}
 	}
 }
