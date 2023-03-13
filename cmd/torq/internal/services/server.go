@@ -19,7 +19,8 @@ import (
 func Start(ctx context.Context, db *sqlx.DB,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
-	broadcaster broadcast.BroadcastServer) error {
+	broadcaster broadcast.BroadcastServer,
+	serviceEventChannel chan<- commons.ServiceEvent) error {
 
 	var wg sync.WaitGroup
 
@@ -64,13 +65,15 @@ func Start(ctx context.Context, db *sqlx.DB,
 		automation.ScheduledTriggerMonitor(ctx, db, lightningRequestChannel, rebalanceRequestChannel)
 	})()
 
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.AutomationService, nil)
+
 	wg.Wait()
 
 	return nil
 }
 
 func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) error {
+	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) error {
 
 	var wg sync.WaitGroup
 
@@ -85,7 +88,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 				commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
 			}
 		}()
-		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
+		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
 	})()
 
 	wg.Wait()
@@ -94,7 +97,7 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) error {
+	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) error {
 
 	var wg sync.WaitGroup
 
@@ -109,7 +112,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 				commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
 			}
 		}()
-		workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
+		workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
 	})()
 
 	wg.Wait()
@@ -117,7 +120,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	return nil
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB) error {
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) error {
 	var wg sync.WaitGroup
 
 	active := commons.ServiceActive
@@ -134,12 +137,14 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB) error {
 		commons.MaintenanceServiceStart(ctx, db)
 	})()
 
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.MaintenanceService, nil)
+
 	wg.Wait()
 
 	return nil
 }
 
-func StartCronService(ctx context.Context, db *sqlx.DB) error {
+func StartCronService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) error {
 	var wg sync.WaitGroup
 
 	active := commons.ServiceActive
@@ -156,6 +161,8 @@ func StartCronService(ctx context.Context, db *sqlx.DB) error {
 		}()
 		automation.CronTriggerMonitor(ctx, db)
 	})()
+
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.CronService, nil)
 
 	wg.Wait()
 

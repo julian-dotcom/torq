@@ -84,7 +84,7 @@ func (runner *RebalanceRunner) isFailedHop(
 }
 
 func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
+	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("RebalanceService terminated for nodeId: %v", nodeId)
 
@@ -111,6 +111,9 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 			processRebalanceRequests(ctx, db, requests, nodeId)
 		}
 	}()
+
+	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServiceInactive, commons.ServiceActive, commons.RebalanceService, nil)
+
 	wg.Wait()
 }
 

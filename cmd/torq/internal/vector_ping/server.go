@@ -57,10 +57,12 @@ type VectorPingChain struct {
 }
 
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int,
+	serviceEventChannel chan<- commons.ServiceEvent) error {
 
 	defer log.Info().Msgf("Vector Ping Service terminated for nodeId: %v", nodeId)
 
+	previousStatus := commons.ServiceInactive
 	_, monitorCancel := context.WithCancel(context.Background())
 
 	client := lnrpc.NewLightningClient(conn)
@@ -139,6 +141,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 		if err != nil {
 			monitorCancel()
 			return errors.Wrapf(err, "Closing response body.")
+		}
+		if previousStatus == commons.ServiceInactive {
+			commons.SendServiceEvent(nodeId, serviceEventChannel, previousStatus, commons.ServiceActive, commons.VectorService, nil)
+			previousStatus = commons.ServiceActive
 		}
 		log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
 		time.Sleep(vectorSleepSeconds * time.Second)
