@@ -74,7 +74,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	torqNodeIds := commons.GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		// Force Response because we don't care about balance accuracy
-		channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
+		channelIdsByNode := commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)
 		allChannelIds = append(allChannelIds, channelIdsByNode...)
 	}
 	marshalledAllChannelIds, err := json.Marshal(allChannelIds)
