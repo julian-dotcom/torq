@@ -72,12 +72,12 @@ func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.Servi
 	//	AutomationService
 	//	MaintenanceService
 	//	CronService
+	startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, false)
 	startServiceOrRestartWhenRunning(serviceChannel, commons.RebalanceService, nodeId, false)
 	time.Sleep(2 * time.Second)
-	return startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, lndActive)
+	return startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, lndActive)
 }
 
 func startServiceOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage,
@@ -313,7 +313,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	if ncd.Status == commons.Active {
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:         ncd.NodeId,
-			ServiceType:    commons.LndService,
+			ServiceType:    commons.LightningCommunicationService,
 			ServiceCommand: commons.Boot,
 		}
 	}
@@ -488,7 +488,7 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, commons.Status(statusId) == commons.Active)
+	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
 		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
 		if err != nil {
