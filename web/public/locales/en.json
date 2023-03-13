@@ -14,6 +14,7 @@
   "focus": "Focus",
   "SatPerVbyte": "Sat/vbyte",
   "Error": "Error",
+  "Processing": "Processing",
   "Private": "Private",
   "ChannelSize": "Channel Size",
   "AdvancedActions": "Advanced Actions",
@@ -277,6 +278,7 @@
     "closeChannel": "Close Channel",
     "error": "Error",
     "note": "Note",
+    "processingClose": "Please wait while we close your channel.",
     "confirmationOpenning": "The channel open has been published but still need time to be confirmed on-chain.",
     "confirmationClosing": "The channel close has been successfully published to the network but the funds in the channel still need to be confirmed through an on-chain transaction."
   },

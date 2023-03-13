@@ -19,8 +19,8 @@ const ErrorSummary = ({ errors, title }: errorSummaryType) => {
         serverErrors.push(mergedError);
         continue;
       }
-      // Bit of a hack to only show the top most error rather than all the wrapped errors
-      serverErrors.push((error.description ?? "").split(":")[0]);
+      // A bit of a hack to only show the top most error rather than all the wrapped errors
+      serverErrors.push(error.description ?? "");
     }
   }
   return (
