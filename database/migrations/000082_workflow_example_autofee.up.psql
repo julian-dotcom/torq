@@ -1,0 +1,422 @@
+
+
+INSERT INTO workflow (name, status, created_on, updated_on)
+VALUES('3. Auto Fee [EXAMPLE]',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+
+INSERT INTO workflow_version (name, version, status, created_on, updated_on, workflow_id)
+SELECT 'Initial Version',1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,workflow_id
+FROM workflow
+WHERE name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Trigger',1,10,
+       '{}',
+       '{"collapsed": null, "xPosition": null, "yPosition": null}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Interval Trigger',1,1,
+       '{"seconds": 600, "timeUnit": 60}',
+       '{"collapsed": false, "xPosition": 589, "yPosition": -117}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Full channels',1,2,
+       '{"$and": [{"$filter": {"key": "gauge", "category": "number", "funcName": "gte", "parameter": 90}}]}',
+       '{"collapsed": true, "xPosition": 1405, "yPosition": -65}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'New Channels',1,2,
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "notAny", "parameter": [-7, -8, -19]}}, {"$or": [{"$filter": {"key": "tags", "category": "tag", "funcName": "any", "parameter": [-5]}}, {"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "lt", "parameter": 604800}}]}]}',
+       '{"collapsed": true, "xPosition": 899, "yPosition": 420}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Torq Channel(s)',1,19,
+       '{"source": "eventXorAll"}',
+       '{"collapsed": true, "xPosition": 413, "yPosition": 21}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Balanced channels',1,2,
+       '{"$and": [{"$filter": {"key": "gauge", "category": "number", "funcName": "gt", "parameter": 10}}, {"$filter": {"key": "gauge", "category": "number", "funcName": "lt", "parameter": 90}}]}',
+       '{"collapsed": true, "xPosition": 1403, "yPosition": 30}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Source channels',1,2,
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "any", "parameter": [-8]}}]}',
+       '{"collapsed": true, "xPosition": 897, "yPosition": 596}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Sink channels',1,2,
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "any", "parameter": [-7]}}]}',
+       '{"collapsed": true, "xPosition": 901, "yPosition": 508}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Regular channels',1,2,
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "notAny", "parameter": [-5, -7, -8]}}, {"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "gte", "parameter": 604800}}]}',
+       '{"collapsed": false, "xPosition": 900, "yPosition": 21}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Depleted channels',1,2,
+       '{"$and": [{"$filter": {"key": "gauge", "category": "number", "funcName": "lte", "parameter": 10}}]}',
+       '{"collapsed": true, "xPosition": 1404, "yPosition": 123}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'New channels fee',1,17,
+       '{"feeBaseMsat": 0, "feeRateMilliMsat": 1500}',
+       '{"collapsed": true, "xPosition": 1869, "yPosition": 418}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Full channels fee',1,17,
+       '{"feeBaseMsat": 0, "feeRateMilliMsat": 200}',
+       '{"collapsed": true, "xPosition": 1875, "yPosition": -68}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Source channels fee',1,17,
+       '{"feeBaseMsat": 0, "feeRateMilliMsat": 0}',
+       '{"collapsed": true, "xPosition": 1875, "yPosition": 595}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Sink channels fee',1,17,
+       '{"feeBaseMsat": 0, "feeRateMilliMsat": 1500}',
+       '{"collapsed": true, "xPosition": 1872, "yPosition": 505}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Depleted channels fee',1,17,
+       '{"feeBaseMsat": 0, "feeRateMilliMsat": 500}',
+       '{"collapsed": true, "xPosition": 1880, "yPosition": 121}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node (stage, name, status, type,
+                                   parameters,
+                                   visibility_settings,
+                                   workflow_version_id, created_on, updated_on)
+SELECT 1,'Balanced channels fee',1,17,
+       '{"feeBaseMsat": 0, "feeRateMilliMsat": 350}',
+       '{"collapsed": true, "xPosition": 1879, "yPosition": 27}',
+       wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.090317.694353',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Torq Channel(s)'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Regular channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.090419.468084',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Regular channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Full channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.090509.691443',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Full channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Full channels fee'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.090825.728512',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Torq Channel(s)'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='New Channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.091256.637871',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Regular channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Balanced channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.091415.974293',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Balanced channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Balanced channels fee'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.091454.212770',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Regular channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Depleted channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.091536.362066',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Depleted channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Depleted channels fee'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.091839.853165',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='New Channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='New channels fee'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.092051.672197',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Torq Channel(s)'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Sink channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.092124.697380',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Sink channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Sink channels fee'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.092354.161458',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Torq Channel(s)'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Source channels'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
+
+INSERT INTO workflow_version_node_link (name,
+                                        visibility_settings,
+                                        parent_output, parent_workflow_version_node_id, child_input, child_workflow_version_node_id,
+                                        workflow_version_id, created_on, updated_on)
+SELECT '20230313.092411.307203',
+       '{"child": {"xPosition": 0, "yPosition": 0}, "parent": {"xPosition": 0, "yPosition": 0}}',
+       'channels', wfvn.workflow_version_node_id,
+       'channels', wfvn2.workflow_version_node_id,
+       wfv.workflow_version_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM workflow_version wfv
+         JOIN workflow wf on wfv.workflow_id = wf.workflow_id
+         JOIN workflow_version_node wfvn on wfv.workflow_version_id=wfvn.workflow_version_id AND
+                                            wfvn.name='Source channels'
+         JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
+                                             wfvn2.name='Source channels fee'
+WHERE wf.name='3. Auto Fee [EXAMPLE]';
