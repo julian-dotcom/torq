@@ -488,7 +488,7 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	done := startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, commons.Status(statusId) == commons.Active)
+	done := startAllLndServicesOrRestartWhenRunning(serviceChannel, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
 		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
 		if err != nil {
