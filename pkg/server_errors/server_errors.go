@@ -83,7 +83,7 @@ func SingleFieldErrorCode(field string, fieldErrorCode string, attributes map[st
 
 func LogAndSendServerError(c *gin.Context, err error) {
 	log.Error().Err(err).Send()
-	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
+	c.JSON(http.StatusInternalServerError, SingleServerError(errors.Cause(err).Error()))
 }
 
 func LogAndSendServerErrorCode(c *gin.Context, err error, code string, attributes map[string]string) {
@@ -94,7 +94,7 @@ func LogAndSendServerErrorCode(c *gin.Context, err error, code string, attribute
 func WrapLogAndSendServerError(c *gin.Context, err error, message string) {
 	err = errors.Wrap(err, message)
 	log.Error().Err(err).Send()
-	c.JSON(http.StatusInternalServerError, SingleServerError(err.Error()))
+	c.JSON(http.StatusInternalServerError, SingleServerError(errors.Cause(err).Error()))
 }
 
 func SendBadRequest(c *gin.Context, message string) {
@@ -110,9 +110,9 @@ func SendUnprocessableEntity(c *gin.Context, message string) {
 }
 
 func SendBadRequestFromError(c *gin.Context, err error) {
-	c.JSON(http.StatusBadRequest, SingleServerError(err.Error()))
+	c.JSON(http.StatusBadRequest, SingleServerError(errors.Cause(err).Error()))
 }
 
 func SendUnprocessableEntityFromError(c *gin.Context, err error) {
-	c.JSON(http.StatusUnprocessableEntity, SingleServerError(err.Error()))
+	c.JSON(http.StatusUnprocessableEntity, SingleServerError(errors.Cause(err).Error()))
 }

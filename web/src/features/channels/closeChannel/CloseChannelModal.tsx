@@ -7,7 +7,7 @@ import {
   Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import Button, { ButtonWrapper, ColorVariant, ExternalLinkButton } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -28,13 +28,13 @@ import ErrorSummary from "components/errors/ErrorSummary";
 import { RtqToServerError } from "components/errors/errors";
 
 const closeStatusClass = {
-  IN_FLIGHT: styles.inFlight,
+  PROCESSING: styles.processing,
   FAILED: styles.failed,
   SUCCEEDED: styles.success,
 };
 
 const closeStatusIcon = {
-  IN_FLIGHT: <ProcessingIcon />,
+  PROCESSING: <ProcessingIcon />,
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
   NOTE: <NoteIcon />,
@@ -47,19 +47,51 @@ function closeChannelModal() {
   const nodeId = parseInt(queryParams.get("nodeId") || "0");
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
-  const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  const [detailState, setDetailState] = useState(ProgressStepState.active);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);
+  const [resultState, setResultState] = useState(ProgressStepState.disabled);
+  const [detailState, setDetailState] = useState(ProgressStepState.active);
 
   const closeAndReset = () => {
     setStepIndex(0);
     setDetailState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
+    setSatPerVbyte(undefined);
+    setForce(false);
   };
 
-  const [closeChannel, { data: closeChannelResponse, error: closeChannelError, isError }] = useCloseChannelMutation();
+  const [closeChannel, { data: closeChannelResponse, error: closeChannelError, isError, isSuccess, isLoading }] =
+    useCloseChannelMutation();
+
+  useEffect(() => {
+    if (isSuccess) {
+      setResultState(ProgressStepState.completed);
+    }
+    if (isLoading) {
+      setResultState(ProgressStepState.processing);
+    }
+    if (isError) {
+      setResultState(ProgressStepState.error);
+    }
+  }, [isSuccess, isError, isLoading]);
+
+  function handleCloseChannel() {
+    setStepIndex(1);
+    setDetailState(ProgressStepState.completed);
+    mixpanel.track("Close Channel", {
+      nodeId: nodeId,
+      channelId: channelId,
+      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+      force: force,
+    });
+    closeChannel({
+      nodeId: nodeId,
+      channelId: channelId,
+      satPerVbyte: satPerVbyte,
+      force: force,
+    });
+  }
 
   return (
     <PopoutPageTemplate title={"Close Channel"} show={true} onClose={() => navigate(-1)} icon={<ChannelsIcon />}>
@@ -73,21 +105,17 @@ function closeChannelModal() {
           <div className={styles.activeColumns}>
             <div className={styles.closeChannelTableRow}>
               <FormRow>
-                <div className={styles.closeChannelTableSingle}>
-                  <span className={styles.label}>{"Sat per vbyte"}</span>
-                  <div className={styles.input}>
-                    <Input
-                      formatted={true}
-                      className={styles.single}
-                      thousandSeparator={","}
-                      value={satPerVbyte}
-                      suffix={" sat/vbyte"}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setSatPerVbyte(values.floatValue);
-                      }}
-                    />
-                  </div>
-                </div>
+                <Input
+                  label={"Sat/vbyte"}
+                  formatted={true}
+                  className={styles.single}
+                  thousandSeparator={","}
+                  value={satPerVbyte}
+                  suffix={" sat/vbyte"}
+                  onValueChange={(values: NumberFormatValues) => {
+                    setSatPerVbyte(values.floatValue);
+                  }}
+                />
               </FormRow>
             </div>
             {/*<div className={styles.closeChannelTableRow}>*/}
@@ -120,26 +148,7 @@ function closeChannelModal() {
             </div>
             <ButtonWrapper
               rightChildren={
-                <Button
-                  onClick={() => {
-                    setStepIndex(1);
-                    setDetailState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.completed);
-                    mixpanel.track("Close Channel", {
-                      nodeId: nodeId,
-                      channelId: channelId,
-                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
-                      force: force,
-                    });
-                    closeChannel({
-                      nodeId: nodeId,
-                      channelId: channelId,
-                      satPerVbyte: satPerVbyte,
-                      force: force,
-                    });
-                  }}
-                  buttonColor={ColorVariant.success}
-                >
+                <Button onClick={handleCloseChannel} buttonColor={ColorVariant.success}>
                   {t.openCloseChannel.closeChannel}
                 </Button>
               }
@@ -151,14 +160,18 @@ function closeChannelModal() {
             className={classNames(
               styles.closeChannelResultIconWrapper,
               { [styles.failed]: isError },
-              closeStatusClass[isError ? "FAILED" : "SUCCEEDED"]
+              closeStatusClass[isLoading ? "PROCESSING" : isError ? "FAILED" : "SUCCEEDED"]
             )}
           >
-            {" "}
-            {closeStatusIcon[isError ? "FAILED" : "SUCCEEDED"]}
+            {closeStatusIcon[isLoading ? "PROCESSING" : isError ? "FAILED" : "SUCCEEDED"]}
           </div>
           <div className={styles.closeChannelResultDetails}>
-            {!isError && (
+            {isLoading && (
+              <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
+                {t.openCloseChannel.processingClose}
+              </Note>
+            )}
+            {isSuccess && (
               <>
                 <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
                   {closeChannelResponse?.closingTransactionHash}
