@@ -32,17 +32,27 @@ const genericBootstrappingTimeSeconds = 60
 // fetches data as needed and stores it in the database.
 // It is meant to run as a background task / daemon and is the bases for all
 // of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, broadcaster broadcast.BroadcastServer,
-	serviceEventChannel chan<- commons.ServiceEvent, htlcEventChannel chan<- commons.HtlcEvent, forwardEventChannel chan<- commons.ForwardEvent,
-	channelEventChannel chan<- commons.ChannelEvent, nodeGraphEventChannel chan<- commons.NodeGraphEvent, channelGraphEventChannel chan<- commons.ChannelGraphEvent,
-	invoiceEventChannel chan<- commons.InvoiceEvent, paymentEventChannel chan<- commons.PaymentEvent, transactionEventChannel chan<- commons.TransactionEvent,
-	peerEventChannel chan<- commons.PeerEvent, blockEventChannel chan<- commons.BlockEvent, lightningRequestChannel chan<- interface{}) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
+	broadcaster broadcast.BroadcastServer,
+	htlcEventChannel chan<- commons.HtlcEvent,
+	forwardEventChannel chan<- commons.ForwardEvent,
+	channelEventChannel chan<- commons.ChannelEvent,
+	nodeGraphEventChannel chan<- commons.NodeGraphEvent,
+	channelGraphEventChannel chan<- commons.ChannelGraphEvent,
+	invoiceEventChannel chan<- commons.InvoiceEvent,
+	paymentEventChannel chan<- commons.PaymentEvent,
+	transactionEventChannel chan<- commons.TransactionEvent,
+	peerEventChannel chan<- commons.PeerEvent,
+	blockEventChannel chan<- commons.BlockEvent,
+	lightningRequestChannel chan<- interface{},
+	serviceEventChannel chan<- commons.ServiceEvent) error {
+
+	active := commons.ServiceActive
 
 	router := routerrpc.NewRouterClient(conn)
 	client := lnrpc.NewLightningClient(conn)
 	chain := chainrpc.NewChainNotifierClient(conn)
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-	active := commons.ServiceActive
 
 	var wg sync.WaitGroup
 
@@ -121,6 +131,8 @@ func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int, 
 	})()
 
 	waitForReadyState(nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream", serviceEventChannel)
+
+	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.LndService, nil)
 
 	// HTLC events
 	wg.Add(1)

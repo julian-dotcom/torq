@@ -244,8 +244,11 @@ func main() {
 
 			// go routine that responds to commands to boot and kill services
 			if !c.Bool("torq.no-sub") {
-				go serviceChannelRoutine(db, c,
-					serviceChannelGlobal,
+				go serviceChannelRoutine(db, serviceChannelGlobal,
+					htlcEventChannelGlobal, forwardEventChannelGlobal,
+					channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
+					invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal,
+					peerEventChannelGlobal, blockEventChannelGlobal,
 					lightningRequestChannelGlobal,
 					rebalanceRequestChannelGlobal,
 					serviceEventChannelGlobal, broadcasterGlobal)
@@ -409,7 +412,13 @@ func serviceChannelDummyRoutine(serviceChannel <-chan commons.ServiceChannelMess
 	}
 }
 
-func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel <-chan commons.ServiceChannelMessage,
+func serviceChannelRoutine(db *sqlx.DB, serviceChannel <-chan commons.ServiceChannelMessage,
+	htlcEventChannel chan<- commons.HtlcEvent, forwardEventChannel chan<- commons.ForwardEvent,
+	channelEventChannel chan<- commons.ChannelEvent, nodeGraphEventChannel chan<- commons.NodeGraphEvent,
+	channelGraphEventChannel chan<- commons.ChannelGraphEvent,
+	invoiceEventChannel chan<- commons.InvoiceEvent, paymentEventChannel chan<- commons.PaymentEvent,
+	transactionEventChannel chan<- commons.TransactionEvent, peerEventChannel chan<- commons.PeerEvent,
+	blockEventChannel chan<- commons.BlockEvent,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	serviceEventChannel chan<- commons.ServiceEvent, broadcaster broadcast.BroadcastServer) {
@@ -527,6 +536,10 @@ func serviceChannelRoutine(db *sqlx.DB, c *cli.Context, serviceChannel <-chan co
 					successful := bootLock.TryLock()
 					if successful {
 						go processServiceBoot(name, db, node, bootLock, runningServices, serviceCmd,
+							htlcEventChannel, forwardEventChannel,
+							channelEventChannel, nodeGraphEventChannel, channelGraphEventChannel,
+							invoiceEventChannel, paymentEventChannel, transactionEventChannel, peerEventChannel,
+							blockEventChannel,
 							lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
 					} else {
 						log.Error().Msgf("%v Service: Requested start failed. A start is already running.", name)
@@ -625,9 +638,16 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 
 func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetails, bootLock *sync.Mutex,
 	runningServices *commons.Services, serviceCmd commons.ServiceChannelMessage,
+	htlcEventChannel chan<- commons.HtlcEvent, forwardEventChannel chan<- commons.ForwardEvent,
+	channelEventChannel chan<- commons.ChannelEvent, nodeGraphEventChannel chan<- commons.NodeGraphEvent,
+	channelGraphEventChannel chan<- commons.ChannelGraphEvent,
+	invoiceEventChannel chan<- commons.InvoiceEvent, paymentEventChannel chan<- commons.PaymentEvent,
+	transactionEventChannel chan<- commons.TransactionEvent, peerEventChannel chan<- commons.PeerEvent,
+	blockEventChannel chan<- commons.BlockEvent,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
+	broadcaster broadcast.BroadcastServer,
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer func() {
 		if commons.MutexLocked(bootLock) {
@@ -661,33 +681,32 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 		}
 	}
 
-	previousStatus = runningServices.Booted(node.NodeId, bootLock)
-	commons.SendServiceEvent(node.NodeId, serviceEventChannel, previousStatus, commons.ServiceActive, serviceCmd.ServiceType, nil)
+	runningServices.Booted(node.NodeId, bootLock)
 	if serviceCmd.ServiceType == commons.LndService {
 		commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(node.NodeId, node.CustomSettings)
 	}
 	log.Info().Msgf("%v Service booted for node id: %v", name, node.NodeId)
 	switch serviceCmd.ServiceType {
 	case commons.VectorService:
-		err = vector_ping.Start(ctx, conn, node.NodeId)
+		err = vector_ping.Start(ctx, conn, node.NodeId, serviceEventChannel)
 	case commons.AmbossService:
-		err = amboss_ping.Start(ctx, conn, node.NodeId)
+		err = amboss_ping.Start(ctx, conn, node.NodeId, serviceEventChannel)
 	case commons.LightningCommunicationService:
-		err = services.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster)
+		err = services.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster, serviceEventChannel)
 	case commons.RebalanceService:
-		err = services.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster)
+		err = services.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster, serviceEventChannel)
 	case commons.AutomationService:
-		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster)
+		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
 	case commons.MaintenanceService:
-		err = services.StartMaintenanceService(ctx, db)
+		err = services.StartMaintenanceService(ctx, db, serviceEventChannel)
 	case commons.CronService:
-		err = services.StartCronService(ctx, db)
+		err = services.StartCronService(ctx, db, serviceEventChannel)
 	case commons.LndService:
 		err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster,
-			serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
-			channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
-			invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-			lightningRequestChannel)
+			htlcEventChannel, forwardEventChannel,
+			channelEventChannel, nodeGraphEventChannel, channelGraphEventChannel,
+			invoiceEventChannel, paymentEventChannel, transactionEventChannel, peerEventChannel, blockEventChannel,
+			lightningRequestChannel, serviceEventChannel)
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf("%v Service ended for node id: %v", name, node.NodeId)

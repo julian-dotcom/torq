@@ -24,7 +24,7 @@ const routingPolicyUpdateLimiterSeconds = 5 * 60
 const avoidChannelAndPolicyImportRerunTimeSeconds = 70
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
+	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	defer log.Info().Msgf("LightningCommunicationService terminated for nodeId: %v", nodeId)
 
@@ -93,6 +93,9 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 			}
 		}
 	}()
+
+	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.LightningCommunicationService, nil)
+
 	wg.Wait()
 }
 

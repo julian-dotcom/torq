@@ -14,15 +14,19 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/pkg/commons"
 )
 
 const AMBOSS_SLEEP_SECONDS = 25
 
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int,
+	serviceEventChannel chan<- commons.ServiceEvent) error {
 
 	defer log.Info().Msgf("Amboss Ping Service terminated for nodeId: %v", nodeId)
 
+	previousStatus := commons.ServicePending
 	_, monitorCancel := context.WithCancel(context.Background())
 
 	const ambossUrl = "https://api.amboss.space/graphql"
@@ -53,6 +57,10 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 			return errors.Wrapf(err, "Posting message: %v", values)
 		}
 		resp.Body.Close()
+		if previousStatus == commons.ServiceInactive {
+			commons.SendServiceEvent(nodeId, serviceEventChannel, previousStatus, commons.ServiceActive, commons.AmbossService, nil)
+			previousStatus = commons.ServiceActive
+		}
 		log.Debug().Msgf("Amboss Ping Service %v", values)
 		time.Sleep(AMBOSS_SLEEP_SECONDS * time.Second)
 	}
