@@ -9,7 +9,7 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import { ChangeEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
-import { NewPaymentError, NewPaymentResponse } from "features/transact/Payments/paymentTypes";
+import { NewPaymentResponse } from "features/transact/Payments/paymentTypes";
 import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 import OnChanPaymentDetails from "./OnChanPaymentDetails";
@@ -72,8 +72,9 @@ function NewPaymentModal() {
   function onNewPaymentMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
-      setPaymentProcessingError(response.error);
-      onNewPaymentError(response as NewPaymentError);
+      const errorDescription = PaymentProcessingErrors.get(response.error.errors.server?.[0]?.description);
+      setPaymentProcessingError(errorDescription ?? "");
+      setProcessState(ProgressStepState.error);
       return;
     }
     onNewPaymentResponse(response as NewPaymentResponse);
@@ -87,11 +88,6 @@ function NewPaymentModal() {
       setPaymentProcessingError(message.failureReason);
       setProcessState(ProgressStepState.error);
     }
-  }
-
-  function onNewPaymentError(message: NewPaymentError) {
-    console.log(PaymentProcessingErrors.get(message.error), message.error);
-    setProcessState(ProgressStepState.error);
   }
 
   // This can also be an async getter function. See notes below on Async Urls.
@@ -322,7 +318,7 @@ function NewPaymentModal() {
         {isLnInvoice && decodedInvRes.data && (
           <InvoicePaymentResponse
             selectedNodeId={selectedNodeId}
-            paymentProcessingError={PaymentProcessingErrors.get(paymentProcessingError) || paymentProcessingError}
+            paymentProcessingError={paymentProcessingError}
             decodedInvoice={decodedInvRes.data}
             destination={destination}
             responses={lnInvoiceResponses}
