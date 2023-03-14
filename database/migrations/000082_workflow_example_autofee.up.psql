@@ -1,12 +1,12 @@
 
 
 INSERT INTO workflow (name, status, created_on, updated_on)
-VALUES('3. Auto Fee [EXAMPLE]',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+VALUES('Auto Fee [EXAMPLE]',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 INSERT INTO workflow_version (name, version, status, created_on, updated_on, workflow_id)
 SELECT 'Initial Version',1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,workflow_id
 FROM workflow
-WHERE name='3. Auto Fee [EXAMPLE]';
+WHERE name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -18,19 +18,19 @@ SELECT 1,'Trigger',1,10,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
                                    visibility_settings,
                                    workflow_version_id, created_on, updated_on)
-SELECT 1,'Interval Trigger',1,1,
+SELECT 1,'Interval Trigger',1,0,
        '{"seconds": 600, "timeUnit": 60}',
        '{"collapsed": false, "xPosition": 589, "yPosition": -117}',
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -42,19 +42,19 @@ SELECT 1,'Full channels',1,2,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
                                    visibility_settings,
                                    workflow_version_id, created_on, updated_on)
 SELECT 1,'New Channels',1,2,
-       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "notAny", "parameter": [-7, -8, -19]}}, {"$or": [{"$filter": {"key": "tags", "category": "tag", "funcName": "any", "parameter": [-5]}}, {"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "lt", "parameter": 604800}}]}]}',
+       '{"$and": [{"$filter": {"key": "tags", "category": "tag", "funcName": "notAny", "parameter": [-7, -8]}}, {"$or": [{"$filter": {"key": "tags", "category": "tag", "funcName": "any", "parameter": [-5]}}, {"$filter": {"key": "fundedOnSecondsDelta", "category": "duration", "funcName": "lt", "parameter": 604800}}]}]}',
        '{"collapsed": true, "xPosition": 899, "yPosition": 420}',
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -66,7 +66,7 @@ SELECT 1,'Torq Channel(s)',1,19,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -78,7 +78,7 @@ SELECT 1,'Balanced channels',1,2,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -90,7 +90,7 @@ SELECT 1,'Source channels',1,2,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -102,7 +102,7 @@ SELECT 1,'Sink channels',1,2,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -114,7 +114,7 @@ SELECT 1,'Regular channels',1,2,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -126,7 +126,7 @@ SELECT 1,'Depleted channels',1,2,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -138,7 +138,7 @@ SELECT 1,'New channels fee',1,17,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -150,7 +150,7 @@ SELECT 1,'Full channels fee',1,17,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -162,7 +162,7 @@ SELECT 1,'Source channels fee',1,17,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -174,7 +174,7 @@ SELECT 1,'Sink channels fee',1,17,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -186,7 +186,7 @@ SELECT 1,'Depleted channels fee',1,17,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node (stage, name, status, type,
                                    parameters,
@@ -198,7 +198,7 @@ SELECT 1,'Balanced channels fee',1,17,
        wfv.workflow_version_id,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
 FROM workflow_version wfv
          JOIN workflow wf on wfv.workflow_id = wf.workflow_id
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -215,7 +215,7 @@ FROM workflow_version wfv
                                             wfvn.name='Torq Channel(s)'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Regular channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -232,7 +232,7 @@ FROM workflow_version wfv
                                             wfvn.name='Regular channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Full channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -249,7 +249,7 @@ FROM workflow_version wfv
                                             wfvn.name='Full channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Full channels fee'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -266,7 +266,7 @@ FROM workflow_version wfv
                                             wfvn.name='Torq Channel(s)'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='New Channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -283,7 +283,7 @@ FROM workflow_version wfv
                                             wfvn.name='Regular channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Balanced channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -300,7 +300,7 @@ FROM workflow_version wfv
                                             wfvn.name='Balanced channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Balanced channels fee'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -317,7 +317,7 @@ FROM workflow_version wfv
                                             wfvn.name='Regular channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Depleted channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -334,7 +334,7 @@ FROM workflow_version wfv
                                             wfvn.name='Depleted channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Depleted channels fee'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -351,7 +351,7 @@ FROM workflow_version wfv
                                             wfvn.name='New Channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='New channels fee'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -368,7 +368,7 @@ FROM workflow_version wfv
                                             wfvn.name='Torq Channel(s)'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Sink channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -385,7 +385,7 @@ FROM workflow_version wfv
                                             wfvn.name='Sink channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Sink channels fee'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -402,7 +402,7 @@ FROM workflow_version wfv
                                             wfvn.name='Torq Channel(s)'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Source channels'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
 
 INSERT INTO workflow_version_node_link (name,
                                         visibility_settings,
@@ -419,4 +419,4 @@ FROM workflow_version wfv
                                             wfvn.name='Source channels'
          JOIN workflow_version_node wfvn2 on wfv.workflow_version_id=wfvn2.workflow_version_id AND
                                              wfvn2.name='Source channels fee'
-WHERE wf.name='3. Auto Fee [EXAMPLE]';
+WHERE wf.name='Auto Fee [EXAMPLE]';
