@@ -24,10 +24,13 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 	carolName := name + "-carol"
 	carolColor := "#CC0000"
 
+	ctx := context.Background()
+
 	cli, err := client.NewClientWithOpts()
 	if err != nil {
 		return de, errors.Wrap(err, "Getting new docker client")
 	}
+	cli.NegotiateAPIVersion(ctx)
 
 	de = DockerDevEnvironment{
 		Client:           cli,
