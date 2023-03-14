@@ -24,10 +24,15 @@ function NewAddressModal() {
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
 
-  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
+  interface Option {
+    label: string;
+    value: number;
+  }
+
+  let nodeConfigurationOptions: Array<Option> = [{ value: 0, label: "Select a local node" }];
   if (nodeConfigurations !== undefined) {
     nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
+      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name ?? "" };
     });
   }
 
@@ -63,9 +68,8 @@ function NewAddressModal() {
           <Select
             label={t.yourNode}
             onChange={(newValue: unknown) => {
-              if (typeof newValue === "number") {
-                setSelectedNodeId(newValue);
-              }
+              const value = newValue as Option;
+              if (value && value.value > 0) setSelectedNodeId(value.value);
             }}
             options={nodeConfigurationOptions}
             value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
