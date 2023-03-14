@@ -124,6 +124,9 @@
   "tagChannel": "Tag Channel",
   "import": "Import",
   "ImportFailedPayments": "Import failed payments",
+  "forwardEvent": "Forward",
+  "invoiceEvent": "Invoice",
+  "paymentEvent": "Payment",
   "tagsModal": {
     "addConfirmedMessage": "tag and target created",
     "create": "Create",

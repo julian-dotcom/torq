@@ -238,4 +238,12 @@ const (
 	RebalanceRequestManual
 )
 
+type BalanceUpdateEventOrigin int
+
+const (
+	BalanceUpdateForwardEvent = BalanceUpdateEventOrigin(iota)
+	BalanceUpdateInvoiceEvent
+	BalanceUpdatePaymentEvent
+)
+
 type ChannelStatusRequest int

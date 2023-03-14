@@ -91,6 +91,17 @@ export const AllChannelPendingColumns: ColumnMetaData<ChannelPending>[] = [
 		type: "TextCell",
 		key: "status",
 		valueType: "enum",
+		selectOptions: [
+			{ label: "Opening", value: "Opening" },
+			{ label: "Open", value: "Open" },
+			{ label: "Closing", value: "Closing" },
+			{ label: "Cooperative Closed", value: "CooperativeClosed" },
+			{ label: "Local Force Closed", value: "LocalForceClosed" },
+			{ label: "Remote Force Closed", value: "RemoteForceClosed" },
+			{ label: "Breach Closed", value: "BreachClosed" },
+			{ label: "Funding Cancelled Closed", value: "FundingCancelledClosed" },
+			{ label: "Abandoned Closed", value: "AbandonedClosed" },
+		],
 	},
 	{
 		heading: "Closing Date",

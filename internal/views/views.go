@@ -179,6 +179,14 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		if definition.keySecond != "" {
 			result = result + fmt.Sprintf("\n\t\tkey2: \"%v\",", definition.keySecond)
 		}
+		if len(definition.selectOptions) != 0 {
+			result = result + fmt.Sprintf("\n\t\tselectOptions: [")
+			for _, selectOption := range definition.selectOptions {
+				result = result + fmt.Sprintf("\n\t\t\t{ label: \"%v\", value: \"%v\" },",
+					selectOption.label, selectOption.value)
+			}
+			result = result + fmt.Sprintf("\n\t\t],")
+		}
 		result = result + "\n\t},"
 	}
 	result = result + "\n];"

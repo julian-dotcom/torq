@@ -23,6 +23,7 @@ type FilterEventsNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 export type event = {
   balanceDelta: number;
   balanceDeltaAbsolute: number;
+  balanceUpdateEventOrigin: string;
 };
 
 export type EventFilterConfiguration = {
@@ -104,6 +105,12 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
     }));
   };
 
+  const TypeLabels = new Map<string, string>([
+    ["FORWARD", t.forwardEvent],
+    ["INVOICE", t.invoiceEvent],
+    ["PAYMENT", t.paymentEvent],
+  ]);
+
   const filters: ColumnMetaData<event>[] = [
     {
       heading: "Balance Delta",
@@ -116,6 +123,17 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
       key: "balanceDeltaAbsolute",
       type: "NumericCell",
       valueType: "number",
+    },
+    {
+      heading: "Event Type",
+      type: "TextCell",
+      key: "balanceUpdateEventOrigin",
+      valueType: "enum",
+      selectOptions: [
+        { label: TypeLabels.get("FORWARD") || "", value: "FORWARD" },
+        { label: TypeLabels.get("INVOICE") || "", value: "INVOICE" },
+        { label: TypeLabels.get("PAYMENT") || "", value: "PAYMENT" },
+      ],
     },
   ];
 

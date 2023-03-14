@@ -282,10 +282,12 @@ func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 				continue
 			}
 			if forwardEvent.IncomingChannelId != nil {
-				commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.IncomingChannelId, true, forwardEvent.AmountInMsat)
+				commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.IncomingChannelId, true,
+					forwardEvent.AmountInMsat, commons.BalanceUpdateForwardEvent)
 			}
 			if forwardEvent.OutgoingChannelId != nil {
-				commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.OutgoingChannelId, false, forwardEvent.AmountOutMsat)
+				commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.OutgoingChannelId, false,
+					forwardEvent.AmountOutMsat, commons.BalanceUpdateForwardEvent)
 			}
 		}
 	}()
@@ -304,7 +306,8 @@ func processInvoiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 			if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
 				continue
 			}
-			commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true, invoiceEvent.AmountPaidMsat)
+			commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true,
+				invoiceEvent.AmountPaidMsat, commons.BalanceUpdateInvoiceEvent)
 		}
 	}()
 }
@@ -322,7 +325,8 @@ func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 			if paymentEvent.NodeId == 0 || paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 || paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
 				continue
 			}
-			commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false, paymentEvent.AmountPaid)
+			commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false,
+				paymentEvent.AmountPaid, commons.BalanceUpdatePaymentEvent)
 		}
 	}()
 }

@@ -18,6 +18,11 @@ export const AllPaymentsColumns: ColumnMetaData<Payment>[] = [
 		type: "TextCell",
 		key: "status",
 		valueType: "array",
+		selectOptions: [
+			{ label: "Succeeded", value: "SUCCEEDED" },
+			{ label: "In Flight", value: "IN_FLIGHT" },
+			{ label: "Failed", value: "FAILED" },
+		],
 	},
 	{
 		heading: "Value",
@@ -54,6 +59,17 @@ export const AllPaymentsColumns: ColumnMetaData<Payment>[] = [
 		type: "TextCell",
 		key: "failureReason",
 		valueType: "array",
+		selectOptions: [
+			{ label: "None", value: "FAILURE_REASON_NONE" },
+			{ label: "Timeout", value: "FAILURE_REASON_TIMEOUT" },
+			{ label: "No Route", value: "FAILURE_REASON_NO_ROUTE" },
+			{ label: "Error", value: "FAILURE_REASON_ERROR" },
+			{ label: "Incorrect Payment Details", value: "FAILURE_REASON_INCORRECT_PAYMENT_DETAILS" },
+			{ label: "Incorrect Payment Amount", value: "FAILURE_REASON_INCORRECT_PAYMENT_AMOUNT" },
+			{ label: "Payment Hash Mismatch", value: "FAILURE_REASON_PAYMENT_HASH_MISMATCH" },
+			{ label: "Incorrect Payment Request", value: "FAILURE_REASON_INCORRECT_PAYMENT_REQUEST" },
+			{ label: "Unknown", value: "FAILURE_REASON_UNKNOWN" },
+		],
 	},
 	{
 		heading: "MPP",
