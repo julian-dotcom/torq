@@ -17,10 +17,13 @@ type InvoicePaymentProps = {
   destinationType: PaymentType;
   destination: string;
   sendJsonMessage: SendJsonMessage;
+  // TODO: remove set states in favour of onChange methods
+  // This component shouldn't really know anything about it's parent
   setStepIndex: (index: number) => void;
   setDestState: (state: ProgressStepState) => void;
   setConfirmState: (state: ProgressStepState) => void;
   setProcessState: (state: ProgressStepState) => void;
+  onAmountChange: (amount: number) => void;
 };
 const DefualtTimeoutSeconds = 60;
 
@@ -37,13 +40,19 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
       return props.decodedInvoice.valueMsat / 1000;
     }
 
+    const handleAmountChange = (amount: string) => {
+      const amountNumber = parseInt(amount);
+      setAmountSat(amountNumber);
+      props.onAmountChange(amountNumber);
+    };
+
     return (
       <NumberFormat
         className={styles.amountInput}
         datatype={"number"}
         value={amountSat}
         placeholder={"0 sat"}
-        onValueChange={(values) => setAmountSat(parseInt(values.value))}
+        onValueChange={(values) => handleAmountChange(values.value)}
         thousandSeparator=","
         suffix={" sat"}
       />
