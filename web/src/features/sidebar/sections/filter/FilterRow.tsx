@@ -122,6 +122,10 @@ function FilterRow({
         newRow.parameter = [];
         newRow.funcName = "any";
         break;
+      case "enum":
+        newRow.parameter = "";
+        newRow.funcName = "eq";
+        break;
       default:
         newRow.parameter = "";
         newRow.funcName = "like";
@@ -206,6 +210,10 @@ function FilterRow({
       case "boolean":
         return !rowValues.parameter ? "False" : "True";
       case "array":
+        return options?.find((item) => {
+          return item.value === rowValues.parameter ? item : "";
+        })?.label;
+      case "enum":
         return options?.find((item) => {
           return item.value === rowValues.parameter ? item : "";
         })?.label;
