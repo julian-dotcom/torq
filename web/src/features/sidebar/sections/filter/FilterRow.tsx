@@ -208,7 +208,7 @@ function FilterRow({
       case "boolean":
         return !rowValues.parameter ? "False" : "True";
       case "array":
-        if (rowValues?.parameter !== undefined) {
+        if (rowValues?.parameter) {
           return (
             (
               options?.filter((item) => {
@@ -216,12 +216,12 @@ function FilterRow({
               }) || []
             )
               .map((item) => item.label)
-              .join(" or ") || ""
+              .join(" or ") || "[empty]"
           );
         }
         return "[empty]";
       case "enum":
-        if (rowValues?.parameter !== undefined) {
+        if (rowValues?.parameter) {
           return (
             (
               options?.filter((item) => {
@@ -229,14 +229,17 @@ function FilterRow({
               }) || []
             )
               .map((item) => item.label)
-              .join(" or ") || ""
+              .join(" or ") || "[empty]"
           );
         }
         return "[empty]";
       case "tag":
-        if (rowValues?.parameter !== undefined) {
+        if (rowValues?.parameter) {
           const parameter = rowValues.parameter as Array<number>;
-          return (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(" or ");
+          return (
+            (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(" or ") ||
+            "[empty]"
+          );
         }
         return "[empty]";
       default:
