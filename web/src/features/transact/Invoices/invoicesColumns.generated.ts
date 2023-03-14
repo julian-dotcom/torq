@@ -24,6 +24,11 @@ export const AllInvoicesColumns: ColumnMetaData<Invoice>[] = [
 		type: "TextCell",
 		key: "invoiceState",
 		valueType: "enum",
+		selectOptions: [
+			{ label: "Open", value: "OPEN" },
+			{ label: "Settled", value: "SETTLED" },
+			{ label: "Canceled", value: "CANCELED" },
+		],
 	},
 	{
 		heading: "Paid Amount",

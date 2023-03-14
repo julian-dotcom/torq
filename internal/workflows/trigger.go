@@ -387,13 +387,13 @@ linkedInputLoop:
 		//} else {
 		//	activeOutputIndex = 1
 		//}
-	case commons.WorkflowNodeEventFilter:
+	case commons.WorkflowNodeChannelBalanceEventFilter:
 		linkedChannelIds, err := getChannelIds(inputs, commons.WorkflowParameterLabelChannels)
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Obtaining linkedChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
-		var params EventFilterConfiguration
+		var params ChannelBalanceEventFilterConfiguration
 		err = json.Unmarshal([]byte(workflowNode.Parameters), &params)
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Parsing parameters for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)

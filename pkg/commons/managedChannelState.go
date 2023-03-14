@@ -91,30 +91,31 @@ type Htlc struct {
 }
 
 type ManagedChannelState struct {
-	Type                 ManagedChannelStateCacheOperationType
-	NodeId               int
-	RemoteNodeId         int
-	ChannelId            int
-	Status               Status
-	Local                bool
-	Balance              int64
-	Disabled             bool
-	FeeBaseMsat          int64
-	FeeRateMilliMsat     int64
-	MinHtlcMsat          uint64
-	MaxHtlcMsat          uint64
-	TimeLockDelta        uint32
-	Amount               int64
-	ForceResponse        bool
-	HtlcEvent            HtlcEvent
-	ChannelStateSettings []ManagedChannelStateSettings
-	HtlcInclude          ChannelBalanceStateHtlcInclude
-	ChannelIdsOut        chan<- []int
-	StateInclude         ChannelStateInclude
-	StateOut             chan<- *ManagedChannelStateSettings
-	StatesOut            chan<- []ManagedChannelStateSettings
-	BalanceStateOut      chan<- *ManagedChannelBalanceStateSettings
-	BalanceStatesOut     chan<- []ManagedChannelBalanceStateSettings
+	Type                     ManagedChannelStateCacheOperationType
+	NodeId                   int
+	RemoteNodeId             int
+	ChannelId                int
+	Status                   Status
+	Local                    bool
+	Balance                  int64
+	Disabled                 bool
+	FeeBaseMsat              int64
+	FeeRateMilliMsat         int64
+	MinHtlcMsat              uint64
+	MaxHtlcMsat              uint64
+	TimeLockDelta            uint32
+	Amount                   int64
+	ForceResponse            bool
+	BalanceUpdateEventOrigin BalanceUpdateEventOrigin
+	HtlcEvent                HtlcEvent
+	ChannelStateSettings     []ManagedChannelStateSettings
+	HtlcInclude              ChannelBalanceStateHtlcInclude
+	ChannelIdsOut            chan<- []int
+	StateInclude             ChannelStateInclude
+	StateOut                 chan<- *ManagedChannelStateSettings
+	StatesOut                chan<- []ManagedChannelStateSettings
+	BalanceStateOut          chan<- *ManagedChannelBalanceStateSettings
+	BalanceStatesOut         chan<- []ManagedChannelBalanceStateSettings
 }
 
 type ManagedChannelStateSettings struct {
@@ -515,9 +516,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						EventTime: eventTime,
 						NodeId:    managedChannelState.NodeId,
 					},
-					ChannelId:            channelStateSetting.ChannelId,
-					BalanceDelta:         managedChannelState.Amount,
-					BalanceDeltaAbsolute: managedChannelState.Amount,
+					ChannelId:                channelStateSetting.ChannelId,
+					BalanceDelta:             managedChannelState.Amount,
+					BalanceDeltaAbsolute:     managedChannelState.Amount,
+					BalanceUpdateEventOrigin: managedChannelState.BalanceUpdateEventOrigin,
 					PreviousEventData: &ChannelBalanceEventData{
 						Capacity:                      channelSettings.Capacity,
 						LocalBalance:                  channelStateSetting.LocalBalance,
@@ -798,11 +800,14 @@ func SetChannelStateRoutingPolicy(nodeId int, channelId int, local bool,
 	ManagedChannelStateChannel <- managedChannelState
 }
 
-func SetChannelStateBalanceUpdateMsat(nodeId int, channelId int, increaseBalance bool, amount uint64) {
+func SetChannelStateBalanceUpdateMsat(nodeId int, channelId int, increaseBalance bool, amount uint64,
+	eventOrigin BalanceUpdateEventOrigin) {
+
 	managedChannelState := ManagedChannelState{
-		NodeId:    nodeId,
-		ChannelId: channelId,
-		Type:      WRITE_CHANNELSTATE_UPDATEBALANCE,
+		NodeId:                   nodeId,
+		ChannelId:                channelId,
+		BalanceUpdateEventOrigin: eventOrigin,
+		Type:                     WRITE_CHANNELSTATE_UPDATEBALANCE,
 	}
 	if increaseBalance {
 		managedChannelState.Amount = int64(amount / 1000)
@@ -812,11 +817,14 @@ func SetChannelStateBalanceUpdateMsat(nodeId int, channelId int, increaseBalance
 	ManagedChannelStateChannel <- managedChannelState
 }
 
-func SetChannelStateBalanceUpdate(nodeId int, channelId int, increaseBalance bool, amount int64) {
+func SetChannelStateBalanceUpdate(nodeId int, channelId int, increaseBalance bool, amount int64,
+	eventOrigin BalanceUpdateEventOrigin) {
+
 	managedChannelState := ManagedChannelState{
-		NodeId:    nodeId,
-		ChannelId: channelId,
-		Type:      WRITE_CHANNELSTATE_UPDATEBALANCE,
+		NodeId:                   nodeId,
+		ChannelId:                channelId,
+		BalanceUpdateEventOrigin: eventOrigin,
+		Type:                     WRITE_CHANNELSTATE_UPDATEBALANCE,
 	}
 	if increaseBalance {
 		managedChannelState.Amount = amount
@@ -826,10 +834,11 @@ func SetChannelStateBalanceUpdate(nodeId int, channelId int, increaseBalance boo
 	ManagedChannelStateChannel <- managedChannelState
 }
 
-func SetChannelStateBalanceHtlcEvent(htlcEvent HtlcEvent) {
+func SetChannelStateBalanceHtlcEvent(htlcEvent HtlcEvent, eventOrigin BalanceUpdateEventOrigin) {
 	ManagedChannelStateChannel <- ManagedChannelState{
-		HtlcEvent: htlcEvent,
-		Type:      WRITE_CHANNELSTATE_UPDATEHTLCEVENT,
+		BalanceUpdateEventOrigin: eventOrigin,
+		HtlcEvent:                htlcEvent,
+		Type:                     WRITE_CHANNELSTATE_UPDATEHTLCEVENT,
 	}
 }
 

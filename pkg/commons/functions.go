@@ -331,8 +331,8 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 	channelFilterRequiredInputs := channelsOnly
 	channelFilterRequiredOutputs := channelsOnly
 
-	eventFilterRequiredInputs := channelsOnly
-	eventFilterRequiredOutputs := channelsOnly
+	channelBalanceEventFilterRequiredInputs := channelsOnly
+	channelBalanceEventFilterRequiredOutputs := channelsOnly
 
 	channelPolicyConfiguratorOptionalInputs := all
 	channelPolicyConfiguratorOptionalOutputs := make(map[WorkflowParameterLabel]WorkflowParameterType)
@@ -455,11 +455,11 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			RequiredOutputs:  channelFilterRequiredOutputs,
 			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
-		WorkflowNodeEventFilter: {
-			WorkflowNodeType: WorkflowNodeEventFilter,
-			RequiredInputs:   eventFilterRequiredInputs,
+		WorkflowNodeChannelBalanceEventFilter: {
+			WorkflowNodeType: WorkflowNodeChannelBalanceEventFilter,
+			RequiredInputs:   channelBalanceEventFilterRequiredInputs,
 			OptionalInputs:   make(map[WorkflowParameterLabel]WorkflowParameterType),
-			RequiredOutputs:  eventFilterRequiredOutputs,
+			RequiredOutputs:  channelBalanceEventFilterRequiredOutputs,
 			OptionalOutputs:  make(map[WorkflowParameterLabel]WorkflowParameterType),
 		},
 		WorkflowNodeChannelPolicyConfigurator: {

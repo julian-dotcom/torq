@@ -21,7 +21,7 @@ export enum WorkflowNodeType {
   ChannelPolicyAutoRun,
   RebalanceAutoRun,
   DataSourceTorqChannels,
-  EventFilter
+  ChannelBalanceEventFilter
 }
 
 export const TriggerNodeTypes = [

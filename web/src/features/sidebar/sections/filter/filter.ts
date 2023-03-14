@@ -23,6 +23,13 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
     ]),
   ],
   [
+    "enum",
+    new Map<string, FilterFunc>([
+      ["any", (input, key, parameter) => (parameter as Array<unknown>).includes(input[key])],
+      ["notAny", (input, key, parameter) => !(parameter as Array<unknown>).includes(input[key])],
+    ]),
+  ],
+  [
     "tag",
     new Map<string, FilterFunc>([
       [
@@ -73,13 +80,6 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
     ]),
   ],
   [
-    "enum",
-    new Map<string, FilterFunc>([
-      ["like", (input, key, parameter) => (input[key] as string).toLowerCase().includes(parameter as string)],
-      ["notLike", (input, key, parameter) => !(input[key] as string).toLowerCase().includes(parameter as string)],
-    ]),
-  ],
-  [
     "boolean",
     new Map<string, FilterFunc>([
       ["eq", (input, key, parameter) => !!input[key] === parameter],
@@ -100,16 +100,8 @@ export const FilterFunctions = new Map<string, Map<string, FilterFunc>>([
   [
     "array",
     new Map<string, FilterFunc>([
-      [
-        "eq",
-        (input, key, parameter) =>
-          !!(input[key] as Array<unknown>).filter((value: unknown) => (parameter as Array<unknown>).includes(value)),
-      ],
-      [
-        "neq",
-        (input, key, parameter) =>
-          !(input[key] as Array<unknown>).filter((value: unknown) => (parameter as Array<unknown>).includes(value)),
-      ],
+      ["any", (input, key, parameter) => (parameter as Array<unknown>).includes(input[key])],
+      ["notAny", (input, key, parameter) => !(parameter as Array<unknown>).includes(input[key])],
     ]),
   ],
 ]);

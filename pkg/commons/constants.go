@@ -195,7 +195,7 @@ const (
 	WorkflowNodeChannelPolicyAutoRun
 	WorkflowNodeRebalanceAutoRun
 	WorkflowNodeDataSourceTorqChannels
-	WorkflowNodeEventFilter
+	WorkflowNodeChannelBalanceEventFilter
 )
 
 type WorkflowParameterType string
@@ -236,6 +236,14 @@ type RebalanceRequestOrigin int
 const (
 	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
 	RebalanceRequestManual
+)
+
+type BalanceUpdateEventOrigin int
+
+const (
+	BalanceUpdateForwardEvent = BalanceUpdateEventOrigin(iota)
+	BalanceUpdateInvoiceEvent
+	BalanceUpdatePaymentEvent
 )
 
 type ChannelStatusRequest int
