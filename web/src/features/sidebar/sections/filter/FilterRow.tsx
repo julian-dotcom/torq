@@ -115,8 +115,12 @@ function FilterRow({
         break;
       }
       case "array":
-        newRow.parameter = "";
-        newRow.funcName = "eq";
+        newRow.parameter = [];
+        newRow.funcName = "any";
+        break;
+      case "enum":
+        newRow.parameter = [];
+        newRow.funcName = "any";
         break;
       case "tag":
         newRow.parameter = [];
@@ -162,10 +166,10 @@ function FilterRow({
         newRow.parameter = (e as Array<{ value: number }>).map((item) => item.value);
         break;
       case "array":
-        newRow.parameter = String(e.value);
+        newRow.parameter = (e as Array<{ value: string | number }>).map((item) => item.value);
         break;
       case "enum":
-        newRow.parameter = String(e.value);
+        newRow.parameter = (e as Array<{ value: string | number }>).map((item) => item.value);
         break;
       default:
         newRow.parameter = e.target.value ? e.target.value : "";
@@ -177,8 +181,6 @@ function FilterRow({
 
   const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
   const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions || [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   const getParameter = () => {
     switch (rowValues.category) {
@@ -206,9 +208,31 @@ function FilterRow({
       case "boolean":
         return !rowValues.parameter ? "False" : "True";
       case "array":
-        return options?.find((item) => {
-          return item.value === rowValues.parameter ? item : "";
-        })?.label;
+        if (rowValues?.parameter !== undefined) {
+          return (
+            (
+              options?.filter((item) => {
+                return (rowValues.parameter as Array<unknown>).includes(item.value);
+              }) || []
+            )
+              .map((item) => item.label)
+              .join(" or ") || ""
+          );
+        }
+        return "";
+      case "enum":
+        if (rowValues?.parameter !== undefined) {
+          return (
+            (
+              options?.filter((item) => {
+                return (rowValues.parameter as Array<unknown>).includes(item.value);
+              }) || []
+            )
+              .map((item) => item.label)
+              .join(" or ") || ""
+          );
+        }
+        return "";
       case "tag":
         if (rowValues?.parameter !== undefined) {
           const parameter = rowValues.parameter as Array<number>;
@@ -216,7 +240,7 @@ function FilterRow({
         }
         return "";
       default:
-        return rowValues.parameter;
+        return "rowValues.parameter";
     }
   };
 
@@ -333,14 +357,14 @@ function FilterInputField(props: {
         />
       );
     case "array": {
-      const label = props.options?.find((item) => {
-        return item.value === props.rowValues.parameter ? item : "";
-      })?.label;
       return (
         <Select
           isDisabled={editingDisabled}
+          isMulti={true}
           options={props.options}
-          value={{ value: props.rowValues.parameter, label: label }}
+          value={props.options.filter((item) => {
+            return (props.rowValues.parameter as Array<unknown>).includes(item.value);
+          })}
           onChange={props.onChange}
           colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
           sizeVariant={InputSizeVariant.small}
@@ -366,8 +390,11 @@ function FilterInputField(props: {
       return (
         <Select
           isDisabled={editingDisabled}
+          isMulti={true}
           options={props.options}
-          value={props.rowValues.parameter}
+          value={props.options.filter((item) => {
+            return (props.rowValues.parameter as Array<unknown>).includes(item.value);
+          })}
           onChange={props.onChange}
           colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
           sizeVariant={InputSizeVariant.small}
