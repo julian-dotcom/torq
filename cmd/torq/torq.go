@@ -588,27 +588,25 @@ func processDelayedServiceCommands(db *sqlx.DB,
 	ticker := clock.New().Tick(1 * time.Second)
 
 	for {
-		select {
-		case <-ticker:
-			for {
-				delayedServiceCommand := services.PopDelayedServiceCommand()
-				if delayedServiceCommand.Name == "" {
-					break
-				}
-				runningServices := commons.RunningServices[delayedServiceCommand.ServiceChannelMessage.ServiceType]
-				for _, node := range delayedServiceCommand.Nodes {
-					bootLock := runningServices.GetBootLock(node.NodeId)
-					successful := bootLock.TryLock()
-					if successful {
-						go processServiceBoot(delayedServiceCommand.Name, db, node, bootLock, runningServices, delayedServiceCommand.ServiceChannelMessage,
-							htlcEventChannel, forwardEventChannel,
-							channelEventChannel, nodeGraphEventChannel, channelGraphEventChannel,
-							invoiceEventChannel, paymentEventChannel, transactionEventChannel, peerEventChannel,
-							blockEventChannel,
-							lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
-					} else {
-						log.Error().Msgf("%v Service: Requested start failed. A start is already running.", delayedServiceCommand.Name)
-					}
+		<-ticker
+		for {
+			delayedServiceCommand := services.PopDelayedServiceCommand()
+			if delayedServiceCommand.Name == "" {
+				break
+			}
+			runningServices := commons.RunningServices[delayedServiceCommand.ServiceChannelMessage.ServiceType]
+			for _, node := range delayedServiceCommand.Nodes {
+				bootLock := runningServices.GetBootLock(node.NodeId)
+				successful := bootLock.TryLock()
+				if successful {
+					go processServiceBoot(delayedServiceCommand.Name, db, node, bootLock, runningServices, delayedServiceCommand.ServiceChannelMessage,
+						htlcEventChannel, forwardEventChannel,
+						channelEventChannel, nodeGraphEventChannel, channelGraphEventChannel,
+						invoiceEventChannel, paymentEventChannel, transactionEventChannel, peerEventChannel,
+						blockEventChannel,
+						lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
+				} else {
+					log.Error().Msgf("%v Service: Requested start failed. A start is already running.", delayedServiceCommand.Name)
 				}
 			}
 		}
