@@ -14,7 +14,7 @@ export function ChannelCloseTriggerNode({ ...wrapperProps }: Props) {
       {...wrapperProps}
       name={t.workflowNodes.closeChannelTrigger}
       headerIcon={<Icon />}
-      colorVariant={NodeColorVariant.accent2}
+      colorVariant={NodeColorVariant.primary}
     >
       <div style={{ flexGrow: 1 }}>
         <Note title={t.note} noteType={NoteType.info}>

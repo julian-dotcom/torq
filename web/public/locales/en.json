@@ -2,6 +2,8 @@
   "helpAndBugsMenuItem": "Help",
   "ApplyTo": "Apply to",
   "Success": "Success",
+  "Copy": "Copy",
+  "loading": "Loading...",
   "ConnectionString": "Connection string",
   "NodeConnectionStringHelp": "The connection string follows this format: pubkey@ip:port",
   "TxId": "Transaction ID",
@@ -11,6 +13,8 @@
   "Avoid": "Avoid",
   "focus": "Focus",
   "SatPerVbyte": "Sat/vbyte",
+  "Error": "Error",
+  "Processing": "Processing",
   "Private": "Private",
   "ChannelSize": "Channel Size",
   "AdvancedActions": "Advanced Actions",
@@ -72,6 +76,7 @@
   "np2wkh": "Hybrid Nested Segwit",
   "p2tr": "Taproot",
   "addressType": "Address type",
+  "selectAddressType": "Select address type",
   "yourNode": "Your Node",
   "yourChannel": "Your Channel",
   "transactions": "Transactions",
@@ -164,6 +169,7 @@
   "developerFeedbackDetails": "By allowing us to store events about interaction with the interface you help us improve Torq. We will not store information about your channels, transactions, node or any other sensitive information. We will only store information about your interaction with the interface.",
   "logout": "Logout",
   "retry": "Retry",
+  "download": "Download",
   "bootstrapping": "Bootstrapping",
   "workflow": "Workflow",
   "workflows": "Workflows",
@@ -235,11 +241,20 @@
     "torqChannels": "Torq Channel(s)",
     "eventFilter": "Events Filter"
   },
+  "eventFilterNode": {
+    "ignoreWhenEventlessHelpText": "Determines what happens when the workflow trigger does not match the event criteria. i.e. You filter on details about a channel balance event but it was the cron trigger that occurred. If it's the cron trigger then there is no information about channel balance so do you want to 'Stop' the workflow at this point or just 'Continue' and ignore this filter."
+  },
+  "channelsDataSourceNode": {
+    "triggeringOrAll": "Triggering or All",
+    "channelsHelpText": "Determines which channels are used in the workflow. If set to 'Triggered', then the channels that triggered the workflow will be used. If set to 'All', then all channels will be used. If set to 'Triggering Or All', then either just the channels that triggered the workflow will be used, or all channels will be used depending on what triggered the workflow."
+  },
   "workflowDetails": {
     "cantAddTriggerNodeToStages": "Trigger nodes can only be added to the first stage.",
     "confirmWorkflowActivate": "Are you sure you want to activate this workflow?",
     "confirmWorkflowDeactivate": "Are you sure you want to deactivate this workflow?",
-    "cantDropActionOnDriggerContainer": "You can only add triggers to the trigger container."
+    "cantDropActionOnDriggerContainer": "You can only add triggers to the trigger container.",
+    "manualTriggerSuccess": "Workflow triggered successfully.",
+    "manualTriggerError": "Error, could not trigger workflow."
   },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",
@@ -263,6 +278,7 @@
     "closeChannel": "Close Channel",
     "error": "Error",
     "note": "Note",
+    "processingClose": "Please wait while we close your channel.",
     "confirmationOpenning": "The channel open has been published but still need time to be confirmed on-chain.",
     "confirmationClosing": "The channel close has been successfully published to the network but the funds in the channel still need to be confirmed through an on-chain transaction."
   },

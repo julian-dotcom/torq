@@ -9,7 +9,7 @@ export function IntervalTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
-      colorVariant={NodeColorVariant.accent2}
+      colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.IntervalTrigger}
       icon={<IntervalTriggerIcon />}
       title={t.workflowNodes.intervalTrigger}

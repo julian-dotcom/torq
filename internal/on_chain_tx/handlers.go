@@ -128,3 +128,21 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 
 	c.JSON(http.StatusOK, sendCoinsResp)
 }
+
+func newAddressHandler(c *gin.Context, db *sqlx.DB) {
+	var requestBody NewAddressRequest
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+
+	resp, err := NewAddress(db, requestBody)
+	if err != nil {
+		// TODO: Improve error handling. Can't find LND errors in the codebase
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

@@ -71,7 +71,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
   }
 
   return (
-    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<CronTriggerIcon />} colorVariant={NodeColorVariant.accent2}>
+    <WorkflowNodeWrapper {...wrapperProps} headerIcon={<CronTriggerIcon />} colorVariant={NodeColorVariant.primary}>
       <Form onSubmit={handleSubmit}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>

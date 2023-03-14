@@ -3,8 +3,7 @@ import { ColumnMetaData } from "features/table/types";
 import { ChannelClosed } from "features/channelsClosed/channelsClosedTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import ChannelCell from "components/table/cells/channelCell/ChannelCell";
-import TagsCell from "components/table/cells/tags/TagsCell";
-import LongTextCell from "../../components/table/cells/longText/LongTextCell";
+import LongTextCell from "components/table/cells/longText/LongTextCell";
 export default function channelsClosedCellRenderer(
   row: ChannelClosed,
   rowIndex: number,
@@ -26,12 +25,11 @@ export default function channelsClosedCellRenderer(
           hideActionButtons
         />
       );
-    case "tags":
-      return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} channelId={row.channelId} nodeId={row.peerNodeId} />;
-    case "fundingTransactionHash": {
+    case "fundingTransactionHash":
       if (column.type === "LongTextCell") {
         return (
           <LongTextCell
+            key={"fundingTransactionHashCell" + rowIndex}
             current={row.fundingTransactionHash}
             link={"https://mempool.space/tx/" + row.fundingTransactionHash}
             copyText={row.fundingTransactionHash}
@@ -39,11 +37,11 @@ export default function channelsClosedCellRenderer(
         );
       }
       break;
-    }
     case "closingTransactionHash":
       if (column.type === "LongTextCell") {
         return (
           <LongTextCell
+            key={"closingTransactionHashCell" + rowIndex}
             current={row.closingTransactionHash}
             link={"https://mempool.space/tx/" + row.closingTransactionHash}
             copyText={row.closingTransactionHash}

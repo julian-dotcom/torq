@@ -1,3 +1,7 @@
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { SerializedError } from "@reduxjs/toolkit";
+import clone from "clone";
+
 export type FieldName = string;
 export type ErrorDescription = string;
 
@@ -18,10 +22,21 @@ export type ServerErrorType = {
 
 // .map((error: string) => error.split(":")[0])
 export function mergeServerError(serverErrors: ServerErrorType, existingErrors: FormErrors): FormErrors {
+  serverErrors = clone(serverErrors);
+  existingErrors = clone(existingErrors);
+
   if (existingErrors.server === undefined) {
     existingErrors.server = [];
   }
-  existingErrors.server = serverErrors.errors.server;
+  existingErrors.server = serverErrors.errors.server?.map((se) => {
+    if (se.description) {
+      // remove unnecessary fluff from GRPC errors
+      se.description = se.description.replace("rpc error: code = Unknown desc =", "");
+      se.description = se.description.trim();
+      se.description = se.description.charAt(0).toUpperCase() + se.description.slice(1);
+    }
+    return se;
+  });
   if (!serverErrors.errors.fields) {
     return existingErrors;
   }
@@ -47,4 +62,17 @@ export function replaceMessageMergeTags(message: string, attributes: Record<stri
     }
   }
   return message;
+}
+
+export function RtqToServerError(rtqErrors: FetchBaseQueryError | SerializedError | undefined): ServerErrorType {
+  if (rtqErrors === undefined) {
+    return { errors: {} };
+  }
+  // check if the rtqErrors is a FetchBaseQueryError
+  if (!("status" in rtqErrors) || !("data" in rtqErrors)) {
+    return { errors: {} };
+  }
+
+  const rtqError = rtqErrors as FetchBaseQueryError;
+  return rtqError.data as ServerErrorType;
 }

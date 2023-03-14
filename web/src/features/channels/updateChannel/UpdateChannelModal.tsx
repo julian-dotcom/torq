@@ -24,16 +24,16 @@ import mixpanel from "mixpanel-browser";
 import { PolicyInterface } from "features/channels/channelsTypes";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
-import Note from "features/note/Note";
+import Note, { NoteType } from "features/note/Note";
 
 const updateStatusClass = {
-  IN_FLIGHT: styles.inFlight,
+  PROCESSING: styles.processing,
   FAILED: styles.failed,
   SUCCEEDED: styles.success,
 };
 
 const updateStatusIcon = {
-  IN_FLIGHT: <ProcessingIcon />,
+  PROCESSING: <ProcessingIcon />,
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
   NOTE: <NoteIcon />,
@@ -57,11 +57,13 @@ function UpdateChannelModal() {
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
-    if (response && response.error && "data" in response.error && response.error.data) {
+    if (response && response.isError && response.error && "data" in response.error && response.error.data) {
       const mergedErrors = mergeServerError(response.error.data as ServerErrorType, clone(formErrorState));
       setFormErrorState(mergedErrors);
       setResultState(ProgressStepState.error);
-      return;
+    }
+    if (response && response.isLoading) {
+      setResultState(ProgressStepState.processing);
     }
     if (response.isSuccess) {
       setResultState(ProgressStepState.completed);
@@ -212,11 +214,16 @@ function UpdateChannelModal() {
             className={classNames(
               styles.updateChannelResultIconWrapper,
               { [styles.failed]: !response.data },
-              updateStatusClass[response.data?.status == 1 ? "SUCCEEDED" : "FAILED"]
+              updateStatusClass[response.isLoading ? "PROCESSING" : response.isError ? "FAILED" : "SUCCEEDED"]
             )}
           >
-            {updateStatusIcon[response.data?.status == 1 ? "SUCCEEDED" : "FAILED"]}
+            {updateStatusIcon[response.isLoading ? "PROCESSING" : response.isSuccess ? "SUCCEEDED" : "FAILED"]}
           </div>
+          {response.isLoading && (
+            <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
+              {t.openCloseChannel.processingClose}
+            </Note>
+          )}
           <ErrorSummary errors={formErrorState} />
           {resultState === ProgressStepState.completed && (
             <Note title="Success">{t.updateChannelPolicy.confirmedMessage}</Note>

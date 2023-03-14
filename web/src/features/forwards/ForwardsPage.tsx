@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Options20Regular as OptionsIcon } from "@fluentui/react-icons";
+import { Options20Regular as OptionsIcon, ArrowDownload20Regular as DownloadCsvIcon } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlsButton,
   TableControlsButtonGroup,
@@ -12,11 +12,11 @@ import {
   ForwardsFilterTemplate,
   ForwardsSortByTemplate,
 } from "features/forwards/forwardsDefaults";
-import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated"
+import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated";
 import useTranslations from "services/i18n/useTranslations";
 import { useAppSelector } from "store/hooks";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
-import { selectForwardsView } from "features/viewManagement/viewSlice";
+import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
+import { selectForwardsView, selectViews } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import { addDays, format } from "date-fns";
@@ -28,7 +28,10 @@ import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import styles from "./forwards_table.module.scss";
 import mixpanel from "mixpanel-browser";
-import { useGroupBy } from "../sidebar/sections/group/groupBy";
+import { useGroupBy } from "features/sidebar/sections/group/groupBy";
+import { createCsvFile } from "utils/JsonTableToCsv";
+import Button, { ColorVariant } from "components/buttons/Button";
+import { TableResponses, ViewResponse } from "features/viewManagement/types";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {
@@ -87,9 +90,11 @@ function ForwardsPage() {
   const { t } = useTranslations();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
+  const [updateTableView] = useUpdateTableViewMutation();
 
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const { viewResponse, selectedViewIndex } = useAppSelector(selectForwardsView);
+  const forwardsViews = useAppSelector(selectViews)("forwards");
   const currentPeriod = useAppSelector(selectTimeInterval);
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd");
@@ -102,6 +107,16 @@ function ForwardsPage() {
     isSuccess: boolean;
   }>({ from: from, to: to, network: activeNetwork }, { skip: !isSuccess });
   useGetChannelsQuery({ network: activeNetwork });
+
+  function handleNameChange(name: string) {
+    const view = forwardsViews.views[selectedViewIndex] as ViewResponse<TableResponses>;
+    if (view.id) {
+      updateTableView({
+        id: view.id,
+        view: { ...view.view, title: name },
+      });
+    }
+  }
 
   const filteredData = useFilterData(forwardsResponse.data, viewResponse.view.filters);
   const sortedData = useSortData(filteredData, viewResponse.view.sortBy);
@@ -148,12 +163,29 @@ function ForwardsPage() {
 
   return (
     <TablePageTemplate
-      title={t.forwards}
+      title={viewResponse.view.title}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
+      onNameChange={handleNameChange}
       titleContent={
         <div className={styles.forwardsControls}>
           <TimeIntervalSelect />
+          <Button
+            buttonColor={ColorVariant.primary}
+            title={t.download}
+            hideMobileText={true}
+            icon={<DownloadCsvIcon />}
+            onClick={() => {
+              mixpanel.track("Downloads Table as CSV", {
+                downloadTablePage: "Forwards",
+                downloadTableViewTitle: viewResponse.view.title,
+                downloadTableColumns: viewResponse.view.columns,
+                downloadTableFilters: viewResponse.view.filters,
+                downloadTableSortBy: viewResponse.view.sortBy,
+              });
+              createCsvFile(data, viewResponse.view.title || "Forwards");
+            }}
+          />
           <TableControlsButton
             onClickHandler={() => {
               setSidebarExpanded(!sidebarExpanded);

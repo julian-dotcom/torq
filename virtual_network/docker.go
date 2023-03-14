@@ -19,6 +19,7 @@ import (
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -188,8 +189,10 @@ func (de *DockerDevEnvironment) StopContainer(ctx context.Context, name string) 
 	if err != nil {
 		return errors.Wrapf(err, "can't find container with the name %s", name)
 	}
-	timeout := 30 * time.Second
-	if err := de.Client.ContainerStop(ctx, container.ID, &timeout); err != nil {
+	timeout := 30
+	if err := de.Client.ContainerStop(ctx, container.ID, dockercontainer.StopOptions{
+		Timeout: &timeout,
+	}); err != nil {
 		return errors.Wrapf(err, "can't stop %s container", name)
 	}
 	return nil
@@ -216,7 +219,7 @@ func (de *DockerDevEnvironment) FindAndRemoveContainer(ctx context.Context, name
 		log.Printf("%s container found; removing\n", name)
 
 		if container.State == "running" {
-			if err := de.Client.ContainerStop(ctx, container.ID, nil); err != nil {
+			if err := de.Client.ContainerStop(ctx, container.ID, dockercontainer.StopOptions{}); err != nil {
 				return errors.Wrapf(err, "Stopping %s container", name)
 			}
 		}
@@ -241,7 +244,7 @@ func (de *DockerDevEnvironment) FindAndRemoveVolume(ctx context.Context, name st
 	return nil
 }
 
-func (de *DockerDevEnvironment) FindVolumeByName(ctx context.Context, name string) (*types.Volume, error) {
+func (de *DockerDevEnvironment) FindVolumeByName(ctx context.Context, name string) (*volume.Volume, error) {
 	volumes, err := de.Client.VolumeList(ctx, filters.Args{})
 	if err != nil {
 		return nil, errors.Wrap(err, "Docker volume list")

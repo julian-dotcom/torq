@@ -212,7 +212,7 @@ function FilterRow({
       case "tag":
         if (rowValues?.parameter !== undefined) {
           const parameter = rowValues.parameter as Array<number>;
-          return (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(", ");
+          return (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(" or ");
         }
         return "";
       default:

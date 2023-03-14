@@ -27,6 +27,7 @@ export type ButtonProps = {
   buttonSize?: SizeVariant;
   children?: ReactNode;
   hideMobileText?: boolean;
+  hideMobile?: boolean;
 };
 
 const Button = forwardRef(
@@ -38,6 +39,7 @@ const Button = forwardRef(
       buttonSize,
       children,
       hideMobileText,
+      hideMobile,
       ...buttonProps
     }: React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & ButtonProps,
     ref: LegacyRef<HTMLButtonElement> | undefined
@@ -53,7 +55,7 @@ const Button = forwardRef(
           GetColorClass(color),
           ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
           GetSizeClass(buttonSize),
-          { [styles.collapseTablet]: hideMobileText || false },
+          { [styles.collapseTablet]: hideMobileText || false, [styles.hideMobile]: hideMobile || false },
           buttonProps.className
         )}
       >
@@ -75,6 +77,7 @@ export function LinkButton({
   buttonSize,
   children,
   hideMobileText,
+  hideMobile,
   ...buttonProps
 }: LinkProps & ButtonProps) {
   return (
@@ -85,7 +88,7 @@ export function LinkButton({
         GetColorClass(buttonColor),
         ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
-        { [styles.collapseTablet]: hideMobileText || false },
+        { [styles.collapseTablet]: hideMobileText || false, [styles.hideMobile]: hideMobile || false },
         buttonProps.className
       )}
     >
@@ -102,6 +105,7 @@ export function ExternalLinkButton({
   buttonSize,
   children,
   hideMobileText,
+  hideMobile,
   ...buttonProps
 }: ButtonProps & DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>) {
   return (
@@ -112,7 +116,7 @@ export function ExternalLinkButton({
         GetColorClass(buttonColor),
         ButtonPositionClass.get(buttonPosition || ButtonPosition.left),
         GetSizeClass(buttonSize),
-        { [styles.collapseTablet]: hideMobileText || false },
+        { [styles.collapseTablet]: hideMobileText || false, [styles.hideMobile]: hideMobile || false },
         buttonProps.className
       )}
     >

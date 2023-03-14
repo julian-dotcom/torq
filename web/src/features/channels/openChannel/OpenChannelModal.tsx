@@ -4,12 +4,11 @@ import {
   Checkmark20Regular as SuccessNoteIcon,
   CheckmarkRegular as SuccessIcon,
   CommentLightning20Regular as AdvencedOption,
-  ErrorCircle20Regular as FailedNoteIcon,
   ErrorCircleRegular as FailedIcon,
   Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
-import { useGetNodeConfigurationsQuery, WS_URL } from "apiSlice";
+import { useGetNodeConfigurationsQuery } from "apiSlice";
 import { ChangeEvent, useEffect, useState } from "react";
 import Button, { ButtonWrapper, ColorVariant, ExternalLinkButton } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
@@ -25,104 +24,140 @@ import classNames from "classnames";
 import { NumberFormatValues } from "react-number-format";
 import Input from "components/forms/input/Input";
 import { SectionContainer } from "features/section/SectionContainer";
-import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
-
 import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
 import { Select, TextArea } from "components/forms/forms";
 import { InputSizeVariant } from "components/forms/input/variants";
 import mixpanel from "mixpanel-browser";
+import { useOpenChannelMutation } from "./openChannelApi";
+import { RtqToServerError } from "components/errors/errors";
+import ErrorSummary from "components/errors/ErrorSummary";
 
 const openStatusClass = {
-  IN_FLIGHT: styles.inFlight,
+  PROCESSING: styles.processing,
   FAILED: styles.failed,
   SUCCEEDED: styles.success,
 };
 
 const openStatusIcon = {
-  IN_FLIGHT: <ProcessingIcon />,
+  PROCESSING: <ProcessingIcon />,
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
   NOTE: <NoteIcon />,
 };
 
+function isOption(result: unknown): result is SelectOptions & { value: number } {
+  return (
+    result !== null &&
+    typeof result === "object" &&
+    "value" in result &&
+    "label" in result &&
+    typeof (result as SelectOptions).value === "number"
+  );
+}
+
 function OpenChannelModal() {
   const { t } = useTranslations();
+  const navigate = useNavigate();
+  const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
+  const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<Array<SelectOptions>>();
+  const [connectState, setConnectState] = useState(ProgressStepState.active);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  const [selectedNodeId, setSelectedNodeId] = useState<number>();
+  const [detailState, setDetailState] = useState(ProgressStepState.disabled);
+  const [minConfs, setMinConfs] = useState<number | undefined>();
+  const [localFundingAmount, setLocalFundingAmount] = useState<number>(0);
+  const [pushSat, setPushSat] = useState<number | undefined>();
+  const [minHtlcMsat, setMinHtlcMsat] = useState<number | undefined>();
+  const [closeAddress, setCloseAddress] = useState<string | undefined>();
+  const [spendUnconfirmed, setSpendUnconfirmed] = useState<boolean>(false);
+  const [privateChan, setPrivate] = useState<boolean>(false);
+  const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
+  const [connectionString, setConnectionString] = useState<string | undefined>();
+  const [nodePubKey, setNodePubKey] = useState<string>("");
+  const [host, setHost] = useState<string | undefined>();
+
+  const [openChannel, { data: openChannelResponse, error: openChannelError, isError, isLoading, isSuccess }] =
+    useOpenChannelMutation();
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
-  if (nodeConfigurations) {
-    nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
-      return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
-    });
-  }
-
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value as number);
-  const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  const [errMessage, setErrorMEssage] = useState<string>("");
-  const [openingTx, setOpeningTx] = useState<string>("");
+  useEffect(() => {
+    if (nodeConfigurations !== undefined) {
+      const options = nodeConfigurations.map((node: nodeConfiguration) => {
+        return { label: node.name, value: node.nodeId };
+      });
+      setNodeConfigurationOptions(options);
+      setSelectedNodeId(options[0].value);
+    }
+  }, [nodeConfigurations]);
 
   useEffect(() => {
-    if (nodeConfigurationOptions !== undefined) {
-      setSelectedNodeId(nodeConfigurationOptions[0].value);
+    if (isSuccess) {
+      setResultState(ProgressStepState.completed);
     }
-  }, [nodeConfigurationOptions]);
+    if (isLoading) {
+      setResultState(ProgressStepState.processing);
+    }
+    if (isError) {
+      setResultState(ProgressStepState.error);
+    }
+  }, [isSuccess, isError, isLoading]);
 
   function handleNodeSelection(value: number) {
     setSelectedNodeId(value);
   }
 
-  const [connectState, setConnectState] = useState(ProgressStepState.active);
-  const [detailState, setDetailState] = useState(ProgressStepState.disabled);
-  const [minConfs, setMinConfs] = useState<number>(0);
-  const [localFundingAmount, setLocalFundingAmount] = useState<number>(0);
-  const [pushSat, setPushSat] = useState<number>(0);
-  const [minHtlcMsat, setMinHtlcMsat] = useState<number>(0);
-  const [closeAddress, setCloseAddress] = useState<string>("");
-  const [spendUnconfirmed, setSpendUnconfirmed] = useState<boolean>(false);
-  const [privateChan, setPrivate] = useState<boolean>(false);
-  const [satPerVbyte, setSatPerVbyte] = useState<number>(0);
-  const [connectionString, setConnectionString] = useState<string>("");
-  const [nodePubKey, setNodePubKey] = useState<string>("");
-  const [host, setHost] = useState<string>("");
-  const [stepIndex, setStepIndex] = useState(0);
-
   const closeAndReset = () => {
     setStepIndex(0);
-    setSelectedNodeId(0);
     setConnectState(ProgressStepState.active);
     setDetailState(ProgressStepState.disabled);
     setResultState(ProgressStepState.disabled);
-    setErrorMEssage("");
-    setOpeningTx("");
+
+    setNodePubKey("");
+    setLocalFundingAmount(0);
+
+    setExpandAdvancedOptions(false);
+    setMinConfs(undefined);
+    setPushSat(undefined);
+    setMinHtlcMsat(undefined);
+    setCloseAddress(undefined);
+    setSpendUnconfirmed(false);
+    setPrivate(false);
+    setSatPerVbyte(undefined);
+    setConnectionString(undefined);
+    setHost(undefined);
   };
 
-  const navigate = useNavigate();
+  function handleOpenChannel() {
+    if (!selectedNodeId) return;
 
-  const { sendJsonMessage } = useWebSocket(WS_URL, {
-    //Will attempt to reconnect on all close events, such as server shutting down
-    shouldReconnect: () => true,
-    share: true,
-    onMessage: onOpenChannelMessage,
-  });
-
-  function onOpenChannelMessage(event: MessageEvent<string>) {
-    const response = JSON.parse(event.data);
-    if (response?.type === "Error") {
-      setErrorMEssage(response.error);
-      setResultState(ProgressStepState.error);
-      return;
-    } else {
-      if (!openingTx) {
-        const channelPoint: string = response.pendingChannelPoint?.substring(
-          0,
-          response.pendingChannelPoint?.indexOf(":")
-        );
-        setOpeningTx(channelPoint.trim());
-      }
-    }
+    setStepIndex(2);
+    setDetailState(ProgressStepState.completed);
+    setResultState(ProgressStepState.processing);
+    mixpanel.track("Open Channel", {
+      nodeId: selectedNodeId,
+      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+      openChannelUsePushAmount: pushSat !== 0,
+      openChannelUseHTLCMinSat: minHtlcMsat !== 0,
+      openChannelUseMinimumConfirmations: minConfs !== 0,
+      openChannelUseChannelCloseAddress: closeAddress !== "",
+    });
+    openChannel({
+      nodeId: selectedNodeId,
+      satPerVbyte,
+      nodePubKey,
+      host,
+      localFundingAmount,
+      pushSat,
+      private: privateChan,
+      spendUnconfirmed,
+      minHtlcMsat,
+      minConfs,
+      closeAddress,
+    });
   }
 
   return (
@@ -140,11 +175,14 @@ function OpenChannelModal() {
               <Select
                 label={t.yourNode}
                 onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-                  const selectOptions = newValue as SelectOptions;
-                  handleNodeSelection(selectOptions?.value as number);
+                  // Check if newValue is of type SelectOptions
+                  if (isOption(newValue)) {
+                    const selectOptions = newValue as SelectOptions;
+                    handleNodeSelection(selectOptions?.value as number);
+                  }
                 }}
                 options={nodeConfigurationOptions}
-                value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
+                value={nodeConfigurationOptions?.find((option) => option.value === selectedNodeId)}
               />
             </FormRow>
           </div>
@@ -158,9 +196,7 @@ function OpenChannelModal() {
                     sizeVariant={InputSizeVariant.normal}
                     value={connectionString}
                     rows={4}
-                    placeholder={
-                      "03aab7e9327716ee946b8fbfae039b01235356549e72c5cca113ea67893d0821e5@123.123.123.123:9735"
-                    }
+                    placeholder={"03aab7e9327716ee946b8fbfae039b01235356549e72c5cca113ea67893d0821e5@123.1.3.65:9735"}
                     onChange={(e) => {
                       setConnectionString(e.target.value);
                       if (e.target.value) {
@@ -336,39 +372,7 @@ function OpenChannelModal() {
             </SectionContainer>
             <ButtonWrapper
               rightChildren={
-                <Button
-                  onClick={() => {
-                    setStepIndex(2);
-                    setDetailState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.completed);
-                    mixpanel.track("Open Channel", {
-                      nodeId: selectedNodeId,
-                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
-                      openChannelUsePushAmount: pushSat !== 0,
-                      openChannelUseHTLCMinSat: minHtlcMsat !== 0,
-                      openChannelUseMinimumConfirmations: minConfs !== 0,
-                      openChannelUseChannelCloseAddress: closeAddress !== "",
-                    });
-                    sendJsonMessage({
-                      requestId: "randId",
-                      type: "openChannel",
-                      openChannelRequest: {
-                        nodeId: selectedNodeId,
-                        satPerVbyte,
-                        nodePubKey,
-                        host,
-                        localFundingAmount,
-                        pushSat,
-                        private: privateChan,
-                        spendUnconfirmed,
-                        minHtlcMsat,
-                        minConfs,
-                        closeAddress,
-                      },
-                    });
-                  }}
-                  buttonColor={ColorVariant.success}
-                >
+                <Button onClick={handleOpenChannel} buttonColor={ColorVariant.success}>
                   {t.confirm}
                 </Button>
               }
@@ -379,21 +383,25 @@ function OpenChannelModal() {
           <div
             className={classNames(
               styles.openChannelResultIconWrapper,
-              { [styles.failed]: errMessage },
-              openStatusClass[errMessage ? "FAILED" : "SUCCEEDED"]
+              { [styles.failed]: isError },
+              openStatusClass[isLoading ? "PROCESSING" : isError ? "FAILED" : "SUCCEEDED"]
             )}
           >
-            {" "}
-            {openStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
+            {openStatusIcon[isLoading ? "PROCESSING" : isError ? "FAILED" : "SUCCEEDED"]}
           </div>
           <div className={styles.closeChannelResultDetails}>
-            {!errMessage && (
+            {isLoading && (
+              <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
+                {t.openCloseChannel.processingClose}
+              </Note>
+            )}
+            {isSuccess && (
               <>
                 <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
-                  {openingTx}
+                  {openChannelResponse?.fundingTransactionHash}
                 </Note>
                 <ExternalLinkButton
-                  href={"https://mempool.space/tx/" + openingTx}
+                  href={"https://mempool.space/tx/" + openChannelResponse?.fundingTransactionHash}
                   target="_blank"
                   rel="noreferrer"
                   buttonColor={ColorVariant.success}
@@ -407,11 +415,7 @@ function OpenChannelModal() {
                 </Note>
               </>
             )}
-            {errMessage && (
-              <Note title={t.openCloseChannel.error} icon={<FailedNoteIcon />} noteType={NoteType.error}>
-                {errMessage}
-              </Note>
-            )}
+            {isError && <ErrorSummary title={t.Error} errors={RtqToServerError(openChannelError).errors} />}
             <ButtonWrapper
               rightChildren={
                 <Button

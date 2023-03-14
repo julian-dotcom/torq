@@ -1,8 +1,11 @@
 package channels
 
 import (
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -217,14 +220,14 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func GetChannelsByNetwork(db *sqlx.DB, network commons.Network) ([]ChannelBody, error) {
+func GetChannelsByNetwork(network commons.Network) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
 	chain := commons.Bitcoin
 	nodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, network)
 	for _, nodeId := range nodeIds {
 		// Force Response because we don't care about balance accuracy
 		channelIds := commons.GetChannelStateChannelIds(nodeId, true)
-		channelsBodyByNode, err := GetChannelsByIds(db, nodeId, channelIds)
+		channelsBodyByNode, err := GetChannelsByIds(nodeId, channelIds)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Obtain channels for nodeId: %v", nodeId)
 		}
@@ -233,7 +236,7 @@ func GetChannelsByNetwork(db *sqlx.DB, network commons.Network) ([]ChannelBody, 
 	return channelsBody, nil
 }
 
-func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody, error) {
+func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
 	for _, channelId := range channelIds {
 		// Force Response because we don't care about balance accuracy
@@ -324,14 +327,14 @@ func GetChannelsByIds(db *sqlx.DB, nodeId int, channelIds []int) ([]ChannelBody,
 	return channelsBody, nil
 }
 
-func getChannelListHandler(c *gin.Context, db *sqlx.DB) {
+func getChannelListHandler(c *gin.Context) {
 	network, err := strconv.Atoi(c.Query("network"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Can't process network")
 		return
 	}
 
-	channelsBody, err := GetChannelsByNetwork(db, commons.Network(network))
+	channelsBody, err := GetChannelsByNetwork(commons.Network(network))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Get channel tags for channel")
 		return
@@ -346,8 +349,9 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getClosedChannels(db, network)
-
+	channels, err := getChannelsWithStatus(db, commons.Network(network),
+		[]commons.ChannelStatus{commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed,
+			commons.BreachClosed, commons.FundingCancelledClosed, commons.AbandonedClosed})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
 		err = errors.Wrap(err, "Problem getting closed channels from db")
@@ -421,7 +425,8 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getPendingChannels(db, network)
+	channels, err := getChannelsWithStatus(db, commons.Network(network),
+		[]commons.ChannelStatus{commons.Opening, commons.Closing})
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
@@ -528,4 +533,96 @@ func getChannelAndNodeListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, nodesChannels)
+}
+
+// openChannelHandler opens a channel to a peer
+func openChannelHandler(c *gin.Context, db *sqlx.DB) {
+	var openChannelRequest OpenChannelRequest
+	err := c.BindJSON(&openChannelRequest)
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't parse request")
+		return
+	}
+
+	response, err := OpenChannel(db, openChannelRequest)
+	switch {
+	case err != nil && strings.Contains(err.Error(), "Connecting to LND"):
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Torq could not connect to your node.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "Could not connect to peer."):
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Could not connect to peer node. This could be because the node is offline or the node is " +
+			"not reachable from your node. Please check the node and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "Cannot set both SatPerVbyte and TargetConf"):
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Cannot set both Sat per vbyte and Target confirmations. Choose one and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "error decoding public key hex"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Invalid public key. Please check the public key and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "channels cannot be created before the wallet is fully synced"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Channels cannot be created before the wallet is fully synced. Please wait for the wallet to sync and try again.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "unknown peer"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Unknown peer. Please check the public key and url.")
+		serr.AddServerError("The peer node may be offline or unreachable.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil && strings.Contains(err.Error(), "channel funding aborted"):
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Channel funding aborted.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case status.Code(err) == codes.InvalidArgument:
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Invalid argument. Please check the values and try again or reach out to the Torq team for help using the \"Help\" button in the navigation bar.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case status.Code(err) == codes.FailedPrecondition:
+		serr := server_errors.ServerError{}
+		serr.AddServerError("Failed precondition. Please check the values and try again or reach out to the Torq team for help using the \"Help\" button in the navigation bar.")
+		server_errors.SendBadRequestFieldError(c, &serr)
+		return
+	case err != nil:
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CloseChannel
+func closeChannelHandler(c *gin.Context, db *sqlx.DB) {
+	var closeChannelRequest CloseChannelRequest
+	err := c.BindJSON(&closeChannelRequest)
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't parse request")
+		return
+	}
+
+	response, err := CloseChannel(db, closeChannelRequest)
+	if err != nil {
+		// Check if the error was because the node could not connect to the peer
+		if strings.Contains(err.Error(), "Could not connect to peer.") {
+			serr := server_errors.ServerError{}
+			serr.AddServerError("Could not connect to peer node.")
+			server_errors.SendBadRequestFieldError(c, &serr)
+		}
+		server_errors.SendBadRequestFromError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response)
 }

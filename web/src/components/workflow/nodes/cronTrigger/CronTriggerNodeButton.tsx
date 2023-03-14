@@ -9,7 +9,7 @@ export function CronTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
-      colorVariant={NodeColorVariant.accent2}
+      colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.CronTrigger}
       icon={<CronTriggerIcon />}
       title={t.workflowNodes.cronTrigger}

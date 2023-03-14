@@ -22,7 +22,8 @@
     background-color: var(--color-success-layer-2);
   }
 }
-.noteTitleIcon {
+.noteTitleIcon,
+.noteDismissIcon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -35,6 +36,12 @@
   font-weight: 500;
   margin-bottom: 8px;
   //color: var(--secondary-1-700);
+}
+.noteTitle {
+  flex-grow: 1;
+}
+.noteContent {
+  word-wrap: break-word;
 }
 //.error .noteTitleWrapper {
 //  color: var(--color-red-500);

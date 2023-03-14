@@ -1,5 +1,17 @@
 import { Tag } from "pages/tags/tagsTypes";
 
+export enum ChannelStatus {
+  Opening = 1,
+  Open = 2,
+  Closing = 3,
+  CooperativeClosed = 100,
+  LocalForceClosed = 101,
+  RemoteForceClosed = 102,
+  BreachClosed = 103,
+  FundingCancelledClosed = 104,
+  AbandonedClosed = 105,
+}
+
 export type UpdateChannelResponse = {
   status: number;
   failedUpdates: null | FailedRequest[];

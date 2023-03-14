@@ -38,34 +38,3 @@ func SetRoutingPolicy(request commons.RoutingPolicyUpdateRequest,
 	lightningRequestChannel <- request
 	return <-responseChannel
 }
-
-func SetRebalance(request commons.RebalanceRequest,
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) commons.RebalanceResponse {
-
-	if rebalanceRequestChannel == nil {
-		message := fmt.Sprintf("Lightning request channel is nil for nodeId: %v", request.NodeId)
-		return commons.RebalanceResponse{
-			Request: request,
-			CommunicationResponse: commons.CommunicationResponse{
-				Status:  commons.Inactive,
-				Message: message,
-				Error:   message,
-			},
-		}
-	}
-	if commons.RunningServices[commons.RebalanceService].GetStatus(request.NodeId) != commons.ServiceActive {
-		message := fmt.Sprintf("Lightning communication service is not active for nodeId: %v", request.NodeId)
-		return commons.RebalanceResponse{
-			Request: request,
-			CommunicationResponse: commons.CommunicationResponse{
-				Status:  commons.Inactive,
-				Message: message,
-				Error:   message,
-			},
-		}
-	}
-	responseChannel := make(chan commons.RebalanceResponse)
-	request.ResponseChannel = responseChannel
-	rebalanceRequestChannel <- request
-	return <-responseChannel
-}

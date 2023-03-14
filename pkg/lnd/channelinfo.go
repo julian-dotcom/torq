@@ -93,7 +93,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 }
 
 // ImportRoutingPolicies imports routing policy information about all channels if they don't already have
-func ImportRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+func ImportRoutingPolicies(ctx context.Context, client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -101,7 +101,6 @@ func ImportRoutingPolicies(client lndClientChannelEvent, db *sqlx.DB, nodeSettin
 		return errors.Wrap(err, "Get open chan ids")
 	}
 
-	ctx := context.Background()
 	for _, cid := range chanIdList {
 		ce, err := client.GetChanInfo(ctx, &lnrpc.ChanInfoRequest{ChanId: cid})
 		if err != nil {

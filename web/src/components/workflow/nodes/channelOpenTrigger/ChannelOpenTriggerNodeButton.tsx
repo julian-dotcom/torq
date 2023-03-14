@@ -9,7 +9,7 @@ export function ChannelOpenTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
-      colorVariant={NodeColorVariant.accent2}
+      colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.ChannelOpenEventTrigger}
       icon={<Icon />}
       title={t.workflowNodes.openChannelTrigger}

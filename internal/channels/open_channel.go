@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"io"
-
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/pkg/commons"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"io"
+	"time"
 
 	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -24,15 +25,39 @@ type PsbtDetails struct {
 	Psbt           []byte `json:"psbt,omitempty"`
 }
 
-func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenChannelRequest, requestId string) (err error) {
+type OpenChannelRequest struct {
+	NodeId             int     `json:"nodeId"`
+	SatPerVbyte        *uint64 `json:"satPerVbyte"`
+	NodePubKey         string  `json:"nodePubKey"`
+	Host               *string `json:"host"`
+	LocalFundingAmount int64   `json:"localFundingAmount"`
+	PushSat            *int64  `json:"pushSat"`
+	TargetConf         *int32  `json:"targetConf"`
+	Private            *bool   `json:"private"`
+	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
+	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
+	MinConfs           *int32  `json:"minConfs"`
+	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
+	CloseAddress       *string `json:"closeAddress"`
+}
+
+type OpenChannelResponse struct {
+	Request                OpenChannelRequest    `json:"request"`
+	Status                 commons.ChannelStatus `json:"status"`
+	ChannelPoint           string                `json:"channelPoint"`
+	FundingTransactionHash string                `json:"fundingTransactionHash,omitempty"`
+	FundingOutputIndex     uint32                `json:"fundingOutputIndex,omitempty"`
+}
+
+func OpenChannel(db *sqlx.DB, req OpenChannelRequest) (response OpenChannelResponse, err error) {
 	openChanReq, err := prepareOpenRequest(req)
 	if err != nil {
-		return errors.Wrap(err, "Preparing open request")
+		return OpenChannelResponse{}, err
 	}
 
 	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
 	if err != nil {
-		return errors.Wrap(err, "Getting node connection details from the db")
+		return OpenChannelResponse{}, errors.Wrap(err, "Getting node connection details from the db")
 	}
 
 	conn, err := lnd_connect.Connect(
@@ -40,9 +65,14 @@ func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenC
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		return errors.Wrap(err, "Connecting to LND")
+		return OpenChannelResponse{}, errors.Wrap(err, "Connecting to LND")
 	}
-	defer conn.Close()
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Error().Msgf("Error closing grpc connection: %v", err)
+		}
+	}(conn)
 
 	client := lnrpc.NewLightningClient(conn)
 
@@ -50,48 +80,22 @@ func OpenChannel(eventChannel chan<- interface{}, db *sqlx.DB, req commons.OpenC
 
 	//If host provided - check if node is connected to peer and if not, connect peer
 	if req.NodePubKey != "" && req.Host != nil {
-		//log.Debug().Msgf("Host provided. connect peer")
 		if err := checkConnectPeer(client, ctx, req.NodeId, req.NodePubKey, *req.Host); err != nil {
-			return err
+			return OpenChannelResponse{}, errors.Wrap(err, "Could not connect to peer")
 		}
 	}
 
-	//Send open channel request
-	openChanRes, err := client.OpenChannel(ctx, openChanReq)
-
+	// Send open channel request
+	cp, err := openChannelProcess(client, openChanReq, req)
 	if err != nil {
-		return errors.Wrap(err, "LND Open channel")
+		return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
+	return cp, nil
 
-		resp, err := openChanRes.Recv()
-
-		if err == io.EOF {
-			//log.Info().Msgf("Open channel EOF")
-			return nil
-		}
-
-		if err != nil {
-			return errors.Wrapf(err, "Opening channel")
-		}
-
-		r, err := processOpenResponse(resp, req, requestId)
-		if err != nil {
-			return errors.Wrap(err, "Processing open response")
-		}
-		if eventChannel != nil {
-			eventChannel <- r
-		}
-	}
 }
 
-func prepareOpenRequest(ocReq commons.OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
+func prepareOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
 	if ocReq.NodeId == 0 {
 		return &lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
 	}
@@ -153,51 +157,6 @@ func prepareOpenRequest(ocReq commons.OpenChannelRequest) (r *lnrpc.OpenChannelR
 	return openChanReq, nil
 }
 
-func processOpenResponse(resp *lnrpc.OpenStatusUpdate, req commons.OpenChannelRequest, requestId string) (commons.OpenChannelResponse, error) {
-	switch resp.GetUpdate().(type) {
-	case *lnrpc.OpenStatusUpdate_ChanPending:
-		log.Info().Msgf("Channel pending")
-
-		pc := resp.GetChanPending()
-		pcp, err := translateChanPoint(pc.Txid, pc.OutputIndex)
-		if err != nil {
-			log.Error().Msgf("Error translating pending channel point")
-			return commons.OpenChannelResponse{}, err
-		}
-
-		return commons.OpenChannelResponse{
-			RequestId:           requestId,
-			Request:             req,
-			Status:              commons.Opening,
-			PendingChannelPoint: pcp,
-		}, nil
-
-	case *lnrpc.OpenStatusUpdate_ChanOpen:
-		log.Info().Msgf("Channel open")
-
-		oc := resp.GetChanOpen()
-		ocp, err := translateChanPoint(oc.ChannelPoint.GetFundingTxidBytes(), oc.ChannelPoint.OutputIndex)
-		if err != nil {
-			log.Error().Msgf("Error translating channel point")
-			return commons.OpenChannelResponse{}, err
-		}
-
-		return commons.OpenChannelResponse{
-			RequestId:    requestId,
-			Request:      req,
-			Status:       commons.Open,
-			ChannelPoint: ocp,
-		}, nil
-
-	case *lnrpc.OpenStatusUpdate_PsbtFund:
-		log.Error().Msg("Channel psbt fund response received. Can't process this response")
-		return commons.OpenChannelResponse{}, errors.New("Channel psbt fund response received. Can't process this response")
-	default:
-	}
-
-	return commons.OpenChannelResponse{}, nil
-}
-
 func translateChanPoint(cb []byte, oi uint32) (string, error) {
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
@@ -236,4 +195,57 @@ func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId 
 	}
 
 	return nil
+}
+
+func openChannelProcess(client lnrpc.LightningClient, openChannelReq *lnrpc.OpenChannelRequest,
+	ccReq OpenChannelRequest) (OpenChannelResponse, error) {
+
+	// Create a context with a timeout.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), closeChannelTimeoutInSeconds*time.Second)
+	defer cancel()
+
+	// Call OpenChannel with the timeout context.
+	openReq, err := client.OpenChannel(timeoutCtx, openChannelReq)
+	if err != nil {
+		return OpenChannelResponse{}, errors.Wrap(err, "Close channel request")
+	}
+
+	// Loop until we receive an open channel response or the context times out.
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			return OpenChannelResponse{}, errors.New("Close channel request timeout")
+		default:
+		}
+
+		// Receive the next close channel response message.
+		resp, err := openReq.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// No more messages to receive, the channel is open.
+				return OpenChannelResponse{}, nil
+			}
+			return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
+		}
+
+		r := OpenChannelResponse{
+			Request: ccReq,
+		}
+		if resp.Update == nil {
+			continue
+		}
+
+		switch resp.GetUpdate().(type) {
+		case *lnrpc.OpenStatusUpdate_ChanPending:
+			r.Status = commons.Opening
+			ch, err := chainhash.NewHash(resp.GetChanPending().Txid)
+			if err != nil {
+				return OpenChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
+			}
+			r.FundingTransactionHash = ch.String()
+			r.FundingOutputIndex = resp.GetChanPending().OutputIndex
+			r.ChannelPoint = fmt.Sprintf("%s:%d", ch.String(), resp.GetChanPending().OutputIndex)
+			return r, nil
+		}
+	}
 }

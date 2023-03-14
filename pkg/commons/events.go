@@ -183,66 +183,9 @@ type ChannelPoint struct {
 	OutputIndex uint32 `json:"outputIndex"`
 }
 
-// OPEN CHANNEL
-type OpenChannelRequest struct {
-	NodeId             int     `json:"nodeId"`
-	SatPerVbyte        *uint64 `json:"satPerVbyte"`
-	NodePubKey         string  `json:"nodePubKey"`
-	Host               *string `json:"host"`
-	LocalFundingAmount int64   `json:"localFundingAmount"`
-	PushSat            *int64  `json:"pushSat"`
-	TargetConf         *int32  `json:"targetConf"`
-	Private            *bool   `json:"private"`
-	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
-	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
-	MinConfs           *int32  `json:"minConfs"`
-	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
-	CloseAddress       *string `json:"closeAddress"`
-}
-
-type OpenChannelResponse struct {
-	RequestId           string             `json:"requestId"`
-	Request             OpenChannelRequest `json:"request"`
-	Status              ChannelStatus      `json:"status"`
-	ChannelPoint        string             `json:"channelPoint,omitempty"`
-	PendingChannelPoint string             `json:"pendingChannelPoint,omitempty"`
-}
-
-// CLOSE CHANNEL
-type CloseChannelRequest struct {
-	NodeId          int     `json:"nodeId"`
-	ChannelId       int     `json:"channelId"`
-	Force           *bool   `json:"force"`
-	TargetConf      *int32  `json:"targetConf"`
-	DeliveryAddress *string `json:"deliveryAddress"`
-	SatPerVbyte     *uint64 `json:"satPerVbyte"`
-}
-
-type CloseChannelResponse struct {
-	RequestId                string              `json:"requestId"`
-	Request                  CloseChannelRequest `json:"request"`
-	Status                   ChannelStatus       `json:"status"`
-	ClosePendingChannelPoint ChannelPoint        `json:"closePendingChannelPoint"`
-	CloseChannelStatus       CloseChannelStatus  `json:"closeChannelStatus"`
-}
-
 type CloseChannelStatus struct {
 	ClosingTxId []byte `json:"closingTxId"`
 	Success     bool   `json:"success"`
-}
-
-// NEW ADDRESS
-type NewAddressRequest struct {
-	NodeId int   `json:"nodeId"`
-	Type   int32 `json:"type"`
-	//The name of the account to generate a new address for. If empty, the default wallet account is used.
-	Account string `json:"account"`
-}
-
-type NewAddressResponse struct {
-	RequestId string            `json:"requestId"`
-	Request   NewAddressRequest `json:"request"`
-	Address   string            `json:"address"`
 }
 
 // NEW PAYMENT
@@ -439,10 +382,14 @@ type SignMessageResponse struct {
 	Signature string `json:"signature"`
 }
 
-type RebalanceRequest struct {
+type RebalanceRequests struct {
 	CommunicationRequest
-	ResponseChannel chan<- RebalanceResponse `json:"-"`
-	Origin          RebalanceRequestOrigin   `json:"origin"`
+	Requests        []RebalanceRequest
+	ResponseChannel chan<- []RebalanceResponse `json:"-"`
+}
+
+type RebalanceRequest struct {
+	Origin RebalanceRequestOrigin `json:"origin"`
 	// Either manually generated number for manual rebalance or
 	// WorkflowVersionNodeId for rebalance originating from workflows
 	OriginId        int    `json:"originId"`
@@ -450,11 +397,13 @@ type RebalanceRequest struct {
 	// Either IncomingChannelId is populated or OutgoingChannelId is.
 	IncomingChannelId int `json:"incomingChannelId"`
 	// Either OutgoingChannelId is populated or IncomingChannelId is.
-	OutgoingChannelId  int    `json:"outgoingChannelIds"`
-	ChannelIds         []int  `json:"channelIds"`
-	AmountMsat         uint64 `json:"amountMsat"`
-	MaximumCostMsat    uint64 `json:"maximumCostMsat"`
-	MaximumConcurrency int    `json:"maximumConcurrency"`
+	OutgoingChannelId int `json:"outgoingChannelIds"`
+	// ONLY used for previous success rerun validation!
+	ChannelIds            []int       `json:"channelIds"`
+	AmountMsat            uint64      `json:"amountMsat"`
+	MaximumCostMsat       uint64      `json:"maximumCostMsat"`
+	MaximumConcurrency    int         `json:"maximumConcurrency"`
+	WorkflowUnfocusedPath interface{} `json:"-"`
 }
 
 type RebalanceResponse struct {
@@ -476,4 +425,24 @@ type NodeWalletBalanceResponse struct {
 	ReservedBalanceAnchorChan int64
 	CommunicationResponse
 	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
+}
+type ImportType int
+
+const (
+	ImportChannelRoutingPolicies = ImportType(iota)
+	ImportNodeInformation
+	ImportAllChannels
+	ImportPendingChannelsOnly
+)
+
+type ImportRequest struct {
+	CommunicationRequest
+	ResponseChannel chan<- ImportResponse `json:"-"`
+	ImportType      ImportType
+}
+
+type ImportResponse struct {
+	Request ImportRequest `json:"request"`
+	CommunicationResponse
+	Error error `json:"error"`
 }

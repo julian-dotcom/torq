@@ -4,12 +4,10 @@ import {
   Checkmark20Regular as SuccessNoteIcon,
   CheckmarkRegular as SuccessIcon,
   ErrorCircleRegular as FailedIcon,
-  ErrorCircle20Regular as FailedNoteIcon,
   Link20Regular as LinkIcon,
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
-import { WS_URL } from "apiSlice";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import Button, { ButtonWrapper, ColorVariant, ExternalLinkButton } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -20,22 +18,23 @@ import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
 import { NumberFormatValues } from "react-number-format";
 import Input from "components/forms/input/Input";
-import useWebSocket from "react-use-websocket";
 import Switch from "components/forms/switch/Switch";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
-import { Buffer } from "buffer";
 import Note, { NoteType } from "features/note/Note";
 import mixpanel from "mixpanel-browser";
+import { useCloseChannelMutation } from "./closeChannelApi";
+import ErrorSummary from "components/errors/ErrorSummary";
+import { RtqToServerError } from "components/errors/errors";
 
 const closeStatusClass = {
-  IN_FLIGHT: styles.inFlight,
+  PROCESSING: styles.processing,
   FAILED: styles.failed,
   SUCCEEDED: styles.success,
 };
 
 const closeStatusIcon = {
-  IN_FLIGHT: <ProcessingIcon />,
+  PROCESSING: <ProcessingIcon />,
   FAILED: <FailedIcon />,
   SUCCEEDED: <SuccessIcon />,
   NOTE: <NoteIcon />,
@@ -43,47 +42,55 @@ const closeStatusIcon = {
 
 function closeChannelModal() {
   const { t } = useTranslations();
+  const navigate = useNavigate();
   const [queryParams] = useSearchParams();
   const nodeId = parseInt(queryParams.get("nodeId") || "0");
   const channelId = parseInt(queryParams.get("channelId") || "0");
 
-  const [resultState, setResultState] = useState(ProgressStepState.disabled);
-  const [errMessage, setErrorMessage] = useState<string>("");
-  const [closingTx, setClosingTx] = useState<string>("");
-  const [detailState, setDetailState] = useState(ProgressStepState.active);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
   const [force, setForce] = useState<boolean>(false);
+  const [resultState, setResultState] = useState(ProgressStepState.disabled);
+  const [detailState, setDetailState] = useState(ProgressStepState.active);
 
   const closeAndReset = () => {
     setStepIndex(0);
     setDetailState(ProgressStepState.active);
     setResultState(ProgressStepState.disabled);
-    setErrorMessage("");
-    setClosingTx("");
+    setSatPerVbyte(undefined);
+    setForce(false);
   };
 
-  const navigate = useNavigate();
+  const [closeChannel, { data: closeChannelResponse, error: closeChannelError, isError, isSuccess, isLoading }] =
+    useCloseChannelMutation();
 
-  const { sendJsonMessage } = useWebSocket(WS_URL, {
-    //Will attempt to reconnect on all close events, such as server shutting down
-    shouldReconnect: () => true,
-    share: true,
-    onMessage: oncloseChannelMessage,
-  });
-
-  function oncloseChannelMessage(event: MessageEvent<string>) {
-    const response = JSON.parse(event.data);
-    if (response?.type === "Error") {
-      setErrorMessage(response.error);
-      setResultState(ProgressStepState.error);
-      return;
-    } else {
-      if (!closingTx) {
-        const decodedTxId = Buffer.from(response.closePendingChannelPoint.txId, "base64").toString("utf8");
-        setClosingTx(`${decodedTxId}`);
-      }
+  useEffect(() => {
+    if (isSuccess) {
+      setResultState(ProgressStepState.completed);
     }
+    if (isLoading) {
+      setResultState(ProgressStepState.processing);
+    }
+    if (isError) {
+      setResultState(ProgressStepState.error);
+    }
+  }, [isSuccess, isError, isLoading]);
+
+  function handleCloseChannel() {
+    setStepIndex(1);
+    setDetailState(ProgressStepState.completed);
+    mixpanel.track("Close Channel", {
+      nodeId: nodeId,
+      channelId: channelId,
+      openChannelUseSatPerVbyte: satPerVbyte !== 0,
+      force: force,
+    });
+    closeChannel({
+      nodeId: nodeId,
+      channelId: channelId,
+      satPerVbyte: satPerVbyte,
+      force: force,
+    });
   }
 
   return (
@@ -98,21 +105,17 @@ function closeChannelModal() {
           <div className={styles.activeColumns}>
             <div className={styles.closeChannelTableRow}>
               <FormRow>
-                <div className={styles.closeChannelTableSingle}>
-                  <span className={styles.label}>{"Sat per vbyte"}</span>
-                  <div className={styles.input}>
-                    <Input
-                      formatted={true}
-                      className={styles.single}
-                      thousandSeparator={","}
-                      value={satPerVbyte}
-                      suffix={" sat/vbyte"}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setSatPerVbyte(values.floatValue);
-                      }}
-                    />
-                  </div>
-                </div>
+                <Input
+                  label={"Sat/vbyte"}
+                  formatted={true}
+                  className={styles.single}
+                  thousandSeparator={","}
+                  value={satPerVbyte}
+                  suffix={" sat/vbyte"}
+                  onValueChange={(values: NumberFormatValues) => {
+                    setSatPerVbyte(values.floatValue);
+                  }}
+                />
               </FormRow>
             </div>
             {/*<div className={styles.closeChannelTableRow}>*/}
@@ -145,30 +148,7 @@ function closeChannelModal() {
             </div>
             <ButtonWrapper
               rightChildren={
-                <Button
-                  onClick={() => {
-                    setStepIndex(1);
-                    setDetailState(ProgressStepState.completed);
-                    setResultState(ProgressStepState.completed);
-                    mixpanel.track("Close Channel", {
-                      nodeId: nodeId,
-                      channelId: channelId,
-                      openChannelUseSatPerVbyte: satPerVbyte !== 0,
-                      force: force,
-                    });
-                    sendJsonMessage({
-                      requestId: "randId",
-                      type: "closeChannel",
-                      closeChannelRequest: {
-                        nodeId: nodeId,
-                        channelId: channelId,
-                        satPerVbyte: satPerVbyte,
-                        force: force,
-                      },
-                    });
-                  }}
-                  buttonColor={ColorVariant.success}
-                >
+                <Button onClick={handleCloseChannel} buttonColor={ColorVariant.success}>
                   {t.openCloseChannel.closeChannel}
                 </Button>
               }
@@ -179,21 +159,25 @@ function closeChannelModal() {
           <div
             className={classNames(
               styles.closeChannelResultIconWrapper,
-              { [styles.failed]: errMessage },
-              closeStatusClass[errMessage ? "FAILED" : "SUCCEEDED"]
+              { [styles.failed]: isError },
+              closeStatusClass[isLoading ? "PROCESSING" : isError ? "FAILED" : "SUCCEEDED"]
             )}
           >
-            {" "}
-            {closeStatusIcon[errMessage ? "FAILED" : "SUCCEEDED"]}
+            {closeStatusIcon[isLoading ? "PROCESSING" : isError ? "FAILED" : "SUCCEEDED"]}
           </div>
           <div className={styles.closeChannelResultDetails}>
-            {!errMessage && (
+            {isLoading && (
+              <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
+                {t.openCloseChannel.processingClose}
+              </Note>
+            )}
+            {isSuccess && (
               <>
                 <Note title={t.TxId} icon={<SuccessNoteIcon />} noteType={NoteType.success}>
-                  {closingTx}
+                  {closeChannelResponse?.closingTransactionHash}
                 </Note>
                 <ExternalLinkButton
-                  href={"https://mempool.space/tx/" + closingTx}
+                  href={"https://mempool.space/tx/" + closeChannelResponse?.closingTransactionHash}
                   target="_blank"
                   rel="noreferrer"
                   buttonColor={ColorVariant.success}
@@ -207,11 +191,7 @@ function closeChannelModal() {
                 </Note>
               </>
             )}
-            {errMessage && (
-              <Note title={t.openCloseChannel.error} icon={<FailedNoteIcon />} noteType={NoteType.error}>
-                {errMessage}
-              </Note>
-            )}
+            <ErrorSummary title={t.Error} errors={RtqToServerError(closeChannelError).errors} />
           </div>
         </ProgressTabContainer>
       </ProgressTabs>

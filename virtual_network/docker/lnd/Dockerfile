@@ -15,7 +15,7 @@ ENV GODEBUG netdns=cgo
 # Pass a tag, branch or a commit using build-arg.  This allows a docker
 # image to be built from a specified Git state.  The default image
 # will use the Git tip of master by default.
-ARG checkout="master"
+ARG checkout="v0.15.5-beta"
 ARG git_url="https://github.com/lightningnetwork/lnd"
 
 # Install dependencies and build the binaries.

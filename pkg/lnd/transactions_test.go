@@ -39,7 +39,7 @@ func TestStoreTransaction(t *testing.T) {
 	}
 	defer db.Close()
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)

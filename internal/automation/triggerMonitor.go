@@ -37,7 +37,7 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				torqNodeIds := commons.GetAllTorqNodeIds()
 				for _, torqNodeId := range torqNodeIds {
 					// Force Response because we don't care about balance accuracy
-					channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
+					channelIdsByNode := commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)
 					allChannelIds = append(allChannelIds, channelIdsByNode...)
 				}
 				if len(allChannelIds) == 0 {
@@ -54,7 +54,7 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
 				triggerSettings := commons.GetTimeTriggerSettingsByWorkflowVersionId(workflowTriggerNode.WorkflowVersionId)
 				var param workflows.IntervalTriggerParameters
-				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters.([]uint8)), &param)
+				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters), &param)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to parse parameters for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 					continue
@@ -108,15 +108,12 @@ bootstrappingLoop:
 		case <-ctx.Done():
 			return
 		case <-ticker:
-			var allChannelIds []int
 			torqNodeIds := commons.GetAllTorqNodeIds()
 			for _, torqNodeId := range torqNodeIds {
 				// Force Response because we don't care about balance accuracy
-				channelIdsByNode := commons.GetChannelStateChannelIds(torqNodeId, true)
-				allChannelIds = append(allChannelIds, channelIdsByNode...)
-			}
-			if len(allChannelIds) != 0 {
-				break bootstrappingLoop
+				if len(commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)) != 0 {
+					break bootstrappingLoop
+				}
 			}
 		}
 	}
@@ -131,7 +128,7 @@ bootstrappingLoop:
 	var crons []*cron.Cron
 	for _, trigger := range workflowTriggerNodes {
 		var params CronTriggerParams
-		if err = json.Unmarshal(trigger.Parameters.([]byte), &params); err != nil {
+		if err = json.Unmarshal([]byte(trigger.Parameters), &params); err != nil {
 			log.Error().Msgf("Can't unmarshal parameters for workflow version node id: %v", trigger.WorkflowVersionNodeId)
 			continue
 		}
@@ -188,7 +185,7 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
+	rebalanceRequestChannel chan<- commons.RebalanceRequests) {
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
@@ -425,7 +422,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	reference string,
 	events []any,
 	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequest) {
+	rebalanceRequestChannel chan<- commons.RebalanceRequests) {
 
 	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events, lightningRequestChannel, rebalanceRequestChannel)
 	if err != nil {

@@ -24,7 +24,7 @@ import {
   ChannelOpenTriggerNode,
   ChannelCloseTriggerNode,
   DataSourceTorqChannelsNode,
-  EventFilterNode
+  EventFilterNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
@@ -36,6 +36,7 @@ import { useContext } from "react";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import mixpanel from "mixpanel-browser";
+import Spinny from "features/spinny/Spinny";
 
 type WorkflowCanvasStagesProps = {
   workflowId: number;
@@ -60,7 +61,7 @@ function FirstStageTrigger(props: {
 
   const triggerNodes = props.triggers.map(getNodeComponent);
 
-  const [triggerWorkflow] = useAddManualWorkflowTriggerMutation();
+  const [triggerWorkflow, { isLoading: runIsProcessing }] = useAddManualWorkflowTriggerMutation();
 
   function handleManualTrigger() {
     mixpanel.track("Workflow Manually Triggered", {
@@ -69,15 +70,19 @@ function FirstStageTrigger(props: {
       workflowVersion: props.version,
       workflowStageNumber: props.stage,
     });
+
     triggerWorkflow({
       type: WorkflowNodeType.StageTrigger,
       workflowVersionId: props.workflowVersionId,
       workflowId: props.workflowId,
       workflowVersionNodeId: triggerNode?.workflowVersionNodeId || 0,
-    }).then(() => {
-      // On success, select the new stage
-      // props.setSelectedStage(nextStage);
-    });
+    })
+      .then(() => {
+        toastRef?.current && toastRef.current.addToast(t.workflowDetails.manualTriggerSuccess, toastCategory.success);
+      })
+      .catch(() => {
+        toastRef?.current && toastRef.current.addToast(t.workflowDetails.manualTriggerError, toastCategory.error);
+      });
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -131,7 +136,8 @@ function FirstStageTrigger(props: {
           <div className={classNames(styles.triggerContainerHeading)}>
             <div>{t.triggers}</div>
             <Button
-              icon={<PlayIcon />}
+              icon={runIsProcessing ? <Spinny /> : <PlayIcon />}
+              disabled={runIsProcessing}
               buttonSize={SizeVariant.tiny}
               buttonColor={ColorVariant.success}
               hideMobileText={true}
