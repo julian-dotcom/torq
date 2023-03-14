@@ -52,7 +52,7 @@ function NewPaymentModal() {
   const [selectedNodeId, setSelectedNodeId] = useState<number>(0);
   const [destination, setDestination] = useState("");
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
-
+  const [overriddenLnAmount, setOverriddenLnAmount] = useState(0);
   const [destState, setDestState] = useState(ProgressStepState.active);
   const [confirmState, setConfirmState] = useState(ProgressStepState.disabled);
   const [processState, setProcessState] = useState(ProgressStepState.disabled);
@@ -210,6 +210,8 @@ function NewPaymentModal() {
     return "Can't decode invoice";
   }
 
+  const lnAmount = overriddenLnAmount !== 0 ? overriddenLnAmount : (decodedInvRes?.data?.valueMsat ?? 0) / 1000;
+
   return (
     <PopoutPageTemplate
       title={t.header.newPayment}
@@ -301,6 +303,7 @@ function NewPaymentModal() {
             setDestState={setDestState}
             selectedNodeId={selectedNodeId}
             sendJsonMessage={sendJsonMessage}
+            onAmountChange={setOverriddenLnAmount}
           />
         )}
         {isOnChain && (
@@ -324,6 +327,7 @@ function NewPaymentModal() {
             destination={destination}
             responses={lnInvoiceResponses}
             clearPaymentFlow={clearPaymentFlow}
+            amount={lnAmount}
           />
         )}
         {isOnChain && response.data && (
