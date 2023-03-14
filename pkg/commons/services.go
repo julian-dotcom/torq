@@ -63,12 +63,16 @@ func (rs *Services) RemoveSubscription(nodeId int) ServiceStatus {
 	return previousStatus
 }
 
-func (rs *Services) Cancel(nodeId int, enforcedServiceStatus *ServiceStatus, noDelay bool) (ServiceStatus, ServiceStatus) {
+func (rs *Services) Cancel(
+	nodeId int,
+	enforcedServiceStatus *ServiceStatus,
+	noDelay bool) (previousStatus ServiceStatus, currentStatus ServiceStatus) {
+
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	initServiceMaps(rs, nodeId)
-	previousStatus := rs.serviceStatus[nodeId]
+	previousStatus = rs.serviceStatus[nodeId]
 	_, exists := rs.runningList[nodeId]
 	if exists {
 		_, exists = rs.bootLock[nodeId]
