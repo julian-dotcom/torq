@@ -12,8 +12,9 @@ import (
 	"testing"
 
 	"github.com/docker/docker/client"
-	"github.com/lncapital/torq/virtual_network"
 	"github.com/playwright-community/playwright-go"
+
+	"github.com/lncapital/torq/virtual_network"
 )
 
 const torqPort = "4927"
@@ -59,6 +60,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Getting new docker client: %v\n", err)
 	}
 	defer cli.Close()
+	cli.NegotiateAPIVersion(ctx)
 
 	de := virtual_network.DockerDevEnvironment{
 		Client:            cli,
