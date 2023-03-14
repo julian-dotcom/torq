@@ -44,7 +44,7 @@ function NewAddressModal() {
   const handleClickNext = (addType: AddressType) => {
     newAddress({
       nodeId: selectedNodeId,
-      addressType: addType,
+      type: addType,
       // account: {account},
     });
   };
