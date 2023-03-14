@@ -85,7 +85,7 @@ function NewPaymentModal() {
     if (message.status === "SUCCEEDED") {
       setProcessState(ProgressStepState.completed);
     } else if (message.status === "FAILED") {
-      setPaymentProcessingError(message.failureReason);
+      setPaymentProcessingError(PaymentProcessingErrors.get(message.failureReason) ?? "UNKNOWN_ERROR");
       setProcessState(ProgressStepState.error);
     }
   }
