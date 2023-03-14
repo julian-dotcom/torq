@@ -230,7 +230,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
         <Note title={t.note} noteType={NoteType.info}>
-          <p>{t.workflowNodes.channelPolicyDescription}</p>
+          <p>{t.workflowNodes.channelPolicyConfiguratorDescription}</p>
         </Note>
       </Form>
     </WorkflowNodeWrapper>
