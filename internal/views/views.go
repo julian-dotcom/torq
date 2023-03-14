@@ -179,6 +179,14 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		if definition.keySecond != "" {
 			result = result + fmt.Sprintf("\n\t\tkey2: \"%v\",", definition.keySecond)
 		}
+		if len(definition.selectOptions) != 0 {
+			result = result + "\n\t\tselectOptions: ["
+			for _, selectOption := range definition.selectOptions {
+				result = result + fmt.Sprintf("\n\t\t\t{ label: \"%v\", value: \"%v\" },",
+					selectOption.label, selectOption.value)
+			}
+			result = result + "\n\t\t],"
+		}
 		result = result + "\n\t},"
 	}
 	result = result + "\n];"
@@ -1560,12 +1568,12 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				{label: "Opening", value: "Opening"},
 				{label: "Open", value: "Open"},
 				{label: "Closing", value: "Closing"},
-				{label: "Cooperative Closed", value: "CooperativeClosed"},
-				{label: "Local Force Closed", value: "LocalForceClosed"},
-				{label: "Remote Force Closed", value: "RemoteForceClosed"},
-				{label: "Breach Closed", value: "BreachClosed"},
-				{label: "Funding Cancelled Closed", value: "FundingCancelledClosed"},
-				{label: "Abandoned Closed", value: "AbandonedClosed"},
+				{label: "Cooperative Closed", value: "Cooperative Closed"},
+				{label: "Local Force Closed", value: "Local Force Closed"},
+				{label: "Remote Force Closed", value: "Remote Force Closed"},
+				{label: "Breach Closed", value: "Breach Closed"},
+				{label: "Funding Cancelled Closed", value: "Funding Cancelled Closed"},
+				{label: "Abandoned Closed", value: "Abandoned Closed"},
 			},
 			pages: map[TableViewPage]int{
 				PageChannelsClosed:  18,
