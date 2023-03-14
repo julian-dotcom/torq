@@ -25,7 +25,6 @@ import {
   useUpdateNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
-  useGetLndServicesQuery,
 } from "apiSlice";
 import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
@@ -117,9 +116,6 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const { data: nodeConfigurationData } = useGetNodeConfigurationQuery(nodeId, {
     skip: !nodeId || nodeId == 0,
   });
-  const { data: lndServicesData } = useGetLndServicesQuery(nodeId, {
-    skip: !nodeId || nodeId == 0,
-  });
   const [updateNodeConfiguration] = useUpdateNodeConfigurationMutation();
   const [addNodeConfiguration] = useAddNodeConfigurationMutation();
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
@@ -132,15 +128,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
   const [saveEnabledState, setSaveEnabledState] = useState(true);
-  const [saveBootstrappingState, setSaveBootstrappingState] = useState(false);
   const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
   const [customSettingsState, setCustomSettingsState] = React.useState(customSettingsDefault);
   const [formErrorState, setFormErrorState] = React.useState({} as FormErrors);
-
-  const { data: bootingCheck } = useGetLndServicesQuery(nodeId, {
-    skip: !saveBootstrappingState,
-    pollingInterval: 5 * 1000, // get status every 5 seconds
-  });
 
   React.useImperativeHandle(ref, () => ({
     clear() {
@@ -213,7 +203,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       addNodeConfiguration(form)
         .unwrap()
         .then((_) => {
-          setSaveEnabledState(false);
+          setSaveEnabledState(true);
           setEnableEnableButtonState(true);
           toastRef?.current?.addToast("Local node added", toastCategory.success);
           if (onAddSuccess) {
@@ -232,8 +222,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       updateNodeConfiguration(form)
         .unwrap()
         .then((_) => {
-          setSaveEnabledState(false);
-          setSaveBootstrappingState(true);
+          setSaveEnabledState(true);
           toastRef?.current?.addToast("Local node info saved", toastCategory.success);
         })
         .catch((error) => {
@@ -266,18 +255,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           nodeConfigurationData.customSettings % (importForwardsHistoryValue * 2) >= importForwardsHistoryValue,
       });
     }
-    if (lndServicesData !== undefined && lndServicesData.status !== 1) {
-      setSaveBootstrappingState(true);
-      setSaveEnabledState(false);
-    }
-  }, [nodeConfigurationData, lndServicesData]);
-
-  React.useEffect(() => {
-    if (bootingCheck !== undefined && bootingCheck.status === 1) {
-      setSaveBootstrappingState(false);
+    if (nodeConfigurationData != undefined && nodeConfigurationData.status == 0) {
       setSaveEnabledState(true);
     }
-  }, [bootingCheck]);
+  }, [nodeConfigurationData]);
 
   const getCustomSettingsState = (key: string) => {
     const data = customSettingsSidebarData.get(key);
@@ -347,6 +328,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
 
   const handleStatusClick = () => {
     setEnableEnableButtonState(false);
+    setSaveEnabledState(false);
     let statusId = 0;
     if (nodeConfigurationState.status == 0) {
       statusId = 1;
@@ -358,6 +340,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       .unwrap()
       .finally(() => {
         setEnableEnableButtonState(true);
+        setSaveEnabledState(true);
       });
     if (popoverRef.current) {
       (popoverRef.current as { close: () => void }).close();
@@ -578,15 +561,15 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               <Button
                 id={"save-node"}
                 buttonColor={ColorVariant.success}
-                icon={saveEnabledState ? <SaveIcon /> : <Spinny />}
+                icon={saveEnabledState || nodeConfigurationState.status == 1 ? <SaveIcon /> : <Spinny />}
                 onClick={submitNodeSettings}
                 buttonPosition={ButtonPosition.fullWidth}
-                disabled={!saveEnabledState}
+                disabled={!saveEnabledState || nodeConfigurationState.status == 1}
               >
                 {addMode
                   ? "Add Node"
-                  : saveBootstrappingState
-                  ? "Bootstrapping..."
+                  : nodeConfigurationState.status == 1
+                  ? "Disable node to update"
                   : saveEnabledState
                   ? "Save node details"
                   : "Saving..."}
