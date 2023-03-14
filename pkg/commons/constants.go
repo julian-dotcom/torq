@@ -195,7 +195,7 @@ const (
 	WorkflowNodeChannelPolicyAutoRun
 	WorkflowNodeRebalanceAutoRun
 	WorkflowNodeDataSourceTorqChannels
-	WorkflowNodeEventFilter
+	WorkflowNodeChannelBalanceEventFilter
 )
 
 type WorkflowParameterType string

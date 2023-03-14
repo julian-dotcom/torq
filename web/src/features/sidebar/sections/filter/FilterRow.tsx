@@ -126,6 +126,10 @@ function FilterRow({
         newRow.parameter = [];
         newRow.funcName = "any";
         break;
+      case "enum":
+        newRow.parameter = "";
+        newRow.funcName = "eq";
+        break;
       default:
         newRow.parameter = "";
         newRow.funcName = "like";
@@ -219,7 +223,7 @@ function FilterRow({
               .join(" or ") || ""
           );
         }
-        return "";
+        return "[empty]";
       case "enum":
         if (rowValues?.parameter !== undefined) {
           return (
@@ -232,13 +236,13 @@ function FilterRow({
               .join(" or ") || ""
           );
         }
-        return "";
+        return "[empty]";
       case "tag":
         if (rowValues?.parameter !== undefined) {
           const parameter = rowValues.parameter as Array<number>;
           return (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(" or ");
         }
-        return "";
+        return "[empty]";
       default:
         return "rowValues.parameter";
     }

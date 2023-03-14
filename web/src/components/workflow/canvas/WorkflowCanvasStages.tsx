@@ -24,7 +24,7 @@ import {
   ChannelOpenTriggerNode,
   ChannelCloseTriggerNode,
   DataSourceTorqChannelsNode,
-  EventFilterNode,
+  ChannelBalanceEventFilterNode,
 } from "components/workflow/nodes/nodes";
 import { WorkflowVersionNode } from "pages/WorkflowPage/workflowTypes";
 import classNames from "classnames";
@@ -219,8 +219,8 @@ function getNodeComponent(node: WorkflowVersionNode) {
       return <RemoveTagNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     case WorkflowNodeType.DataSourceTorqChannels:
       return <DataSourceTorqChannelsNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
-    case WorkflowNodeType.EventFilter:
-      return <EventFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
+    case WorkflowNodeType.ChannelBalanceEventFilter:
+      return <ChannelBalanceEventFilterNode {...node} key={"node-id-" + node.workflowVersionNodeId} />;
     default:
       return null;
   }
