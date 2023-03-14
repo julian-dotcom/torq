@@ -242,9 +242,9 @@
     "targetNode": "Target Nodes",
     "run": "Run Workflow",
     "torqChannels": "Torq Channel(s)",
-    "eventFilter": "Events Filter"
+    "channelBalanceEventFilter": "Channel Balance Changes Filter"
   },
-  "eventFilterNode": {
+  "channelBalanceEventFilterNode": {
     "ignoreWhenEventlessHelpText": "Determines what happens when the workflow trigger does not match the event criteria. i.e. You filter on details about a channel balance event but it was the cron trigger that occurred. If it's the cron trigger then there is no information about channel balance so do you want to 'Stop' the workflow at this point or just 'Continue' and ignore this filter."
   },
   "channelsDataSourceNode": {

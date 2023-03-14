@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { ArrowBounce20Regular as EventFilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { ArrowBounce20Regular as ChannelBalanceEventFilterIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import Form from "components/forms/form/Form";
@@ -26,12 +26,12 @@ export type event = {
   balanceUpdateEventOrigin: number;
 };
 
-export type EventFilterConfiguration = {
+export type ChannelBalanceEventFilterConfiguration = {
   ignoreWhenEventless: boolean;
   filterClauses: AndClause | OrClause;
 };
 
-export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
+export function ChannelBalanceEventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
   const { t } = useTranslations();
   const toastRef = React.useContext(ToastContext);
   const { workflowStatus } = useContext(WorkflowContext);
@@ -39,7 +39,7 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
 
   const [updateNode] = useUpdateNodeMutation();
 
-  const [configuration, setConfiguration] = useState<EventFilterConfiguration>({
+  const [configuration, setConfiguration] = useState<ChannelBalanceEventFilterConfiguration>({
     ignoreWhenEventless: (wrapperProps.parameters.ignoreWhenEventless || false) as boolean,
     filterClauses: deserialiseQuery(wrapperProps.parameters.filterClauses || { $and: [] }) as AndClause | OrClause,
   });
@@ -147,7 +147,7 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
   return (
     <WorkflowNodeWrapper
       {...wrapperProps}
-      headerIcon={<EventFilterIcon />}
+      headerIcon={<ChannelBalanceEventFilterIcon />}
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
@@ -165,7 +165,7 @@ export function EventFilterNode({ ...wrapperProps }: FilterEventsNodeProps) {
           label={t.ignoreWhenEventless}
           sizeVariant={InputSizeVariant.small}
           groupName={"ignore-switch-" + wrapperProps.workflowVersionNodeId}
-          helpText={t.eventFilterNode.ignoreWhenEventlessHelpText}
+          helpText={t.channelBalanceEventFilterNode.ignoreWhenEventlessHelpText}
           options={[
             {
               label: t.stop,

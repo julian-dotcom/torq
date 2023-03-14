@@ -96,7 +96,7 @@ type TorqChannelsConfiguration struct {
 	Source string `json:"source"`
 }
 
-type EventFilterConfiguration struct {
+type ChannelBalanceEventFilterConfiguration struct {
 	IgnoreWhenEventless bool          `json:"ignoreWhenEventless"`
 	FilterClauses       FilterClauses `json:"filterClauses"`
 }
