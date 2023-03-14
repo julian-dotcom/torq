@@ -21,11 +21,17 @@ import {
 import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
 import SummaryCard from "components/summary/summaryCard/SummaryCard";
 import SummaryNode from "components/summary/summaryNode/SummaryNode";
-import { useGetChannelsQuery, useGetNodeConfigurationsQuery, useGetNodesWalletBalancesQuery } from "apiSlice";
+import {
+  useGetChannelsQuery,
+  useGetNodeConfigurationsQuery,
+  useGetNodesWalletBalancesQuery,
+  useGetChannelsPendingQuery,
+} from "apiSlice";
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import { nodeWalletBalances } from "../../apiTypes";
+import { nodeWalletBalances } from "apiTypes";
+import { ChannelPending } from "../channelsPending/channelsPendingTypes";
 
 interface nodeSummary {
   nodeId: number;
@@ -35,7 +41,8 @@ interface nodeSummary {
   totalBalance: number;
   channels: number;
   capacity: number;
-
+  closingChannels: number;
+  openingChannels: number;
   walletBalances: nodeWalletBalances;
 }
 
@@ -84,6 +91,14 @@ function DashboardPage() {
     isSuccess: boolean;
   }>({ network: activeNetwork }, { skip: !nodeConfigurations, pollingInterval: 10000 });
 
+  const pendingChannelsResponse = useGetChannelsPendingQuery<{
+    data: Array<ChannelPending>;
+    isLoading: boolean;
+    isFetching: boolean;
+    isUninitialized: boolean;
+    isSuccess: boolean;
+  }>({ network: activeNetwork });
+
   type channelReduceReturnType = Record<number, nodeChannelSummary>;
 
   //process channels based on node
@@ -112,6 +127,8 @@ function DashboardPage() {
     const node = {
       nodeId: x.nodeId,
       name: x.name,
+      openingChannels: 0,
+      closingChannels: 0,
     } as nodeSummary;
 
     const walletBalances = nodesWalletBalances?.find((x) => x.nodeId === node.nodeId);
@@ -128,6 +145,18 @@ function DashboardPage() {
       node.capacity = channelSummary.capacity;
       node.totalBalance = node.localBalance + node.onChainBalance;
     }
+
+    const pendingChannels = pendingChannelsResponse?.data?.filter((x) => x.nodeId === node.nodeId);
+
+    pendingChannels?.forEach((pendingChan) => {
+      switch (pendingChan.status.toLowerCase()) {
+        case "closing":
+          node.closingChannels += 1;
+          break;
+        case "opening":
+          node.openingChannels += 1;
+      }
+    });
 
     return node;
   });
@@ -227,11 +256,11 @@ function DashboardPage() {
                   details={
                     <div>
                       <dl>
-                        <dt>{t.dashboardPage.onChain.confirmed}</dt>
+                        <dt>{t.dashboardPage.onChainDetail.confirmed}</dt>
                         <dd>{node?.walletBalances?.confirmedBalance}</dd>
-                        <dt>{t.dashboardPage.onChain.unconfirmed}</dt>
+                        <dt>{t.dashboardPage.onChainDetail.unconfirmed}</dt>
                         <dd>{node?.walletBalances?.unconfirmedBalance}</dd>
-                        <dt>{t.dashboardPage.onChain.lockedBalance}</dt>
+                        <dt>{t.dashboardPage.onChainDetail.lockedBalance}</dt>
                         <dd>{node?.walletBalances?.lockedBalance}</dd>
                       </dl>
                     </div>
@@ -254,6 +283,16 @@ function DashboardPage() {
                   value={node.channels}
                   valueLabel={""}
                   summaryClassOverride={styles.nodeSummaryCardOverride}
+                  details={
+                    <div>
+                      <dl>
+                        <dt>{t.dashboardPage.channelsDetail.opening}</dt>
+                        <dd>{node?.openingChannels}</dd>
+                        <dt>{t.dashboardPage.channelsDetail.closing}</dt>
+                        <dd>{node?.closingChannels}</dd>
+                      </dl>
+                    </div>
+                  }
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.capacity}

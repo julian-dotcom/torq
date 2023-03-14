@@ -412,10 +412,14 @@
     "capacity" : "Capacity",
     "peers" : "peers",
     "btc" : "btc",
-    "onChain" : {
+    "onChainDetail" : {
       "confirmed" : "Confirmed",
       "unconfirmed" : "Unconfirmed",
       "lockedBalance" : "Locked Balance"
+    },
+    "channelsDetail" : {
+      "opening" : "Opening",
+      "closing" : "Closing"
     }
   }
 }
