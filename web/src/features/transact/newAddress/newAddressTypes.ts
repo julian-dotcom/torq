@@ -6,7 +6,7 @@ export enum AddressType {
 
 export type NewAddressRequest = {
   nodeId: number;
-  addressType: AddressType;
+  type: AddressType;
 };
 
 export type NewAddressResponse = {
