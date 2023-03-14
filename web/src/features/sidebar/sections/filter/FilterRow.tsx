@@ -126,10 +126,6 @@ function FilterRow({
         newRow.parameter = [];
         newRow.funcName = "any";
         break;
-      case "enum":
-        newRow.parameter = "";
-        newRow.funcName = "eq";
-        break;
       default:
         newRow.parameter = "";
         newRow.funcName = "like";
