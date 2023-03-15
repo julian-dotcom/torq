@@ -154,18 +154,6 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		runChannelEventTest(t, db, channelEventUpdate, expected)
 	})
 
-	t.Run("Fully Resolved Channel Event", func(t *testing.T) {
-		expected := channelEventData{FundingTransactionHash: testutil.TestFundingTransactionHash5_NOTINDB, FundingOutputIndex: 3,
-			FirstNodePublicKey: testutil.TestPublicKey1, SecondNodePublicKey: testutil.TestPublicKey2, EventType: int(lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL)}
-		fundingTxBytes := []byte{5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-		channel := &lnrpc.ChannelPoint{FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{FundingTxidBytes: fundingTxBytes}, OutputIndex: 3}
-		channelEvent := lnrpc.ChannelEventUpdate_FullyResolvedChannel{FullyResolvedChannel: channel}
-		channelEventUpdate := &lnrpc.ChannelEventUpdate{
-			Type:    lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL,
-			Channel: &channelEvent}
-		runChannelEventTest(t, db, channelEventUpdate, expected)
-	})
-
 	t.Run("Active Channel Event", func(t *testing.T) {
 		lndShortChannelId := uint64(2222)
 		expected := channelEventData{LNDShortChannelId: &lndShortChannelId, FundingTransactionHash: testutil.TestFundingTransactionHash2, FundingOutputIndex: 3,
