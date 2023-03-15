@@ -433,6 +433,10 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		channelStateSetting.PeerChannelCount = peerChannelCount + 1
 		channelStateSetting.PeerChannelCapacity = peerChannelCapacity + GetChannelSettingByChannelId(channelStateSetting.ChannelId).Capacity
 		channelStateSetting.PeerLocalBalance = peerLocalBalance + channelStateSetting.LocalBalance
+		_, exists := channelStateSettingsByChannelIdCache[managedChannelState.NodeId]
+		if !exists {
+			channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = make(map[int]ManagedChannelStateSettings)
+		}
 		for _, existingChannelStateSetting := range channelStateSettingsByChannelIdCache[managedChannelState.NodeId] {
 			if existingChannelStateSetting.RemoteNodeId == channelStateSetting.RemoteNodeId {
 				existingChannelStateSetting.PeerChannelCapacity = channelStateSetting.PeerChannelCapacity
@@ -441,6 +445,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			}
 			channelStateSettingsByChannelIdCache[managedChannelState.NodeId][existingChannelStateSetting.ChannelId] = existingChannelStateSetting
 		}
+
 		channelStateSettingsByChannelIdCache[managedChannelState.NodeId][managedChannelState.ChannelId] = channelStateSetting
 	case writeChannelstateNodestatus:
 		if managedChannelState.NodeId == 0 {

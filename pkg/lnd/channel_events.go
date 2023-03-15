@@ -82,13 +82,7 @@ func storeChannelEvent(db *sqlx.DB,
 			ChannelId:             channel.ChannelID,
 			LocalBalance:          c.LocalBalance,
 			LocalDisabled:         c.Active,
-			LocalMinHtlcMsat:      c.LocalConstraints.MinHtlcMsat,
-			LocalMaxHtlcMsat:      c.LocalConstraints.MaxPendingAmtMsat,
-			LocalTimeLockDelta:    c.LocalConstraints.CsvDelay,
 			RemoteBalance:         c.RemoteBalance,
-			RemoteMinHtlcMsat:     c.RemoteConstraints.MinHtlcMsat,
-			RemoteMaxHtlcMsat:     c.RemoteConstraints.MaxPendingAmtMsat,
-			RemoteTimeLockDelta:   c.RemoteConstraints.CsvDelay,
 			CommitFee:             c.CommitFee,
 			CommitWeight:          c.CommitWeight,
 			FeePerKw:              c.FeePerKw,
@@ -98,6 +92,16 @@ func storeChannelEvent(db *sqlx.DB,
 			Lifetime:              c.Lifetime,
 			TotalSatoshisReceived: c.TotalSatoshisReceived,
 			TotalSatoshisSent:     c.TotalSatoshisSent,
+		}
+		if c.LocalConstraints != nil {
+			stateSettings.LocalMinHtlcMsat = c.LocalConstraints.MinHtlcMsat
+			stateSettings.LocalMaxHtlcMsat = c.LocalConstraints.MaxPendingAmtMsat
+			stateSettings.LocalTimeLockDelta = c.LocalConstraints.CsvDelay
+		}
+		if c.RemoteConstraints != nil {
+			stateSettings.RemoteMinHtlcMsat = c.RemoteConstraints.MinHtlcMsat
+			stateSettings.RemoteMaxHtlcMsat = c.RemoteConstraints.MaxPendingAmtMsat
+			stateSettings.RemoteTimeLockDelta = c.RemoteConstraints.CsvDelay
 		}
 		commons.SetChannelState(nodeSettings.NodeId, stateSettings)
 
