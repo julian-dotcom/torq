@@ -38,8 +38,8 @@ func GetNodeById(db *sqlx.DB, nodeId int) (Node, error) {
 	return n, nil
 }
 
-func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
-	nds, err := getNodes(db, false)
+func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]NodeInformation, error) {
+	nds, err := getNodesByNetwork(db, false, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []NodeInformation{}, nil
@@ -55,6 +55,9 @@ func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
 		ps = append(ps, NodeInformation{
 			NodeId:    node.NodeId,
 			PublicKey: node.PublicKey,
+			Status:    node.Status,
+			TorqAlias: node.Name,
+			Address:   nodeEvent.NodeAddresses,
 			Alias:     nodeEvent.Alias,
 			Color:     nodeEvent.Color,
 		})
@@ -62,18 +65,19 @@ func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
 	return ps, nil
 }
 
-func getNodes(db *sqlx.DB, includeDeleted bool) ([]Node, error) {
-	var nds []Node
-	query := `SELECT * FROM node;`
+func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network commons.Network) ([]NodeSummary, error) {
+	var nds []NodeSummary
+
+	query := `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
 
 	if !includeDeleted {
-		query = `SELECT n.* FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 ;`
+		query = `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
 	}
 
-	err := db.Select(&nds, query)
+	err := db.Select(&nds, query, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []Node{}, nil
+			return []NodeSummary{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -97,10 +101,10 @@ func GetPeerNodes(db *sqlx.DB) ([]Node, error) {
 
 func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	var nodeEvent NodeEvent
-	err := db.Select(&nodeEvent, `
+	err := db.Get(&nodeEvent, `
 		SELECT *
 		FROM node_event
-		WHERE event_node_id = ?
+		WHERE event_node_id = $1
 		ORDER BY timestamp DESC
 		LIMIT 1`, nodeId)
 	if err != nil {

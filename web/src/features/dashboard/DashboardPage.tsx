@@ -23,7 +23,7 @@ import SummaryCard from "components/summary/summaryCard/SummaryCard";
 import SummaryNode from "components/summary/summaryNode/SummaryNode";
 import {
   useGetChannelsQuery,
-  useGetNodeConfigurationsQuery,
+  useGetNodesInformationByCategoryQuery,
   useGetNodesWalletBalancesQuery,
   useGetChannelsPendingQuery,
 } from "apiSlice";
@@ -44,6 +44,10 @@ interface nodeSummary {
   closingChannels: number;
   openingChannels: number;
   walletBalances: nodeWalletBalances;
+  status: number;
+  address: string;
+
+  publicKey: string;
 }
 
 interface nodeChannelSummary {
@@ -80,8 +84,8 @@ function DashboardPage() {
   const location = useLocation();
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
-  const { data: nodesWalletBalances } = useGetNodesWalletBalancesQuery();
-  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
+  const { data: nodesWalletBalances } = useGetNodesWalletBalancesQuery(activeNetwork);
+  const { data: nodes } = useGetNodesInformationByCategoryQuery(activeNetwork);
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;
@@ -89,7 +93,7 @@ function DashboardPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>({ network: activeNetwork }, { skip: !nodeConfigurations, pollingInterval: 10000 });
+  }>({ network: activeNetwork }, { skip: !nodes, pollingInterval: 10000 });
 
   const pendingChannelsResponse = useGetChannelsPendingQuery<{
     data: Array<ChannelPending>;
@@ -106,12 +110,13 @@ function DashboardPage() {
     let channelsSummary = acc[channel.nodeId];
     if (!channelsSummary) {
       channelsSummary = {
+        nodeId: channel.nodeId,
         channels: 0,
         onChainBalance: 0,
         localBalance: 0,
         totalBalance: 0,
         capacity: 0,
-      } as nodeSummary;
+      } as nodeChannelSummary;
 
       acc[channel.nodeId] = channelsSummary;
     }
@@ -123,10 +128,13 @@ function DashboardPage() {
   }, {});
 
   //nodes
-  const nodeSummaries = nodeConfigurations?.map((x) => {
+  const nodeSummaries = nodes?.map((x) => {
     const node = {
       nodeId: x.nodeId,
-      name: x.name,
+      name: x.alias,
+      status: x.status,
+      address: x.address,
+      publicKey: x.publicKey,
       openingChannels: 0,
       closingChannels: 0,
     } as nodeSummary;

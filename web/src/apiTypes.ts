@@ -108,3 +108,11 @@ export interface nodeWalletBalances {
   lockedBalance: number;
   reservedBalanceAnchorChan: number;
 }
+
+export interface nodeInformation {
+  nodeId: number;
+  publicKey: string;
+  status: number;
+  address: string;
+  alias: string;
+}

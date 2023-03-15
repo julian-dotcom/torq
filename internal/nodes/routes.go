@@ -26,10 +26,13 @@ type ConnectNodeRequest struct {
 }
 
 type NodeInformation struct {
-	NodeId    int    `json:"nodeId"`
-	PublicKey string `json:"publicKey"`
-	Alias     string `json:"alias"`
-	Color     string `json:"color"`
+	NodeId    int            `json:"nodeId"`
+	PublicKey string         `json:"publicKey"`
+	Alias     string         `json:"alias"`
+	TorqAlias string         `json:"torqAlias"`
+	Color     string         `json:"color"`
+	Address   string         `json:"address"`
+	Status    commons.Status `json:"status"`
 }
 
 type NodeWalletBalance struct {
@@ -42,15 +45,19 @@ type NodeWalletBalance struct {
 }
 
 func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
-	r.GET("", func(c *gin.Context) { getNodesHandler(c, db) })
-	r.GET("/walletBalances", func(c *gin.Context) { getNodesWalletBalancesHandler(c, db, lightningRequestChannel) })
+	r.GET("/:network/nodes", func(c *gin.Context) { getNodesByNetworkHandler(c, db) })
+	r.GET("/:network/walletBalances", func(c *gin.Context) { getNodesWalletBalancesHandler(c, db, lightningRequestChannel) })
 	r.DELETE(":nodeId", func(c *gin.Context) { removeNodeHandler(c, db) })
 }
 
-func getNodesHandler(c *gin.Context, db *sqlx.DB) {
-	nds, err := getNodeInformationAll(db)
+func getNodesByNetworkHandler(c *gin.Context, db *sqlx.DB) {
+	network, err := strconv.Atoi(c.Param("network"))
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Getting nodes.")
+		server_errors.SendBadRequest(c, "Can't process network")
+	}
+	nds, err := getAllNodeInformationByNetwork(db, commons.Network(network))
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting nodes by network.")
 		return
 	}
 	c.JSON(http.StatusOK, nds)
@@ -71,7 +78,12 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
-	nodes, err := getNodes(db, false)
+	network, err := strconv.Atoi(c.Param("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+	}
+
+	nodes, err := getNodesByNetwork(db, false, commons.Network(network))
 
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Unable to get nodes")

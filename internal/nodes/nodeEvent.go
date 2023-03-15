@@ -5,6 +5,8 @@ import (
 )
 
 type NodeEvent struct {
+	EventNodeId   int       `json:"eventNodeId" db:"event_node_id"`
+	NodeId        int       `json:"nodeId" db:"node_id"`
 	EventTime     time.Time `json:"eventTime" db:"timestamp"`
 	PublicKey     string    `json:"publicKey" db:"pub_key"`
 	Alias         string    `json:"alias" db:"alias"`
