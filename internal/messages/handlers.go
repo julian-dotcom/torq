@@ -58,7 +58,10 @@ func verifyMessageHandler(c *gin.Context, lightningRequestChannel chan<- interfa
 
 	response, err := verifyMessage(verifyMsgReq, lightningRequestChannel)
 	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Verify message")
+		serr := server_errors.ServerError{}
+		// TODO: Replace with error codes
+		serr.AddServerError("Torq could not verify message signature.")
+		server_errors.SendBadRequestFieldError(c, &serr)
 		return
 	}
 

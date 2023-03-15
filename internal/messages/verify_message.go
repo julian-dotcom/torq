@@ -13,11 +13,11 @@ func verifyMessage(req VerifyMessageRequest, lightningRequestChannel chan<- inte
 		return VerifyMessageResponse{}, errors.New("Node Id missing")
 	}
 	response := commons.SignatureVerification(time.Now(), req.NodeId, req.Message, req.Signature, lightningRequestChannel)
-	if response.Status != commons.Active {
-		return VerifyMessageResponse{}, errors.New(response.Error)
+	if response.Status == commons.Active || response.Message == "Signature is not valid" {
+		return VerifyMessageResponse{
+			Valid:  response.Valid,
+			PubKey: response.PublicKey,
+		}, nil
 	}
-	return VerifyMessageResponse{
-		Valid:  response.Valid,
-		PubKey: response.PublicKey,
-	}, nil
+	return VerifyMessageResponse{}, errors.New(response.Error)
 }
