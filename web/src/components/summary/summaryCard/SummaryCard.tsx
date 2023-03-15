@@ -1,10 +1,8 @@
 import styles from "components/summary/summaryCard/summary-card.module.scss";
-
 import { Eye20Regular as InspectIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
 import React, { useState } from "react";
 import { format } from "d3";
-
 export type valueLabel = "" | "btc";
 
 export type SummaryCardProps = {
@@ -27,16 +25,18 @@ export default function SummaryCard(props: SummaryCardProps) {
   }
 
   return (
-    <div className={props.summaryClassOverride ? props.summaryClassOverride : styles.summaryCard}>
+    <div
+      className={classNames(
+        { [styles.expanded]: showInspection },
+        styles.summaryCard,
+        props.summaryClassOverride ? props.summaryClassOverride : ""
+      )}
+    >
       <div className={styles.headerContainer}>
         <div className={styles.heading}>{props.heading}</div>
         <div className={classNames(styles.heading, styles.icon)}>
           {props.details && (
-            <InspectIcon
-              // onMouseEnter={() => setShowInspection(true)}
-              // onMouseLeave={() => setShowInspection(false)}
-              onClick={() => setShowInspection(!showInspection)}
-            />
+            <InspectIcon onMouseEnter={() => setShowInspection(true)} onMouseLeave={() => setShowInspection(false)} />
           )}
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function SummaryCard(props: SummaryCardProps) {
         <div className={styles.value}>{useFormatter ? formatter(value) : value}</div>
         <div className={styles.valueLabel}>{props.valueLabel}</div>
       </div>
-      {showInspection && props.details && <div className={classNames(styles.inspectionContainer)}>{props.details}</div>}
+      {props.details && <div>{props.details}</div>}
     </div>
   );
 }

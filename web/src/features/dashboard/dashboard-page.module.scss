@@ -12,7 +12,6 @@
   }
 }
 
-
 .summaryCardContainer {
   display: flex;
   flex-wrap: wrap;
@@ -33,7 +32,6 @@
   }
 }
 
-
 .nodeSummaryCardOverride {
   flex-grow: 1;
   display: flex;
@@ -44,8 +42,8 @@
   height: 88px;
   max-width: 328px;
   min-width: 328px;
-
-  background: #C2E2FF;
+  position: relative;
+  background: #c2e2ff;
   border-radius: 4px;
 
   @media only screen and (max-width: 750px) {
