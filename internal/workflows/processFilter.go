@@ -377,6 +377,7 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 			},
 		},
 		FilterCategoryTypeEnum: {
+			// TODO: This needs to be fixed. Enums are using any and notAny instead of like and notLike
 			"like": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
 				if isNil(dataMap[dataKey]) != (filterValue == nil) {
 					return false
@@ -691,6 +692,7 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 			},
 		},
 		FilterCategoryTypeArray: {
+			// TODO: This needs to be fixed. Arrays are using any and notAny instead of like and notLike
 			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
 				if isNil(dataMap[dataKey]) != (filterValue == nil) {
 					return false
