@@ -39,7 +39,7 @@ export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
     } else {
       setStatus("IN_FLIGHT");
     }
-  }, [props.responses]);
+  }, [props.responses, props.paymentProcessingError]);
 
   return (
     <ProgressTabContainer>
