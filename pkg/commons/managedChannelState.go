@@ -415,8 +415,8 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 		}
 		channelStateSettingsByChannelIdCache[managedChannelState.NodeId] = settingsByChannel
 	case writeInitialChannelstate:
-		if managedChannelState.NodeId == 0 {
-			log.Error().Msgf("No empty NodeId (%v) allowed", managedChannelState.NodeId)
+		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
+			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", managedChannelState.ChannelId, managedChannelState.NodeId)
 			break
 		}
 		channelStateSetting := managedChannelState.ChannelStateSetting
@@ -795,6 +795,7 @@ func SetChannelStates(nodeId int, channelStateSettings []ManagedChannelStateSett
 func SetChannelState(nodeId int, channelStateSetting ManagedChannelStateSettings) {
 	managedChannelState := ManagedChannelState{
 		NodeId:              nodeId,
+		ChannelId:           channelStateSetting.ChannelId,
 		ChannelStateSetting: channelStateSetting,
 		Type:                writeInitialChannelstate,
 	}
