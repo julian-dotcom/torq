@@ -23,6 +23,7 @@ type InvoicePaymentResponseProps = {
   decodedInvoice: DecodedInvoice;
   destination: string;
   clearPaymentFlow: () => void;
+  amount: number;
 };
 
 export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
@@ -38,13 +39,13 @@ export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
     } else {
       setStatus("IN_FLIGHT");
     }
-  }, [props.responses]);
+  }, [props.responses, props.paymentProcessingError]);
 
   return (
     <ProgressTabContainer>
       {status === "SUCCEEDED" && (
         <div className={classNames(styles.paymentStatusMessage)}>
-          <div className={styles.amountPaid}>{`${f(props.decodedInvoice.valueMsat / 1000)} sat`}</div>
+          <div className={styles.amountPaid}>{`${f(props.amount)} sats`}</div>
           <div className={styles.amountPaidText}>{`Sent to ${props.decodedInvoice.nodeAlias}`}</div>
         </div>
       )}

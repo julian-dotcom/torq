@@ -50,5 +50,3 @@ export type NewPaymentResponse = {
   failureReason: string;
   attempt: attempt;
 };
-
-export type NewPaymentError = { id: string; type: "Error"; error: string };

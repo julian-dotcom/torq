@@ -35,8 +35,9 @@ type ServiceChannelMessage = struct {
 	// EnforcedServiceStatus is a one time status enforcement for a service
 	EnforcedServiceStatus *ServiceStatus
 	// NoDelay is a one time no delay enforcement for a service
-	NoDelay bool
-	Out     chan<- ServiceStatus
+	NoDelay      bool
+	DelaySeconds *int
+	Out          chan<- ServiceStatus
 }
 
 const LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS = 10
@@ -195,7 +196,7 @@ const (
 	WorkflowNodeChannelPolicyAutoRun
 	WorkflowNodeRebalanceAutoRun
 	WorkflowNodeDataSourceTorqChannels
-	WorkflowNodeEventFilter
+	WorkflowNodeChannelBalanceEventFilter
 )
 
 type WorkflowParameterType string
@@ -236,6 +237,14 @@ type RebalanceRequestOrigin int
 const (
 	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
 	RebalanceRequestManual
+)
+
+type BalanceUpdateEventOrigin int
+
+const (
+	BalanceUpdateForwardEvent = BalanceUpdateEventOrigin(iota)
+	BalanceUpdateInvoiceEvent
+	BalanceUpdatePaymentEvent
 )
 
 type ChannelStatusRequest int

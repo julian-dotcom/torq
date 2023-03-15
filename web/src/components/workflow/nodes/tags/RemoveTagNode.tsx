@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Tag20Regular as TagIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
+import { TagDismiss20Regular as TagIcon, Save16Regular as SaveIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import WorkflowNodeWrapper, { WorkflowNodeProps } from "components/workflow/nodeWrapper/WorkflowNodeWrapper";
 import { useGetTagsQuery } from "pages/tags/tagsApi";

@@ -127,7 +127,7 @@ function OpenChannelModal() {
     setSpendUnconfirmed(false);
     setPrivate(false);
     setSatPerVbyte(undefined);
-    setConnectionString(undefined);
+    setConnectionString("");
     setHost(undefined);
   };
 
@@ -199,6 +199,9 @@ function OpenChannelModal() {
                     placeholder={"03aab7e9327716ee946b8fbfae039b01235356549e72c5cca113ea67893d0821e5@123.1.3.65:9735"}
                     onChange={(e) => {
                       setConnectionString(e.target.value);
+                      if (!e.target.value) {
+                        setNodePubKey("");
+                      }
                       if (e.target.value) {
                         const split = e.target.value.split("@");
                         split[0] && setNodePubKey(split[0]);

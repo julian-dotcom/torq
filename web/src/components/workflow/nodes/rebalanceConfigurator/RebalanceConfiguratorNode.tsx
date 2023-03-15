@@ -16,6 +16,7 @@ import { Status } from "constants/backend";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import Spinny from "features/spinny/Spinny";
+import Note, { NoteType } from "features/note/Note";
 
 type RebalanceConfiguratorNodeProps = Omit<WorkflowNodeProps, "colorVariant">;
 
@@ -276,6 +277,9 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
         >
           {!processing ? t.save.toString() : t.saving.toString()}
         </Button>
+        <Note title={t.note} noteType={NoteType.info}>
+          <p>{t.workflowNodes.rebalanceConfiguratorDescription}</p>
+        </Note>
       </Form>
     </WorkflowNodeWrapper>
   );

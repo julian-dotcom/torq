@@ -9,7 +9,7 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import { ChangeEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
-import { NewPaymentError, NewPaymentResponse } from "features/transact/Payments/paymentTypes";
+import { NewPaymentResponse } from "features/transact/Payments/paymentTypes";
 import styles from "./newPayments.module.scss";
 import { PaymentProcessingErrors } from "./paymentErrorMessages";
 import OnChanPaymentDetails from "./OnChanPaymentDetails";
@@ -52,7 +52,7 @@ function NewPaymentModal() {
   const [selectedNodeId, setSelectedNodeId] = useState<number>(0);
   const [destination, setDestination] = useState("");
   const [destinationType, setDestinationType] = useState<PaymentType>(0);
-
+  const [overriddenLnAmount, setOverriddenLnAmount] = useState(0);
   const [destState, setDestState] = useState(ProgressStepState.active);
   const [confirmState, setConfirmState] = useState(ProgressStepState.disabled);
   const [processState, setProcessState] = useState(ProgressStepState.disabled);
@@ -72,8 +72,9 @@ function NewPaymentModal() {
   function onNewPaymentMessage(event: MessageEvent<string>) {
     const response = JSON.parse(event.data);
     if (response?.type === "Error") {
-      setPaymentProcessingError(response.error);
-      onNewPaymentError(response as NewPaymentError);
+      const errorDescription = PaymentProcessingErrors.get(response.error.errors.server?.[0]?.description);
+      setPaymentProcessingError(errorDescription ?? "");
+      setProcessState(ProgressStepState.error);
       return;
     }
     onNewPaymentResponse(response as NewPaymentResponse);
@@ -84,14 +85,9 @@ function NewPaymentModal() {
     if (message.status === "SUCCEEDED") {
       setProcessState(ProgressStepState.completed);
     } else if (message.status === "FAILED") {
-      setPaymentProcessingError(message.failureReason);
+      setPaymentProcessingError(PaymentProcessingErrors.get(message.failureReason) ?? "UNKNOWN_ERROR");
       setProcessState(ProgressStepState.error);
     }
-  }
-
-  function onNewPaymentError(message: NewPaymentError) {
-    console.log(PaymentProcessingErrors.get(message.error), message.error);
-    setProcessState(ProgressStepState.error);
   }
 
   // This can also be an async getter function. See notes below on Async Urls.
@@ -137,6 +133,14 @@ function NewPaymentModal() {
       // setPaymentDescription("");
     }
 
+    const progressValidDestination = () => {
+      // Prevent accidentally adding additional characters to the destination field after
+      // the user has entered a valid destination.
+      setStepIndex(1);
+      setDestState(ProgressStepState.completed);
+      setConfirmState(ProgressStepState.active);
+    };
+
     setDestination(e.target.value);
     if (e.target.value === "") {
       setDestinationType(0);
@@ -144,32 +148,33 @@ function NewPaymentModal() {
       return;
     } else if (e.target.value.match(LnPayrequestMainnetRegEx)) {
       setDestinationType(PaymentType.LightningMainnet);
+      progressValidDestination();
     } else if (e.target.value.match(LnPayrequestTestnetRegEx)) {
       setDestinationType(PaymentType.LightningTestnet);
+      progressValidDestination();
     } else if (e.target.value.match(LnPayrequestSignetRegEx)) {
       setDestinationType(PaymentType.LightningSimnet);
+      progressValidDestination();
     } else if (e.target.value.match(LnPayrequestRegtestRegEx)) {
       setDestinationType(PaymentType.LightningRegtest);
+      progressValidDestination();
     } else if (e.target.value.match(P2SHAddressRegEx)) {
       // Pay to Script Hash
       setDestinationType(PaymentType.P2SH);
+      progressValidDestination();
     } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
       // Segwit address
       setDestinationType(PaymentType.P2WKH);
+      progressValidDestination();
     } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
       // Taproot
       setDestinationType(PaymentType.P2TR);
+      progressValidDestination();
       // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
       //   setDestinationType(PaymentType.Keysend);
     } else {
       setDestinationType(PaymentType.Unknown);
     }
-
-    // Prevent accidentally adding additional characters to the destination field after
-    // the user has entered a valid destination by unfocusing (bluring) the input field.
-    setStepIndex(1);
-    setDestState(ProgressStepState.completed);
-    setConfirmState(ProgressStepState.active);
   };
 
   const clearPaymentFlow = () => {
@@ -209,6 +214,8 @@ function NewPaymentModal() {
     }
     return "Can't decode invoice";
   }
+
+  const lnAmount = overriddenLnAmount !== 0 ? overriddenLnAmount : (decodedInvRes?.data?.valueMsat ?? 0) / 1000;
 
   return (
     <PopoutPageTemplate
@@ -301,6 +308,7 @@ function NewPaymentModal() {
             setDestState={setDestState}
             selectedNodeId={selectedNodeId}
             sendJsonMessage={sendJsonMessage}
+            onAmountChange={setOverriddenLnAmount}
           />
         )}
         {isOnChain && (
@@ -319,11 +327,12 @@ function NewPaymentModal() {
         {isLnInvoice && decodedInvRes.data && (
           <InvoicePaymentResponse
             selectedNodeId={selectedNodeId}
-            paymentProcessingError={PaymentProcessingErrors.get(paymentProcessingError) || paymentProcessingError}
+            paymentProcessingError={paymentProcessingError}
             decodedInvoice={decodedInvRes.data}
             destination={destination}
             responses={lnInvoiceResponses}
             clearPaymentFlow={clearPaymentFlow}
+            amount={lnAmount}
           />
         )}
         {isOnChain && response.data && (
