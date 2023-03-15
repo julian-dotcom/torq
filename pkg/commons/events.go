@@ -424,6 +424,7 @@ const (
 type ImportRequest struct {
 	CommunicationRequest
 	ResponseChannel chan<- ImportResponse `json:"-"`
+	Force           bool
 	ImportType      ImportType
 }
 

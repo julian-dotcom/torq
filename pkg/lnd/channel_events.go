@@ -33,9 +33,11 @@ func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 // storeChannelEvent extracts the timestamp, channel ID and PubKey from the
 // ChannelEvent and converts the original struct to json.
 // Then it's stored in the database in the channel_event table.
-func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscribeChannelEvent,
-	ce *lnrpc.ChannelEventUpdate, nodeSettings commons.ManagedNodeSettings,
-	channelEventChannel chan<- commons.ChannelEvent, lightningRequestChannel chan<- interface{}) error {
+func storeChannelEvent(db *sqlx.DB,
+	ce *lnrpc.ChannelEventUpdate,
+	nodeSettings commons.ManagedNodeSettings,
+	channelEventChannel chan<- commons.ChannelEvent,
+	lightningRequestChannel chan<- interface{}) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -74,14 +76,30 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		// This allows torq to listen to the graph for node updates
 		commons.SetChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network, channel.Status)
 
-		// This allows torq to listen to the graph for channel updates
-		commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
-			channel.FundingTransactionHash, channel.FundingOutputIndex,
-			channel.FundingBlockHeight, channel.FundedOn,
-			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
-			channel.InitiatingNodeId, channel.AcceptingNodeId,
-			channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
-			channel.Flags)
+		stateSettings := commons.ManagedChannelStateSettings{
+			NodeId:                nodeSettings.NodeId,
+			RemoteNodeId:          remoteNodeId,
+			ChannelId:             channel.ChannelID,
+			LocalBalance:          c.LocalBalance,
+			LocalDisabled:         c.Active,
+			LocalMinHtlcMsat:      c.LocalConstraints.MinHtlcMsat,
+			LocalMaxHtlcMsat:      c.LocalConstraints.MaxPendingAmtMsat,
+			LocalTimeLockDelta:    c.LocalConstraints.CsvDelay,
+			RemoteBalance:         c.RemoteBalance,
+			RemoteMinHtlcMsat:     c.RemoteConstraints.MinHtlcMsat,
+			RemoteMaxHtlcMsat:     c.RemoteConstraints.MaxPendingAmtMsat,
+			RemoteTimeLockDelta:   c.RemoteConstraints.CsvDelay,
+			CommitFee:             c.CommitFee,
+			CommitWeight:          c.CommitWeight,
+			FeePerKw:              c.FeePerKw,
+			NumUpdates:            c.NumUpdates,
+			ChanStatusFlags:       c.ChanStatusFlags,
+			CommitmentType:        c.CommitmentType,
+			Lifetime:              c.Lifetime,
+			TotalSatoshisReceived: c.TotalSatoshisReceived,
+			TotalSatoshisSent:     c.TotalSatoshisSent,
+		}
+		commons.SetChannelState(nodeSettings.NodeId, stateSettings)
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
 			channelEvent, channelEventChannel)
@@ -155,6 +173,7 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
+		importPendingChannels(false, nodeSettings, lightningRequestChannel)
 		c := ce.GetInactiveChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
@@ -170,32 +189,15 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		if err != nil {
 			return errors.Wrap(err, "Insert Inactive Channel Event")
 		}
-		// HACK to know if the context is a testcase.
-		if lightningRequestChannel != nil {
-			// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
-			responseChannel := make(chan commons.ImportResponse)
-			now := time.Now()
-			lightningRequestChannel <- commons.ImportRequest{
-				CommunicationRequest: commons.CommunicationRequest{
-					RequestId:   fmt.Sprintf("%v", now.Unix()),
-					RequestTime: &now,
-					NodeId:      nodeSettings.NodeId,
-				},
-				ImportType:      commons.ImportPendingChannelsOnly,
-				ResponseChannel: responseChannel,
-			}
-			response := <-responseChannel
-			if response.Error != nil {
-				log.Error().Err(response.Error).Msgf("Obtaining Pending Channels from LND failed")
-			}
-		}
 		return nil
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
+		importPendingChannels(true, nodeSettings, lightningRequestChannel)
 		c := ce.GetFullyResolvedChannel()
-		channelId, err := processPendingOpenChannel(ctx, db, client, c.GetFundingTxidBytes(), c.GetOutputIndex(), nodeSettings)
+		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
-			return errors.Wrap(err, "FULLY_RESOLVED_CHANNEL: Process Pending Open Channel")
+			return errors.Wrap(err, "FULLY_RESOLVED_CHANNEL: Get channelPoint from bytes")
 		}
+		channelId := commons.GetChannelIdByChannelPoint(channelPoint)
 		jsonByteArray, err := json.Marshal(c)
 		if err != nil {
 			return errors.Wrap(err, "FULLY_RESOLVED_CHANNEL: JSON Marshall")
@@ -207,10 +209,17 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
+		importPendingChannels(true, nodeSettings, lightningRequestChannel)
 		c := ce.GetPendingOpenChannel()
-		channelId, err := processPendingOpenChannel(ctx, db, client, c.GetTxid(), c.GetOutputIndex(), nodeSettings)
+		channelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
 		if err != nil {
-			return errors.Wrap(err, "PENDING_OPEN_CHANNEL: Process Pending Open Channel")
+			return errors.Wrap(err, "PENDING_OPEN_CHANNEL: Get channelPoint from bytes")
+		}
+		channelId := commons.GetChannelIdByChannelPoint(channelPoint)
+		if channelId == 0 {
+			log.Debug().Msgf("Could not store channel event since we only received funding transaction and output index (%v) and nothing more.",
+				channelPoint)
+			return nil
 		}
 		jsonByteArray, err := json.Marshal(c)
 		if err != nil {
@@ -224,6 +233,29 @@ func storeChannelEvent(ctx context.Context, db *sqlx.DB, client lndClientSubscri
 		return nil
 	}
 	return nil
+}
+
+func importPendingChannels(force bool, nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan<- interface{}) {
+	// HACK to know if the context is a testcase.
+	if lightningRequestChannel != nil {
+		// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
+		responseChannel := make(chan commons.ImportResponse)
+		now := time.Now()
+		lightningRequestChannel <- commons.ImportRequest{
+			CommunicationRequest: commons.CommunicationRequest{
+				RequestId:   fmt.Sprintf("%v", now.Unix()),
+				RequestTime: &now,
+				NodeId:      nodeSettings.NodeId,
+			},
+			ImportType:      commons.ImportPendingChannelsOnly,
+			Force:           force,
+			ResponseChannel: responseChannel,
+		}
+		response := <-responseChannel
+		if response.Error != nil {
+			log.Error().Err(response.Error).Msgf("Obtaining Pending Channels from LND failed")
+		}
+	}
 }
 
 func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, channelStatus *commons.ChannelStatus,
@@ -331,54 +363,6 @@ func addNodeWhenNew(remotePublicKey string, nodeSettings commons.ManagedNodeSett
 	return remoteNodeId, nil
 }
 
-func processPendingOpenChannel(ctx context.Context, db *sqlx.DB, client lndClientSubscribeChannelEvent,
-	txId []byte, outputIndex uint32, nodeSettings commons.ManagedNodeSettings) (int, error) {
-
-	channelPoint, err := chanPointFromByte(txId, outputIndex)
-	if err != nil {
-		return 0, err
-	}
-
-	fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
-	channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
-	if channelId == 0 {
-		pendingChannelsRequest := lnrpc.PendingChannelsRequest{}
-		pendingChannelsResponse, err := client.PendingChannels(ctx, &pendingChannelsRequest)
-		if err != nil {
-			return 0, errors.Wrap(err, "Obtaining more information from LND about the new channel")
-		}
-		for _, pendingChannel := range pendingChannelsResponse.PendingOpenChannels {
-			if pendingChannel.Channel.ChannelPoint == channelPoint {
-				remoteNodeId := commons.GetNodeIdByPublicKey(pendingChannel.Channel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network)
-				if remoteNodeId == 0 {
-					remoteNode := nodes.Node{
-						PublicKey: pendingChannel.Channel.RemoteNodePub,
-						Chain:     nodeSettings.Chain,
-						Network:   nodeSettings.Network,
-					}
-					remoteNodeId, err = nodes.AddNodeWhenNew(db, remoteNode)
-					if err != nil {
-						return 0, errors.Wrap(err, "Registering new node for new channel")
-					}
-				}
-				newChannel := channels.Channel{
-					FundingTransactionHash: fundingTransactionHash,
-					FundingOutputIndex:     fundingOutputIndex,
-					FirstNodeId:            nodeSettings.NodeId,
-					SecondNodeId:           remoteNodeId,
-					Capacity:               pendingChannel.Channel.Capacity,
-					Status:                 commons.Opening,
-				}
-				channelId, err = channels.AddChannelOrUpdateChannelStatus(db, newChannel)
-				if err != nil {
-					return 0, errors.Wrap(err, "Registering new channel")
-				}
-			}
-		}
-	}
-	return channelId, nil
-}
-
 type lndClientChannelEvent interface {
 	ListChannels(ctx context.Context, in *lnrpc.ListChannelsRequest,
 		opts ...grpc.CallOption) (*lnrpc.ListChannelsResponse, error)
@@ -482,7 +466,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(ctx, db, client, chanEvent, nodeSettings, channelEventChannel, lightningRequestChannel)
+		err = storeChannelEvent(db, chanEvent, nodeSettings, channelEventChannel, lightningRequestChannel)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
 			log.Error().Err(err).Msg("Storing channel event failed")
