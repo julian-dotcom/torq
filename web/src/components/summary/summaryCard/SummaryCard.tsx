@@ -15,17 +15,18 @@ export type SummaryCardProps = {
   details?: React.ReactNode;
 };
 
-const formatter = format(",.2f");
+function formatValue(value: number, valueLabel: valueLabel): string {
+  if (valueLabel === "btc" && value > 0) {
+    value = value / 100000000;
+    return format(",.2f")(value);
+  }
+  return value.toString();
+}
 export default function SummaryCard(props: SummaryCardProps) {
   const [showInspection, setShowInspection] = useState<boolean>(false);
   const { isTouchDevice } = useTouchDevice();
 
-  let value = props.value ? props.value : 0;
-  let useFormatter = false;
-  if (props.valueLabel === "btc" && value > 0) {
-    value = value / 100000000;
-    useFormatter = true;
-  }
+  const value = props.value ? props.value : 0;
 
   const handleHover = (entering: boolean) => {
     if (!isTouchDevice) {
@@ -56,7 +57,7 @@ export default function SummaryCard(props: SummaryCardProps) {
       </div>
 
       <div className={styles.valueContainer}>
-        <div className={styles.value}>{useFormatter ? formatter(value) : value}</div>
+        <div className={styles.value}>{formatValue(value, props.valueLabel)}</div>
         <div className={styles.valueLabel}>{props.valueLabel}</div>
       </div>
       {props.details && <div>{props.details}</div>}
