@@ -94,7 +94,7 @@
     "react-scripts": "5.0.1",
     "sass": "^1.58.0",
     "typescript": "^4.6.2",
-    "webpack": "^5.75.0"
+    "webpack": "^5.76.0"
   },
   "jest": {
     "transformIgnorePatterns": ["/node_modules/(?!d3|d3-array|internmap|delaunator|robust-predicates)"]
