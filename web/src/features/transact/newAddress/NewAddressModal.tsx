@@ -30,7 +30,7 @@ function NewAddressModal() {
   }
 
   let nodeConfigurationOptions: Array<Option> = [{ value: 0, label: "Select a local node" }];
-  if (nodeConfigurations !== undefined) {
+  if (nodeConfigurations) {
     nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration: nodeConfiguration) => {
       return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name ?? "" };
     });

@@ -85,7 +85,7 @@ function OpenChannelModal() {
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
   useEffect(() => {
-    if (nodeConfigurations !== undefined) {
+    if (nodeConfigurations) {
       const options = nodeConfigurations.map((node: nodeConfiguration) => {
         return { label: node.name, value: node.nodeId };
       });
