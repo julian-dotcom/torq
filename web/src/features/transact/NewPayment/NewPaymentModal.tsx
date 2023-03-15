@@ -137,6 +137,14 @@ function NewPaymentModal() {
       // setPaymentDescription("");
     }
 
+    const progressValidDestination = () => {
+      // Prevent accidentally adding additional characters to the destination field after
+      // the user has entered a valid destination.
+      setStepIndex(1);
+      setDestState(ProgressStepState.completed);
+      setConfirmState(ProgressStepState.active);
+    };
+
     setDestination(e.target.value);
     if (e.target.value === "") {
       setDestinationType(0);
@@ -144,32 +152,33 @@ function NewPaymentModal() {
       return;
     } else if (e.target.value.match(LnPayrequestMainnetRegEx)) {
       setDestinationType(PaymentType.LightningMainnet);
+      progressValidDestination();
     } else if (e.target.value.match(LnPayrequestTestnetRegEx)) {
       setDestinationType(PaymentType.LightningTestnet);
+      progressValidDestination();
     } else if (e.target.value.match(LnPayrequestSignetRegEx)) {
       setDestinationType(PaymentType.LightningSimnet);
+      progressValidDestination();
     } else if (e.target.value.match(LnPayrequestRegtestRegEx)) {
       setDestinationType(PaymentType.LightningRegtest);
+      progressValidDestination();
     } else if (e.target.value.match(P2SHAddressRegEx)) {
       // Pay to Script Hash
       setDestinationType(PaymentType.P2SH);
+      progressValidDestination();
     } else if (e.target.value.match(P2WKHAddressRegEx) || e.target.value.match(P2WKHAddressSignetRegEx)) {
       // Segwit address
       setDestinationType(PaymentType.P2WKH);
+      progressValidDestination();
     } else if (e.target.value.match(P2TRAddressRegEx) || e.target.value.match(P2TRAddressSignetRegEx)) {
       // Taproot
       setDestinationType(PaymentType.P2TR);
+      progressValidDestination();
       // } else if (e.target.value.match(LightningNodePubkeyRegEx)) { // TODO: Add support for Keysend
       //   setDestinationType(PaymentType.Keysend);
     } else {
       setDestinationType(PaymentType.Unknown);
     }
-
-    // Prevent accidentally adding additional characters to the destination field after
-    // the user has entered a valid destination by unfocusing (bluring) the input field.
-    setStepIndex(1);
-    setDestState(ProgressStepState.completed);
-    setConfirmState(ProgressStepState.active);
   };
 
   const clearPaymentFlow = () => {
