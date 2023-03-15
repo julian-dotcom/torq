@@ -179,6 +179,7 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		if definition.keySecond != "" {
 			result = result + fmt.Sprintf("\n\t\tkey2: \"%v\",", definition.keySecond)
 		}
+		// TODO: This did not work when label was defined as key before value. Should be simplified.
 		if len(definition.selectOptions) != 0 {
 			result = result + "\n\t\tselectOptions: ["
 			for _, selectOption := range definition.selectOptions {
@@ -1173,9 +1174,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
-				{label: "Open", value: "OPEN"},
-				{label: "Settled", value: "SETTLED"},
-				{label: "Canceled", value: "CANCELED"},
+				{value: "OPEN", label: "Open"},
+				{value: "SETTLED", label: "Settled"},
+				{value: "CANCELED", label: "Canceled"},
 			},
 			pages: map[TableViewPage]int{
 				PageInvoices: 3,
@@ -1359,11 +1360,11 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			filterable: true,
 			heading:    "Status",
 			visualType: "TextCell",
-			valueType:  "array",
+			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
-				{label: "Succeeded", value: "SUCCEEDED"},
-				{label: "In Flight", value: "IN_FLIGHT"},
-				{label: "Failed", value: "FAILED"},
+				{value: "SUCCEEDED", label: "Succeeded"},
+				{value: "IN_FLIGHT", label: "In Flight"},
+				{value: "FAILED", label: "Failed"},
 			},
 			pages: map[TableViewPage]int{
 				PagePayments: 2,
@@ -1408,7 +1409,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			filterable: true,
 			heading:    "Failure Reason",
 			visualType: "TextCell",
-			valueType:  "array",
+			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
 				{value: "FAILURE_REASON_NONE", label: "None"},
 				{value: "FAILURE_REASON_TIMEOUT", label: "Timeout"},
@@ -1565,15 +1566,15 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
-				{label: "Opening", value: "Opening"},
-				{label: "Open", value: "Open"},
-				{label: "Closing", value: "Closing"},
-				{label: "Cooperative Closed", value: "Cooperative Closed"},
-				{label: "Local Force Closed", value: "Local Force Closed"},
-				{label: "Remote Force Closed", value: "Remote Force Closed"},
-				{label: "Breach Closed", value: "Breach Closed"},
-				{label: "Funding Cancelled Closed", value: "Funding Cancelled Closed"},
-				{label: "Abandoned Closed", value: "Abandoned Closed"},
+				{value: "Opening", label: "Opening"},
+				{value: "Open", label: "Open"},
+				{value: "Closing", label: "Closing"},
+				{value: "Cooperative Closed", label: "Cooperative Closed"},
+				{value: "Local Force Closed", label: "Local Force Closed"},
+				{value: "Remote Force Closed", label: "Remote Force Closed"},
+				{value: "Breach Closed", label: "Breach Closed"},
+				{value: "Funding Cancelled Closed", label: "Funding Cancelled Closed"},
+				{value: "Abandoned Closed", label: "Abandoned Closed"},
 			},
 			pages: map[TableViewPage]int{
 				PageChannelsClosed:  18,
