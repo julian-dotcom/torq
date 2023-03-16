@@ -4,6 +4,7 @@ import (
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/rs/zerolog/log"
 	"strings"
+	"time"
 )
 
 func filterCategoryEnumAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
@@ -421,4 +422,226 @@ func filterCategoryTypeStringNotLike(dataMap map[string]interface{}, dataKey str
 		return false
 	}
 	return !strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
+}
+
+func filterCategoryTypeDateEq(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueTime, ok := dataMap[dataKey].(time.Time)
+	if !ok {
+		dataValueTimePointer, ok := dataMap[dataKey].(*time.Time)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: dataValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueTime = *dataValueTimePointer
+	}
+	dataValueTime = truncateToMinute(dataValueTime)
+	filterValueTime, timeOk := filterValue.(time.Time)
+	if timeOk {
+		filterValueTime = truncateToMinute(filterValueTime)
+	}
+	filterValueString, stringOk := filterValue.(string)
+	if stringOk {
+		var err error
+		filterValueTime, err = time.Parse("2006-01-02T15:04", filterValueString)
+		if err != nil {
+			log.Error().Msgf("could not parse the filter function criteria (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+	}
+	if !timeOk && !stringOk {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueTime.Equal(filterValueTime)
+}
+
+func filterCategoryTypeDateNeq(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return true
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueTime, ok := dataMap[dataKey].(time.Time)
+	if !ok {
+		dataValueTimePointer, ok := dataMap[dataKey].(*time.Time)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: dataValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueTime = *dataValueTimePointer
+	}
+	dataValueTime = truncateToMinute(dataValueTime)
+	filterValueTime, timeOk := filterValue.(time.Time)
+	if timeOk {
+		filterValueTime = truncateToMinute(filterValueTime)
+	}
+	filterValueString, stringOk := filterValue.(string)
+	if stringOk {
+		var err error
+		filterValueTime, err = time.Parse("2006-01-02T15:04", filterValueString)
+		if err != nil {
+			log.Error().Msgf("could not parse the filter function criteria (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+	}
+	if !timeOk && !stringOk {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+		return false
+	}
+	return !dataValueTime.Equal(filterValueTime)
+}
+
+func filterCategoryTypeDateGt(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueTime, ok := dataMap[dataKey].(time.Time)
+	if !ok {
+		dataValueTimePointer, ok := dataMap[dataKey].(*time.Time)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: dataValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueTime = *dataValueTimePointer
+	}
+	dataValueTime = truncateToMinute(dataValueTime)
+	filterValueTime, timeOk := filterValue.(time.Time)
+	if timeOk {
+		filterValueTime = truncateToMinute(filterValueTime)
+	}
+	filterValueString, stringOk := filterValue.(string)
+	if stringOk {
+		var err error
+		filterValueTime, err = time.Parse("2006-01-02T15:04", filterValueString)
+		if err != nil {
+			log.Error().Msgf("could not parse the filter function criteria (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+	}
+	if !timeOk && !stringOk {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueTime.After(filterValueTime)
+}
+
+func filterCategoryTypeDateGte(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueTime, ok := dataMap[dataKey].(time.Time)
+	if !ok {
+		dataValueTimePointer, ok := dataMap[dataKey].(*time.Time)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: dataValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueTime = *dataValueTimePointer
+	}
+	dataValueTime = truncateToMinute(dataValueTime)
+	filterValueTime, timeOk := filterValue.(time.Time)
+	if timeOk {
+		filterValueTime = truncateToMinute(filterValueTime)
+	}
+	filterValueString, stringOk := filterValue.(string)
+	if stringOk {
+		var err error
+		filterValueTime, err = time.Parse("2006-01-02T15:04", filterValueString)
+		if err != nil {
+			log.Error().Msgf("could not parse the filter function criteria (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+	}
+	if !timeOk && !stringOk {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueTime.After(filterValueTime) || dataValueTime.Equal(filterValueTime)
+}
+
+func filterCategoryTypeDateLt(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueTime, ok := dataMap[dataKey].(time.Time)
+	if !ok {
+		dataValueTimePointer, ok := dataMap[dataKey].(*time.Time)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: dataValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueTime = *dataValueTimePointer
+	}
+	dataValueTime = truncateToMinute(dataValueTime)
+	filterValueTime, timeOk := filterValue.(time.Time)
+	if timeOk {
+		filterValueTime = truncateToMinute(filterValueTime)
+	}
+	filterValueString, stringOk := filterValue.(string)
+	if stringOk {
+		var err error
+		filterValueTime, err = time.Parse("2006-01-02T15:04", filterValueString)
+		if err != nil {
+			log.Error().Msgf("could not parse the filter function criteria (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+	}
+	if !timeOk && !stringOk {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueTime.Before(filterValueTime)
+}
+
+func filterCategoryTypeDateLte(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueTime, ok := dataMap[dataKey].(time.Time)
+	if !ok {
+		dataValueTimePointer, ok := dataMap[dataKey].(*time.Time)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: dataValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueTime = *dataValueTimePointer
+	}
+	dataValueTime = truncateToMinute(dataValueTime)
+	filterValueTime, timeOk := filterValue.(time.Time)
+	if timeOk {
+		filterValueTime = truncateToMinute(filterValueTime)
+	}
+	filterValueString, stringOk := filterValue.(string)
+	if stringOk {
+		var err error
+		filterValueTime, err = time.Parse("2006-01-02T15:04", filterValueString)
+		if err != nil {
+			log.Error().Msgf("could not parse the filter function criteria (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+			return false
+		}
+	}
+	if !timeOk && !stringOk {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeDate: filterValueTime) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueTime.Before(filterValueTime) || dataValueTime.Equal(filterValueTime)
 }

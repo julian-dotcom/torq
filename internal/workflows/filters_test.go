@@ -4,6 +4,7 @@ import (
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/testutil"
 	"testing"
+	"time"
 )
 
 func TestFilterCategoryTypeNumberEq(t *testing.T) {
@@ -1278,4 +1279,418 @@ func TestFilterCategoryTypeBooleanNeq(t *testing.T) {
 		})
 	}
 
+}
+
+func TestFilterCategoryTypeDateEq(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "equal",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not equal",
+			filterValue: time.Date(2022, 2, 2, 1, 1, 1, 1, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeDateEq(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeDateEq() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeDateEq() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeDateNeq(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal",
+			filterValue: time.Date(2022, 2, 2, 1, 1, 1, 1, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeDateNeq(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeDateNeq() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeDateNeq() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeDateGt(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: time.Date(2023, 1, 1, 1, 2, 2, 2, time.UTC),
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "greater than",
+			filterValue: time.Date(2023, 1, 1, 1, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not greater than",
+			filterValue: time.Date(2023, 1, 1, 3, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeDateGt(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeDateGt() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeDateGt() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeDateGte(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: time.Date(2023, 1, 1, 1, 2, 2, 2, time.UTC),
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "greater than",
+			filterValue: time.Date(2023, 1, 1, 1, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not greater than",
+			filterValue: time.Date(2023, 1, 1, 3, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeDateGte(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeDateGte() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeDateGte() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeDateLt(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "less than",
+			filterValue: time.Date(2023, 1, 1, 3, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not less than",
+			filterValue: time.Date(2023, 1, 1, 1, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeDateLt(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeDateLt() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeDateLt() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeDateLte(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "less than",
+			filterValue: time.Date(2023, 1, 1, 3, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: time.Date(2023, 1, 1, 2, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not less than",
+			filterValue: time.Date(2023, 1, 1, 1, 2, 2, 2, time.UTC),
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeDateLte(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeDateLte() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeDateLte() = %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
