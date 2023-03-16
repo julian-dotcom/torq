@@ -62,13 +62,9 @@ dl {
   display: grid;
   grid-template-columns: 44% 56%;
   font-size: small;
-  padding: 16px;
   grid-row-gap: 4px;
 }
 
-dl dd {
-  text-align: end;
-}
 
 dl dt {
   min-width: 100px;
@@ -76,6 +72,7 @@ dl dt {
 
 .detailsContainer {
   display: block;
+  width: 100%;
   margin-block-start: 1em;
   margin-block-end: 1em;
   margin-inline-start: 0px;
