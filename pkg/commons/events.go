@@ -413,7 +413,6 @@ type RebalanceResponse struct {
 }
 
 type NodeWalletBalanceRequest struct {
-	nodeId int64
 	CommunicationRequest
 	ResponseChannel chan<- NodeWalletBalanceResponse `json:"-"`
 }
