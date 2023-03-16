@@ -31,7 +31,7 @@ type NodeInformation struct {
 	Alias     string         `json:"alias"`
 	TorqAlias string         `json:"torqAlias"`
 	Color     string         `json:"color"`
-	Address   string         `json:"address"`
+	Addresses *[]NodeAddress `json:"addresses"`
 	Status    commons.Status `json:"status"`
 }
 

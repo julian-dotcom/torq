@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -52,15 +53,24 @@ func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]Nod
 		if err != nil {
 			return nil, err
 		}
-		ps = append(ps, NodeInformation{
+		ni := NodeInformation{
 			NodeId:    node.NodeId,
 			PublicKey: node.PublicKey,
 			Status:    node.Status,
 			TorqAlias: node.Name,
-			Address:   nodeEvent.NodeAddresses,
 			Alias:     nodeEvent.Alias,
 			Color:     nodeEvent.Color,
-		})
+		}
+
+		var addresses []NodeAddress
+		err = json.Unmarshal(nodeEvent.NodeAddresses, &addresses)
+		if err != nil {
+			return nil, err
+		}
+
+		ni.Addresses = &addresses
+
+		ps = append(ps, ni)
 	}
 	return ps, nil
 }

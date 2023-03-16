@@ -417,6 +417,7 @@
     "capacity" : "Capacity",
     "peers" : "peers",
     "btc" : "btc",
+    "publicKey": "Public Key",
     "onChainDetail" : {
       "confirmed" : "Confirmed",
       "unconfirmed" : "Unconfirmed",

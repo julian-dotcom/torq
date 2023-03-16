@@ -16,6 +16,7 @@ import {
   ArrowRouting20Regular as ChannelsIcon,
   Check20Regular as InvoiceIcon,
   LinkEdit20Regular as NewOnChainAddressIcon,
+  Copy16Regular as CopyIcon,
 } from "@fluentui/react-icons";
 
 import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
@@ -30,8 +31,13 @@ import {
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import { nodeWalletBalances } from "apiTypes";
+import { nodeAddress, nodeWalletBalances } from "apiTypes";
 import { ChannelPending } from "../channelsPending/channelsPendingTypes";
+import classNames from "classnames";
+import React from "react";
+import ToastContext from "../toast/context";
+import { copyToClipboard } from "../../utils/copyToClipboard";
+import { toastCategory } from "../toast/Toasts";
 
 interface nodeSummary {
   nodeId: number;
@@ -45,7 +51,7 @@ interface nodeSummary {
   openingChannels: number;
   walletBalances: nodeWalletBalances;
   status: number;
-  address: string;
+  addresses: nodeAddress[];
 
   publicKey: string;
 }
@@ -80,9 +86,15 @@ function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSumm
 }
 function DashboardPage() {
   const { t } = useTranslations();
+  const toastRef = React.useContext(ToastContext);
   const navigate = useNavigate();
   const location = useLocation();
   const activeNetwork = useAppSelector(selectActiveNetwork);
+
+  const copyText = async (copyText: string) => {
+    await copyToClipboard(copyText || "");
+    toastRef?.current?.addToast(`${copyText} copied to clipboard`, toastCategory.success);
+  };
 
   const { data: nodesWalletBalances } = useGetNodesWalletBalancesQuery(activeNetwork);
   const { data: nodes } = useGetNodesInformationByCategoryQuery(activeNetwork);
@@ -133,7 +145,7 @@ function DashboardPage() {
       nodeId: x.nodeId,
       name: x.alias,
       status: x.status,
-      address: x.address,
+      addresses: x.addresses,
       publicKey: x.publicKey,
       openingChannels: 0,
       closingChannels: 0,
@@ -308,6 +320,51 @@ function DashboardPage() {
                   valueLabel={t.dashboardPage.btc}
                   summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
+                <SummaryCard
+                  heading={t.dashboardPage.publicKey}
+                  value={node.channels}
+                  valueLabel={""}
+                  summaryClassOverride={styles.nodeSummaryCardOverride}
+                  details={
+                    node.addresses &&
+                    node.addresses.length > 0 && (
+                      <div className={styles.addressDetailsContainer}>
+                        <>
+                          <div className={styles.addressDetailItem} title={node.publicKey}>
+                            {node.publicKey}
+                          </div>
+                          <button
+                            className={classNames(styles.action, styles.copy)}
+                            onClick={() => copyText(node.publicKey)}
+                          >
+                            <CopyIcon />
+                            Copy
+                          </button>
+                        </>
+                        {node.addresses.map((address, i) => {
+                          return (
+                            <>
+                              <div key={i} className={styles.addressDetailItem} title={address.addr}>
+                                {address.addr}
+                              </div>
+                              <button
+                                className={classNames(styles.action, styles.copy)}
+                                onClick={() => copyText(address.addr)}
+                              >
+                                <CopyIcon />
+                                Copy
+                              </button>
+                            </>
+                          );
+                        })}
+                      </div>
+                    )
+                  }
+                >
+                  <div className={styles.addressContent} title={node.publicKey}>
+                    {node.publicKey}
+                  </div>
+                </SummaryCard>
               </div>
             </SummaryNode>
           );

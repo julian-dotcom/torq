@@ -50,3 +50,47 @@
     min-width: 258px;
   }
 }
+
+.addressDetailsContainer {
+  display: grid;
+  grid-template-columns: 75% 25%;
+  font-size: small;
+  padding: 8px;
+  grid-row-gap: 4px;
+  margin-bottom: 20px;
+}
+
+.addressDetailItem {
+  max-width: 300px;
+  margin-right: 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.addressContent {
+  max-width: 200px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  font-weight: 400;
+  font-size: 8px;
+  border-radius: 4px;
+  padding: 6px 4px;
+  svg {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+.copy {
+  color: #354e66;
+  background-color: var(--color-primary-layer-3);
+}

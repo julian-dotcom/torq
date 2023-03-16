@@ -13,6 +13,7 @@ export type SummaryCardProps = {
   valueLabel: valueLabel;
   summaryClassOverride?: string;
   details?: React.ReactNode;
+  children?: React.ReactNode;
 };
 
 function formatValue(value: number, valueLabel: valueLabel): string {
@@ -25,9 +26,6 @@ function formatValue(value: number, valueLabel: valueLabel): string {
 export default function SummaryCard(props: SummaryCardProps) {
   const [showInspection, setShowInspection] = useState<boolean>(false);
   const { isTouchDevice } = useTouchDevice();
-
-  const value = props.value ? props.value : 0;
-
   const handleHover = (entering: boolean) => {
     if (!isTouchDevice) {
       setShowInspection(entering);
@@ -57,10 +55,20 @@ export default function SummaryCard(props: SummaryCardProps) {
       </div>
 
       <div className={styles.valueContainer}>
-        <div className={styles.value}>{formatValue(value, props.valueLabel)}</div>
-        <div className={styles.valueLabel}>{props.valueLabel}</div>
+        {props.children && (
+          <>
+            <div className={styles.value}>{props.children}</div>
+            <div className={styles.valueLabel}>{props.valueLabel}</div>
+          </>
+        )}
+        {!props.children && (
+          <>
+            <div className={styles.value}>{formatValue(props.value ?? 0, props.valueLabel)}</div>
+            <div className={styles.valueLabel}>{props.valueLabel}</div>
+          </>
+        )}
       </div>
-      {props.details && <div>{props.details}</div>}
+      {props.details && <div className={styles.detailsContainer}>{props.details}</div>}
     </div>
   );
 }

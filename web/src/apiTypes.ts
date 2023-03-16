@@ -109,10 +109,14 @@ export interface nodeWalletBalances {
   reservedBalanceAnchorChan: number;
 }
 
+export interface nodeAddress {
+  addr: string;
+  network: string;
+}
 export interface nodeInformation {
   nodeId: number;
   publicKey: string;
   status: number;
-  address: string;
+  addresses: nodeAddress[];
   alias: string;
 }
