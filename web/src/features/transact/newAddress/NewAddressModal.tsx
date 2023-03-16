@@ -23,7 +23,6 @@ function NewAddressModal() {
   const toastRef = useContext(ToastContext);
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
-  const [buttonsEnabled, setButtonsEnabled] = useState(false);
 
   interface Option {
     label: string;
@@ -43,13 +42,12 @@ function NewAddressModal() {
     { label: t.p2tr, value: AddressType.P2TR }, // Taproot
   ];
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>();
 
   useEffect(() => {
     if (nodeConfigurations) {
       if (nodeConfigurations.length == 1) {
         setSelectedNodeId(nodeConfigurationOptions[0].value)
-        setButtonsEnabled(nodeConfigurationOptions[0].value !== 0)
       }
     }
   }, [nodeConfigurations]);
@@ -57,11 +55,13 @@ function NewAddressModal() {
   const [newAddress, { error, data, isLoading, isSuccess, isError, isUninitialized }] = useNewAddressMutation();
 
   const handleClickNext = (addType: AddressType) => {
-    newAddress({
-      nodeId: selectedNodeId,
-      type: addType,
-      // account: {account},
-    });
+    if (selectedNodeId) {
+      newAddress({
+        nodeId: selectedNodeId,
+        type: addType,
+        // account: {account},
+      });
+    }
   };
 
   const navigate = useNavigate();
@@ -79,9 +79,8 @@ function NewAddressModal() {
             label={t.yourNode}
             onChange={(newValue: unknown) => {
               const value = newValue as Option;
-              if (value && value.value > 0) {
+              if (value && value.value != 0) {
                 setSelectedNodeId(value.value);
-                setButtonsEnabled(true)
               }
             }}
             options={nodeConfigurationOptions}
@@ -94,7 +93,7 @@ function NewAddressModal() {
           {addressTypeOptions.map((addType, index) => {
             return (
               <Button
-                disabled={isLoading || !buttonsEnabled}
+                disabled={isLoading|| selectedNodeId === undefined}
                 buttonColor={ColorVariant.primary}
                 key={index + addType.label}
                 icon={isLoading && <Spinny />}
