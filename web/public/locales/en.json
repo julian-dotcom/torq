@@ -430,6 +430,6 @@
   },
   "summaryNode" : {
     "online" : "Online",
-    "offline" : "Offline"
+    "offline" : "Disabled"
   }
 }

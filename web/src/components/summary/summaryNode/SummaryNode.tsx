@@ -3,11 +3,8 @@ import React from "react";
 import { FlashCheckmark20Regular as Indicator } from "@fluentui/react-icons";
 import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
+import { nodeStatus } from "apiTypes";
 
-enum nodeStatus {
-  inactive = 0,
-  active = 1,
-}
 export type SummaryNodeProps = {
   nodeName: string;
   status: nodeStatus;
@@ -40,7 +37,7 @@ export default function SummaryNode(props: SummaryNodeProps) {
         </div>
       </div>
 
-      {props.children}
+      {props.status === nodeStatus.active && props.children}
     </div>
   );
 }

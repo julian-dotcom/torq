@@ -31,7 +31,7 @@ import {
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import { nodeAddress, nodeWalletBalances } from "apiTypes";
+import { nodeAddress, nodeStatus, nodeWalletBalances } from "apiTypes";
 import { ChannelPending } from "../channelsPending/channelsPendingTypes";
 import classNames from "classnames";
 import React from "react";
@@ -73,16 +73,18 @@ interface allNodesSummary {
 function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSummary {
   if (!nodeSummaries) return {} as allNodesSummary;
 
-  return nodeSummaries.reduce(
-    (acc, node) => {
-      acc.localBalance += node.localBalance;
-      acc.onChainBalance += node.onChainBalance;
-      acc.channels += node.channels;
-      acc.totalBalance += node.totalBalance;
-      return acc;
-    },
-    { onChainBalance: 0, offChainBalance: 0, localBalance: 0, totalBalance: 0, channels: 0 }
-  );
+  return nodeSummaries
+    .filter((x) => x.status === nodeStatus.active)
+    .reduce(
+      (acc, node) => {
+        acc.localBalance += node.localBalance;
+        acc.onChainBalance += node.onChainBalance;
+        acc.channels += node.channels;
+        acc.totalBalance += node.totalBalance;
+        return acc;
+      },
+      { onChainBalance: 0, offChainBalance: 0, localBalance: 0, totalBalance: 0, channels: 0 }
+    );
 }
 function DashboardPage() {
   const { t } = useTranslations();
@@ -151,11 +153,19 @@ function DashboardPage() {
       closingChannels: 0,
     } as nodeSummary;
 
-    const walletBalances = nodesWalletBalances?.find((x) => x.nodeId === node.nodeId);
-    if (walletBalances) {
-      node.walletBalances = walletBalances;
-      node.onChainBalance = walletBalances.totalBalance;
-    }
+    const walletBalances =
+      nodesWalletBalances?.find((x) => x.nodeId === node.nodeId) ??
+      ({
+        nodeId: 0,
+        totalBalance: 0,
+        confirmedBalance: 0,
+        unconfirmedBalance: 0,
+        lockedBalance: 0,
+        reservedBalanceAnchorChan: 0,
+      } as nodeWalletBalances);
+
+    node.walletBalances = walletBalances;
+    node.onChainBalance = walletBalances.totalBalance;
 
     const channelSummary = nodesOpenChannelSummary ? nodesOpenChannelSummary[node.nodeId] : undefined;
 

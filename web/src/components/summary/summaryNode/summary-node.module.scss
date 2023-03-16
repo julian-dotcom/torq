@@ -48,8 +48,8 @@
 }
 
 .statusContainer.offline {
-  background: var(--color-error-layer-4);
-  color: var(--color-text-error-strong);
+  background: var(--color-gray-layer-faint);
+  color: var(--color-gray-layer-strong);
 }
 
 .statusText{
@@ -61,10 +61,11 @@
   padding-left: 6px;
 }
 
-.statusText.online{
-  color: var(--color-text-success-strong);
-}
+//.statusText.online{
+//  color: var(--color-text-success-strong);
+//}
 .statusText.offline{
-  color: var(--color-text-error-strong);
+  padding-top: 0px;
+  padding-left: 2px;
 }
 

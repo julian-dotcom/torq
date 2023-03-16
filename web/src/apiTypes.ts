@@ -116,7 +116,12 @@ export interface nodeAddress {
 export interface nodeInformation {
   nodeId: number;
   publicKey: string;
-  status: number;
+  status: nodeStatus;
   addresses: nodeAddress[];
   alias: string;
+}
+
+export enum nodeStatus {
+  inactive = 0,
+  active = 1,
 }
