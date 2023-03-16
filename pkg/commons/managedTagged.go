@@ -13,12 +13,12 @@ var ManagedTaggedChannel = make(chan ManagedTagged) //nolint:gochecknoglobals
 type ManagedTaggedCacheOperationType uint
 
 const (
-	READ_TAGGED ManagedTaggedCacheOperationType = iota
-	READ_TAGGED_NODES
-	READ_TAGGED_CHANNELS
-	WRITE_TAGGED
-	ADD_TAGGED
-	REMOVE_TAGGED
+	readTagged ManagedTaggedCacheOperationType = iota
+	readTaggedNodes
+	readTaggedChannels
+	writeTagged
+	addTagged
+	removeTagged
 )
 
 type ManagedTagged struct {
@@ -45,7 +45,7 @@ func ManagedTaggedCache(ch <-chan ManagedTagged, ctx context.Context) {
 
 func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int]map[int]bool, tagsByChannelIdCache map[int]map[int]bool) {
 	switch managedTagged.Type {
-	case READ_TAGGED:
+	case readTagged:
 		if managedTagged.NodeId == 0 && managedTagged.ChannelId == 0 {
 			log.Error().Msgf("No empty NodeId and ChannelId allowed")
 			SendToManagedTagIdsChannel(managedTagged.Out, []int{})
@@ -72,7 +72,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 		}
 		sort.Ints(tagIds)
 		SendToManagedTagIdsChannel(managedTagged.Out, tagIds)
-	case READ_TAGGED_NODES:
+	case readTaggedNodes:
 		if managedTagged.TagId == 0 {
 			log.Error().Msgf("No empty TagId allowed")
 			SendToManagedNodeIdsChannel(managedTagged.Out, []int{})
@@ -87,7 +87,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 		}
 		sort.Ints(nodeIds)
 		SendToManagedNodeIdsChannel(managedTagged.Out, nodeIds)
-	case READ_TAGGED_CHANNELS:
+	case readTaggedChannels:
 		if managedTagged.TagId == 0 {
 			log.Error().Msgf("No empty TagId allowed")
 			SendToManagedChannelIdsChannel(managedTagged.Out, []int{})
@@ -102,7 +102,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 		}
 		sort.Ints(channelIds)
 		SendToManagedChannelIdsChannel(managedTagged.Out, channelIds)
-	case WRITE_TAGGED:
+	case writeTagged:
 		if managedTagged.NodeId == 0 && managedTagged.ChannelId == 0 {
 			log.Error().Msgf("No empty NodeId and ChannelId allowed")
 		} else {
@@ -124,7 +124,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				tagsByChannelIdCache[managedTagged.ChannelId] = tagIds
 			}
 		}
-	case ADD_TAGGED:
+	case addTagged:
 		if (managedTagged.NodeId == 0 && managedTagged.ChannelId == 0) || managedTagged.TagId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) and ChannelId (%v) or TagId (%v) allowed",
 				managedTagged.NodeId, managedTagged.ChannelId, managedTagged.TagId)
@@ -154,7 +154,7 @@ func processManagedTagged(managedTagged ManagedTagged, tagsByNodeIdCache map[int
 				tagsByChannelIdCache[managedTagged.ChannelId] = map[int]bool{managedTagged.TagId: true}
 			}
 		}
-	case REMOVE_TAGGED:
+	case removeTagged:
 		if (managedTagged.NodeId == 0 && managedTagged.ChannelId == 0) || managedTagged.TagId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) and ChannelId (%v) or TagId (%v) allowed",
 				managedTagged.NodeId, managedTagged.ChannelId, managedTagged.TagId)
@@ -181,7 +181,7 @@ func GetNodeIdsByTagId(tagId int) []int {
 	nodeIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		TagId: tagId,
-		Type:  READ_TAGGED_NODES,
+		Type:  readTaggedNodes,
 		Out:   nodeIdsResponseChannel,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
@@ -192,7 +192,7 @@ func GetChannelIdsByTagId(tagId int) []int {
 	channelIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		TagId: tagId,
-		Type:  READ_TAGGED_CHANNELS,
+		Type:  readTaggedChannels,
 		Out:   channelIdsResponseChannel,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
@@ -203,7 +203,7 @@ func GetTagIdsByNodeId(nodeId int) []int {
 	tagIdsResponseChannel := make(chan []int)
 	managedManagedTagged := ManagedTagged{
 		NodeId: nodeId,
-		Type:   READ_TAGGED,
+		Type:   readTagged,
 		Out:    tagIdsResponseChannel,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
@@ -215,7 +215,7 @@ func GetTagIdsByChannelId(nodeId int, channelId int) []int {
 	managedManagedTagged := ManagedTagged{
 		ChannelId: channelId,
 		NodeId:    nodeId,
-		Type:      READ_TAGGED,
+		Type:      readTagged,
 		Out:       tagIdsResponseChannel,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
@@ -226,7 +226,7 @@ func AddTagIdByNodeId(nodeId int, tagId int) {
 	managedManagedTagged := ManagedTagged{
 		TagId:  tagId,
 		NodeId: nodeId,
-		Type:   ADD_TAGGED,
+		Type:   addTagged,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }
@@ -235,7 +235,7 @@ func AddTagIdByChannelId(channelId int, tagId int) {
 	managedManagedTagged := ManagedTagged{
 		TagId:     tagId,
 		ChannelId: channelId,
-		Type:      ADD_TAGGED,
+		Type:      addTagged,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }
@@ -244,7 +244,7 @@ func RemoveTagIdByNodeId(nodeId int, tagId int) {
 	managedManagedTagged := ManagedTagged{
 		TagId:  tagId,
 		NodeId: nodeId,
-		Type:   REMOVE_TAGGED,
+		Type:   removeTagged,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }
@@ -253,7 +253,7 @@ func RemoveTagIdByChannelId(channelId int, tagId int) {
 	managedManagedTagged := ManagedTagged{
 		TagId:     tagId,
 		ChannelId: channelId,
-		Type:      REMOVE_TAGGED,
+		Type:      removeTagged,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }
@@ -262,7 +262,7 @@ func SetTagIdsByNodeId(nodeId int, tagIds []int) {
 	managedManagedTagged := ManagedTagged{
 		TagIds: tagIds,
 		NodeId: nodeId,
-		Type:   WRITE_TAGGED,
+		Type:   writeTagged,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }
@@ -271,7 +271,7 @@ func SetTagIdsByChannelId(channelId int, tagIds []int) {
 	managedManagedTagged := ManagedTagged{
 		TagIds:    tagIds,
 		ChannelId: channelId,
-		Type:      WRITE_TAGGED,
+		Type:      writeTagged,
 	}
 	ManagedTaggedChannel <- managedManagedTagged
 }

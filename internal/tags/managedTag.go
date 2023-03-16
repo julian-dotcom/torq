@@ -11,10 +11,10 @@ var ManagedTagChannel = make(chan ManagedTag) //nolint:gochecknoglobals
 type ManagedTagCacheOperationType uint
 
 const (
-	READ_TAG ManagedTagCacheOperationType = iota
-	READ_TAGS
-	WRITE_TAG
-	REMOVE_TAG
+	readTag ManagedTagCacheOperationType = iota
+	readTags
+	writeTag
+	removeTag
 )
 
 type ManagedTag struct {
@@ -40,7 +40,7 @@ func ManagedTagCache(ch <-chan ManagedTag, ctx context.Context) {
 
 func processManagedTag(managedTag ManagedTag, tagsByIdCache map[int]Tag) {
 	switch managedTag.Type {
-	case READ_TAG:
+	case readTag:
 		if managedTag.TagId == 0 {
 			SendToManagedTagChannel(managedTag.Out, Tag{})
 			break
@@ -51,7 +51,7 @@ func processManagedTag(managedTag ManagedTag, tagsByIdCache map[int]Tag) {
 			break
 		}
 		SendToManagedTagChannel(managedTag.Out, Tag{})
-	case READ_TAGS:
+	case readTags:
 		if len(managedTag.TagIds) == 0 {
 			SendToManagedTagsChannel(managedTag.TagsOut, []Tag{})
 			break
@@ -64,13 +64,13 @@ func processManagedTag(managedTag ManagedTag, tagsByIdCache map[int]Tag) {
 			}
 		}
 		SendToManagedTagsChannel(managedTag.TagsOut, tags)
-	case WRITE_TAG:
+	case writeTag:
 		if managedTag.Tag.TagId == 0 {
 			log.Error().Msgf("No empty Tag.TagId allowed")
 		} else {
 			tagsByIdCache[managedTag.Tag.TagId] = managedTag.Tag
 		}
-	case REMOVE_TAG:
+	case removeTag:
 		if managedTag.TagId == 0 && len(managedTag.TagIds) == 0 {
 			log.Error().Msgf("No empty TagId and TagIds allowed")
 		} else {
@@ -98,7 +98,7 @@ func GetTagsByTagIds(tagIds []int) []Tag {
 	tagsResponseChannel := make(chan []Tag)
 	managedManagedTag := ManagedTag{
 		TagIds:  tagIds,
-		Type:    READ_TAGS,
+		Type:    readTags,
 		TagsOut: tagsResponseChannel,
 	}
 	ManagedTagChannel <- managedManagedTag
@@ -109,7 +109,7 @@ func GetTagByTagId(tagId int) Tag {
 	tagResponseChannel := make(chan Tag)
 	managedManagedTag := ManagedTag{
 		TagId: tagId,
-		Type:  READ_TAGS,
+		Type:  readTags,
 		Out:   tagResponseChannel,
 	}
 	ManagedTagChannel <- managedManagedTag
@@ -119,7 +119,7 @@ func GetTagByTagId(tagId int) Tag {
 func SetTag(tag Tag) {
 	managedManagedTag := ManagedTag{
 		Tag:  tag,
-		Type: WRITE_TAG,
+		Type: writeTag,
 	}
 	ManagedTagChannel <- managedManagedTag
 }
@@ -127,7 +127,7 @@ func SetTag(tag Tag) {
 func RemoveTag(tagId int) {
 	managedManagedTag := ManagedTag{
 		TagId: tagId,
-		Type:  REMOVE_TAG,
+		Type:  removeTag,
 	}
 	ManagedTagChannel <- managedManagedTag
 }

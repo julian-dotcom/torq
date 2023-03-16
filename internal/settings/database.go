@@ -182,14 +182,20 @@ func InitializeManagedNodeAliasCache(db *sqlx.DB) {
 
 	torqNodeIds := commons.GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
-		commons.SetNodeAlias(torqNodeId, getNodeAlias(db, torqNodeId))
+		torqNodeAlias := getNodeAlias(db, torqNodeId)
+		if torqNodeAlias != "" {
+			commons.SetNodeAlias(torqNodeId, torqNodeAlias)
+		}
 		for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
 			channelSettings := commons.GetChannelSettingByChannelId(channelId)
 			remoteNodeId := channelSettings.FirstNodeId
 			if remoteNodeId == torqNodeId {
 				remoteNodeId = channelSettings.SecondNodeId
 			}
-			commons.SetNodeAlias(remoteNodeId, getNodeAlias(db, remoteNodeId))
+			remoteNodeAlias := getNodeAlias(db, remoteNodeId)
+			if remoteNodeAlias != "" {
+				commons.SetNodeAlias(remoteNodeId, remoteNodeAlias)
+			}
 		}
 	}
 }
