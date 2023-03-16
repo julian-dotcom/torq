@@ -41,7 +41,6 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	go processForwardEvent(ctx, broadcaster)
 	go processInvoiceEvent(ctx, broadcaster)
 	go processPaymentEvent(ctx, broadcaster)
-	//go processHtlcEvent(ctx, broadcaster)
 	go processPeerEvent(ctx, broadcaster)
 
 	// first run after 1 minute to speed up complete boot process
@@ -154,6 +153,11 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		pendingOutgoingHtlcAmount := int64(0)
 		if len(lndChannel.PendingHtlcs) > 0 {
 			for _, pendingHtlc := range lndChannel.PendingHtlcs {
+				if pendingHtlc.Incoming {
+					channelStateSettings.RemoteBalance += pendingHtlc.Amount
+				} else {
+					channelStateSettings.LocalBalance += pendingHtlc.Amount
+				}
 				htlc := commons.Htlc{
 					Incoming:            pendingHtlc.Incoming,
 					Amount:              pendingHtlc.Amount,
@@ -355,12 +359,6 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 			for _, channelId := range channelIds {
 				commons.SetChannelStateChannelStatus(peerEvent.NodeId, channelId, status)
 			}
-			// Channel open requires confirmations
-			//} else if openChannelEvent, ok := event.(commons.OpenChannelResponse); ok {
-			//	if openChannelEvent.Request.NodeId == 0 || openChannelEvent.Status != commons.Open {
-			//		continue
-			//	}
-			//	commons.SetChannelStateChannelStatus(openChannelEvent.Request.NodeId, openChannelEvent.ChannelId, commons.Inactive)
 		}
 	}()
 }
