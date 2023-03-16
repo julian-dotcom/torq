@@ -377,53 +377,8 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 			},
 		},
 		FilterCategoryTypeEnum: {
-			// TODO: This needs to be fixed. Enums are using any and notAny instead of like and notLike
-			"like": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
-				if isNil(dataMap[dataKey]) != (filterValue == nil) {
-					return false
-				}
-				if filterValue == nil {
-					return true
-				}
-				dataValueString, ok := dataMap[dataKey].(string)
-				if !ok {
-					dataValueStringPointer, ok := dataMap[dataKey].(*string)
-					if !ok {
-						log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: dataValueString) so defaulting to false instead of a panic!")
-						return false
-					}
-					dataValueString = *dataValueStringPointer
-				}
-				filterValueString, ok := filterValue.(string)
-				if !ok {
-					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueString) so defaulting to false instead of a panic!")
-					return false
-				}
-				return strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
-			},
-			"notLike": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
-				if isNil(dataMap[dataKey]) != (filterValue == nil) {
-					return true
-				}
-				if filterValue == nil {
-					return false
-				}
-				dataValueString, ok := dataMap[dataKey].(string)
-				if !ok {
-					dataValueStringPointer, ok := dataMap[dataKey].(*string)
-					if !ok {
-						log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: dataValueString) so defaulting to false instead of a panic!")
-						return false
-					}
-					dataValueString = *dataValueStringPointer
-				}
-				filterValueString, ok := filterValue.(string)
-				if !ok {
-					log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueString) so defaulting to false instead of a panic!")
-					return false
-				}
-				return !strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
-			},
+			"any":    filterCategoryEnumAny,
+			"notAny": filterCategoryEnumNotAny,
 		},
 		FilterCategoryTypeDate: {
 			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
@@ -648,69 +603,8 @@ func GetFilterFunctions() map[FilterCategoryType]map[string]FilterFunc {
 			"neq": filterCategoryTypeBooleanNeq,
 		},
 		FilterCategoryTypeArray: {
-			// TODO: This needs to be fixed. Arrays are using any and notAny instead of like and notLike
-			"eq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
-				if isNil(dataMap[dataKey]) != (filterValue == nil) {
-					return false
-				}
-				if filterValue == nil {
-					return true
-				}
-				// TODO FIXME this will not work and panic???
-				dataValueArray, ok := dataMap[dataKey].([]interface{})
-				if !ok {
-					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: dataValueArray) so defaulting to false!")
-					return false
-				}
-				filterValueArray, ok := filterValue.([]interface{})
-				if !ok {
-					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: filterValueArray) so defaulting to false!")
-					return false
-				}
-				for _, dataValueEntry := range dataValueArray {
-					foundIt := false
-					for _, filterValueEntry := range filterValueArray {
-						if dataValueEntry == filterValueEntry {
-							foundIt = true
-						}
-					}
-					if !foundIt {
-						return false
-					}
-				}
-				return true
-			},
-			"neq": func(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
-				if isNil(dataMap[dataKey]) != (filterValue == nil) {
-					return true
-				}
-				if filterValue == nil {
-					return false
-				}
-				// TODO FIXME this will not work and panic???
-				dataValueArray, ok := dataMap[dataKey].([]interface{})
-				if !ok {
-					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: dataValueArray) so defaulting to false!")
-					return false
-				}
-				filterValueArray, ok := filterValue.([]interface{})
-				if !ok {
-					log.Error().Msgf("could not run the filter function (FilterCategoryTypeArray: filterValueArray) so defaulting to false!")
-					return false
-				}
-				for _, dataValueEntry := range dataValueArray {
-					foundIt := false
-					for _, filterValueEntry := range filterValueArray {
-						if dataValueEntry == filterValueEntry {
-							foundIt = true
-						}
-					}
-					if !foundIt {
-						return true
-					}
-				}
-				return false
-			},
+			"any":    filterCategoryArrayAny,
+			"notAny": filterCategoryArrayNotAny,
 		},
 		FilterCategoryTypeTag: {
 			"any":    filterCategoryTypeTagAny,
@@ -967,21 +861,71 @@ func DeserialiseQuery(query interface{}) interface{} {
 	panic("Expected JSON to contain $filter, $or or $and")
 }
 
-func filterCategoryArrayAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+func filterCategoryEnumAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
 	if isNil(dataMap[dataKey]) != (filterValue == nil) {
 		return false
 	}
-	if filterValue == nil {
+	if filterValue == nil && dataMap[dataKey] == nil {
 		return true
 	}
-	dataValueArray, ok := dataMap[dataKey].([]interface{})
+	dataValue, ok := dataMap[dataKey].(string)
 	if !ok {
 		log.Error().Msgf("could not run the filter function (FilterCategoryArray: dataValueArray) so defaulting to false!")
 		return false
 	}
-	filterValueArray, ok := filterValue.([]interface{})
+	filterValueArray, ok := filterValue.([]string)
 	if !ok {
 		log.Error().Msgf("could not run the filter function (FilterCategoryArray: filterValueArray) so defaulting to false!")
+		return false
+	}
+	for _, filterValueItem := range filterValueArray {
+		if filterValueItem == dataValue {
+			return true
+		}
+	}
+	return false
+}
+
+func filterCategoryEnumNotAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return true
+	}
+	if filterValue == nil && dataMap[dataKey] == nil {
+		return false
+	}
+	dataValueArray, ok := dataMap[dataKey].(string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (filterCategoryEnumNotAny: dataValueArray) so defaulting to false!")
+		return false
+	}
+	filterValueArray, ok := filterValue.([]string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (filterCategoryEnumNotAny: filterValueArray) so defaulting to false!")
+		return false
+	}
+	for _, filterValueItem := range filterValueArray {
+		if filterValueItem == dataValueArray {
+			return false
+		}
+	}
+	return true
+}
+
+func filterCategoryArrayAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil && dataMap[dataKey] == nil {
+		return true
+	}
+	dataValueArray, ok := dataMap[dataKey].([]string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (filterCategoryArrayAny: dataValueArray) so defaulting to false!")
+		return false
+	}
+	filterValueArray, ok := filterValue.([]string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (filterCategoryArrayAny: filterValueArray) so defaulting to false!")
 		return false
 	}
 	for _, filterValueItem := range filterValueArray {
@@ -996,19 +940,19 @@ func filterCategoryArrayAny(dataMap map[string]interface{}, dataKey string, filt
 
 func filterCategoryArrayNotAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
 	if isNil(dataMap[dataKey]) != (filterValue == nil) {
-		return false
-	}
-	if filterValue == nil {
 		return true
 	}
-	dataValueArray, ok := dataMap[dataKey].([]interface{})
-	if !ok {
-		log.Error().Msgf("could not run the filter function (FilterCategoryArray: dataValueArray) so defaulting to false!")
+	if filterValue == nil && dataMap[dataKey] == nil {
 		return false
 	}
-	filterValueArray, ok := filterValue.([]interface{})
+	dataValueArray, ok := dataMap[dataKey].([]string)
 	if !ok {
-		log.Error().Msgf("could not run the filter function (FilterCategoryArray: filterValueArray) so defaulting to false!")
+		log.Error().Msgf("could not run the filter function (filterCategoryArrayNotAny: dataValueArray) so defaulting to false!")
+		return false
+	}
+	filterValueArray, ok := filterValue.([]string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (filterCategoryArrayNotAny: filterValueArray) so defaulting to false!")
 		return false
 	}
 	for _, filterValueItem := range filterValueArray {
@@ -1028,12 +972,9 @@ func filterCategoryTypeTagAny(dataMap map[string]interface{}, dataKey string, fi
 	if filterValue == nil && dataMap[dataKey] == nil {
 		return true
 	}
-	if filterValue == nil {
-		return true
-	}
 	dataValueTags, ok := dataMap[dataKey].([]tags.Tag)
 	if !ok {
-		log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag: dataValueTags) so defaulting to false!")
+		log.Error().Msgf("could not run the filter function (filterCategoryTypeTagAny: dataValueTags) so defaulting to false!")
 		return false
 	}
 	filterValueTagResponses, tagResponsesOk := filterValue.([]tags.TagResponse)
@@ -1063,7 +1004,7 @@ func filterCategoryTypeTagAny(dataMap map[string]interface{}, dataKey string, fi
 			for _, dataValueTag := range dataValueTags {
 				tagId, err := getFloat(tagIdO)
 				if err != nil {
-					log.Error().Msgf("could not run convert interface into tagId in filter function (FilterCategoryTypeTag)")
+					log.Error().Msgf("could not run convert interface into tagId in filter function (filterCategoryTypeTagAny)")
 					tagIdsOk = false
 					break filterLoop
 				}
@@ -1074,7 +1015,7 @@ func filterCategoryTypeTagAny(dataMap map[string]interface{}, dataKey string, fi
 		}
 	}
 	if !tagsOk && !tagResponsesOk && !tagIdsOk {
-		log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag) so defaulting to false!")
+		log.Error().Msgf("could not run the filter function (filterCategoryTypeTagAny) so defaulting to false!")
 		return false
 	}
 	return false
@@ -1092,7 +1033,7 @@ func filterCategoryTypeTagNotAny(dataMap map[string]interface{}, dataKey string,
 	// Converts the data value to a slice of tags.Tag, and if it fails, returns false.
 	dataValueTags, ok := dataMap[dataKey].([]tags.Tag)
 	if !ok {
-		log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag: dataValueTags) so defaulting to false!")
+		log.Error().Msgf("could not run the filter function (filterCategoryTypeTagNotAny: dataValueTags) so defaulting to false!")
 		return false
 	}
 
@@ -1144,7 +1085,7 @@ func filterCategoryTypeTagNotAny(dataMap map[string]interface{}, dataKey string,
 
 	// Converts the tag id to a float and returns false if it fails.
 	if !tagsOk && !tagResponsesOk && !tagIdsOk {
-		log.Error().Msgf("could not run the filter function (FilterCategoryTypeTag) so defaulting to false!")
+		log.Error().Msgf("could not run the filter function (filterCategoryTypeTagNotAny) so defaulting to false!")
 		return false
 	}
 
@@ -1159,14 +1100,14 @@ func filterCategoryTypeBooleanEq(dataMap map[string]interface{}, dataKey string,
 	if !ok {
 		dataValueBooleanPointer, ok := dataMap[dataKey].(*bool)
 		if !ok {
-			log.Error().Msgf("could not run the filter function (FilterCategoryTypeBoolean: dataValueBoolean) so defaulting to false instead of a panic!")
+			log.Error().Msgf("could not run the filter function (filterCategoryTypeBooleanEq: dataValueBoolean) so defaulting to false instead of a panic!")
 			return false
 		}
 		dataValueBoolean = *dataValueBooleanPointer
 	}
 	filterValueBoolean, ok := filterValue.(bool)
 	if !ok {
-		log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueBoolean) so defaulting to false instead of a panic!")
+		log.Error().Msgf("could not run the filter function (filterCategoryTypeBooleanEq: filterValueBoolean) so defaulting to false instead of a panic!")
 		return false
 	}
 	return dataValueBoolean == filterValueBoolean
@@ -1186,14 +1127,14 @@ func filterCategoryTypeBooleanNeq(dataMap map[string]interface{}, dataKey string
 	if !ok {
 		dataValueBooleanPointer, ok := dataMap[dataKey].(*bool)
 		if !ok {
-			log.Error().Msgf("could not run the filter function (FilterCategoryTypeBoolean: dataValueBoolean) so defaulting to false instead of a panic!")
+			log.Error().Msgf("could not run the filter function (filterCategoryTypeBooleanNeq: dataValueBoolean) so defaulting to false instead of a panic!")
 			return false
 		}
 		dataValueBoolean = *dataValueBooleanPointer
 	}
 	filterValueBoolean, ok := filterValue.(bool)
 	if !ok {
-		log.Error().Msgf("could not run the filter function (FilterCategoryTypeEnum: filterValueBoolean) so defaulting to false instead of a panic!")
+		log.Error().Msgf("could not run the filter function (filterCategoryTypeBooleanNeq: filterValueBoolean) so defaulting to false instead of a panic!")
 		return false
 	}
 	return dataValueBoolean != filterValueBoolean

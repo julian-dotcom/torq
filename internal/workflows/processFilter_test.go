@@ -6,6 +6,326 @@ import (
 	"testing"
 )
 
+func TestFilterCategoryEnumAny(t *testing.T) {
+
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: "hello",
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: []string{"hello", "world"},
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "empty filter value and non-empty data value",
+			filterValue: nil,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "overlapping filter with enum",
+			filterValue: []string{"world", "hello", "aaaa"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "one matching array item with enum",
+			filterValue: []string{"hello"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "Mismatching array item with enum",
+			filterValue: []string{"not", "here"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "Invalid filter value",
+			filterValue: "invalid",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryEnumAny(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryArrayAny() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryArrayAny() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryEnumNotAny(t *testing.T) {
+
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: "hello",
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: []string{"hello", "world"},
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "empty filter value and non-empty data value",
+			filterValue: nil,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "overlapping filter with enum",
+			filterValue: []string{"world", "hello", "aaaa"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "one matching array item with enum",
+			filterValue: []string{"hello"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "Mismatching array item with enum",
+			filterValue: []string{"not", "here"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "Invalid filter value",
+			filterValue: "invalid",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryEnumNotAny(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryArrayNotAny() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryArrayNotAny() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryArrayAny(t *testing.T) {
+
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: []string{"hello", "world"},
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: []string{"hello", "world"},
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "empty filter value and non-empty data value",
+			filterValue: nil,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "overlapping array",
+			filterValue: []string{"world", "hello", "aaaa"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "full matching array",
+			filterValue: []string{"world", "hello"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "one matching array item",
+			filterValue: []string{"hello"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "Missmatching array items",
+			filterValue: []string{"not", "here"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "Invalid filter value",
+			filterValue: "invalid",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryArrayAny(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryArrayAny() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryArrayAny() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryArrayNotAny(t *testing.T) {
+
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: []string{"hello", "world"},
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: []string{"hello", "world"},
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "empty filter value and non-empty data value",
+			filterValue: nil,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "overlapping array",
+			filterValue: []string{"world", "hello", "aaaa"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "full matching array",
+			filterValue: []string{"world", "hello"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "one matching array item",
+			filterValue: []string{"hello"},
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "Missmatching array items",
+			filterValue: []string{"not", "here"},
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "Invalid filter value",
+			filterValue: "invalid",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryArrayNotAny(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryArrayNotAny() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryArrayNotAny() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestFilterCategoryTypeTagAny(t *testing.T) {
 
 	dataKey := "tags"
@@ -105,16 +425,27 @@ func TestFilterCategoryTypeTagNotAny(t *testing.T) {
 			{TagId: 3, Name: "tag3"},
 		},
 	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: []tags.Tag{},
+	}
 
 	testCases := []struct {
 		name        string
+		dataMap     map[string]interface{}
 		filterValue interface{}
 		want        bool
 	}{
 		{
-			name:        "nil filter value should return true",
+			name:        "nil filter value should return false",
 			filterValue: nil,
-			want:        true,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data should return false",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
 		},
 		{
 			name: "TagResponse filter value with matching tag",
@@ -128,39 +459,44 @@ func TestFilterCategoryTypeTagNotAny(t *testing.T) {
 					Nodes:    nil,
 				},
 			},
-			want: false,
+			dataMap: dataMap,
+			want:    false,
 		},
 		{
 			name: "Tag filter value with matching tag",
 			filterValue: []tags.Tag{
 				{TagId: 3, Name: "tag3"},
 			},
-			want: false,
+			dataMap: dataMap,
+			want:    false,
 		},
 		{
 			name: "TagId filter value with matching tag",
 			filterValue: []interface{}{
 				float64(1),
 			},
-			want: false,
+			dataMap: dataMap,
+			want:    false,
 		},
 		{
 			name: "Filter value without matching tag",
 			filterValue: []tags.Tag{
 				{TagId: 4, Name: "tag4"},
 			},
-			want: true,
+			dataMap: dataMap,
+			want:    true,
 		},
 		{
 			name:        "Invalid filter value",
 			filterValue: "invalid",
+			dataMap:     dataMap,
 			want:        false,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := filterCategoryTypeTagNotAny(dataMap, dataKey, tc.filterValue)
+			got := filterCategoryTypeTagNotAny(tc.dataMap, dataKey, tc.filterValue)
 			if got != tc.want {
 				t.Errorf("filterCategoryTypeTagNotAny() = %v, want %v", got, tc.want)
 			}
