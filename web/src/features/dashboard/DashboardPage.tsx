@@ -336,22 +336,22 @@ function DashboardPage() {
                   valueLabel={""}
                   summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
-                    node.addresses &&
-                    node.addresses.length > 0 && (
-                      <div className={styles.addressDetailsContainer}>
-                        <>
-                          <div className={styles.addressDetailItem} title={node.publicKey}>
-                            {node.publicKey}
-                          </div>
-                          <button
-                            className={classNames(styles.action, styles.copy)}
-                            onClick={() => copyText(node.publicKey)}
-                          >
-                            <CopyIcon />
-                            Copy
-                          </button>
-                        </>
-                        {node.addresses.map((address, i) => {
+                    <div className={styles.addressDetailsContainer}>
+                      <>
+                        <div className={styles.addressDetailItem} title={node.publicKey}>
+                          {node.publicKey}
+                        </div>
+                        <button
+                          className={classNames(styles.action, styles.copy)}
+                          onClick={() => copyText(node.publicKey)}
+                        >
+                          <CopyIcon />
+                          Copy
+                        </button>
+                      </>
+                      {node.addresses &&
+                        node.addresses.length > 0 &&
+                        node.addresses.map((address, i) => {
                           return (
                             <>
                               <div key={i} className={styles.addressDetailItem} title={address.addr}>
@@ -367,8 +367,7 @@ function DashboardPage() {
                             </>
                           );
                         })}
-                      </div>
-                    )
+                    </div>
                   }
                 >
                   <div className={styles.addressContent} title={node.publicKey}>
