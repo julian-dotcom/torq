@@ -217,7 +217,7 @@ function OpenChannelModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                disabled={host == "" || nodePubKey == "" || selectedNodeId == 0}
+                disabled={host == "" || nodePubKey == "" || !selectedNodeId || selectedNodeId == 0}
                 onClick={() => {
                   setStepIndex(1);
                   setConnectState(ProgressStepState.completed);
