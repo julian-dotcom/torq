@@ -6,6 +6,420 @@ import (
 	"testing"
 )
 
+func TestFilterCategoryTypeNumberEq(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: 123,
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "equal",
+			filterValue: 123,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not equal",
+			filterValue: 1223,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeNumberEq(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeNumberEq() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeNumberEq() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeNumberNeq(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: 123,
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: 123,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal",
+			filterValue: 1223,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "Invalid filter type",
+			filterValue: "a1",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeNumberNeq(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeNumberNeq() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeNumberNeq() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeNumberGte(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: 123,
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "greater than",
+			filterValue: 122,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: 123,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not greater than",
+			filterValue: 124,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeNumberGte(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeNumberGte() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeNumberGte() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeNumberGt(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: 123,
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "greater than",
+			filterValue: 122,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: 123,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not greater than",
+			filterValue: 124,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeNumberGt(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeNumberGt() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeNumberGt() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeNumberLte(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: 123,
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "less than",
+			filterValue: 124,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: 123,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not less than",
+			filterValue: 122,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeNumberLte(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeNumberLte() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeNumberLte() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeNumberLt(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: 123,
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: 1231,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "less than",
+			filterValue: 124,
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: 123,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not less than",
+			filterValue: 122,
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: "1s",
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeNumberLt(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeNumberLt() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeNumberLt() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestFilterCategoryEnumAny(t *testing.T) {
 
 	dataKey := "key1"
@@ -75,9 +489,9 @@ func TestFilterCategoryEnumAny(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := filterCategoryEnumAny(tc.dataMap, dataKey, tc.filterValue)
 			if got != tc.want {
-				testutil.Errorf(t, "filterCategoryArrayAny() = %v, want %v", got, tc.want)
+				testutil.Errorf(t, "filterCategoryEnumAny() = %v, want %v", got, tc.want)
 			} else {
-				testutil.Successf(t, "filterCategoryArrayAny() = %v, want %v", got, tc.want)
+				testutil.Successf(t, "filterCategoryEnumAny() = %v, want %v", got, tc.want)
 			}
 		})
 	}
@@ -152,9 +566,9 @@ func TestFilterCategoryEnumNotAny(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := filterCategoryEnumNotAny(tc.dataMap, dataKey, tc.filterValue)
 			if got != tc.want {
-				testutil.Errorf(t, "filterCategoryArrayNotAny() = %v, want %v", got, tc.want)
+				testutil.Errorf(t, "filterCategoryEnumNotAny() = %v, want %v", got, tc.want)
 			} else {
-				testutil.Successf(t, "filterCategoryArrayNotAny() = %v, want %v", got, tc.want)
+				testutil.Successf(t, "filterCategoryEnumNotAny() = %v, want %v", got, tc.want)
 			}
 		})
 	}
@@ -414,7 +828,6 @@ func TestFilterCategoryTypeTagAny(t *testing.T) {
 	}
 }
 
-// Test TestFilterCategoryTypeTagNotAny
 func TestFilterCategoryTypeTagNotAny(t *testing.T) {
 
 	dataKey := "tags"
@@ -736,24 +1149,3 @@ func TestFilterCategoryTypeBooleanNeq(t *testing.T) {
 	}
 
 }
-
-//func TestDeserialiseQuery(t *testing.T) {
-//	type args struct {
-//		query interface{}
-//	}
-//	tests := []struct {
-//		name string
-//		args args
-//		want interface{}
-//	}{
-//		// TODO: Add test cases.
-//
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if got := DeserialiseQuery(tt.args.query); !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("DeserialiseQuery() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}

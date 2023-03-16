@@ -283,3 +283,93 @@ func filterCategoryTypeBooleanNeq(dataMap map[string]interface{}, dataKey string
 	}
 	return dataValueBoolean != filterValueBoolean
 }
+
+func filterCategoryTypeNumberEq(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueFloat == filterValueFloat
+}
+
+func filterCategoryTypeNumberNeq(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return true
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueFloat != filterValueFloat
+}
+
+func filterCategoryTypeNumberGt(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueFloat > filterValueFloat
+}
+
+func filterCategoryTypeNumberGte(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueFloat >= filterValueFloat
+}
+
+func filterCategoryTypeNumberLt(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueFloat < filterValueFloat
+}
+
+func filterCategoryTypeNumberLte(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueFloat, filterValueFloat, err := getFloats(dataMap[dataKey], filterValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("could not run the filter function (FilterCategoryTypeNumber) so defaulting to false instead of a panic!")
+		return false
+	}
+	return dataValueFloat <= filterValueFloat
+}
