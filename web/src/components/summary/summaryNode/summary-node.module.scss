@@ -43,13 +43,13 @@
 }
 
 .statusContainer.online {
-  background: #9AE5E1;
-  color: var(--color-success-faded);
+  background: var(--color-success-layer-2);
+  color: var(--color-text-success-strong);
 }
 
 .statusContainer.offline {
-  background: var(--color-border-error-strong);
-  color: var(--color-error-faded-faded);
+  background: var(--color-error-layer-4);
+  color: var(--color-text-error-strong);
 }
 
 .statusText{
@@ -62,9 +62,9 @@
 }
 
 .statusText.online{
-  color: var(--color-text-success-faded);
+  color: var(--color-text-success-strong);
 }
 .statusText.offline{
-  color: var(--color-error-faded-faded);
+  color: var(--color-text-error-strong);
 }
 
