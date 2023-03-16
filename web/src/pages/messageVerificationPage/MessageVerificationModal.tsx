@@ -24,7 +24,7 @@ export default function MessageVerificationModal() {
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
 
   let nodeConfigurationOptions: Array<{ value: number; label: string | undefined }> = [{ value: 0, label: undefined }];
-  if (nodeConfigurations !== undefined) {
+  if (nodeConfigurations) {
     nodeConfigurationOptions = nodeConfigurations.map((nodeConfiguration) => {
       return { value: nodeConfiguration.nodeId, label: nodeConfiguration.name };
     });

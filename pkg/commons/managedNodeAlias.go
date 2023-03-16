@@ -11,8 +11,8 @@ var ManagedNodeAliasChannel = make(chan ManagedNodeAlias) //nolint:gochecknoglob
 type ManagedNodeAliasCacheOperationType uint
 
 const (
-	READ_ALIAS ManagedNodeAliasCacheOperationType = iota
-	WRITE_ALIAS
+	readAlias ManagedNodeAliasCacheOperationType = iota
+	writeAlias
 )
 
 type ManagedNodeAlias struct {
@@ -36,7 +36,7 @@ func ManagedNodeAliasCache(ch <-chan ManagedNodeAlias, ctx context.Context) {
 
 func processManagedNodeAlias(managedNodeAlias ManagedNodeAlias, nodeAliasesByNodeIdCache map[int]string) {
 	switch managedNodeAlias.Type {
-	case READ_ALIAS:
+	case readAlias:
 		if managedNodeAlias.NodeId == 0 {
 			log.Error().Msgf("No empty NodeId allowed")
 			SendToManagedNodeAliasChannel(managedNodeAlias.Out, "")
@@ -48,7 +48,7 @@ func processManagedNodeAlias(managedNodeAlias ManagedNodeAlias, nodeAliasesByNod
 			break
 		}
 		SendToManagedNodeAliasChannel(managedNodeAlias.Out, "")
-	case WRITE_ALIAS:
+	case writeAlias:
 		if managedNodeAlias.NodeId == 0 {
 			log.Error().Msg("No empty NodeId allowed")
 			break
@@ -65,7 +65,7 @@ func GetNodeAlias(nodeId int) string {
 	nodeAliasResponseChannel := make(chan string)
 	managedNodeAlias := ManagedNodeAlias{
 		NodeId: nodeId,
-		Type:   READ_ALIAS,
+		Type:   readAlias,
 		Out:    nodeAliasResponseChannel,
 	}
 	ManagedNodeAliasChannel <- managedNodeAlias
@@ -76,7 +76,7 @@ func SetNodeAlias(nodeId int, nodeAlias string) {
 	managedNodeAlias := ManagedNodeAlias{
 		Alias:  nodeAlias,
 		NodeId: nodeId,
-		Type:   WRITE_ALIAS,
+		Type:   writeAlias,
 	}
 	ManagedNodeAliasChannel <- managedNodeAlias
 }

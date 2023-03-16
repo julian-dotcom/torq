@@ -66,7 +66,7 @@ function OpenChannelModal() {
   const [connectState, setConnectState] = useState(ProgressStepState.active);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>();
+  const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>();
   const [detailState, setDetailState] = useState(ProgressStepState.disabled);
   const [minConfs, setMinConfs] = useState<number | undefined>();
   const [localFundingAmount, setLocalFundingAmount] = useState<number>(0);
@@ -85,7 +85,7 @@ function OpenChannelModal() {
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
   useEffect(() => {
-    if (nodeConfigurations !== undefined) {
+    if (nodeConfigurations) {
       const options = nodeConfigurations.map((node: nodeConfiguration) => {
         return { label: node.name, value: node.nodeId };
       });
@@ -217,7 +217,7 @@ function OpenChannelModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                disabled={host == "" || nodePubKey == "" || selectedNodeId == 0}
+                disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
                 onClick={() => {
                   setStepIndex(1);
                   setConnectState(ProgressStepState.completed);

@@ -68,7 +68,10 @@ func (channel *Channel) RemoveChannelFlags(flags commons.ChannelFlags) {
 	channel.Flags &= ^flags
 }
 
-func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) {
+func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings,
+	channel Channel) (int, error) {
+
 	var err error
 	var existingChannelId int
 	if channel.FundingTransactionHash == "" {
@@ -112,6 +115,55 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 		if err != nil {
 			return 0, errors.Wrapf(err, "Obtaining existing channel for channelId: %v.", existingChannelId)
 		}
+		vectorActive := commons.GetVectorUrlBase() != commons.VectorUrl ||
+			(nodeSettings.Chain == commons.Bitcoin && nodeSettings.Network == commons.MainNet)
+		switch channel.Status {
+		case commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed, commons.BreachClosed:
+			if channel.ClosingTransactionHash != nil && *channel.ClosingTransactionHash != "" &&
+				!existingChannel.HasChannelFlags(commons.ClosedOn) &&
+				vectorActive {
+
+				vectorResponse := commons.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
+				if vectorResponse.BlockHeight != 0 {
+					channel.ClosingBlockHeight = &vectorResponse.BlockHeight
+					channel.ClosedOn = &vectorResponse.BlockTimestamp
+					channel.AddChannelFlags(commons.ClosedOn)
+				}
+			}
+			if existingChannel.ClosingBlockHeight == nil || *existingChannel.ClosingBlockHeight == 0 {
+				currentBlockHeight := commons.GetBlockHeight()
+				channel.ClosingBlockHeight = &currentBlockHeight
+				channel.RemoveChannelFlags(commons.ClosedOn)
+			}
+			if existingChannel.ClosedOn == nil {
+				now := time.Now().UTC()
+				channel.ClosedOn = &now
+				channel.RemoveChannelFlags(commons.ClosedOn)
+			}
+			fallthrough
+		case commons.Open, commons.Closing:
+			if channel.FundingTransactionHash != "" &&
+				!existingChannel.HasChannelFlags(commons.FundedOn) &&
+				vectorActive {
+
+				vectorResponse := commons.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
+				if vectorResponse.BlockHeight != 0 {
+					channel.FundingBlockHeight = &vectorResponse.BlockHeight
+					channel.FundedOn = &vectorResponse.BlockTimestamp
+					channel.AddChannelFlags(commons.FundedOn)
+				}
+			}
+			if existingChannel.FundingBlockHeight == nil || *existingChannel.FundingBlockHeight == 0 {
+				currentBlockHeight := commons.GetBlockHeight()
+				channel.FundingBlockHeight = &currentBlockHeight
+				channel.RemoveChannelFlags(commons.FundedOn)
+			}
+			if existingChannel.FundedOn == nil {
+				now := time.Now().UTC()
+				channel.FundedOn = &now
+				channel.RemoveChannelFlags(commons.FundedOn)
+			}
+		}
 		if existingChannel.Status != channel.Status ||
 			(existingChannel.ShortChannelID == nil) != (channel.ShortChannelID == nil) ||
 			existingChannel.ShortChannelID != nil && channel.ShortChannelID != nil && *existingChannel.ShortChannelID != *channel.ShortChannelID ||
@@ -124,10 +176,24 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 					channel.FundingTransactionHash, channel.FundingOutputIndex)
 			}
 		}
-		if existingChannel.ClosingTransactionHash == nil && channel.Status >= commons.CooperativeClosed &&
-			channel.ClosingTransactionHash != nil {
+		if existingChannel.FundingBlockHeight == nil && channel.FundingBlockHeight != nil ||
+			existingChannel.FundedOn == nil && channel.FundedOn != nil ||
+			!existingChannel.HasChannelFlags(commons.FundedOn) && channel.HasChannelFlags(commons.FundedOn) {
+			err := updateChannelFunding(db, existingChannelId, channel.FundingBlockHeight, channel.FundedOn, channel.Flags)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
+			}
+		}
+		if channel.ClosingTransactionHash != nil && (
+			existingChannel.ClosingTransactionHash == nil ||
+				*existingChannel.ClosingTransactionHash != *channel.ClosingTransactionHash ||
+				existingChannel.ClosingBlockHeight == nil && channel.ClosingBlockHeight != nil ||
+				existingChannel.ClosedOn == nil && channel.ClosedOn != nil ||
+				existingChannel.ClosingNodeId == nil && channel.ClosingNodeId != nil ||
+				!existingChannel.HasChannelFlags(commons.ClosedOn) && channel.HasChannelFlags(commons.ClosedOn)) {
 			err := updateChannelClosing(db, existingChannelId,
-				*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId)
+				*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId,
+				channel.Flags)
 			if err != nil {
 				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
 			}
@@ -141,6 +207,57 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 		if channel.LNDShortChannelID != nil {
 			newLndShortChannelId = *channel.LNDShortChannelID
 		}
+		vectorActive := commons.GetVectorUrlBase() != commons.VectorUrl ||
+			(nodeSettings.Chain == commons.Bitcoin && nodeSettings.Network == commons.MainNet)
+		switch channel.Status {
+		case commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed, commons.BreachClosed:
+			if channel.ClosingTransactionHash != nil && *channel.ClosingTransactionHash != "" &&
+				!existingChannelSettings.HasChannelFlags(commons.ClosedOn) &&
+				vectorActive {
+
+				vectorResponse := commons.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
+				if vectorResponse.BlockHeight != 0 {
+					channel.ClosingBlockHeight = &vectorResponse.BlockHeight
+					channel.ClosedOn = &vectorResponse.BlockTimestamp
+					channel.AddChannelFlags(commons.ClosedOn)
+				}
+			}
+			if existingChannelSettings.ClosingBlockHeight == nil || *existingChannelSettings.ClosingBlockHeight == 0 &&
+				(channel.FundingBlockHeight == nil || *channel.FundingBlockHeight == 0) {
+				currentBlockHeight := commons.GetBlockHeight()
+				channel.ClosingBlockHeight = &currentBlockHeight
+				channel.RemoveChannelFlags(commons.ClosedOn)
+			}
+			if existingChannelSettings.ClosedOn == nil && channel.ClosedOn == nil {
+				now := time.Now().UTC()
+				channel.ClosedOn = &now
+				channel.RemoveChannelFlags(commons.ClosedOn)
+			}
+			fallthrough
+		case commons.Open, commons.Closing:
+			if channel.FundingTransactionHash != "" &&
+				!existingChannelSettings.HasChannelFlags(commons.FundedOn) &&
+				vectorActive {
+
+				vectorResponse := commons.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
+				if vectorResponse.BlockHeight != 0 {
+					channel.FundingBlockHeight = &vectorResponse.BlockHeight
+					channel.FundedOn = &vectorResponse.BlockTimestamp
+					channel.AddChannelFlags(commons.FundedOn)
+				}
+			}
+			if (existingChannelSettings.FundingBlockHeight == nil || *existingChannelSettings.FundingBlockHeight == 0) &&
+				(channel.FundingBlockHeight == nil || *channel.FundingBlockHeight == 0) {
+				currentBlockHeight := commons.GetBlockHeight()
+				channel.FundingBlockHeight = &currentBlockHeight
+				channel.RemoveChannelFlags(commons.FundedOn)
+			}
+			if existingChannelSettings.FundedOn == nil && channel.FundedOn == nil {
+				now := time.Now().UTC()
+				channel.FundedOn = &now
+				channel.RemoveChannelFlags(commons.FundedOn)
+			}
+		}
 		if existingChannelSettings.Status != channel.Status ||
 			existingChannelSettings.ShortChannelId != newShortChannelId ||
 			existingChannelSettings.LndShortChannelId != newLndShortChannelId {
@@ -151,9 +268,24 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB, channel Channel) (int, error) 
 					channel.FundingTransactionHash, channel.FundingOutputIndex)
 			}
 		}
-		if channel.Status >= commons.CooperativeClosed && channel.ClosingTransactionHash != nil {
+		if existingChannelSettings.FundingBlockHeight == nil && channel.FundingBlockHeight != nil ||
+			existingChannelSettings.FundedOn == nil && channel.FundedOn != nil ||
+			!existingChannelSettings.HasChannelFlags(commons.FundedOn) && channel.HasChannelFlags(commons.FundedOn) {
+			err := updateChannelFunding(db, existingChannelId, channel.FundingBlockHeight, channel.FundedOn, channel.Flags)
+			if err != nil {
+				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
+			}
+		}
+		if channel.ClosingTransactionHash != nil && (
+			existingChannelSettings.ClosingTransactionHash == nil ||
+				*existingChannelSettings.ClosingTransactionHash != *channel.ClosingTransactionHash ||
+				existingChannelSettings.ClosingBlockHeight == nil && channel.ClosingBlockHeight != nil ||
+				existingChannelSettings.ClosedOn == nil && channel.ClosedOn != nil ||
+				existingChannelSettings.ClosingNodeId == nil && channel.ClosingNodeId != nil ||
+				!existingChannelSettings.HasChannelFlags(commons.ClosedOn) && channel.HasChannelFlags(commons.ClosedOn)) {
 			err := updateChannelClosing(db, existingChannelId,
-				*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId)
+				*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId,
+				channel.Flags)
 			if err != nil {
 				return 0, errors.Wrapf(err, "Updating channel status and closing transaction hash %v.", existingChannelId)
 			}
@@ -181,15 +313,38 @@ func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatu
 }
 
 func updateChannelClosing(db *sqlx.DB, channelId int,
-	closingTransactionHash string, closingBlockHeight *uint32, closedOn *time.Time, closingNodeId *int) error {
+	closingTransactionHash string, closingBlockHeight *uint32, closedOn *time.Time, closingNodeId *int,
+	flags commons.ChannelFlags) error {
 	_, err := db.Exec(`
-		UPDATE channel SET closing_transaction_hash=$1, closing_node_id=$4, updated_on=$2 WHERE channel_id=$3 AND
+		UPDATE channel
+		SET closing_transaction_hash=$1, updated_on=$2, closing_node_id=$4, closing_block_height=$5, closed_on=$6, flags=$7
+		WHERE channel_id=$3 AND
 		    (
 		        (closing_transaction_hash IS NULL OR closing_transaction_hash != $1) OR
-		        closing_block_height != $5 OR
-		        closed_on != $6
+		        closing_node_id IS NULL OR closing_node_id != $4 OR
+		        closing_block_height IS NULL OR closing_block_height != $5 OR
+		        closed_on IS NULL OR closed_on != $6 OR
+		        flags != $7
 			)`,
-		closingTransactionHash, time.Now().UTC(), channelId, closingNodeId, closingBlockHeight, closedOn)
+		closingTransactionHash, time.Now().UTC(), channelId, closingNodeId, closingBlockHeight, closedOn, flags)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
+func updateChannelFunding(db *sqlx.DB, channelId int,
+	fundingBlockHeight *uint32, fundedOn *time.Time, flags commons.ChannelFlags) error {
+	_, err := db.Exec(`
+		UPDATE channel
+		SET updated_on=$1, funding_block_height=$2, funded_on=$3, flags=$4
+		WHERE channel_id=$5 AND
+		    (
+		        funding_block_height IS NULL OR funding_block_height!=$2 OR
+		        funded_on IS NULL OR funded_on!=$3 OR
+		        flags!=$4
+			)`,
+		time.Now().UTC(), fundingBlockHeight, fundedOn, flags, channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}

@@ -121,19 +121,33 @@ func processImportRequest(ctx context.Context, db *sqlx.DB, request commons.Impo
 		},
 	}
 
-	successTime, exists := successTimes[request.ImportType]
-	if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+	if !request.Force {
+		successTime, exists := successTimes[request.ImportType]
+		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+			switch request.ImportType {
+			case commons.ImportAllChannels:
+				log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
+			case commons.ImportPendingChannelsOnly:
+				log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
+			case commons.ImportChannelRoutingPolicies:
+				log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
+			case commons.ImportNodeInformation:
+				log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
+			}
+			return response
+		}
+	}
+	if request.Force {
 		switch request.ImportType {
 		case commons.ImportAllChannels:
-			log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
+			log.Info().Msgf("Forced import of All Channels for nodeId: %v.", request.NodeId)
 		case commons.ImportPendingChannelsOnly:
-			log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
+			log.Info().Msgf("Forced import of Pending Channels for nodeId: %v.", request.NodeId)
 		case commons.ImportChannelRoutingPolicies:
-			log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
+			log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
 		case commons.ImportNodeInformation:
-			log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
+			log.Info().Msgf("Forced import of NodeInformation for nodeId: %v.", request.NodeId)
 		}
-		return response
 	}
 	switch request.ImportType {
 	case commons.ImportAllChannels:

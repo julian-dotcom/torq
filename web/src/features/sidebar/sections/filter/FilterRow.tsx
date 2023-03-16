@@ -182,8 +182,10 @@ function FilterRow({
   const label = filterOptions.find((item) => item.value === rowValues.key)?.label;
   const options = filterOptions.find((item) => item.value === rowValues.key)?.selectOptions || [];
 
-  const getParameter = () => {
+  function getParameter() {
     switch (rowValues.category) {
+      case "string":
+        return rowValues.parameter as string;
       case "number":
         return formatParameter(rowValues.parameter as number);
       case "duration":
@@ -212,7 +214,7 @@ function FilterRow({
           return (
             (
               options?.filter((item) => {
-                return (rowValues.parameter as Array<unknown>).includes(item.value);
+                return (rowValues.parameter as Array<string | number>).includes(item.value);
               }) || []
             )
               .map((item) => item.label)
@@ -225,7 +227,7 @@ function FilterRow({
           return (
             (
               options?.filter((item) => {
-                return (rowValues.parameter as Array<unknown>).includes(item.value);
+                return (rowValues.parameter as Array<string | number>).includes(item.value);
               }) || []
             )
               .map((item) => item.label)
@@ -235,7 +237,7 @@ function FilterRow({
         return "[empty]";
       case "tag":
         if (rowValues?.parameter) {
-          const parameter = rowValues.parameter as Array<number>;
+          const parameter = rowValues.parameter as Array<string | number>;
           return (
             (parameter || []).map((tagId) => (tags || []).find((t) => t.value === tagId)?.label).join(" or ") ||
             "[empty]"
@@ -243,9 +245,9 @@ function FilterRow({
         }
         return "[empty]";
       default:
-        return "rowValues.parameter";
+        return rowValues.parameter as string;
     }
-  };
+  }
 
   return (
     <div className={classNames(styles.filter, { [styles.first]: !index })}>
@@ -366,7 +368,7 @@ function FilterInputField(props: {
           isMulti={true}
           options={props.options}
           value={props.options.filter((item) => {
-            return (props.rowValues.parameter as Array<unknown>).includes(item.value);
+            return (props.rowValues.parameter as Array<string | number>).includes(item.value);
           })}
           onChange={props.onChange}
           colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}
@@ -396,7 +398,7 @@ function FilterInputField(props: {
           isMulti={true}
           options={props.options}
           value={props.options.filter((item) => {
-            return (props.rowValues.parameter as Array<unknown>).includes(item.value);
+            return (props.rowValues.parameter as Array<string | number>).includes(item.value);
           })}
           onChange={props.onChange}
           colorVariant={props.child ? InputColorVaraint.primary : InputColorVaraint.accent1}

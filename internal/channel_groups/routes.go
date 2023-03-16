@@ -37,7 +37,7 @@ func getChannelGroupsByChannelIdHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse include in the request.")
 		return
 	}
-	if include > int(commons.ALL_REGULAR_AND_TAG_CATEGORIES) {
+	if include > int(commons.AllRegularAndTagCategories) {
 		server_errors.SendBadRequest(c, "Failed to parse include in the request.")
 		return
 	}
