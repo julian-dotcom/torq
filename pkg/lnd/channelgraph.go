@@ -151,8 +151,8 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 }
 
 func ImportNodeInfo(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
-	// Get all node public keys with active channels (so no closed channels)
-	publicKeys := commons.GetActiveChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
+	// Get all node public keys with channels
+	publicKeys := commons.GetAllChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
 
 	for _, publicKey := range publicKeys {
 		ni, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{PubKey: publicKey, IncludeChannels: false})
