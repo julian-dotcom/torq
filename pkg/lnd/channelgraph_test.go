@@ -329,7 +329,10 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		FundingOutputIndex:     fundingOutputIndex,
 		Status:                 commons.Open,
 	}
-	channelId, err := channels.AddChannelOrUpdateChannelStatus(db, channel)
+	channelId, err := channels.AddChannelOrUpdateChannelStatus(
+		db,
+		commons.GetNodeSettingsByNodeId(
+			commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), channel)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create channel %v", lndShortChannelId)
 		t.Fatalf("Problem adding channel %v", channel)

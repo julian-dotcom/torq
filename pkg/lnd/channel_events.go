@@ -302,48 +302,8 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 		channel.LNDShortChannelID = &lndShortChannelId
 		channel.ShortChannelID = &shortChannelId
 	}
-	switch channel.Status {
-	case commons.Open:
-		if channel.FundingTransactionHash != "" {
-			if channel.FundingBlockHeight == nil || *channel.FundingBlockHeight == 0 || channel.FundedOn == nil {
-				vectorResponse := commons.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
-				if vectorResponse.BlockHeight != 0 {
-					channel.FundingBlockHeight = &vectorResponse.BlockHeight
-					channel.FundedOn = &vectorResponse.BlockTimestamp
-					channel.AddChannelFlags(commons.FundedOn)
-				}
-			}
-		}
-		if channel.FundingBlockHeight == nil || *channel.FundingBlockHeight == 0 {
-			currentBlockHeight := commons.GetBlockHeight()
-			channel.FundingBlockHeight = &currentBlockHeight
-		}
-		if channel.FundedOn == nil {
-			now := time.Now().UTC()
-			channel.FundedOn = &now
-		}
-	case commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed, commons.BreachClosed:
-		if channel.ClosingTransactionHash != nil && *channel.ClosingTransactionHash != "" {
-			if channel.ClosingBlockHeight == nil || *channel.ClosingBlockHeight == 0 || channel.ClosedOn == nil {
-				vectorResponse := commons.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
-				if vectorResponse.BlockHeight != 0 {
-					channel.ClosingBlockHeight = &vectorResponse.BlockHeight
-					channel.ClosedOn = &vectorResponse.BlockTimestamp
-					channel.AddChannelFlags(commons.ClosedOn)
-				}
-			}
-			if channel.ClosingBlockHeight == nil || *channel.ClosingBlockHeight == 0 {
-				currentBlockHeight := commons.GetBlockHeight()
-				channel.ClosingBlockHeight = &currentBlockHeight
-			}
-			if channel.ClosedOn == nil {
-				now := time.Now().UTC()
-				channel.ClosedOn = &now
-			}
-		}
-	}
 	var err error
-	channel.ChannelID, err = channels.AddChannelOrUpdateChannelStatus(db, channel)
+	channel.ChannelID, err = channels.AddChannelOrUpdateChannelStatus(db, nodeSettings, channel)
 	if err != nil {
 		return channels.Channel{}, errors.Wrapf(err, "Adding or updating channel (channelId: %v, shortChannelId: %v)", channel.ChannelID, shortChannelId)
 	}

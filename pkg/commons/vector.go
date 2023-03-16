@@ -61,6 +61,8 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 			fundingTransactionHash, fundingOutputIndex)
 		return ""
 	}
+	log.Debug().Msgf("Obtained short channel id from vector for channel point %v:%v",
+		fundingTransactionHash, fundingOutputIndex)
 	return vectorResponse.ShortChannelId
 }
 
@@ -103,5 +105,6 @@ func GetTransactionDetailsFromVector(transactionHash string,
 		log.Error().Msgf("Failed (Body.Close) to obtain transaction details for transaction hash %v", transactionHash)
 		return TransactionDetailsHttpResponse{}
 	}
+	log.Debug().Msgf("Obtained block height from vector for transaction hash %v", transactionHash)
 	return vectorResponse
 }
