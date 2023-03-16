@@ -151,7 +151,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		pendingIncomingHtlcAmount := int64(0)
 		pendingOutgoingHtlcCount := 0
 		pendingOutgoingHtlcAmount := int64(0)
-		if len(lndChannel.PendingHtlcs) > 0 {
+		if len(lndChannel.PendingHtlcs) != 0 {
 			for _, pendingHtlc := range lndChannel.PendingHtlcs {
 				if pendingHtlc.Incoming {
 					channelStateSettings.RemoteBalance += pendingHtlc.Amount
@@ -175,6 +175,22 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 					pendingOutgoingHtlcCount++
 					pendingOutgoingHtlcAmount += htlc.Amount
 				}
+			}
+			channelSettings := commons.GetChannelSettingByChannelId(channelId)
+			if channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance > channelSettings.Capacity {
+				log.Error().Msgf("ChannelBalanceCacheMaintenance: RemoteBalance (%v) + LocalBalance (%v) > Capacity (%v) for channelId: %v",
+					channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance, channelSettings.Capacity,
+					channelId)
+			}
+			tolerance := lndChannel.GetLocalConstraints().ChanReserveSat + lndChannel.GetLocalConstraints().DustLimitSat
+			remoteTolerance := lndChannel.GetRemoteConstraints().ChanReserveSat + lndChannel.GetRemoteConstraints().DustLimitSat
+			if tolerance < remoteTolerance {
+				tolerance = remoteTolerance
+			}
+			if channelSettings.Capacity-(channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance) > int64(tolerance) {
+				log.Error().Msgf("ChannelBalanceCacheMaintenance: Capacity (%v) - ( RemoteBalance (%v) + LocalBalance (%v) ) > %v for channelId: %v",
+					channelSettings.Capacity, channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance,
+					tolerance, channelId)
 			}
 		}
 		channelStateSettings.PendingIncomingHtlcCount = pendingIncomingHtlcCount
