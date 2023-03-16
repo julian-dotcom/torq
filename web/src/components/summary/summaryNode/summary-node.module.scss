@@ -14,6 +14,13 @@
 
 }
 
+.headerContainer {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+
 .header {
   padding-top: 16px;
   padding-bottom: 16px;
@@ -21,3 +28,43 @@
   color: white;
   font-weight: 500;
 }
+
+
+.statusContainer {
+  display: flex;
+  margin-left: auto;
+  margin-top: 20px;
+  padding-top: 6px;
+  padding-left: 10px;
+  min-width: 100px;
+  height: 32px;
+  border-radius: 50px;
+
+}
+
+.statusContainer.online {
+  background: #9AE5E1;
+  color: var(--color-success-faded);
+}
+
+.statusContainer.offline {
+  background: var(--color-border-error-strong);
+  color: var(--color-error-faded-faded);
+}
+
+.statusText{
+  font-size: var(--font-size-normal);
+  font-weight: 400;
+
+  align-content: flex-start;
+  padding-top: 2px;
+  padding-left: 6px;
+}
+
+.statusText.online{
+  color: var(--color-text-success-faded);
+}
+.statusText.offline{
+  color: var(--color-error-faded-faded);
+}
+

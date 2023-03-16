@@ -205,7 +205,7 @@ export const torqApi = createApi({
         url: `settings/nodeConnectionDetails/${nodeConfiguration.nodeId}/${nodeConfiguration.status}`,
         method: "PUT",
       }),
-      invalidatesTags: ["nodeConfigurations", "channels", "channelsClosed", "channelsPending"],
+      invalidatesTags: ["nodeConfigurations", "channels", "channelsClosed", "channelsPending", "nodes"],
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNodePingSystemStatus: builder.mutation<any, { nodeId: number; pingSystem: number; statusId: number }>({

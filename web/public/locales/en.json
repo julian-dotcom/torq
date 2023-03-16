@@ -426,5 +426,9 @@
       "opening" : "Opening",
       "closing" : "Closing"
     }
+  },
+  "summaryNode" : {
+    "online" : "Online",
+    "offline" : "Offline"
   }
 }

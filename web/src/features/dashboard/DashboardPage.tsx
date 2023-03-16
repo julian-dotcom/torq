@@ -254,7 +254,7 @@ function DashboardPage() {
 
         {nodeSummaries?.map((node) => {
           return (
-            <SummaryNode nodeName={node.name ?? ""} key={`node-${node.nodeId}`}>
+            <SummaryNode nodeName={node.name ?? ""} key={`node-${node.nodeId}`} status={node.status}>
               <div className={styles.summaryNodeContainer}>
                 <SummaryCard
                   heading={t.dashboardPage.totalOnChainBalance}
