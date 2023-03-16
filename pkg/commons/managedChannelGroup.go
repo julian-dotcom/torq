@@ -20,19 +20,19 @@ var ManagedChannelGroupChannel = make(chan ManagedChannelGroup) //nolint:gocheck
 type ManagedChannelGroupCacheOperationType uint
 
 const (
-	// READ_CHANNELGROUPS please provide ChannelId and Out
-	READ_CHANNELGROUPS ManagedChannelGroupCacheOperationType = iota
-	// WRITE_CHANNELGROUPS Please provide ChannelId, ChannelGroups
-	WRITE_CHANNELGROUPS
+	// readChannelgroups please provide ChannelId and Out
+	readChannelgroups ManagedChannelGroupCacheOperationType = iota
+	// writeChannelgroups Please provide ChannelId, ChannelGroups
+	writeChannelgroups
 )
 
 type ChannelGroupInclude uint
 
 const (
-	CATEGORIES_ONLY ChannelGroupInclude = iota
-	DISTINCT_REGULAR_AND_TAG_CATEGORIES
-	ALL_REGULAR_AND_TAG_CATEGORIES
-	TAGS_ONLY
+	CategoriesOnly ChannelGroupInclude = iota
+	DistinctRegularAndTagCategories
+	AllRegularAndTagCategories
+	TagsOnly
 )
 
 type ManagedChannelGroup struct {
@@ -63,7 +63,7 @@ func ManagedChannelGroupCache(ch <-chan ManagedChannelGroup, ctx context.Context
 func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 	channelGroupSettingsByChannelIdCache map[int]ManagedChannelGroupSettings) {
 	switch managedChannelGroup.Type {
-	case READ_CHANNELGROUPS:
+	case readChannelgroups:
 		_, exists := channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId]
 		if !exists {
 			SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, nil)
@@ -73,7 +73,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 			ChannelId:     managedChannelGroup.ChannelId,
 			ChannelGroups: []ChannelGroup{},
 		}
-		if managedChannelGroup.Include == TAGS_ONLY {
+		if managedChannelGroup.Include == TagsOnly {
 			for _, channelGroup := range channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId].ChannelGroups {
 				if channelGroup.TagId != nil {
 					result.ChannelGroups = append(result.ChannelGroups, channelGroup)
@@ -87,14 +87,14 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 				result.ChannelGroups = append(result.ChannelGroups, channelGroup)
 			}
 		}
-		if managedChannelGroup.Include == CATEGORIES_ONLY {
+		if managedChannelGroup.Include == CategoriesOnly {
 			SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
 			break
 		}
 	group:
 		for _, channelGroup := range channelGroupSettingsByChannelIdCache[managedChannelGroup.ChannelId].ChannelGroups {
 			if channelGroup.CategoryId != nil && channelGroup.TagId != nil {
-				if managedChannelGroup.Include == DISTINCT_REGULAR_AND_TAG_CATEGORIES {
+				if managedChannelGroup.Include == DistinctRegularAndTagCategories {
 					for _, existingChannelGroup := range result.ChannelGroups {
 						if existingChannelGroup.CategoryId == channelGroup.CategoryId {
 							continue group
@@ -105,7 +105,7 @@ func processManagedChannelGroupSettings(managedChannelGroup ManagedChannelGroup,
 			}
 		}
 		SendToManagedChannelGroupSettingsChannel(managedChannelGroup.Out, &result)
-	case WRITE_CHANNELGROUPS:
+	case writeChannelgroups:
 		if managedChannelGroup.ChannelId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) allowed", managedChannelGroup.ChannelId)
 		} else {
@@ -122,7 +122,7 @@ func GetChannelGroupsByChannelId(channelId int, include ChannelGroupInclude) *Ma
 	managedChannelGroup := ManagedChannelGroup{
 		ChannelId: channelId,
 		Include:   include,
-		Type:      READ_CHANNELGROUPS,
+		Type:      readChannelgroups,
 		Out:       channelGroupResponseChannel,
 	}
 	ManagedChannelGroupChannel <- managedChannelGroup
@@ -134,7 +134,7 @@ func SetChannelGroupsByChannelId(channelId int, channelGroups []ChannelGroup) {
 	managedChannelGroup := ManagedChannelGroup{
 		ChannelId:     channelId,
 		ChannelGroups: channelGroups,
-		Type:          WRITE_CHANNELGROUPS,
+		Type:          writeChannelgroups,
 	}
 	ManagedChannelGroupChannel <- managedChannelGroup
 }
