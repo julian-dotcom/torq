@@ -3,6 +3,7 @@ package workflows
 import (
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/rs/zerolog/log"
+	"strings"
 )
 
 func filterCategoryEnumAny(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
@@ -372,4 +373,52 @@ func filterCategoryTypeNumberLte(dataMap map[string]interface{}, dataKey string,
 		return false
 	}
 	return dataValueFloat <= filterValueFloat
+}
+
+func filterCategoryTypeStringLike(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return false
+	}
+	if filterValue == nil {
+		return true
+	}
+	dataValueString, ok := dataMap[dataKey].(string)
+	if !ok {
+		dataValueStringPointer, ok := dataMap[dataKey].(*string)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: dataValueString) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueString = *dataValueStringPointer
+	}
+	filterValueString, ok := filterValue.(string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: filterValueString) so defaulting to false instead of a panic!")
+		return false
+	}
+	return strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
+}
+
+func filterCategoryTypeStringNotLike(dataMap map[string]interface{}, dataKey string, filterValue FilterParameterType) bool {
+	if isNil(dataMap[dataKey]) != (filterValue == nil) {
+		return true
+	}
+	if filterValue == nil {
+		return false
+	}
+	dataValueString, ok := dataMap[dataKey].(string)
+	if !ok {
+		dataValueStringPointer, ok := dataMap[dataKey].(*string)
+		if !ok {
+			log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: dataValueString) so defaulting to false instead of a panic!")
+			return false
+		}
+		dataValueString = *dataValueStringPointer
+	}
+	filterValueString, ok := filterValue.(string)
+	if !ok {
+		log.Error().Msgf("could not run the filter function (FilterCategoryTypeString: filterValueString) so defaulting to false instead of a panic!")
+		return false
+	}
+	return !strings.Contains(strings.ToLower(dataValueString), strings.ToLower(filterValueString))
 }

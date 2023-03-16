@@ -420,6 +420,136 @@ func TestFilterCategoryTypeNumberLt(t *testing.T) {
 	}
 }
 
+func TestFilterCategoryTypeStringLike(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: "something like this",
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        true,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: "something like this",
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "equal",
+			filterValue: "something like this",
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not equal",
+			filterValue: "does not contain",
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal type",
+			filterValue: 1,
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeStringLike(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeStringLike() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeStringLike() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilterCategoryTypeStringNotLike(t *testing.T) {
+	dataKey := "key1"
+	dataMap := map[string]interface{}{
+		dataKey: "something like this",
+	}
+	emptyDataMap := map[string]interface{}{
+		dataKey: nil,
+	}
+
+	testCases := []struct {
+		name        string
+		filterValue interface{}
+		dataMap     map[string]interface{}
+		want        bool
+	}{
+		{
+			name:        "nil filter and data value",
+			filterValue: nil,
+			dataMap:     nil,
+			want:        false,
+		},
+		{
+			name:        "nil filter value and nil data value",
+			filterValue: nil,
+			dataMap:     emptyDataMap,
+			want:        false,
+		},
+		{
+			name:        "nil data value non-nil filter",
+			filterValue: "something like this",
+			dataMap:     emptyDataMap,
+			want:        true,
+		},
+		{
+			name:        "equal",
+			filterValue: "something like this",
+			dataMap:     dataMap,
+			want:        false,
+		},
+		{
+			name:        "not equal",
+			filterValue: "does not contain",
+			dataMap:     dataMap,
+			want:        true,
+		},
+		{
+			name:        "not equal type",
+			filterValue: 1,
+			dataMap:     dataMap,
+			want:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := filterCategoryTypeStringNotLike(tc.dataMap, dataKey, tc.filterValue)
+			if got != tc.want {
+				testutil.Errorf(t, "filterCategoryTypeStringNotLike() = %v, want %v", got, tc.want)
+			} else {
+				testutil.Successf(t, "filterCategoryTypeStringNotLike() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestFilterCategoryEnumAny(t *testing.T) {
 
 	dataKey := "key1"
