@@ -70,6 +70,10 @@ dl dd {
   text-align: end;
 }
 
+dl dt {
+  min-width: 180px;
+}
+
 .detailsContainer {
   display: block;
   margin-block-start: 1em;
