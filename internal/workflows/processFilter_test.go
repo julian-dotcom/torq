@@ -713,15 +713,15 @@ func TestFilterCategoryTypeBooleanNeq(t *testing.T) {
 			},
 			want: true, // filter is false != value is true
 		},
-		//{
-		//	name:        "invalid filter",
-		//	key:         "key1",
-		//	filterValue: "invalid",
-		//	dataMap: map[string]interface{}{
-		//		"key1": true,
-		//	},
-		//	want: true, // filter is false != value is true
-		//},
+		{
+			name:        "invalid filter",
+			key:         "key1",
+			filterValue: "invalid",
+			dataMap: map[string]interface{}{
+				"key1": true,
+			},
+			want: false, // filter is false != value is true
+		},
 	}
 
 	for _, tc := range testCases {
