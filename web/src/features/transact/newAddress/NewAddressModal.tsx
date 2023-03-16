@@ -2,7 +2,7 @@ import { Copy20Regular as CopyIcon, Link20Regular as TransactionIconModal } from
 import { useGetNodeConfigurationsQuery } from "apiSlice";
 import Button, { ButtonPosition, ColorVariant, SizeVariant } from "components/buttons/Button";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import { useContext, useState } from "react";
+import {useContext, useEffect, useState} from "react";
 import { useNavigate } from "react-router";
 import styles from "features/transact/newAddress/newAddress.module.scss";
 import useTranslations from "services/i18n/useTranslations";
@@ -42,16 +42,26 @@ function NewAddressModal() {
     { label: t.p2tr, value: AddressType.P2TR }, // Taproot
   ];
 
-  const [selectedNodeId, setSelectedNodeId] = useState<number>(nodeConfigurationOptions[0].value);
+  const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>();
+
+  useEffect(() => {
+    if (nodeConfigurations) {
+      if (nodeConfigurations.length == 1) {
+        setSelectedNodeId(nodeConfigurationOptions[0].value)
+      }
+    }
+  }, [nodeConfigurations]);
 
   const [newAddress, { error, data, isLoading, isSuccess, isError, isUninitialized }] = useNewAddressMutation();
 
   const handleClickNext = (addType: AddressType) => {
-    newAddress({
-      nodeId: selectedNodeId,
-      type: addType,
-      // account: {account},
-    });
+    if (selectedNodeId) {
+      newAddress({
+        nodeId: selectedNodeId,
+        type: addType,
+        // account: {account},
+      });
+    }
   };
 
   const navigate = useNavigate();
@@ -69,7 +79,9 @@ function NewAddressModal() {
             label={t.yourNode}
             onChange={(newValue: unknown) => {
               const value = newValue as Option;
-              if (value && value.value > 0) setSelectedNodeId(value.value);
+              if (value && value.value != 0) {
+                setSelectedNodeId(value.value);
+              }
             }}
             options={nodeConfigurationOptions}
             value={nodeConfigurationOptions.find((option) => option.value === selectedNodeId)}
@@ -81,7 +93,7 @@ function NewAddressModal() {
           {addressTypeOptions.map((addType, index) => {
             return (
               <Button
-                disabled={isLoading}
+                disabled={isLoading|| selectedNodeId === undefined}
                 buttonColor={ColorVariant.primary}
                 key={index + addType.label}
                 icon={isLoading && <Spinny />}
