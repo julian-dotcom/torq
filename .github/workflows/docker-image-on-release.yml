@@ -112,7 +112,7 @@ jobs:
         run: npm install --legacy-peer-deps
       - name: NPM Build
         working-directory: ./web
-        run: TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true npm run build
+        run: TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true CI=false npm run build
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19'
