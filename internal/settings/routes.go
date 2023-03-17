@@ -180,7 +180,7 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func getAllNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
-	node, err := getAllNodeConnectionDetails(db, false)
+	node, err := GetAllNodeConnectionDetails(db, false)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

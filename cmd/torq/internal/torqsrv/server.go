@@ -206,7 +206,7 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		nodeRoutes := api.Group("/nodes")
 		{
-			nodes.RegisterNodeRoutes(nodeRoutes, db)
+			nodes.RegisterNodeRoutes(nodeRoutes, db, lightningRequestChannel)
 		}
 
 		channelRoutes := api.Group("/channels")

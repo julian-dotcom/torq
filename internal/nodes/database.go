@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -38,8 +39,8 @@ func GetNodeById(db *sqlx.DB, nodeId int) (Node, error) {
 	return n, nil
 }
 
-func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
-	nds, err := getNodes(db)
+func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]NodeInformation, error) {
+	nds, err := getNodesByNetwork(db, false, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []NodeInformation{}, nil
@@ -52,22 +53,41 @@ func getNodeInformationAll(db *sqlx.DB) ([]NodeInformation, error) {
 		if err != nil {
 			return nil, err
 		}
-		ps = append(ps, NodeInformation{
+		ni := NodeInformation{
 			NodeId:    node.NodeId,
 			PublicKey: node.PublicKey,
+			Status:    node.Status,
+			TorqAlias: node.Name,
 			Alias:     nodeEvent.Alias,
 			Color:     nodeEvent.Color,
-		})
+		}
+
+		var addresses []NodeAddress
+		err = json.Unmarshal(nodeEvent.NodeAddresses, &addresses)
+		if err != nil {
+			return nil, errors.Wrap(err, "Unmarshalling json to project on to nodeAddress struct")
+		}
+
+		ni.Addresses = &addresses
+
+		ps = append(ps, ni)
 	}
 	return ps, nil
 }
 
-func getNodes(db *sqlx.DB) ([]Node, error) {
-	var nds []Node
-	err := db.Select(&nds, `SELECT * FROM node;`)
+func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network commons.Network) ([]NodeSummary, error) {
+	var nds []NodeSummary
+
+	query := `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
+
+	if !includeDeleted {
+		query = `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
+	}
+
+	err := db.Select(&nds, query, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []Node{}, nil
+			return []NodeSummary{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -91,10 +111,10 @@ func GetPeerNodes(db *sqlx.DB) ([]Node, error) {
 
 func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	var nodeEvent NodeEvent
-	err := db.Select(&nodeEvent, `
+	err := db.Get(&nodeEvent, `
 		SELECT *
 		FROM node_event
-		WHERE event_node_id = ?
+		WHERE event_node_id = $1
 		ORDER BY timestamp DESC
 		LIMIT 1`, nodeId)
 	if err != nil {

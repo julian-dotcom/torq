@@ -3,22 +3,14 @@ import {
   useGetChannelRebalancingQuery,
   useGetChannelOnChainCostQuery,
   useGetFlowQuery,
-  useGetNodeConfigurationsQuery,
 } from "apiSlice";
-import {
-  Question20Regular as QuestionIcon,
-  Checkmark20Regular as CheckmarkIcon,
-  Dismiss20Regular as DismissIcon,
-} from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
-import { useState } from "react";
 import { addDays, format } from "date-fns";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import { useParams } from "react-router";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import Select from "components/forms/select/Select";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
@@ -27,36 +19,13 @@ import styles from "./channel-page.module.scss";
 import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
 import FlowChart from "./flowChart/FlowChart";
 import ProfitsChart from "./revenueChart/ProfitsChart";
-import Modal from "features/modal/Modal";
-import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
-import { useNavigate } from "react-router-dom";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import { InputSizeVariant } from "components/forms/forms";
 
 const ft = d3.format(",.0f");
 
-function ChannelPage() {
-  const { data: nodeConfigurations, isSuccess: nodeConfigurationsQueryHasRun } = useGetNodeConfigurationsQuery();
-  const navigate = useNavigate();
-  const location = useLocation();
+function FowardsSummaryPage() {
   const activeNetwork = useAppSelector(selectActiveNetwork);
-
-  const handleConfirmationModalClose = () => {
-    mixpanel.track("No Local Node", {
-      source: location?.pathname,
-      "Go to settings": false,
-    });
-    setShowModalState(false);
-  };
-
-  const handleModalSettingsClick = () => {
-    setShowModalState(false);
-    mixpanel.track("No Local Node", {
-      source: location?.pathname,
-      "Go to settings": true,
-    });
-    navigate("/settings", { replace: true });
-  };
 
   const currentPeriod = useAppSelector(selectTimeInterval);
 
@@ -86,13 +55,6 @@ function ChannelPage() {
   const { data: onChainCost } = useGetChannelOnChainCostQuery(getChannelHistoryData);
   const { data: history } = useGetChannelHistoryQuery(getChannelHistoryData);
   const { data: rebalancing } = useGetChannelRebalancingQuery(getChannelHistoryData);
-  const [showModalState, setShowModalState] = useState(false);
-  const [shownModalState, setShownModalState] = useState(false);
-
-  if (nodeConfigurationsQueryHasRun && !nodeConfigurations?.length && !shownModalState) {
-    setShowModalState(true);
-    setShownModalState(true);
-  }
 
   const flowKey = useAppSelector(selectFlowKeys);
   const profitKey = useAppSelector(selectProfitChartKey);
@@ -271,44 +233,8 @@ function ChannelPage() {
         </div>
       </div>
       <Outlet />
-      <Modal
-        title={"Local Node not found"}
-        icon={<QuestionIcon className={styles.settingsConfirmationIcon} />}
-        onClose={handleConfirmationModalClose}
-        show={showModalState}
-      >
-        <div className={styles.deleteConfirm}>
-          <p>
-            It seems that you didn&apos;t configure a node. In order to use Torq, you will have to configure at least
-            one Node.
-          </p>
-          <p>Do you want to go to the Settings page and add your Node now?</p>
-
-          <div className={styles.settingsConfirmation}>
-            <Button
-              buttonColor={ColorVariant.success}
-              buttonPosition={ButtonPosition.fullWidth}
-              icon={<CheckmarkIcon />}
-              onClick={handleModalSettingsClick}
-              className={styles.settingsConfirmationButton}
-            >
-              {"Yes"}
-            </Button>
-            <Button
-              buttonColor={ColorVariant.error}
-              buttonPosition={ButtonPosition.fullWidth}
-              icon={<DismissIcon />}
-              onClick={handleConfirmationModalClose}
-              className={styles.settingsConfirmationButton}
-              id="no-settings-confirmation"
-            >
-              {"No"}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </DetailsPageTemplate>
   );
 }
 
-export default ChannelPage;
+export default FowardsSummaryPage;

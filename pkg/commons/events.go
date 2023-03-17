@@ -412,6 +412,20 @@ type RebalanceResponse struct {
 	CommunicationResponse
 }
 
+type NodeWalletBalanceRequest struct {
+	CommunicationRequest
+	ResponseChannel chan<- NodeWalletBalanceResponse `json:"-"`
+}
+
+type NodeWalletBalanceResponse struct {
+	TotalBalance              int64
+	ConfirmedBalance          int64
+	UnconfirmedBalance        int64
+	LockedBalance             int64
+	ReservedBalanceAnchorChan int64
+	CommunicationResponse
+	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
+}
 type ImportType int
 
 const (

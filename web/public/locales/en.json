@@ -405,5 +405,31 @@
   "errors": {
     "missingField": ":field: is required",
     "LNDConnect": "Unable to connect to LND Node. Please check connection details."
+  },
+  "dashboard": "Dashboard",
+  "dashboardPage": {
+    "welcome" : "Welcome",
+    "totalBalance": "Total Balance",
+    "totalOnChainBalance": "Total On-Chain Balance",
+    "totalOffChainBalance": "Total Off-Chain Balance",
+    "totalChannelCount": "Total Channel Count",
+    "channels" : "Channels",
+    "capacity" : "Capacity",
+    "peers" : "peers",
+    "btc" : "btc",
+    "publicKey": "Public Key",
+    "onChainDetail" : {
+      "confirmed" : "Confirmed",
+      "unconfirmed" : "Unconfirmed",
+      "lockedBalance" : "Locked Balance"
+    },
+    "channelsDetail" : {
+      "opening" : "Opening",
+      "closing" : "Closing"
+    }
+  },
+  "summaryNode" : {
+    "online" : "Online",
+    "offline" : "Disabled"
   }
 }

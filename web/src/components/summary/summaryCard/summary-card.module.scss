@@ -1,0 +1,80 @@
+.summaryCard {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px;
+  height: 88px;
+  background: #c2e2ff;
+  border-radius: 4px;
+  z-index: 1;
+  transition: height 400ms, margin-bottom 400ms, background 400ms, z-index 400ms;
+  overflow: hidden;
+
+  @media only screen and (max-width: 750px) {
+    max-width: none;
+    min-width: 258px;
+  }
+
+  &.expanded {
+    z-index: 999;
+    height: 200px;
+    margin-bottom: -112px;
+    background: var(--color-primary-faint);
+  }
+}
+
+.headerContainer {
+  display: flex;
+  width: 100%;
+  flex-grow: 1;
+}
+.heading {
+  height: 20px;
+  font-weight: 400;
+  font-size: var(--font-size-small);
+  color: #5d89b3;
+}
+.heading.icon {
+  margin-left: auto;
+  color: #5d89b3;
+}
+
+.valueContainer {
+  display: flex;
+  height: 56px;
+  align-items: baseline;
+}
+
+.value {
+  font-weight: 500;
+  font-size: var(--font-size-large);
+  padding-right: 8px;
+}
+
+.valueLabel {
+  color: #5d89b3;
+  font-weight: 400;
+  font-size: 24px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 44% 56%;
+  font-size: small;
+  grid-row-gap: 4px;
+}
+
+
+dl dt {
+  min-width: 100px;
+}
+
+.detailsContainer {
+  display: block;
+  width: 100%;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+}

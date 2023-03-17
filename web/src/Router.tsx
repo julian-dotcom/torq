@@ -11,7 +11,7 @@ import CookieLoginPage from "features/auth/CookieLoginPage";
 import ServicesPage from "features/services/ServicesPage";
 import ChannelPage from "features/channel/ChannelPage";
 import ChannelsPage from "features/channels/ChannelsPage";
-import DashboardPage from "features/channel/DashboardPage";
+import DashboardPage from "features/dashboard/DashboardPage";
 import ForwardsPage from "features/forwards/ForwardsPage";
 import NoMatch from "features/no_match/NoMatch";
 import SettingsPage from "features/settings/SettingsPage";
@@ -34,6 +34,7 @@ import AddTag from "pages/tags/addTagPage/AddTag";
 import MessageVerificationModal from "./pages/messageVerificationPage/MessageVerificationModal";
 import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
 import ChannelsPendingPage from "./features/channelsPending/ChannelsPendingPage";
+import FowardsSummaryPage from "./features/channel/ForwardsSummary";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -106,6 +107,7 @@ const authenticatedRoutes: RouteObject = {
         {
           path: routes.ANALYSE,
           children: [
+            { path: routes.FORWARDS_SUMMARY, element: <FowardsSummaryPage /> },
             { path: routes.FORWARDS, element: <ForwardsPage /> },
             { path: routes.FORWARDS_CUSTOM_VIEW, element: <ForwardsPage /> },
           ],

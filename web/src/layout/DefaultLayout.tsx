@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useMatch } from "react-router-dom";
 import { useAppSelector } from "store/hooks";
 import { selectHidden } from "features/navigation/navSlice";
 import styles from "./default-layout.module.scss";
@@ -10,8 +10,14 @@ import classNames from "classnames";
 
 function DefaultLayout() {
   const hidden = useAppSelector(selectHidden);
+  const isDashboardPage = useMatch("/");
+
   return (
-    <div className={classNames(styles.mainContentWrapper, { [navStyles.navCollapsed]: hidden })}>
+    <div
+      className={classNames(styles.mainContentWrapper, isDashboardPage ? styles.background : "", {
+        [navStyles.navCollapsed]: hidden,
+      })}
+    >
       <TopNavigation />
       <div className={navStyles.navigationWrapper}>
         <Navigation />

@@ -1,0 +1,71 @@
+.nodeSummaryContainer{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  height: auto;
+
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow: 0px 1px 14px rgba(53, 78, 102, 0.12), 0px 3px 5px rgba(53, 78, 102, 0.2);
+  border-radius: 8px;
+  flex-grow: 1;
+  padding: 16px 16px 24px;
+
+
+}
+
+.headerContainer {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+
+.header {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  font-size: var(--font-size-large);
+  color: white;
+  font-weight: 500;
+}
+
+
+.statusContainer {
+  display: flex;
+  margin-left: auto;
+  margin-top: 20px;
+  padding-top: 6px;
+  padding-left: 10px;
+  min-width: 100px;
+  height: 32px;
+  border-radius: 50px;
+
+}
+
+.statusContainer.online {
+  background: var(--color-success-layer-2);
+  color: var(--color-text-success-strong);
+}
+
+.statusContainer.offline {
+  background: var(--color-gray-layer-faint);
+  color: var(--color-gray-layer-strong);
+}
+
+.statusText{
+  font-size: var(--font-size-normal);
+  font-weight: 400;
+
+  align-content: flex-start;
+  padding-top: 2px;
+  padding-left: 6px;
+}
+
+//.statusText.online{
+//  color: var(--color-text-success-strong);
+//}
+.statusText.offline{
+  padding-top: 0px;
+  padding-left: 2px;
+}
+

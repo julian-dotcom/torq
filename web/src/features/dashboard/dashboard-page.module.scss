@@ -1,0 +1,97 @@
+.dashboardWrapper {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 10px;
+  padding-bottom: 24px;
+  margin-top: 16px;
+  max-width: 1066px;
+  flex-wrap: wrap;
+  @media only screen and (max-width: 900px) {
+    grid-row-gap: 16px;
+    padding-bottom: 12px;
+  }
+}
+
+.summaryCardContainer {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.summaryNodeContainer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+
+  @media only screen and (max-width: 400px) {
+    flex-direction: column;
+  }
+}
+
+.nodeSummaryCardOverride {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 8px;
+  height: 88px;
+  max-width: 328px;
+  min-width: 328px;
+  background: #c2e2ff;
+  border-radius: 4px;
+
+  @media only screen and (max-width: 750px) {
+    max-width: none;
+    min-width: 258px;
+  }
+}
+
+.addressDetailsContainer {
+  display: grid;
+  grid-template-columns: 75% 25%;
+  font-size: small;
+  grid-row-gap: 6px;
+  margin-bottom: 20px;
+}
+
+.addressDetailItem {
+  max-width: 300px;
+  margin-right: 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.addressContent {
+  max-width: 200px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  font-weight: 400;
+  font-size: 8px;
+  border-radius: 4px;
+  padding: 6px 4px;
+  max-width: 44px;
+  svg {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+.copy {
+  color: #354e66;
+  background-color: var(--color-primary-layer-3);
+  margin-left: auto;
+}

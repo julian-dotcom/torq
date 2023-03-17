@@ -99,3 +99,29 @@ export interface lndServices {
     typeString: string;
   }[];
 }
+
+export interface nodeWalletBalances {
+  nodeId: number;
+  totalBalance: number;
+  confirmedBalance: number;
+  unconfirmedBalance: number;
+  lockedBalance: number;
+  reservedBalanceAnchorChan: number;
+}
+
+export interface nodeAddress {
+  addr: string;
+  network: string;
+}
+export interface nodeInformation {
+  nodeId: number;
+  publicKey: string;
+  status: nodeStatus;
+  addresses: nodeAddress[];
+  alias: string;
+}
+
+export enum nodeStatus {
+  inactive = 0,
+  active = 1,
+}
