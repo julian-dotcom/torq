@@ -6,7 +6,7 @@ import {
   TableControlSection,
   TableControlsTabsGroup,
 } from "../templates/tablePageTemplate/TablePageTemplate";
-import Button, { ColorVariant } from "components/buttons/Button";
+import Button, { ButtonPosition, ColorVariant } from "components/buttons/Button";
 import mixpanel from "mixpanel-browser";
 import { useNavigate } from "react-router-dom";
 import * as Routes from "constants/routes";
@@ -17,6 +17,9 @@ import {
   Check20Regular as InvoiceIcon,
   LinkEdit20Regular as NewOnChainAddressIcon,
   Copy16Regular as CopyIcon,
+  Question20Regular as QuestionIcon,
+  Checkmark20Regular as CheckmarkIcon,
+  Dismiss20Regular as DismissIcon,
 } from "@fluentui/react-icons";
 
 import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
@@ -34,10 +37,11 @@ import { selectActiveNetwork } from "features/network/networkSlice";
 import { nodeAddress, nodeStatus, nodeWalletBalances } from "apiTypes";
 import { ChannelPending } from "../channelsPending/channelsPendingTypes";
 import classNames from "classnames";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ToastContext from "../toast/context";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { toastCategory } from "../toast/Toasts";
+import Modal from "../modal/Modal";
 
 interface nodeSummary {
   nodeId: number;
@@ -77,10 +81,10 @@ function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSumm
     .filter((x) => x.status === nodeStatus.active)
     .reduce(
       (acc, node) => {
-        acc.localBalance += node.localBalance;
-        acc.onChainBalance += node.onChainBalance;
-        acc.channels += node.channels;
-        acc.totalBalance += node.totalBalance;
+        acc.localBalance += node.localBalance ?? 0;
+        acc.onChainBalance += node.onChainBalance ?? 0;
+        acc.channels += node.channels ?? 0;
+        acc.totalBalance += node.totalBalance ?? 0;
         return acc;
       },
       { onChainBalance: 0, offChainBalance: 0, localBalance: 0, totalBalance: 0, channels: 0 }
@@ -93,13 +97,16 @@ function DashboardPage() {
   const location = useLocation();
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
-  const copyText = async (copyText: string) => {
-    await copyToClipboard(copyText || "");
-    toastRef?.current?.addToast(`${copyText} copied to clipboard`, toastCategory.success);
-  };
-
   const { data: nodesWalletBalances } = useGetNodesWalletBalancesQuery(activeNetwork);
-  const { data: nodes } = useGetNodesInformationByCategoryQuery(activeNetwork);
+  const { data: nodes, isSuccess: nodeQueryHasRun } = useGetNodesInformationByCategoryQuery(activeNetwork);
+
+  const [showNodeSetupModal, setShowNodeSetupModal] = useState(false);
+
+  useEffect(() => {
+    if (nodeQueryHasRun && (!nodes || nodes.length === 0)) {
+      setShowNodeSetupModal(true);
+    }
+  }, [nodeQueryHasRun]);
 
   const channelsResponse = useGetChannelsQuery<{
     data: Array<channel>;
@@ -116,6 +123,28 @@ function DashboardPage() {
     isUninitialized: boolean;
     isSuccess: boolean;
   }>({ network: activeNetwork });
+
+  const copyText = async (copyText: string) => {
+    await copyToClipboard(copyText || "");
+    toastRef?.current?.addToast(`${copyText} copied to clipboard`, toastCategory.success);
+  };
+
+  const handleConfirmationModalClose = () => {
+    mixpanel.track("No Local Node", {
+      source: location?.pathname,
+      "Go to settings": false,
+    });
+    setShowNodeSetupModal(false);
+  };
+
+  const handleModalSettingsClick = () => {
+    setShowNodeSetupModal(false);
+    mixpanel.track("No Local Node", {
+      source: location?.pathname,
+      "Go to settings": true,
+    });
+    navigate("/settings", { replace: true });
+  };
 
   type channelReduceReturnType = Record<number, nodeChannelSummary>;
 
@@ -379,6 +408,42 @@ function DashboardPage() {
           );
         })}
       </div>
+      <Modal
+        title={"Local Node not found"}
+        icon={<QuestionIcon className={styles.settingsConfirmationIcon} />}
+        onClose={handleConfirmationModalClose}
+        show={showNodeSetupModal}
+      >
+        <div className={styles.deleteConfirm}>
+          <p>
+            It seems that you didn&apos;t configure a node. In order to use Torq, you will have to configure at least
+            one Node.
+          </p>
+          <p>Do you want to go to the Settings page and add your Node now?</p>
+
+          <div className={styles.settingsConfirmation}>
+            <Button
+              buttonColor={ColorVariant.success}
+              buttonPosition={ButtonPosition.fullWidth}
+              icon={<CheckmarkIcon />}
+              onClick={handleModalSettingsClick}
+              className={styles.settingsConfirmationButton}
+            >
+              {"Yes"}
+            </Button>
+            <Button
+              buttonColor={ColorVariant.error}
+              buttonPosition={ButtonPosition.fullWidth}
+              icon={<DismissIcon />}
+              onClick={handleConfirmationModalClose}
+              className={styles.settingsConfirmationButton}
+              id="no-settings-confirmation"
+            >
+              {"No"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DashboardPageTemplate>
   );
 }
