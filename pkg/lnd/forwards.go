@@ -145,7 +145,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	importForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportForwards)
 	if !importForwards {
 		log.Info().Msgf("Import of forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
+		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
 		return
 	}
 
