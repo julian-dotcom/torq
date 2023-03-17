@@ -128,7 +128,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: NPM Install
         working-directory: ./web
-        run: npm install
+        run: npm install --legacy-peer-deps
       - name: NPM Build
         working-directory: ./web
         run: TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true npm run build
