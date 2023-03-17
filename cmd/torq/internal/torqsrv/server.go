@@ -38,6 +38,7 @@ import (
 	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/web"
 )
 
 func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
@@ -47,22 +48,22 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 	serviceChannel chan<- commons.ServiceChannelMessage,
 	autoLogin bool) error {
 
-	r := gin.Default()
+	router := gin.Default()
 
 	if err := auth.RefreshCookieFile(cookiePath); err != nil {
 		return errors.Wrap(err, "Refreshing cookie file")
 	}
 
-	err := auth.CreateSession(r, apiPswd)
+	err := auth.CreateSession(router, apiPswd)
 	if err != nil {
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
+	registerRoutes(router, db, apiPswd, cookiePath, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
-	if err := r.Run(":" + strconv.Itoa(port)); err != nil {
+	if err := router.Run(":" + strconv.Itoa(port)); err != nil {
 		return errors.Wrap(err, "Running gin webserver")
 	}
 	return nil
@@ -251,6 +252,8 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			})
 		})
 	}
+
+	web.AddRoutes(r)
 }
 
 func registerStaticRoutes(r *gin.Engine) {
