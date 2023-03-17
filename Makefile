@@ -7,7 +7,7 @@ virtual_network_invoice_freq = 30
 virtual_network_send_coins_freq = 30
 #Virtual Network - Frequency(every x minutes; default 10) of opening and closing random channels
 virtual_network_open_close_chan_freq = 10
-buildFrontend = cd web && npm install && npm run build --legacy-peer-deps
+buildFrontend = cd web && npm install --legacy-peer-deps && npm run build
 frontendTest = cd web && npm test -- --watchAll=false
 lintFrontend = cd web && npm run lint
 lintBackend = go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && ~/go/bin/golangci-lint run
