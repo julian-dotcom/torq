@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed build
@@ -76,7 +78,11 @@ func newFallbackFileSystem(staticFileSystem *staticFileSystem) *fallbackFileSyst
 }
 
 func (f *fallbackFileSystem) Open(path string) (http.File, error) {
-	return f.staticFileSystem.Open("/index.html")
+	file, err := f.staticFileSystem.Open("/index.html")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open path \"/index.html\"")
+	}
+	return file, errors.Wrap(err, "Opening path \"/index.html\"")
 }
 
 func (f *fallbackFileSystem) Exists(prefix string, path string) bool {
