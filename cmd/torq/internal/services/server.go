@@ -19,8 +19,7 @@ import (
 func Start(ctx context.Context, db *sqlx.DB,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
-	broadcaster broadcast.BroadcastServer,
-	serviceEventChannel chan<- commons.ServiceEvent) {
+	broadcaster broadcast.BroadcastServer) {
 
 	var wg sync.WaitGroup
 
@@ -65,13 +64,11 @@ func Start(ctx context.Context, db *sqlx.DB,
 		automation.ScheduledTriggerMonitor(ctx, db, lightningRequestChannel, rebalanceRequestChannel)
 	})()
 
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.AutomationService, nil)
-
 	wg.Wait()
 }
 
 func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
+	broadcaster broadcast.BroadcastServer) {
 
 	active := commons.ServiceActive
 
@@ -82,11 +79,11 @@ func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientCo
 		}
 	}()
 
-	lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
+	lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
+	broadcaster broadcast.BroadcastServer) {
 
 	active := commons.ServiceActive
 
@@ -97,10 +94,10 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		}
 	}()
 
-	workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
+	workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) {
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
 	active := commons.ServiceActive
 
@@ -112,11 +109,9 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB, serviceEventChann
 	}()
 
 	commons.MaintenanceServiceStart(ctx, db)
-
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.MaintenanceService, nil)
 }
 
-func StartCronService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) {
+func StartCronService(ctx context.Context, db *sqlx.DB) {
 
 	active := commons.ServiceActive
 
@@ -128,6 +123,4 @@ func StartCronService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan
 	}()
 
 	automation.CronTriggerMonitor(ctx, db)
-
-	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.CronService, nil)
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/andres-erbsen/clock"
-	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/robfig/cron/v3"
@@ -190,16 +189,27 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
+	var delay bool
+
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(1 * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		scheduledTrigger := commons.GetScheduledTrigger()
 		if scheduledTrigger.SchedulingTime == nil {
-			time.Sleep(1 * time.Second)
+			delay = true
 			continue
 		}
 		events := scheduledTrigger.TriggeringEventQueue
@@ -353,46 +363,31 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
-	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelBalanceEvent()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
+	defer broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
+
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-	}()
-	go func() {
-		for channelBalanceEvent := range listener {
-			if errors.Is(ctx.Err(), context.Canceled) {
-				return
-			}
+		case channelBalanceEvent := <-listener:
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
 			processEventTrigger(db, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
 		}
-	}()
-	wg.Wait()
+	}
 }
 
 func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) {
-	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelEvent()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionChannelEvent(listener)
+	defer broadcaster.CancelSubscriptionChannelEvent(listener)
+
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-	}()
-	go func() {
-		for channelEvent := range listener {
-			if errors.Is(ctx.Err(), context.Canceled) {
-				return
-			}
+		case channelEvent := <-listener:
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}
@@ -403,8 +398,7 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster br
 				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
 			}
 		}
-	}()
-	wg.Wait()
+	}
 }
 
 func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {

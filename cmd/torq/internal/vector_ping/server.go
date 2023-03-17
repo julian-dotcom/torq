@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
@@ -57,96 +58,87 @@ type VectorPingChain struct {
 }
 
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int,
-	serviceEventChannel chan<- commons.ServiceEvent) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 
 	defer log.Info().Msgf("Vector Ping Service terminated for nodeId: %v", nodeId)
 
-	previousStatus := commons.ServicePending
-	_, monitorCancel := context.WithCancel(context.Background())
-
 	client := lnrpc.NewLightningClient(conn)
 
+	ticker := clock.New().Tick(vectorSleepSeconds * time.Second)
+
 	for {
-		getInfoRequest := lnrpc.GetInfoRequest{}
-		info, err := client.GetInfo(ctx, &getInfoRequest)
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Obtaining LND info")
-		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker:
+			getInfoRequest := lnrpc.GetInfoRequest{}
+			info, err := client.GetInfo(ctx, &getInfoRequest)
+			if err != nil {
+				return errors.Wrapf(err, "Obtaining LND info")
+			}
 
-		pingInfo := VectorPing{
-			PingTime:                time.Now().UTC(),
-			TorqVersion:             build.ExtendedVersion(),
-			Implementation:          "LND",
-			Version:                 info.Version,
-			PublicKey:               info.IdentityPubkey,
-			Alias:                   info.Alias,
-			Color:                   info.Color,
-			PendingChannelCount:     int(info.NumPendingChannels),
-			ActiveChannelCount:      int(info.NumActiveChannels),
-			InactiveChannelCount:    int(info.NumInactiveChannels),
-			PeerCount:               int(info.NumPeers),
-			BlockHeight:             info.BlockHeight,
-			BlockHash:               info.BlockHash,
-			BestHeaderTimestamp:     time.Unix(info.BestHeaderTimestamp, 0),
-			ChainSynced:             info.SyncedToChain,
-			GraphSynced:             info.SyncedToGraph,
-			Addresses:               info.Uris,
-			HtlcInterceptorRequired: info.RequireHtlcInterceptor,
-		}
-		for _, chain := range info.Chains {
-			pingInfo.Chains = append(pingInfo.Chains, VectorPingChain{Chain: chain.Chain, Network: chain.Network})
-		}
-		pingInfo.Features = make(map[int]VectorPingFeature)
-		for number, feature := range info.Features {
-			pingInfo.Features[int(number)] =
-				VectorPingFeature{Name: feature.Name, Required: feature.IsRequired, Known: feature.IsKnown}
-		}
+			pingInfo := VectorPing{
+				PingTime:                time.Now().UTC(),
+				TorqVersion:             build.ExtendedVersion(),
+				Implementation:          "LND",
+				Version:                 info.Version,
+				PublicKey:               info.IdentityPubkey,
+				Alias:                   info.Alias,
+				Color:                   info.Color,
+				PendingChannelCount:     int(info.NumPendingChannels),
+				ActiveChannelCount:      int(info.NumActiveChannels),
+				InactiveChannelCount:    int(info.NumInactiveChannels),
+				PeerCount:               int(info.NumPeers),
+				BlockHeight:             info.BlockHeight,
+				BlockHash:               info.BlockHash,
+				BestHeaderTimestamp:     time.Unix(info.BestHeaderTimestamp, 0),
+				ChainSynced:             info.SyncedToChain,
+				GraphSynced:             info.SyncedToGraph,
+				Addresses:               info.Uris,
+				HtlcInterceptorRequired: info.RequireHtlcInterceptor,
+			}
+			for _, chain := range info.Chains {
+				pingInfo.Chains = append(pingInfo.Chains, VectorPingChain{Chain: chain.Chain, Network: chain.Network})
+			}
+			pingInfo.Features = make(map[int]VectorPingFeature)
+			for number, feature := range info.Features {
+				pingInfo.Features[int(number)] =
+					VectorPingFeature{Name: feature.Name, Required: feature.IsRequired, Known: feature.IsKnown}
+			}
 
-		pingInfoJsonByteArray, err := json.Marshal(pingInfo)
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Marshalling message: %v", info)
-		}
-		signMsgReq := lnrpc.SignMessageRequest{
-			Msg: pingInfoJsonByteArray,
-		}
-		signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Signing message: %v", string(pingInfoJsonByteArray))
-		}
-		b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signMsgResp.Signature})
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
-		}
+			pingInfoJsonByteArray, err := json.Marshal(pingInfo)
+			if err != nil {
+				return errors.Wrapf(err, "Marshalling message: %v", info)
+			}
+			signMsgReq := lnrpc.SignMessageRequest{
+				Msg: pingInfoJsonByteArray,
+			}
+			signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
+			if err != nil {
+				return errors.Wrapf(err, "Signing message: %v", string(pingInfoJsonByteArray))
+			}
+			b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signMsgResp.Signature})
+			if err != nil {
+				return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
+			}
 
-		req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Creating new request for message: %v", string(pingInfoJsonByteArray))
+			req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
+			if err != nil {
+				return errors.Wrapf(err, "Creating new request for message: %v", string(pingInfoJsonByteArray))
+			}
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Torq-Version", build.ExtendedVersion())
+			req.Header.Set("Torq-UUID", commons.GetSettings().TorqUuid)
+			httpClient := &http.Client{}
+			resp, err := httpClient.Do(req)
+			if err != nil {
+				return errors.Wrapf(err, "Posting message: %v", string(pingInfoJsonByteArray))
+			}
+			err = resp.Body.Close()
+			if err != nil {
+				return errors.Wrapf(err, "Closing response body.")
+			}
+			log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Torq-Version", build.ExtendedVersion())
-		req.Header.Set("Torq-UUID", commons.GetSettings().TorqUuid)
-		httpClient := &http.Client{}
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Posting message: %v", string(pingInfoJsonByteArray))
-		}
-		err = resp.Body.Close()
-		if err != nil {
-			monitorCancel()
-			return errors.Wrapf(err, "Closing response body.")
-		}
-		if previousStatus == commons.ServiceInactive {
-			commons.SendServiceEvent(nodeId, serviceEventChannel, previousStatus, commons.ServiceActive, commons.VectorService, nil)
-			previousStatus = commons.ServiceActive
-		}
-		log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
-		time.Sleep(vectorSleepSeconds * time.Second)
 	}
 }

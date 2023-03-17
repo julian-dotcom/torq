@@ -3,10 +3,8 @@ package lnd
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
@@ -25,7 +23,7 @@ const routingPolicyUpdateLimiterSeconds = 5 * 60
 const avoidChannelAndPolicyImportRerunTimeSeconds = 70
 
 func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
+	broadcaster broadcast.BroadcastServer) {
 
 	defer log.Info().Msgf("LightningCommunicationService terminated for nodeId: %v", nodeId)
 
@@ -35,21 +33,14 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 	successTimes := make(map[commons.ImportType]time.Time, 0)
 
-	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeLightningRequest()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionLightningRequest(listener)
+	defer broadcaster.CancelSubscriptionLightningRequest(listener)
+
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-	}()
-	go func() {
-		for lightningRequest := range listener {
-			if errors.Is(ctx.Err(), context.Canceled) {
-				return
-			}
+		case lightningRequest := <-listener:
 			if request, ok := lightningRequest.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
@@ -96,11 +87,7 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 				}
 			}
 		}
-	}()
-
-	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.LightningCommunicationService, nil)
-
-	wg.Wait()
+	}
 }
 
 func processImportRequest(ctx context.Context, db *sqlx.DB, request commons.ImportRequest,

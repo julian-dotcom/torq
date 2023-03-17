@@ -66,7 +66,11 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 	connectionDetails.CustomSettings &= ^customSettings
 }
 
-func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
+func startAllLndServicesOrRestartWhenRunning(
+	serviceChannel chan<- commons.ServiceChannelMessage,
+	nodeId int,
+	lndActive bool) bool {
+
 	// Services that aren't tied to a node but to Torq itself:
 	//	TorqService
 	//	AutomationService
@@ -82,6 +86,7 @@ func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.Servi
 
 func startServiceOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage,
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
+
 	if active {
 		enforcedServiceStatus := commons.ServiceActive
 		resultChannel := make(chan commons.ServiceStatus)
