@@ -124,5 +124,5 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           pre_command: export CGO_ENABLED=0
-          build_command: go build cmd/torq/torq.go
+          project_path: ./cmd/torq/
           extra_files: LICENSE.md README.md SECURITY.md CONTRIBUTING.md
