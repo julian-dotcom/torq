@@ -148,6 +148,7 @@ function ClosedChannelsPage() {
       sidebar={sidebar}
       tableControls={tableControls}
       onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
     >
       <Table
         cellRenderer={channelsClosedCellRenderer}

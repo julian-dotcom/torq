@@ -148,6 +148,7 @@ function ChannelsPendingPage() {
       sidebar={sidebar}
       tableControls={tableControls}
       onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
     >
       <Table
         cellRenderer={channelsPendingCellRenderer}

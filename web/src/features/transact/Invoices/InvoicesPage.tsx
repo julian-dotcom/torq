@@ -27,12 +27,13 @@ import {
 import { AllInvoicesColumns } from "features/transact/Invoices/invoicesColumns.generated";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import { usePagination } from "components/table/pagination/usePagination";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
-import { selectInvoicesView } from "features/viewManagement/viewSlice";
+import { selectInvoicesView, selectViews } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import mixpanel from "mixpanel-browser";
+import { TableResponses, ViewResponse } from "../../viewManagement/types";
 
 function useMaximums(data: Array<Invoice>): Invoice | undefined {
   if (!data.length) {
@@ -68,6 +69,8 @@ function InvoicesPage() {
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectInvoicesView);
+  const invoiceView = useAppSelector(selectViews)("invoices");
+  const [updateTableView] = useUpdateTableViewMutation();
 
   const [getPagination, limit, offset] = usePagination("invoices");
   const activeNetwork = useAppSelector(selectActiveNetwork);
@@ -104,6 +107,16 @@ function InvoicesPage() {
     setSidebarExpanded(false);
     mixpanel.track("Toggle Table Sidebar", { page: "Invoices" });
   };
+
+  function handleNameChange(name: string) {
+    const view = invoiceView.views[selectedViewIndex] as ViewResponse<TableResponses>;
+    if (view.id) {
+      updateTableView({
+        id: view.id,
+        view: { ...view.view, title: name },
+      });
+    }
+  }
 
   const tableControls = (
     <TableControlSection>
@@ -159,12 +172,14 @@ function InvoicesPage() {
 
   return (
     <TablePageTemplate
-      title={"Invoices"}
+      title={viewResponse.view.title}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
       tableControls={tableControls}
       pagination={getPagination(invoicesResponse?.data?.pagination?.total || 0)}
+      onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
     >
       <Table
         cellRenderer={DefaultCellRenderer}

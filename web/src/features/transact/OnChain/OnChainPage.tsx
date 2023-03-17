@@ -26,14 +26,15 @@ import {
   OnChainSortTemplate,
   SortableOnChainColumns,
 } from "features/transact/OnChain/onChainDefaults";
-import { AllOnChainTransactionsColumns } from "features/transact/OnChain/onChainColumns.generated"
+import { AllOnChainTransactionsColumns } from "features/transact/OnChain/onChainColumns.generated";
 import { usePagination } from "components/table/pagination/usePagination";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
-import { selectOnChainView } from "features/viewManagement/viewSlice";
+import { selectOnChainView, selectViews } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import mixpanel from "mixpanel-browser";
+import { TableResponses, ViewResponse } from "../../viewManagement/types";
 
 function useMaximums(data: Array<OnChainTx>): OnChainTx | undefined {
   if (!data.length) {
@@ -58,6 +59,9 @@ function OnChainPage() {
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectOnChainView);
+  const channelViews = useAppSelector(selectViews)("channelsClosed");
+  const [updateTableView] = useUpdateTableViewMutation();
+
   const [getPagination, limit, offset] = usePagination("onChain");
   const activeNetwork = useAppSelector(selectActiveNetwork);
 
@@ -81,6 +85,16 @@ function OnChainPage() {
   };
 
   const maxRow = useMaximums(onChainTxResponse.data?.data || []);
+
+  function handleNameChange(name: string) {
+    const view = channelViews.views[selectedViewIndex] as ViewResponse<TableResponses>;
+    if (view.id) {
+      updateTableView({
+        id: view.id,
+        view: { ...view.view, title: name },
+      });
+    }
+  }
 
   const tableControls = (
     <TableControlSection>
@@ -134,12 +148,14 @@ function OnChainPage() {
 
   return (
     <TablePageTemplate
-      title={"OnChain"}
+      title={viewResponse.view.title}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
       tableControls={tableControls}
       pagination={getPagination(onChainTxResponse?.data?.pagination?.total || 0)}
+      onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
     >
       <Table
         cellRenderer={DefaultCellRenderer}
