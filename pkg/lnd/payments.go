@@ -55,7 +55,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
 	if !importPayments {
 		log.Info().Msgf("Import of payments is disabled for nodeId: %v", nodeSettings.NodeId)
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
+		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
 		return
 	}
 
@@ -278,7 +278,7 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
 	if !importPayments {
 		log.Info().Msgf("Import of payments (including in-flight) is disabled for nodeId: %v", nodeSettings.NodeId)
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
+		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
 		return
 	}
 
