@@ -28,7 +28,7 @@ function NewInvoiceModal() {
   let nodeConfigurationOptions: Array<{ value: number; label?: string }> = [{ value: 0, label: "Select a local node" }];
   if (nodeConfigurations) {
     nodeConfigurationOptions = nodeConfigurations.map((node: nodeConfiguration) => {
-      return { value: node.nodeId, label: node.grpcAddress };
+      return { value: node.nodeId, label: `${node.name} - ${node.grpcAddress}` };
     });
   }
 
