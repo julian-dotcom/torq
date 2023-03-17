@@ -154,7 +154,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		defer wg.Done()
 		SubscribeForwardingEvents(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, &opt)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
 	}()
 	// Simulate passing intervals, one more than required to process
 	numbTicks := 2

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -84,7 +83,7 @@ func (runner *RebalanceRunner) isFailedHop(
 }
 
 func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
+	broadcaster broadcast.BroadcastServer) {
 
 	defer log.Info().Msgf("RebalanceService terminated for nodeId: %v", nodeId)
 
@@ -93,28 +92,20 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 	go initiateDelayedRebalancers(ctx, db, client, router)
 
-	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeRebalanceRequest()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionRebalanceRequest(listener)
+	defer broadcaster.CancelSubscriptionRebalanceRequest(listener)
+
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-	}()
-	go func() {
-		for requests := range listener {
+		case requests := <-listener:
 			if requests.NodeId != nodeId {
 				continue
 			}
 			processRebalanceRequests(ctx, db, requests, nodeId)
 		}
-	}()
-
-	commons.SendServiceEvent(nodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.RebalanceService, nil)
-
-	wg.Wait()
+	}
 }
 
 func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,

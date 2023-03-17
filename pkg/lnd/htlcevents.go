@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
@@ -151,8 +152,7 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
 func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, htlcEventChannel chan<- commons.HtlcEvent,
-	serviceEventChannel chan<- commons.ServiceEvent) {
+	nodeSettings commons.ManagedNodeSettings, htlcEventChannel chan<- commons.HtlcEvent) {
 	var stream routerrpc.Router_SubscribeHtlcEventsClient
 	var err error
 	var htlcEvent *routerrpc.HtlcEvent
@@ -165,19 +165,30 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 	importHtlcEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHtlcEvents)
 	if !importHtlcEvents {
 		log.Info().Msgf("Import of HTLC events is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
 		return
 	}
 
+	var delay bool
+
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -185,10 +196,10 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				}
 				log.Error().Err(err).Msgf("Obtaining stream (SubscribeTransactions) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
 
 		htlcEvent, err = stream.Recv()
@@ -196,10 +207,10 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(streamErrorSleepSeconds * time.Second)
+			delay = true
 			continue
 		}
 
@@ -253,5 +264,6 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				IncomingChannelId: storedHtlcEvent.IncomingChannelId,
 			}
 		}
+		delay = false
 	}
 }

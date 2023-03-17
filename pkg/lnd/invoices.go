@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -199,8 +200,7 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings,
-	invoiceEventChannel chan<- commons.InvoiceEvent,
-	serviceEventChannel chan<- commons.ServiceEvent) {
+	invoiceEventChannel chan<- commons.InvoiceEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreInvoices terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -212,21 +212,33 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	importInvoices := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportInvoices)
 	if !importInvoices {
 		log.Info().Msgf("Import of invoices is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
 		return
 	}
 
+	var delay bool
+
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, _, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
+			delay = true
 			continue
 		}
 
@@ -238,7 +250,8 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
+			delay = true
 			continue
 		}
 
@@ -247,9 +260,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if len(listInvoiceResponse.Invoices) >= streamLndMaxInvoices {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
 		} else {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
@@ -261,17 +274,29 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		}
 	}
 
+	delay = false
+
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
+			delay = true
 			continue
 		}
 
@@ -285,21 +310,24 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
+			delay = true
 			continue
 		}
 
-		serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		invoice, err := stream.Recv()
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = processError(serviceStatus, serviceEventChannel, nodeSettings, subscriptionStream, err)
+			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
+			delay = true
 			continue
 		}
 		processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
+		delay = false
 		cancel()
 	}
 }
@@ -336,12 +364,11 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 	}
 }
 
-func processError(serviceStatus commons.ServiceStatus, serviceEventChannel chan<- commons.ServiceEvent, nodeSettings commons.ManagedNodeSettings,
+func processError(serviceStatus commons.ServiceStatus, nodeSettings commons.ManagedNodeSettings,
 	subscriptionStream commons.SubscriptionStream, err error) commons.ServiceStatus {
 
-	serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+	serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", streamErrorSleepSeconds)
-	time.Sleep(streamErrorSleepSeconds * time.Second)
 	return serviceStatus
 }
 

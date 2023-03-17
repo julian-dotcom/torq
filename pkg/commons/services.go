@@ -359,6 +359,27 @@ func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex) ServiceStatus {
 	return previousStatus
 }
 
+func (rs *Services) SetBootRequestedStatus(nodeId int, delayed bool) ServiceStatus {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	status := ServiceBootRequested
+	if delayed {
+		status = ServiceBootRequestedWithDelay
+	}
+
+	initServiceMaps(rs, nodeId)
+	previousStatus := rs.serviceStatus[nodeId]
+	if previousStatus == status {
+		return previousStatus
+	}
+	rs.serviceStatus[nodeId] = status
+	if status == ServiceActive {
+		rs.bootTime[nodeId] = time.Now().UTC()
+	}
+	return previousStatus
+}
+
 func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, status ServiceStatus) ServiceStatus {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
@@ -410,24 +431,6 @@ func initServiceMaps(rs *Services, nodeId int) {
 	_, exists = rs.streamInitializationPingTime[nodeId]
 	if !exists {
 		rs.streamInitializationPingTime[nodeId] = make(map[SubscriptionStream]time.Time)
-	}
-}
-
-func SendServiceEvent(nodeId int, serviceEventChannel chan<- ServiceEvent, previousStatus ServiceStatus, status ServiceStatus,
-	serviceType ServiceType, subscriptionStream *SubscriptionStream) {
-	if previousStatus != status {
-		if serviceEventChannel != nil {
-			serviceEventChannel <- ServiceEvent{
-				EventData: EventData{
-					EventTime: time.Now().UTC(),
-					NodeId:    nodeId,
-				},
-				Type:               serviceType,
-				SubscriptionStream: subscriptionStream,
-				Status:             status,
-				PreviousStatus:     previousStatus,
-			}
-		}
 	}
 }
 
