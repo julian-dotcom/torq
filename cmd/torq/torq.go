@@ -797,15 +797,15 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 	case commons.AmbossService:
 		err = amboss_ping.Start(ctx, conn, node.NodeId, serviceEventChannel)
 	case commons.LightningCommunicationService:
-		err = services.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster, serviceEventChannel)
+		services.StartLightningCommunicationService(ctx, conn, db, node.NodeId, broadcaster, serviceEventChannel)
 	case commons.RebalanceService:
-		err = services.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster, serviceEventChannel)
+		services.StartRebalanceService(ctx, conn, db, node.NodeId, broadcaster, serviceEventChannel)
 	case commons.AutomationService:
-		err = services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
+		services.Start(ctx, db, lightningRequestChannel, rebalanceRequestChannel, broadcaster, serviceEventChannel)
 	case commons.MaintenanceService:
-		err = services.StartMaintenanceService(ctx, db, serviceEventChannel)
+		services.StartMaintenanceService(ctx, db, serviceEventChannel)
 	case commons.CronService:
-		err = services.StartCronService(ctx, db, serviceEventChannel)
+		services.StartCronService(ctx, db, serviceEventChannel)
 	case commons.LndService:
 		err = subscribe.Start(ctx, conn, db, node.NodeId, broadcaster,
 			htlcEventChannel, forwardEventChannel,

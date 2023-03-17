@@ -740,7 +740,7 @@ func GetChannelStateNotSharedChannelIds(nodeId int, forceResponse bool) []int {
 	allChannelIds := GetChannelStateChannelIds(nodeId, forceResponse)
 	sharedChannelIds := GetChannelStateSharedChannelIds(nodeId, forceResponse)
 	for _, channelId := range allChannelIds {
-		if slices.Contains(sharedChannelIds, channelId) {
+		if !slices.Contains(sharedChannelIds, channelId) {
 			notSharedChannelIds = append(notSharedChannelIds, channelId)
 		}
 	}
