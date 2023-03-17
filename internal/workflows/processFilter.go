@@ -112,16 +112,15 @@ func (c *Clause) parseClause(data map[string]interface{}) {
 				c.ChildClauses[i].Result = true
 			}
 
-			if allTrue := true; allTrue {
-				for _, subChildClause := range newChildClaud.ChildClauses {
-					if !subChildClause.Result {
-						allTrue = false
-						break
-					}
+			allTrue := true
+			for _, subChildClause := range newChildClaud.ChildClauses {
+				if !subChildClause.Result {
+					allTrue = false
+					break
 				}
-				if allTrue {
-					c.Result = true
-				}
+			}
+			if allTrue {
+				c.Result = true
 			}
 		case "$or":
 			newChildClaud := Clause{
@@ -373,16 +372,15 @@ func ProcessQuery(filters interface{}, item map[string]interface{}) bool {
 		}
 		andFilter.parseClause(item)
 		result = andFilter.Result
-		if allTrue := true; allTrue {
-			for _, childClause := range filters.(Clause).ChildClauses {
-				if !childClause.Result {
-					allTrue = false
-					break
-				}
+		allTrue := true
+		for _, childClause := range filters.(Clause).ChildClauses {
+			if !childClause.Result {
+				allTrue = false
+				break
 			}
-			if allTrue {
-				result = true
-			}
+		}
+		if allTrue {
+			result = true
 		}
 	case "$or":
 		orFilter := Clause{
@@ -444,7 +442,8 @@ func DeserialiseQuery(query interface{}) interface{} {
 		}
 		return Clause{
 			Prefix:       "$or",
-			ChildClauses: subClauses}
+			ChildClauses: subClauses,
+		}
 	}
 	panic("Expected JSON to contain $filter, $or or $and")
 }
