@@ -26,12 +26,13 @@ import {
 } from "features/transact/Payments/paymentDefaults";
 import { AllPaymentsColumns } from "features/transact/Payments/paymentsColumns.generated";
 import { usePagination } from "components/table/pagination/usePagination";
-import { useGetTableViewsQuery } from "features/viewManagement/viewsApiSlice";
+import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
 import { useAppSelector } from "store/hooks";
-import { selectPaymentsView } from "features/viewManagement/viewSlice";
+import { selectPaymentsView, selectViews } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import useTranslations from "services/i18n/useTranslations";
+import { TableResponses, ViewResponse } from "features/viewManagement/types";
 
 function useMaximums(data: Array<Payment>): Payment | undefined {
   if (!data.length) {
@@ -63,6 +64,8 @@ function PaymentsPage() {
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectPaymentsView);
+  const paymentsViews = useAppSelector(selectViews)("payments");
+  const [updateTableView] = useUpdateTableViewMutation();
 
   const [getPagination, limit, offset] = usePagination("invoices");
 
@@ -100,6 +103,16 @@ function PaymentsPage() {
     setSidebarExpanded(false);
     mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
   };
+
+  function handleNameChange(name: string) {
+    const view = paymentsViews.views[selectedViewIndex] as ViewResponse<TableResponses>;
+    if (view.id) {
+      updateTableView({
+        id: view.id,
+        view: { ...view.view, title: name },
+      });
+    }
+  }
 
   const tableControls = (
     <TableControlSection>
@@ -153,12 +166,14 @@ function PaymentsPage() {
 
   return (
     <TablePageTemplate
-      title={"Payments"}
+      title={viewResponse.view.title}
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       sidebar={sidebar}
       tableControls={tableControls}
       pagination={getPagination(paymentsResponse?.data?.pagination?.total || 0)}
+      onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
     >
       <Table
         cellRenderer={DefaultCellRenderer}

@@ -18,12 +18,18 @@ type TablePageTemplateProps = {
   breadcrumbs?: Array<any>;
   children?: React.ReactNode;
   onNameChange?: (title: string) => void;
+  isDraft?: boolean;
 };
 
 export default function TablePageTemplate(props: TablePageTemplateProps) {
   return (
     <div className={classNames(styles.contentWrapper)}>
-      <PageTitle breadcrumbs={props.breadcrumbs} title={props.title} onNameChange={props.onNameChange}>
+      <PageTitle
+        breadcrumbs={props.breadcrumbs}
+        title={props.title}
+        onNameChange={props.onNameChange}
+        isDraft={props.isDraft}
+      >
         {props.titleContent}
       </PageTitle>
 

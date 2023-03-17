@@ -207,6 +207,7 @@ function ChannelsPage() {
       sidebar={sidebar}
       tableControls={tableControls}
       onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
     >
       <Table
         cellRenderer={channelsCellRenderer}

@@ -13,6 +13,7 @@ export type PageNameInputProps = React.DetailedHTMLProps<
   className?: string;
   onSubmitHandler?: (name: string) => void;
   onHideInput: () => void;
+  isDraft?: boolean;
 };
 
 function PageNameInput({ title, className, onSubmitHandler, onHideInput, ...inputProps }: PageNameInputProps) {
@@ -46,13 +47,16 @@ type PageTitleProps = {
   className?: string;
   children?: React.ReactNode;
   onNameChange?: (name: string) => void;
+  isDraft?: boolean;
 };
 
 function PageTitle(props: PageTitleProps) {
   const [showNameInput, setShowNameInput] = React.useState(false);
 
   const title =
-    props.onNameChange && showNameInput ? (
+    props.onNameChange && props.isDraft ? (
+      <span>{props.title}</span>
+    ) : props.onNameChange && showNameInput ? (
       <PageNameInput
         title={props.title}
         onSubmitHandler={props.onNameChange}

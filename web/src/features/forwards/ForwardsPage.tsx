@@ -167,6 +167,7 @@ function ForwardsPage() {
       breadcrumbs={breadcrumbs}
       sidebarExpanded={sidebarExpanded}
       onNameChange={handleNameChange}
+      isDraft={viewResponse.id === undefined}
       titleContent={
         <div className={styles.forwardsControls}>
           <TimeIntervalSelect />
