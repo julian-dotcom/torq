@@ -20,7 +20,7 @@ func Start(ctx context.Context, db *sqlx.DB,
 	lightningRequestChannel chan<- interface{},
 	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	broadcaster broadcast.BroadcastServer,
-	serviceEventChannel chan<- commons.ServiceEvent) error {
+	serviceEventChannel chan<- commons.ServiceEvent) {
 
 	var wg sync.WaitGroup
 
@@ -68,103 +68,66 @@ func Start(ctx context.Context, db *sqlx.DB,
 	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.AutomationService, nil)
 
 	wg.Wait()
-
-	return nil
 }
 
 func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) error {
-
-	var wg sync.WaitGroup
+	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	active := commons.ServiceActive
 
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in LightningCommunicationService %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
-	})()
+	defer func() {
+		if panicError := recover(); panicError != nil {
+			log.Error().Msgf("Panic occurred in LightningCommunicationService %v with stack: %v", panicError, string(debug.Stack()))
+			commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
+		}
+	}()
 
-	wg.Wait()
-
-	return nil
+	lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) error {
-
-	var wg sync.WaitGroup
+	broadcaster broadcast.BroadcastServer, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	active := commons.ServiceActive
 
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in RebalanceServiceStart %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
-			}
-		}()
-		workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
-	})()
+	defer func() {
+		if panicError := recover(); panicError != nil {
+			log.Error().Msgf("Panic occurred in RebalanceServiceStart %v with stack: %v", panicError, string(debug.Stack()))
+			commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
+		}
+	}()
 
-	wg.Wait()
-
-	return nil
+	workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster, serviceEventChannel)
 }
 
-func StartMaintenanceService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) error {
-	var wg sync.WaitGroup
+func StartMaintenanceService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	active := commons.ServiceActive
 
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in MaintenanceService %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.MaintenanceService].Cancel(commons.TorqDummyNodeId, &active, true)
-			}
-		}()
-		commons.MaintenanceServiceStart(ctx, db)
-	})()
+	defer func() {
+		if panicError := recover(); panicError != nil {
+			log.Error().Msgf("Panic occurred in MaintenanceService %v with stack: %v", panicError, string(debug.Stack()))
+			commons.RunningServices[commons.MaintenanceService].Cancel(commons.TorqDummyNodeId, &active, true)
+		}
+	}()
+
+	commons.MaintenanceServiceStart(ctx, db)
 
 	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.MaintenanceService, nil)
-
-	wg.Wait()
-
-	return nil
 }
 
-func StartCronService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) error {
-	var wg sync.WaitGroup
+func StartCronService(ctx context.Context, db *sqlx.DB, serviceEventChannel chan<- commons.ServiceEvent) {
 
 	active := commons.ServiceActive
 
-	// Cron Trigger Monitor
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in CronTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
-			}
-		}()
-		automation.CronTriggerMonitor(ctx, db)
-	})()
+	defer func() {
+		if panicError := recover(); panicError != nil {
+			log.Error().Msgf("Panic occurred in CronTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
+			commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
+		}
+	}()
+
+	automation.CronTriggerMonitor(ctx, db)
 
 	commons.SendServiceEvent(commons.TorqDummyNodeId, serviceEventChannel, commons.ServicePending, commons.ServiceActive, commons.CronService, nil)
-
-	wg.Wait()
-
-	return nil
 }
