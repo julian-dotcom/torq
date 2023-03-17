@@ -105,6 +105,9 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	}()
 	go func() {
 		for requests := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if requests.NodeId != nodeId {
 				continue
 			}

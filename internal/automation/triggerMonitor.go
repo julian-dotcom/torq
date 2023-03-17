@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/andres-erbsen/clock"
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/robfig/cron/v3"
@@ -364,6 +365,9 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	}()
 	go func() {
 		for channelBalanceEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
@@ -386,6 +390,9 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster br
 	}()
 	go func() {
 		for channelEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}

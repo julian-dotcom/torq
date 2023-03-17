@@ -219,6 +219,9 @@ func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 	}()
 	go func() {
 		for serviceEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 				continue
 			}
@@ -248,6 +251,9 @@ func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 	}()
 	go func() {
 		for channelEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}
@@ -275,6 +281,9 @@ func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.Broadca
 	}()
 	go func() {
 		for channelGraphEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 				channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
 				channelGraphEvent.ConnectingNodeId == nil || *channelGraphEvent.ConnectingNodeId == 0 {
@@ -298,6 +307,9 @@ func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 	}()
 	go func() {
 		for forwardEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if forwardEvent.NodeId == 0 {
 				continue
 			}
@@ -323,6 +335,9 @@ func processInvoiceEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 	}()
 	go func() {
 		for invoiceEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
 				continue
 			}
@@ -342,6 +357,9 @@ func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 	}()
 	go func() {
 		for paymentEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if paymentEvent.NodeId == 0 || paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 || paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
 				continue
 			}
@@ -361,6 +379,9 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 	}()
 	go func() {
 		for peerEvent := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
 				continue
 			}

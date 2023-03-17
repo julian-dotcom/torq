@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
@@ -46,6 +47,9 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	}()
 	go func() {
 		for lightningRequest := range listener {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
 			if request, ok := lightningRequest.(commons.ChannelStatusUpdateRequest); ok {
 				if request.NodeId != nodeSettings.NodeId {
 					continue
