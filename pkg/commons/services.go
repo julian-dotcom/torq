@@ -85,7 +85,9 @@ func (rs *Services) Cancel(
 		delete(rs.runningList, nodeId)
 		rs.cancelTime[nodeId] = time.Now().UTC()
 		rs.serviceStatus[nodeId] = ServiceInactive
-		setStreamStatuses(nodeId, rs, ServiceInactive)
+		if rs.ServiceType == LndService {
+			setStreamStatuses(nodeId, rs, ServiceInactive)
+		}
 		return previousStatus, ServiceActive
 	}
 	return previousStatus, ServiceInactive

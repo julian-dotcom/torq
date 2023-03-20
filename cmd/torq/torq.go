@@ -542,7 +542,7 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel <-chan commons.ServiceCha
 				}
 
 				if len(nodes) == 0 {
-					log.Info().Msgf("%v Service: No active nodes found.", name)
+					log.Info().Msgf("%v Service: No active nodes found (nodeId: %v).", name, serviceCmd.NodeId)
 					if serviceCmd.NodeId != 0 {
 						runningServices.RemoveSubscription(serviceCmd.NodeId)
 					}
@@ -864,24 +864,24 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 			}
 		}
 		if serviceEvent.SubscriptionStream == nil {
-		switch serviceEvent.Status {
-		case commons.ServiceBootRequestedWithDelay:
-			log.Info().Msgf("Service will be restarted (when active) in %v seconds for node id: %v",
-				servicesErrorSleepSeconds, serviceEvent.NodeId)
+			switch serviceEvent.Status {
+			case commons.ServiceBootRequestedWithDelay:
+				log.Info().Msgf("Service will be restarted (when active) in %v seconds for node id: %v",
+					servicesErrorSleepSeconds, serviceEvent.NodeId)
 
-			delaySeconds := servicesErrorSleepSeconds
-			serviceChannel <- commons.ServiceChannelMessage{
-				ServiceCommand: commons.Boot,
-				ServiceType:    serviceEvent.Type,
-				NodeId:         serviceEvent.NodeId,
-				DelaySeconds:   &delaySeconds,
-			}
-		case commons.ServiceBootRequested:
-			log.Info().Msgf("Service will be restarted (when active) for node id: %v", serviceEvent.NodeId)
-			serviceChannel <- commons.ServiceChannelMessage{
-				ServiceCommand: commons.Boot,
-				ServiceType:    serviceEvent.Type,
-				NodeId:         serviceEvent.NodeId,
+				delaySeconds := servicesErrorSleepSeconds
+				serviceChannel <- commons.ServiceChannelMessage{
+					ServiceCommand: commons.Boot,
+					ServiceType:    serviceEvent.Type,
+					NodeId:         serviceEvent.NodeId,
+					DelaySeconds:   &delaySeconds,
+				}
+			case commons.ServiceBootRequested:
+				log.Info().Msgf("Service will be restarted (when active) for node id: %v", serviceEvent.NodeId)
+				serviceChannel <- commons.ServiceChannelMessage{
+					ServiceCommand: commons.Boot,
+					ServiceType:    serviceEvent.Type,
+					NodeId:         serviceEvent.NodeId,
 				}
 			}
 		}
