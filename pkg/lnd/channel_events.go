@@ -157,7 +157,7 @@ func storeChannelEvent(db *sqlx.DB,
 		// This stops the graph from listening to channel updates
 		commons.SetChannelStatus(channel.ChannelID, channel.Status)
 		if len(chans) == 0 {
-			commons.InactivateChannelNode(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
+			commons.SetInactiveChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:

@@ -440,6 +440,8 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.WrapLogAndSendServerError(c, err, "Updating connection details")
 		return
 	}
+	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
+		nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 
 	startAllLndServicesOrRestartWhenRunning(serviceChannel, ncd.NodeId, ncd.Status == commons.Active)
 
@@ -500,13 +502,19 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 			server_errors.LogAndSendServerError(c, err)
 			return
 		}
-
 		if commons.Status(statusId) == commons.Deleted {
 			node := commons.GetNodeSettingsByNodeId(nodeId)
 			commons.RemoveManagedNodeFromCache(node)
 			commons.RemoveManagedChannelStateFromCache(node.NodeId)
+		} else {
+			nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+			var name string
+			if nodeSettings.Name != nil {
+				name = *nodeSettings.Name
+			}
+			commons.SetTorqNode(nodeId, name, commons.Status(statusId),
+				nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
-
 	} else {
 		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
 		return
