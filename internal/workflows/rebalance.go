@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -93,19 +94,24 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	go initiateDelayedRebalancers(ctx, db, client, router)
 
 	listener := broadcaster.SubscribeRebalanceRequest()
-	defer broadcaster.CancelSubscriptionRebalanceRequest(listener)
-
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionRebalanceRequest(listener)
 			return
-		case requests := <-listener:
+		}
+	}()
+	go func() {
+		for requests := range listener {
 			if requests.NodeId != nodeId {
 				continue
 			}
 			processRebalanceRequests(ctx, db, requests, nodeId)
 		}
-	}
+	}()
+	wg.Wait()
 }
 
 func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,

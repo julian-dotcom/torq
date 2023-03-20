@@ -30,11 +30,12 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 	subscriptionStream := commons.ChannelBalanceCacheStream
 	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
 	mutex := &sync.RWMutex{}
+	initiateSync := make(chan bool)
 
 	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 		serviceStatus, subscriptionStream, lndClient, db, mutex)
 
-	go processServiceEvent(ctx, broadcaster, broadcaster.SubscribeServiceEvent())
+	go processServiceEvent(ctx, initiateSync, broadcaster, broadcaster.SubscribeServiceEvent())
 	go processChannelEvent(ctx, broadcaster, broadcaster.SubscribeChannelEvent())
 	go processChannelGraphEvent(ctx, broadcaster, broadcaster.SubscribeChannelGraphEvent())
 	go processForwardEvent(ctx, broadcaster, broadcaster.SubscribeForwardEvent())
@@ -47,6 +48,9 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 		case <-ctx.Done():
 			return
 		case <-lndSyncTicker:
+			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+				serviceStatus, subscriptionStream, lndClient, db, mutex)
+		case <-initiateSync:
 			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
 				serviceStatus, subscriptionStream, lndClient, db, mutex)
 		}
@@ -207,41 +211,61 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 	return nil
 }
 
-func processServiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.ServiceEvent) {
-	defer broadcaster.CancelSubscriptionServiceEvent(listener)
+func processServiceEvent(ctx context.Context,
+	initiateSync chan<- bool,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.ServiceEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionServiceEvent(listener)
 			return
-		case serviceEvent := <-listener:
+		}
+	}()
+	go func() {
+		for serviceEvent := range listener {
 			if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 				continue
 			}
 			if serviceEvent.SubscriptionStream == nil {
+				if serviceEvent.Status == commons.ServiceActive {
+					initiateSync <- true
+				}
 				continue
 			}
 			if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
 				continue
 			}
-			channelBalanceStreamStatus := commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId)
+			channelBalanceStreamStatus :=
+				commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId)
 			if channelBalanceStreamStatus < commons.ServiceBootRequested {
 				commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.Status(channelBalanceStreamStatus))
 			} else {
 				commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.Inactive)
 			}
 		}
-	}
+	}()
+	wg.Wait()
 }
 
-func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.ChannelEvent) {
-	defer broadcaster.CancelSubscriptionChannelEvent(listener)
+func processChannelEvent(ctx context.Context,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.ChannelEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionChannelEvent(listener)
 			return
-		case channelEvent := <-listener:
+		}
+	}()
+	go func() {
+		for channelEvent := range listener {
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 				continue
 			}
@@ -256,18 +280,27 @@ func processChannelEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 			}
 			commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, status)
 		}
-	}
+	}()
+	wg.Wait()
 }
 
-func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.ChannelGraphEvent) {
-	defer broadcaster.CancelSubscriptionChannelGraphEvent(listener)
+func processChannelGraphEvent(ctx context.Context,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.ChannelGraphEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionChannelGraphEvent(listener)
 			return
-		case channelGraphEvent := <-listener:
-			if channelGraphEvent.NodeId == 0 || channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
+		}
+	}()
+	go func() {
+		for channelGraphEvent := range listener {
+			if channelGraphEvent.NodeId == 0 ||
+				channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 				channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
 				channelGraphEvent.ConnectingNodeId == nil || *channelGraphEvent.ConnectingNodeId == 0 {
 				continue
@@ -277,17 +310,25 @@ func processChannelGraphEvent(ctx context.Context, broadcaster broadcast.Broadca
 				channelGraphEvent.Disabled, channelGraphEvent.TimeLockDelta, channelGraphEvent.MinHtlcMsat,
 				channelGraphEvent.MaxHtlcMsat, channelGraphEvent.FeeBaseMsat, channelGraphEvent.FeeRateMilliMsat)
 		}
-	}
+	}()
+	wg.Wait()
 }
 
-func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.ForwardEvent) {
-	defer broadcaster.CancelSubscriptionForwardEvent(listener)
+func processForwardEvent(ctx context.Context,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.ForwardEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionForwardEvent(listener)
 			return
-		case forwardEvent := <-listener:
+		}
+	}()
+	go func() {
+		for forwardEvent := range listener {
 			if forwardEvent.NodeId == 0 {
 				continue
 			}
@@ -300,51 +341,77 @@ func processForwardEvent(ctx context.Context, broadcaster broadcast.BroadcastSer
 					forwardEvent.AmountOutMsat, commons.BalanceUpdateForwardEvent)
 			}
 		}
-	}
+	}()
+	wg.Wait()
 }
 
-func processInvoiceEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.InvoiceEvent) {
-	defer broadcaster.CancelSubscriptionInvoiceEvent(listener)
+func processInvoiceEvent(ctx context.Context,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.InvoiceEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionInvoiceEvent(listener)
 			return
-		case invoiceEvent := <-listener:
+		}
+	}()
+	go func() {
+		for invoiceEvent := range listener {
 			if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
 				continue
 			}
 			commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true,
 				invoiceEvent.AmountPaidMsat, commons.BalanceUpdateInvoiceEvent)
 		}
-	}
+	}()
+	wg.Wait()
 }
 
-func processPaymentEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.PaymentEvent) {
-	defer broadcaster.CancelSubscriptionPaymentEvent(listener)
+func processPaymentEvent(ctx context.Context,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.PaymentEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionPaymentEvent(listener)
 			return
-		case paymentEvent := <-listener:
-			if paymentEvent.NodeId == 0 || paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 || paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
+		}
+	}()
+	go func() {
+		for paymentEvent := range listener {
+			if paymentEvent.NodeId == 0 ||
+				paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 ||
+				paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
 				continue
 			}
 			commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false,
 				paymentEvent.AmountPaid, commons.BalanceUpdatePaymentEvent)
 		}
-	}
+	}()
+	wg.Wait()
 }
 
-func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer, listener <-chan commons.PeerEvent) {
-	defer broadcaster.CancelSubscriptionPeerEvent(listener)
+func processPeerEvent(ctx context.Context,
+	broadcaster broadcast.BroadcastServer,
+	listener <-chan commons.PeerEvent) {
 
-	for {
-		select {
-		case <-ctx.Done():
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range ctx.Done() {
+			broadcaster.CancelSubscriptionPeerEvent(listener)
 			return
-		case peerEvent := <-listener:
+		}
+	}()
+	go func() {
+		for peerEvent := range listener {
 			if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
 				continue
 			}
@@ -360,5 +427,6 @@ func processPeerEvent(ctx context.Context, broadcaster broadcast.BroadcastServer
 				commons.SetChannelStateChannelStatus(peerEvent.NodeId, channelId, status)
 			}
 		}
-	}
+	}()
+	wg.Wait()
 }
