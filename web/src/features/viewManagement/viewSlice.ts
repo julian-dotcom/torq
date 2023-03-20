@@ -135,9 +135,10 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex } = actions.payload;
       if (state.pages[page].views.length !== 1) {
-        const views = state.pages[page].views;
-        views.splice(viewIndex, 1);
-        state.pages[page].views = views;
+        const views = state.pages[page].views.slice();
+        const spliceResult = views.splice(viewIndex, 1);
+        const deletedView = spliceResult[0];
+        state.pages[page].views = <Array<ViewResponse<TableResponses>>>[...views];
         if (state.pages[page].selected === viewIndex) {
           state.pages[page].selected = 0;
         }
@@ -145,12 +146,12 @@ export const viewsSlice = createSlice({
           viewPage: page,
           viewCount: state.pages[page].views.length,
           viewIndex: viewIndex,
-          viewName: state.pages[page].views[viewIndex].view.title,
-          viewColumns: (state.pages[page].views[viewIndex].view.columns || []).map((c) => c.heading),
-          viewSortedBy: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
+          viewName: deletedView?.view.title,
+          viewColumns: (deletedView?.view.columns || []).map((c) => c.heading),
+          viewSortedBy: (deletedView?.view.sortBy || []).map((s) => {
             return { key: s.key, direction: s.direction };
           }),
-          viewFilterCount: deserialiseQuery(state.pages[page].views[viewIndex].view.filters).length,
+          viewFilterCount: deserialiseQuery(deletedView.view.filters).length,
         });
       }
     },
