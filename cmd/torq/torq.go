@@ -543,6 +543,9 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel <-chan commons.ServiceCha
 
 				if len(nodes) == 0 {
 					log.Info().Msgf("%v Service: No active nodes found.", name)
+					if serviceCmd.NodeId != 0 {
+						runningServices.RemoveSubscription(serviceCmd.NodeId)
+					}
 				} else {
 					if serviceCmd.DelaySeconds != nil {
 						log.Error().Msgf("%v Service: Sleeping for %v seconds before attempting to boot.", name, *serviceCmd.DelaySeconds)
@@ -860,6 +863,7 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 				}
 			}
 		}
+		if serviceEvent.SubscriptionStream == nil {
 		switch serviceEvent.Status {
 		case commons.ServiceBootRequestedWithDelay:
 			log.Info().Msgf("Service will be restarted (when active) in %v seconds for node id: %v",
@@ -878,6 +882,7 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 				ServiceCommand: commons.Boot,
 				ServiceType:    serviceEvent.Type,
 				NodeId:         serviceEvent.NodeId,
+				}
 			}
 		}
 	}

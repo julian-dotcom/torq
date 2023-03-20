@@ -54,8 +54,8 @@ func (rs *Services) RemoveSubscription(nodeId int) ServiceStatus {
 	_, exists := rs.runningList[nodeId]
 	if exists {
 		delete(rs.runningList, nodeId)
-		rs.serviceStatus[nodeId] = ServiceInactive
 	}
+	rs.serviceStatus[nodeId] = ServiceInactive
 
 	if rs.ServiceType == LndService {
 		setStreamStatuses(nodeId, rs, ServiceInactive)
@@ -202,12 +202,16 @@ func (rs *Services) GetStreamStatus(nodeId int, stream SubscriptionStream) Servi
 	if !exists {
 		return ServiceInactive
 	}
-	if serviceStatus != ServiceActive {
+	switch serviceStatus {
+	case ServiceBootRequested, ServiceBootRequestedWithDelay:
+		return ServiceInactive
+	case ServiceActive:
+		streamStatus, streamStatusExists := rs.streamStatus[nodeId][stream]
+		if streamStatusExists {
+			return streamStatus
+		}
+	default:
 		return serviceStatus
-	}
-	streamStatus, exists := rs.streamStatus[nodeId][stream]
-	if exists {
-		return streamStatus
 	}
 	return ServiceInactive
 }
@@ -374,9 +378,6 @@ func (rs *Services) SetBootRequestedStatus(nodeId int, delayed bool) ServiceStat
 		return previousStatus
 	}
 	rs.serviceStatus[nodeId] = status
-	if status == ServiceActive {
-		rs.bootTime[nodeId] = time.Now().UTC()
-	}
 	return previousStatus
 }
 
