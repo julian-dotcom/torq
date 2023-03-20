@@ -227,13 +227,16 @@ func processServiceEvent(ctx context.Context,
 	}()
 	go func() {
 		for serviceEvent := range listener {
+			if serviceEvent.Type == commons.LightningCommunicationService {
+				if serviceEvent.Status == commons.ServiceActive {
+					initiateSync <- true
+				}
+				continue
+			}
 			if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 				continue
 			}
 			if serviceEvent.SubscriptionStream == nil {
-				if serviceEvent.Status == commons.ServiceActive {
-					initiateSync <- true
-				}
 				continue
 			}
 			if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
