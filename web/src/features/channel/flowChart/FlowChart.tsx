@@ -7,8 +7,7 @@ import FlowChartCanvas from "features/charts/flowChartCanvas";
 import { FlowData } from "features/channel/channelTypes";
 import { useAppSelector } from "store/hooks";
 import { selectFlowKeys } from "../channelSlice";
-import { useNavigate } from "react-router";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type FlowChart = {
   data: Array<FlowData>;
@@ -22,7 +21,7 @@ function FlowChart({ data }: FlowChart) {
   const location = useLocation();
 
   function handleNodeClick(channelId: number) {
-    const state = location?.state?.background || {};
+    const state = location?.state?.background || location || {};
     mixpanel.track("FlowChart Navigation", { channel_id: channelId, background: state?.pathname });
     navigate(`/analyse/inspect/${channelId}`, { state: { background: state } });
   }

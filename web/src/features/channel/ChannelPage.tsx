@@ -201,7 +201,6 @@ function ChannelPage(_: ChannelPageProps) {
   }
 
   const isSingleChannel = channelDetails?.length && history?.channels?.length === 1;
-
   return (
     <PopoutPageTemplate
       title={t.inspectChannel}
