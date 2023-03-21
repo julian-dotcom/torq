@@ -474,7 +474,7 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 	if commons.Status(statusId) == commons.Deleted {
 		node := commons.GetNodeSettingsByNodeId(nodeId)
 		commons.RemoveManagedNodeFromCache(node)
-		commons.RemoveManagedChannelStateFromCache(node.NodeId)
+		commons.RemoveManagedChannelStatesFromCache(node.NodeId)
 	} else {
 		nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 		var name string

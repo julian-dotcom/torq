@@ -748,6 +748,9 @@ func processServiceEvents(db *sqlx.DB, vectorUrl string, serviceChannel chan<- c
 
 	listener := broadcaster.SubscribeServiceEvent()
 	for serviceEvent := range listener {
+		log.Debug().Msgf("Service event received for type: %v (%v), previousStatus: %v, status: %v",
+			serviceEvent.Type.String(), serviceEvent.SubscriptionStream.String(),
+			serviceEvent.PreviousStatus.String(), serviceEvent.Status.String())
 		if serviceEvent.Type == commons.TorqService {
 			switch serviceEvent.Status {
 			case commons.ServiceInactive:

@@ -336,5 +336,6 @@ func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransa
 		&closingTransactionHash, currentSettings.ClosingNodeId,
 		currentSettings.ClosingBlockHeight, currentSettings.ClosedOn,
 		currentSettings.Flags)
+	commons.RemoveManagedChannelStateFromCache(channelId)
 	return nil
 }

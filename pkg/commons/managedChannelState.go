@@ -36,6 +36,7 @@ const (
 	writeChannelStateRoutingPolicy
 	writeChannelStateUpdateBalance
 	writeChannelStateUpdateHtlcEvent
+	removeChannelStatesFromCache
 	removeChannelStateFromCache
 )
 
@@ -679,6 +680,12 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 			log.Error().Msgf("Received HTLC channel balance update for uncached node with nodeId: %v", managedChannelState.HtlcEvent.NodeId)
 		}
 	case removeChannelStateFromCache:
+		for nodeId := range channelStateSettingsByChannelIdCache {
+			nodeChannels := channelStateSettingsByChannelIdCache[nodeId]
+			delete(nodeChannels, managedChannelState.ChannelId)
+			channelStateSettingsByChannelIdCache[nodeId] = nodeChannels
+		}
+	case removeChannelStatesFromCache:
 		delete(channelStateSettingsDeactivationTimeCache, managedChannelState.NodeId)
 		delete(channelStateSettingsByChannelIdCache, managedChannelState.NodeId)
 		delete(channelStateSettingsStatusCache, managedChannelState.NodeId)
@@ -931,9 +938,16 @@ func processHtlcInclude(managedChannelState ManagedChannelState, settings Manage
 	}
 }
 
-func RemoveManagedChannelStateFromCache(nodeId int) {
+func RemoveManagedChannelStatesFromCache(nodeId int) {
 	ManagedChannelStateChannel <- ManagedChannelState{
-		Type:   removeChannelStateFromCache,
+		Type:   removeChannelStatesFromCache,
 		NodeId: nodeId,
+	}
+}
+
+func RemoveManagedChannelStateFromCache(channelId int) {
+	ManagedChannelStateChannel <- ManagedChannelState{
+		Type:      removeChannelStateFromCache,
+		ChannelId: channelId,
 	}
 }
