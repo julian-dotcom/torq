@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -156,7 +157,7 @@ func storeChannelEvent(db *sqlx.DB,
 		// This stops the graph from listening to channel updates
 		commons.SetChannelStatus(channel.ChannelID, channel.Status)
 		if len(chans) == 0 {
-			commons.InactivateChannelNode(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
+			commons.SetInactiveChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
@@ -346,8 +347,7 @@ type lndClientSubscribeChannelEvent interface {
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings, channelEventChannel chan<- commons.ChannelEvent,
-	lightningRequestChannel chan<- interface{},
-	serviceEventChannel chan<- commons.ServiceEvent) {
+	lightningRequestChannel chan<- interface{}) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -356,16 +356,26 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 	var chanEvent *lnrpc.ChannelEventUpdate
 	serviceStatus := commons.ServiceInactive
 	subscriptionStream := commons.ChannelEventStream
+	var delay bool
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -373,7 +383,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				}
 				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 			// HACK to know if the context is a testcase.
@@ -394,7 +404,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				if response.Error != nil {
 					log.Error().Err(response.Error).Msgf("Obtaining Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(streamErrorSleepSeconds * time.Second)
+					delay = true
 					continue
 				}
 				responseChannel = make(chan commons.ImportResponse)
@@ -411,11 +421,11 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				if response.Error != nil {
 					log.Error().Err(response.Error).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(streamErrorSleepSeconds * time.Second)
+					delay = true
 					continue
 				}
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
 
 		chanEvent, err = stream.Recv()
@@ -423,10 +433,10 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(streamErrorSleepSeconds * time.Second)
+			delay = true
 			continue
 		}
 
@@ -435,6 +445,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
 			log.Error().Err(err).Msg("Storing channel event failed")
 		}
+		delay = false
 	}
 }
 

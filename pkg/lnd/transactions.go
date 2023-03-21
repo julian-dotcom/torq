@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -44,10 +45,11 @@ func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight uint32, err error) {
 
 // SubscribeAndStoreTransactions Subscribes to on-chain transaction events from LND and stores them in the
 // database as a time series. It will also import unregistered transactions on startup.
-func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient, db *sqlx.DB,
+func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient,
+	db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings,
-	transactionEventChannel chan<- commons.TransactionEvent, blockEventChannel chan<- commons.BlockEvent,
-	serviceEventChannel chan<- commons.ServiceEvent) {
+	transactionEventChannel chan<- commons.TransactionEvent,
+	blockEventChannel chan<- commons.BlockEvent) {
 
 	defer log.Info().Msgf("SubscribeAndStoreTransactions terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -64,26 +66,37 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	importTransactions := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportTransactions)
 	if !importTransactions {
 		log.Info().Msgf("Import of transactions is disabled for nodeId: %v", nodeSettings.NodeId)
-		SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceDeleted, serviceStatus)
+		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
 		return
 	}
 
+	var delay bool
+
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			transactionHeight, err = fetchLastTxHeight(db, nodeSettings.NodeId)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
 				log.Error().Err(err).Msgf("Failed to obtain last know transaction, will retry in %v seconds", streamErrorSleepSeconds)
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 
@@ -97,14 +110,14 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 					return
 				}
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", streamErrorSleepSeconds)
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 			stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
 			if err != nil {
 				log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 		} else {
@@ -114,10 +127,10 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 				log.Error().Err(err).Msgf("Receiving block epoch from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 			commons.SetBlockHeight(blockEpoch.Height)
@@ -139,18 +152,18 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 		}
 
 		if bootStrapping {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceInitializing, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
 		} else {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
 		for _, transaction := range transactionDetails.Transactions {
 			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)
@@ -180,6 +193,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				transactionHeight = *storedTx.BlockHeight
 			}
 		}
+		delay = false
 	}
 }
 

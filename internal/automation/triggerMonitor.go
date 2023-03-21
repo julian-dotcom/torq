@@ -189,16 +189,27 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
+	var delay bool
+
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(1 * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		scheduledTrigger := commons.GetScheduledTrigger()
 		if scheduledTrigger.SchedulingTime == nil {
-			time.Sleep(1 * time.Second)
+			delay = true
 			continue
 		}
 		events := scheduledTrigger.TriggeringEventQueue
@@ -352,15 +363,13 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
-	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelBalanceEvent()
+	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
 	}()
 	go func() {
 		for channelBalanceEvent := range listener {
@@ -374,15 +383,13 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 }
 
 func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) {
-	wg := sync.WaitGroup{}
 	listener := broadcaster.SubscribeChannelEvent()
+	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
-			broadcaster.CancelSubscriptionChannelEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionChannelEvent(listener)
 	}()
 	go func() {
 		for channelEvent := range listener {

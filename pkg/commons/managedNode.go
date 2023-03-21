@@ -26,7 +26,6 @@ const (
 	readChannelNode
 	writeActiveChannelNode
 	writeInactiveChannelNode
-	inactivateChannelNode
 	readAllChannelNodeIds
 	readAllChannelPublicKeys
 	readActiveChannelPublicKeys
@@ -269,8 +268,12 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				managedNode.Name, managedNode.PublicKey, managedNode.NodeId, managedNode.Chain, managedNode.Network)
 		} else {
 			torqNodeNameByNodeIdCache[managedNode.NodeId] = *managedNode.Name
+			initializeNodeIdCache(activeTorqNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			delete(activeTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
 			initializeNodeIdCache(allTorqNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
+			initializeNodeIdCache(channelNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			delete(channelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
 			initializeNodeIdCache(allChannelNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
 			nodeSettingsByNodeIdCache[managedNode.NodeId] = ManagedNodeSettings{
@@ -328,22 +331,10 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			log.Error().Msgf("No empty publicKey (%v), chain (%v), network (%v) or nodeId (%v) allowed",
 				managedNode.PublicKey, managedNode.NodeId, managedNode.Chain, managedNode.Network)
 		} else {
-			initializeNodeIdCache(allChannelNodeIdCache, *managedNode.Chain, *managedNode.Network)
-			allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
-			nodeSettingsByNodeIdCache[managedNode.NodeId] = ManagedNodeSettings{
-				NodeId:    managedNode.NodeId,
-				Network:   *managedNode.Network,
-				Chain:     *managedNode.Chain,
-				PublicKey: managedNode.PublicKey,
-				Status:    Inactive,
-			}
-		}
-	case inactivateChannelNode:
-		if managedNode.Chain == nil || managedNode.Network == nil || managedNode.PublicKey == "" {
-			log.Error().Msgf("No empty publicKey (%v), Chain (%v) or Network (%v) allowed", managedNode.PublicKey, managedNode.Chain, managedNode.Network)
-		} else {
 			initializeNodeIdCache(channelNodeIdCache, *managedNode.Chain, *managedNode.Network)
 			delete(channelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
+			initializeNodeIdCache(allChannelNodeIdCache, *managedNode.Chain, *managedNode.Network)
+			allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network][managedNode.PublicKey] = managedNode.NodeId
 			nodeSettingsByNodeIdCache[managedNode.NodeId] = ManagedNodeSettings{
 				NodeId:    managedNode.NodeId,
 				Network:   *managedNode.Network,
@@ -538,16 +529,6 @@ func SetInactiveChannelNode(nodeId int, publicKey string, chain Chain, network N
 		Network:   &network,
 		Type:      writeInactiveChannelNode,
 	}
-}
-
-func InactivateChannelNode(publicKey string, chain Chain, network Network) {
-	managedNode := ManagedNode{
-		PublicKey: publicKey,
-		Chain:     &chain,
-		Network:   &network,
-		Type:      inactivateChannelNode,
-	}
-	ManagedNodeChannel <- managedNode
 }
 
 func GetNodeSettingsByNodeId(nodeId int) ManagedNodeSettings {

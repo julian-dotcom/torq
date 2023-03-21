@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -33,8 +34,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	nodeSettings commons.ManagedNodeSettings,
 	nodeGraphEventChannel chan<- commons.NodeGraphEvent,
 	channelGraphEventChannel chan<- commons.ChannelGraphEvent,
-	lightningRequestChannel chan<- interface{},
-	serviceEventChannel chan<- commons.ServiceEvent) {
+	lightningRequestChannel chan<- interface{}) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -43,16 +43,26 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	var gpu *lnrpc.GraphTopologyUpdate
 	serviceStatus := commons.ServiceInactive
 	subscriptionStream := commons.GraphEventStream
+	var delay bool
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
+		if delay {
+			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		if stream == nil {
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -60,7 +70,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				}
 				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
-				time.Sleep(streamErrorSleepSeconds * time.Second)
+				delay = true
 				continue
 			}
 			// HACK to know if the context is a testcase.
@@ -81,7 +91,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				if response.Error != nil {
 					log.Error().Err(response.Error).Msgf("Obtaining All Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(streamErrorSleepSeconds * time.Second)
+					delay = true
 					continue
 				}
 
@@ -99,7 +109,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				if response.Error != nil {
 					log.Error().Err(response.Error).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(streamErrorSleepSeconds * time.Second)
+					delay = true
 					continue
 				}
 
@@ -117,11 +127,11 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				if response.Error != nil {
 					log.Error().Err(response.Error).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
-					time.Sleep(streamErrorSleepSeconds * time.Second)
+					delay = true
 					continue
 				}
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServiceActive, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
 
 		gpu, err = stream.Recv()
@@ -129,10 +139,10 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SendStreamEvent(serviceEventChannel, nodeSettings.NodeId, subscriptionStream, commons.ServicePending, serviceStatus)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
 			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
-			time.Sleep(streamErrorSleepSeconds * time.Second)
+			delay = true
 			continue
 		}
 
@@ -147,6 +157,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNEL UPDATES ARE NOW IGNORED???
 			log.Error().Err(err).Msgf("Failed to store channel update events")
 		}
+		delay = false
 	}
 }
 

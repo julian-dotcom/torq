@@ -54,8 +54,8 @@ func (rs *Services) RemoveSubscription(nodeId int) ServiceStatus {
 	_, exists := rs.runningList[nodeId]
 	if exists {
 		delete(rs.runningList, nodeId)
-		rs.serviceStatus[nodeId] = ServiceInactive
 	}
+	rs.serviceStatus[nodeId] = ServiceInactive
 
 	if rs.ServiceType == LndService {
 		setStreamStatuses(nodeId, rs, ServiceInactive)
@@ -85,7 +85,9 @@ func (rs *Services) Cancel(
 		delete(rs.runningList, nodeId)
 		rs.cancelTime[nodeId] = time.Now().UTC()
 		rs.serviceStatus[nodeId] = ServiceInactive
-		setStreamStatuses(nodeId, rs, ServiceInactive)
+		if rs.ServiceType == LndService {
+			setStreamStatuses(nodeId, rs, ServiceInactive)
+		}
 		return previousStatus, ServiceActive
 	}
 	return previousStatus, ServiceInactive
@@ -202,12 +204,16 @@ func (rs *Services) GetStreamStatus(nodeId int, stream SubscriptionStream) Servi
 	if !exists {
 		return ServiceInactive
 	}
-	if serviceStatus != ServiceActive {
+	switch serviceStatus {
+	case ServiceBootRequested, ServiceBootRequestedWithDelay:
+		return ServiceInactive
+	case ServiceActive:
+		streamStatus, streamStatusExists := rs.streamStatus[nodeId][stream]
+		if streamStatusExists {
+			return streamStatus
+		}
+	default:
 		return serviceStatus
-	}
-	streamStatus, exists := rs.streamStatus[nodeId][stream]
-	if exists {
-		return streamStatus
 	}
 	return ServiceInactive
 }
@@ -359,6 +365,24 @@ func (rs *Services) Booted(nodeId int, bootLock *sync.Mutex) ServiceStatus {
 	return previousStatus
 }
 
+func (rs *Services) SetBootRequestedStatus(nodeId int, delayed bool) ServiceStatus {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	status := ServiceBootRequested
+	if delayed {
+		status = ServiceBootRequestedWithDelay
+	}
+
+	initServiceMaps(rs, nodeId)
+	previousStatus := rs.serviceStatus[nodeId]
+	if previousStatus == status {
+		return previousStatus
+	}
+	rs.serviceStatus[nodeId] = status
+	return previousStatus
+}
+
 func (rs *Services) SetStreamStatus(nodeId int, stream SubscriptionStream, status ServiceStatus) ServiceStatus {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
@@ -410,24 +434,6 @@ func initServiceMaps(rs *Services, nodeId int) {
 	_, exists = rs.streamInitializationPingTime[nodeId]
 	if !exists {
 		rs.streamInitializationPingTime[nodeId] = make(map[SubscriptionStream]time.Time)
-	}
-}
-
-func SendServiceEvent(nodeId int, serviceEventChannel chan<- ServiceEvent, previousStatus ServiceStatus, status ServiceStatus,
-	serviceType ServiceType, subscriptionStream *SubscriptionStream) {
-	if previousStatus != status {
-		if serviceEventChannel != nil {
-			serviceEventChannel <- ServiceEvent{
-				EventData: EventData{
-					EventTime: time.Now().UTC(),
-					NodeId:    nodeId,
-				},
-				Type:               serviceType,
-				SubscriptionStream: subscriptionStream,
-				Status:             status,
-				PreviousStatus:     previousStatus,
-			}
-		}
 	}
 }
 

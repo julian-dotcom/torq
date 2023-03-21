@@ -66,67 +66,43 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 	connectionDetails.CustomSettings &= ^customSettings
 }
 
-func startAllLndServicesOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage, nodeId int, lndActive bool) bool {
+// You need to update the database before calling this function.
+func setAllLndServices(
+	serviceChannel chan<- commons.ServiceChannelMessage,
+	nodeId int,
+	lndActive bool) {
+
 	// Services that aren't tied to a node but to Torq itself:
 	//	TorqService
 	//	AutomationService
 	//	MaintenanceService
 	//	CronService
-	startServiceOrRestartWhenRunning(serviceChannel, commons.LndService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.VectorService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.AmbossService, nodeId, false)
-	startServiceOrRestartWhenRunning(serviceChannel, commons.RebalanceService, nodeId, false)
-	time.Sleep(2 * time.Second)
-	return startServiceOrRestartWhenRunning(serviceChannel, commons.LightningCommunicationService, nodeId, lndActive)
+	commons.RunningServices[commons.LndService].Cancel(nodeId, nil, true)
+	commons.RunningServices[commons.VectorService].Cancel(nodeId, nil, true)
+	commons.RunningServices[commons.AmbossService].Cancel(nodeId, nil, true)
+	commons.RunningServices[commons.RebalanceService].Cancel(nodeId, nil, true)
+	commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, nil, true)
+	time.Sleep(5 * time.Second)
+	if lndActive {
+		serviceChannel <- commons.ServiceChannelMessage{
+			NodeId:         nodeId,
+			ServiceType:    commons.LightningCommunicationService,
+			ServiceCommand: commons.Boot,
+		}
+	}
 }
 
-func startServiceOrRestartWhenRunning(serviceChannel chan<- commons.ServiceChannelMessage,
+func setService(serviceChannel chan<- commons.ServiceChannelMessage,
 	serviceType commons.ServiceType, nodeId int, active bool) bool {
+
+	commons.RunningServices[serviceType].Cancel(nodeId, nil, true)
 	if active {
 		enforcedServiceStatus := commons.ServiceActive
-		resultChannel := make(chan commons.ServiceStatus)
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
 			EnforcedServiceStatus: &enforcedServiceStatus,
-			ServiceCommand:        commons.Kill,
-			NoDelay:               true,
-			Out:                   resultChannel,
-		}
-		switch <-resultChannel {
-		case commons.ServiceActive:
-			// THE RUNNING SERVICE WAS KILLED EnforcedServiceStatus is ACTIVE (subscription will attempt to start)
-		case commons.ServicePending:
-			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
-			return false
-		case commons.ServiceInactive:
-			// THE SERVICE WAS NOT RUNNING
-			serviceChannel <- commons.ServiceChannelMessage{
-				NodeId:                nodeId,
-				ServiceType:           serviceType,
-				EnforcedServiceStatus: &enforcedServiceStatus,
-				ServiceCommand:        commons.Boot,
-			}
-		}
-	} else {
-		enforcedServiceStatus := commons.ServiceInactive
-		resultChannel := make(chan commons.ServiceStatus)
-		serviceChannel <- commons.ServiceChannelMessage{
-			NodeId:                nodeId,
-			ServiceType:           serviceType,
-			EnforcedServiceStatus: &enforcedServiceStatus,
-			ServiceCommand:        commons.Kill,
-			NoDelay:               true,
-			Out:                   resultChannel,
-		}
-		switch <-resultChannel {
-		case commons.ServiceActive:
-			// THE RUNNING SERVICE WAS KILLED AND EnforcedServiceStatus is INACTIVE (subscription will stay down)
-		case commons.ServicePending:
-			// THE SERVICE FAILED TO BE KILLED BECAUSE OF A BOOT ATTEMPT THAT IS LOCKING THE SERVICE
-			return false
-		case commons.ServiceInactive:
-			// THE SERVICE WAS NOT RUNNING
+			ServiceCommand:        commons.Boot,
 		}
 	}
 	return true
@@ -435,8 +411,10 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 		server_errors.WrapLogAndSendServerError(c, err, "Updating connection details")
 		return
 	}
+	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
+		nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 
-	startAllLndServicesOrRestartWhenRunning(serviceChannel, ncd.NodeId, ncd.Status == commons.Active)
+	setAllLndServices(serviceChannel, ncd.NodeId, ncd.Status == commons.Active)
 
 	c.JSON(http.StatusOK, ncd)
 }
@@ -488,24 +466,26 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	done := startAllLndServicesOrRestartWhenRunning(serviceChannel, nodeId, commons.Status(statusId) == commons.Active)
-	if done {
-		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-
-		if commons.Status(statusId) == commons.Deleted {
-			node := commons.GetNodeSettingsByNodeId(nodeId)
-			commons.RemoveManagedNodeFromCache(node)
-			commons.RemoveManagedChannelStateFromCache(node.NodeId)
-		}
-
-	} else {
-		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
+	_, err = setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	if commons.Status(statusId) == commons.Deleted {
+		node := commons.GetNodeSettingsByNodeId(nodeId)
+		commons.RemoveManagedNodeFromCache(node)
+		commons.RemoveManagedChannelStateFromCache(node.NodeId)
+	} else {
+		nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+		var name string
+		if nodeSettings.Name != nil {
+			name = *nodeSettings.Name
+		}
+		commons.SetTorqNode(nodeId, name, commons.Status(statusId),
+			nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
+	}
+
+	setAllLndServices(serviceChannel, nodeId, commons.Status(statusId) == commons.Active)
 
 	c.Status(http.StatusOK)
 }
@@ -547,7 +527,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 		subscription = commons.VectorService
 	}
 
-	done := startServiceOrRestartWhenRunning(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
+	done := setService(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
 		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, PingSystem(pingSystem), commons.Status(statusId))
 		if err != nil {
