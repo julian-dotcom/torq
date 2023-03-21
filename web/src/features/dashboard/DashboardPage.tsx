@@ -6,30 +6,30 @@ import {
   TableControlSection,
   TableControlsTabsGroup,
 } from "../templates/tablePageTemplate/TablePageTemplate";
-import Button, { ButtonPosition, ColorVariant } from "components/buttons/Button";
+import Button, { ButtonPosition, ColorVariant, SizeVariant } from "components/buttons/Button";
 import mixpanel from "mixpanel-browser";
 import { useNavigate } from "react-router-dom";
 import * as Routes from "constants/routes";
+import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
 import { useLocation } from "react-router";
 import {
-  MoneyHand20Regular as TransactionIcon,
   ArrowRouting20Regular as ChannelsIcon,
   Check20Regular as InvoiceIcon,
-  LinkEdit20Regular as NewOnChainAddressIcon,
-  Copy16Regular as CopyIcon,
-  Question20Regular as QuestionIcon,
   Checkmark20Regular as CheckmarkIcon,
+  Copy16Regular as CopyIcon,
   Dismiss20Regular as DismissIcon,
+  LinkEdit20Regular as NewOnChainAddressIcon,
+  MoneyHand20Regular as TransactionIcon,
+  Question20Regular as QuestionIcon,
 } from "@fluentui/react-icons";
-
-import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
+import { format } from "d3";
 import SummaryCard from "components/summary/summaryCard/SummaryCard";
 import SummaryNode from "components/summary/summaryNode/SummaryNode";
 import {
+  useGetChannelsPendingQuery,
   useGetChannelsQuery,
   useGetNodesInformationByCategoryQuery,
   useGetNodesWalletBalancesQuery,
-  useGetChannelsPendingQuery,
 } from "apiSlice";
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
@@ -42,6 +42,8 @@ import ToastContext from "../toast/context";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { toastCategory } from "../toast/Toasts";
 import Modal from "../modal/Modal";
+
+const tformtatter = format(",.0f");
 
 interface nodeSummary {
   nodeId: number;
@@ -313,15 +315,21 @@ function DashboardPage() {
                   valueLabel={t.dashboardPage.btc}
                   summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
-                    <div>
-                      <dl>
-                        <dt>{t.dashboardPage.onChainDetail.confirmed}</dt>
-                        <dd>{node?.walletBalances?.confirmedBalance}</dd>
-                        <dt>{t.dashboardPage.onChainDetail.unconfirmed}</dt>
-                        <dd>{node?.walletBalances?.unconfirmedBalance}</dd>
-                        <dt>{t.dashboardPage.onChainDetail.lockedBalance}</dt>
-                        <dd>{node?.walletBalances?.lockedBalance}</dd>
-                      </dl>
+                    <div className={styles.nodeSummaryDetailsContainer}>
+                      <div
+                        className={classNames(styles.nodeSummaryDetailsColumn, styles.nodeSummaryDetailsTitleColumn)}
+                      >
+                        <div>{t.dashboardPage.onChainDetail.confirmed}</div>
+                        <div>{t.dashboardPage.onChainDetail.unconfirmed}</div>
+                        <div>{t.dashboardPage.onChainDetail.lockedBalance}</div>
+                      </div>
+                      <div
+                        className={classNames(styles.nodeSummaryDetailsColumn, styles.nodeSummaryDetailsNumberColumn)}
+                      >
+                        <div>{tformtatter(node?.walletBalances?.confirmedBalance)}</div>
+                        <div>{tformtatter(node?.walletBalances?.unconfirmedBalance)}</div>
+                        <div>{tformtatter(node?.walletBalances?.lockedBalance)}</div>
+                      </div>
                     </div>
                   }
                 ></SummaryCard>
@@ -343,13 +351,19 @@ function DashboardPage() {
                   valueLabel={""}
                   summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
-                    <div>
-                      <dl>
-                        <dt>{t.dashboardPage.channelsDetail.opening}</dt>
-                        <dd>{node?.openingChannels}</dd>
-                        <dt>{t.dashboardPage.channelsDetail.closing}</dt>
-                        <dd>{node?.closingChannels}</dd>
-                      </dl>
+                    <div className={styles.nodeSummaryDetailsContainer}>
+                      <div
+                        className={classNames(styles.nodeSummaryDetailsColumn, styles.nodeSummaryDetailsTitleColumn)}
+                      >
+                        <div>{t.dashboardPage.channelsDetail.opening}</div>
+                        <div>{t.dashboardPage.channelsDetail.closing}</div>
+                      </div>
+                      <div
+                        className={classNames(styles.nodeSummaryDetailsColumn, styles.nodeSummaryDetailsNumberColumn)}
+                      >
+                        <div>{node?.openingChannels}</div>
+                        <div>{node?.closingChannels}</div>
+                      </div>
                     </div>
                   }
                 ></SummaryCard>
@@ -366,34 +380,30 @@ function DashboardPage() {
                   summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.addressDetailsContainer}>
-                      <>
-                        <div className={styles.addressDetailItem} title={node.publicKey}>
-                          {node.publicKey}
-                        </div>
-                        <button
-                          className={classNames(styles.action, styles.copy)}
-                          onClick={() => copyText(node.publicKey)}
-                        >
-                          <CopyIcon />
-                          Copy
-                        </button>
-                      </>
+                      <div className={styles.addressDetailItem} title={node.publicKey}>
+                        {node.publicKey}
+                      </div>
+                      <Button
+                        onClick={() => copyText(node.publicKey)}
+                        icon={<CopyIcon />}
+                        buttonSize={SizeVariant.tiny}
+                        buttonColor={ColorVariant.success}
+                      />
                       {node.addresses &&
                         node.addresses.length > 0 &&
                         node.addresses.map((address, i) => {
                           return (
-                            <>
-                              <div key={i} className={styles.addressDetailItem} title={address.addr}>
+                            <div className={styles.addressDetailItemRow} key={"address-row" + i}>
+                              <div className={styles.addressDetailItem} title={address.addr}>
                                 {address.addr}
                               </div>
-                              <button
-                                className={classNames(styles.action, styles.copy)}
+                              <Button
                                 onClick={() => copyText(address.addr)}
-                              >
-                                <CopyIcon />
-                                Copy
-                              </button>
-                            </>
+                                icon={<CopyIcon />}
+                                buttonSize={SizeVariant.tiny}
+                                buttonColor={ColorVariant.success}
+                              />
+                            </div>
                           );
                         })}
                     </div>
