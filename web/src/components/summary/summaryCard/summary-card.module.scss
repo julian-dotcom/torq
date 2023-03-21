@@ -27,7 +27,6 @@
 .headerContainer {
   display: flex;
   width: 100%;
-  flex-grow: 1;
 }
 .heading {
   height: 20px;
@@ -42,7 +41,7 @@
 
 .valueContainer {
   display: flex;
-  height: 56px;
+  //height: 56px;
   align-items: baseline;
 }
 
@@ -58,23 +57,8 @@
   font-size: 24px;
 }
 
-dl {
-  display: grid;
-  grid-template-columns: 44% 56%;
-  font-size: small;
-  grid-row-gap: 4px;
-}
-
-
-dl dt {
-  min-width: 100px;
-}
-
 .detailsContainer {
   display: block;
   width: 100%;
   margin-block-start: 1em;
-  margin-block-end: 1em;
-  margin-inline-start: 0px;
-  margin-inline-end: 0px;
 }
