@@ -86,7 +86,7 @@ func setAllLndServices(
 	if lndActive {
 		serviceChannel <- commons.ServiceChannelMessage{
 			NodeId:         nodeId,
-			ServiceType:    commons.LndService,
+			ServiceType:    commons.LightningCommunicationService,
 			ServiceCommand: commons.Boot,
 		}
 	}
