@@ -39,7 +39,8 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionLightningRequest(listener)
 			return
 		}

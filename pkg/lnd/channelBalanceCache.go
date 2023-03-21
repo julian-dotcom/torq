@@ -220,7 +220,8 @@ func processServiceEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionServiceEvent(listener)
 			return
 		}
@@ -262,7 +263,8 @@ func processChannelEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionChannelEvent(listener)
 			return
 		}
@@ -295,7 +297,8 @@ func processChannelGraphEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionChannelGraphEvent(listener)
 			return
 		}
@@ -325,7 +328,8 @@ func processForwardEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionForwardEvent(listener)
 			return
 		}
@@ -356,7 +360,8 @@ func processInvoiceEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionInvoiceEvent(listener)
 			return
 		}
@@ -381,7 +386,8 @@ func processPaymentEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionPaymentEvent(listener)
 			return
 		}
@@ -408,7 +414,8 @@ func processPeerEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range ctx.Done() {
+		select {
+		case <-ctx.Done():
 			broadcaster.CancelSubscriptionPeerEvent(listener)
 			return
 		}
