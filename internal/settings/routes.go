@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -143,9 +145,38 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan<
 		setNodeConnectionDetailsStatusHandler(c, db, serviceChannel)
 	})
 	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db, serviceChannel) })
+	r.GET("mixpanel/*path", func(c *gin.Context) { mixPanelHandler(c) })
+	r.POST("mixpanel/*path", func(c *gin.Context) { mixPanelHandler(c) })
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
+}
+
+func mixPanelHandler(c *gin.Context) {
+	err := proxyMixPanel(c, c.Param("path"))
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Proxying mixpanel")
+		return
+	}
+}
+
+func proxyMixPanel(c *gin.Context, path string) error {
+	remote, err := url.Parse("https://api.mixpanel.com")
+	if err != nil {
+		panic(err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Director = func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+		req.URL.Path = path
+	}
+
+	proxy.ServeHTTP(c.Writer, c.Request)
+	return nil
 }
 
 func getTimeZonesHandler(c *gin.Context, db *sqlx.DB) {

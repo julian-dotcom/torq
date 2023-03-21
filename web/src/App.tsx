@@ -29,9 +29,15 @@ function App() {
   useEffect(() => {
     init();
     if (process.env.NODE_ENV === "production" && process.env.REACT_APP_E2E_TEST !== "true") {
-      mixpanel.init("f08b3b1c4a2fc9e2c7cc014333cc9233", { ip: false });
+      mixpanel.init("f08b3b1c4a2fc9e2c7cc014333cc9233", {
+        ip: false,
+        api_host: "http://localhost:3000/api/settings/mixpanel",
+      });
     } else {
-      mixpanel.init("729ace78d0aeb71ba633741d8c92a9ca", { ip: false });
+      mixpanel.init("729ace78d0aeb71ba633741d8c92a9ca", {
+        ip: false,
+        api_host: "http://localhost:3000/api/settings/mixpanel",
+      });
     }
   }, []);
 
