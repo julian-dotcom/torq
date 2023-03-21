@@ -9,6 +9,7 @@ export const api = torqApi.injectEndpoints({
         method: "POST",
         body: body,
       }),
+      invalidatesTags: ["channelsPending", "channels"],
     }),
   }),
 });

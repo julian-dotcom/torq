@@ -8,6 +8,7 @@ export const onChainApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getOnChainTx: builder.query<OnChainResponse, GetOnChainTransactionsQueryParams>({
       query: (params) => "on-chain-tx" + queryParamsBuilder(params, true),
+      providesTags: ["onChainTx"],
     }),
   }),
 });

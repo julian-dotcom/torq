@@ -8,6 +8,7 @@ export const api = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getPayments: builder.query<PaymentsResponse, GetPaymentsQueryParams>({
       query: (params) => "payments" + queryParamsBuilder(params, true),
+      providesTags: ["payments"],
     }),
   }),
 });

@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Options20Regular as OptionsIcon,
   LinkEdit20Regular as NewOnChainAddressIcon,
-  // Save20Regular as SaveIcon,
+  ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
@@ -73,7 +73,7 @@ function OnChainPage() {
       filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
       network: activeNetwork,
     },
-    { skip: !isSuccess }
+    { skip: !isSuccess, pollingInterval: 10000 }
   );
 
   // Logic for toggling the sidebar
@@ -112,14 +112,24 @@ function OnChainPage() {
             {t.newAddress}
           </Button>
         </TableControlsTabsGroup>
-        <TableControlsButton
-          onClickHandler={() => {
-            setSidebarExpanded(!sidebarExpanded);
-            mixpanel.track("Toggle Table Sidebar", { page: "OnChain" });
-          }}
-          icon={OptionsIcon}
-          id={"tableControlsButton"}
-        />
+        <TableControlsButtonGroup>
+          <Button
+            buttonColor={ColorVariant.primary}
+            icon={<RefreshIcon />}
+            onClick={() => {
+              mixpanel.track("Refresh Table", { page: "OnChain" });
+              onChainTxResponse.refetch();
+            }}
+          />
+          <TableControlsButton
+            onClickHandler={() => {
+              setSidebarExpanded(!sidebarExpanded);
+              mixpanel.track("Toggle Table Sidebar", { page: "OnChain" });
+            }}
+            icon={OptionsIcon}
+            id={"tableControlsButton"}
+          />
+        </TableControlsButtonGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
   );

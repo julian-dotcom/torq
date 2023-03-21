@@ -82,8 +82,8 @@ function closeChannelModal() {
     mixpanel.track("Close Channel", {
       nodeId: nodeId,
       channelId: channelId,
-      openChannelUseSatPerVbyte: satPerVbyte !== 0,
-      force: force,
+      closeChannelUseSatPerVbyte: satPerVbyte !== 0,
+      closeChannelUseForce: force,
     });
     closeChannel({
       nodeId: nodeId,

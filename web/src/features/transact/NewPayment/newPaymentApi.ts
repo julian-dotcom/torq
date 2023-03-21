@@ -14,6 +14,7 @@ export const NewPaymentApi = torqApi.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["onChainTx"],
     }),
   }),
 });

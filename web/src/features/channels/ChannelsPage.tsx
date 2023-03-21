@@ -3,6 +3,7 @@ import {
   Options20Regular as OptionsIcon,
   ArrowRouting20Regular as ChannelsIcon,
   ArrowDownload20Regular as DownloadCsvIcon,
+  ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
@@ -162,6 +163,14 @@ function ChannelsPage() {
               downloadTableSortBy: viewResponse.view.sortBy,
             });
             createCsvFile(data, viewResponse.view.title || "Open Channels");
+          }}
+        />
+        <Button
+          buttonColor={ColorVariant.primary}
+          icon={<RefreshIcon />}
+          onClick={() => {
+            mixpanel.track("Refresh Table", { page: "Channels" });
+            channelsResponse.refetch();
           }}
         />
         <TableControlsButton

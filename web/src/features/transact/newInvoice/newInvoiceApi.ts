@@ -12,6 +12,7 @@ export const invoiceApi = torqApi.injectEndpoints({
           body: data,
         };
       },
+      invalidatesTags: ["invoices"],
     }),
   }),
 });

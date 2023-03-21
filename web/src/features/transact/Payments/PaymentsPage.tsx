@@ -1,4 +1,8 @@
-import { MoneyHand20Regular as TransactionIcon, Options20Regular as OptionsIcon } from "@fluentui/react-icons";
+import {
+  MoneyHand20Regular as TransactionIcon,
+  Options20Regular as OptionsIcon,
+  ArrowSync20Regular as RefreshIcon,
+} from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
@@ -77,7 +81,7 @@ function PaymentsPage() {
       filter: viewResponse.view.filters ? viewResponse.view.filters : undefined,
       network: activeNetwork,
     },
-    { skip: !isSuccess }
+    { skip: !isSuccess, pollingInterval: 10000 }
   );
 
   let data = paymentsResponse.data?.data || [];
@@ -130,14 +134,24 @@ function PaymentsPage() {
             {t.newPayment}
           </Button>
         </TableControlsTabsGroup>
-        <TableControlsButton
-          onClickHandler={() => {
-            setSidebarExpanded(!sidebarExpanded);
-            mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
-          }}
-          icon={OptionsIcon}
-          id={"tableControlsButton"}
-        />
+        <TableControlsButtonGroup>
+          <Button
+            buttonColor={ColorVariant.primary}
+            icon={<RefreshIcon />}
+            onClick={() => {
+              mixpanel.track("Refresh Table", { page: "Payments" });
+              paymentsResponse.refetch();
+            }}
+          />
+          <TableControlsButton
+            onClickHandler={() => {
+              setSidebarExpanded(!sidebarExpanded);
+              mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
+            }}
+            icon={OptionsIcon}
+            id={"tableControlsButton"}
+          />
+        </TableControlsButtonGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
   );

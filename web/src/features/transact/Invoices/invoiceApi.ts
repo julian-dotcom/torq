@@ -8,6 +8,7 @@ export const invoiceApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getInvoices: builder.query<InvoicesResponse, GetInvoicesQueryParams>({
       query: (params) => "invoices" + queryParamsBuilder(params, true),
+      providesTags: ["invoices"],
     }),
   }),
 });

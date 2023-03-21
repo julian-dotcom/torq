@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
-import { Options20Regular as OptionsIcon, ArrowDownload20Regular as DownloadCsvIcon } from "@fluentui/react-icons";
+import {
+  Options20Regular as OptionsIcon,
+  ArrowDownload20Regular as DownloadCsvIcon,
+  ArrowSync20Regular as RefreshIcon,
+} from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
@@ -61,7 +65,7 @@ function ClosedChannelsPage() {
     isFetching: boolean;
     isUninitialized: boolean;
     isSuccess: boolean;
-  }>({ network: activeNetwork }, { skip: !isSuccess });
+  }>({ network: activeNetwork }, { skip: !isSuccess, pollingInterval: 10000 });
 
   const filteredData = useFilterData(channelsResponse.data, viewResponse.view.filters);
   const data = useSortData(filteredData, viewResponse.view.sortBy);
@@ -103,6 +107,14 @@ function ClosedChannelsPage() {
               downloadTableSortBy: viewResponse.view?.sortBy,
             });
             createCsvFile(data, viewResponse.view.title || "Closed Channels");
+          }}
+        />
+        <Button
+          buttonColor={ColorVariant.primary}
+          icon={<RefreshIcon />}
+          onClick={() => {
+            mixpanel.track("Refresh Table", { page: "Channels Closed" });
+            channelsResponse.refetch();
           }}
         />
         <TableControlsButton

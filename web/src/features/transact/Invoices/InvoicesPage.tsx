@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Options20Regular as OptionsIcon,
   Check20Regular as InvoiceIcon,
-  // Save20Regular as SaveIcon,
+  ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
@@ -134,16 +134,26 @@ function InvoicesPage() {
             {t.header.newInvoice}
           </Button>
         </TableControlsTabsGroup>
-        <TableControlsButton
-          onClickHandler={() => {
-            setSidebarExpanded(!sidebarExpanded);
-            mixpanel.track("Toggle Table Sidebar", {
-              page: "Invoices",
-            });
-          }}
-          icon={OptionsIcon}
-          id={"tableControlsButton"}
-        />
+        <TableControlsButtonGroup>
+          <Button
+            buttonColor={ColorVariant.primary}
+            icon={<RefreshIcon />}
+            onClick={() => {
+              mixpanel.track("Refresh Table", { page: "Invoices" });
+              invoicesResponse.refetch();
+            }}
+          />
+          <TableControlsButton
+            onClickHandler={() => {
+              setSidebarExpanded(!sidebarExpanded);
+              mixpanel.track("Toggle Table Sidebar", {
+                page: "Invoices",
+              });
+            }}
+            icon={OptionsIcon}
+            id={"tableControlsButton"}
+          />
+        </TableControlsButtonGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
