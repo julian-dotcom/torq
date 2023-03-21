@@ -298,6 +298,9 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 		channel.InitiatingNodeId, channel.AcceptingNodeId,
 		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
 		channel.Flags)
+	if channel.Status >= commons.Closing {
+		commons.RemoveManagedChannelStateFromCache(channel.ChannelID)
+	}
 	return existingChannelId, nil
 }
 
