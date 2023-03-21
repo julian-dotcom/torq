@@ -220,25 +220,21 @@ func processServiceEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionServiceEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionServiceEvent(listener)
+		return
 	}()
 	go func() {
 		for serviceEvent := range listener {
-			if serviceEvent.Type == commons.LightningCommunicationService {
-				if serviceEvent.Status == commons.ServiceActive {
-					initiateSync <- true
-				}
-				continue
-			}
 			if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
 				continue
 			}
 			if serviceEvent.SubscriptionStream == nil {
 				continue
+			}
+			// Invoice Stream is the last ChannelBalance related stream to boot in the LND boot sequence
+			if *serviceEvent.SubscriptionStream == commons.InvoiceStream && serviceEvent.Status == commons.ServiceActive {
+				initiateSync <- true
 			}
 			if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
 				continue
@@ -263,11 +259,9 @@ func processChannelEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionChannelEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionChannelEvent(listener)
+		return
 	}()
 	go func() {
 		for channelEvent := range listener {
@@ -297,11 +291,9 @@ func processChannelGraphEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionChannelGraphEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionChannelGraphEvent(listener)
+		return
 	}()
 	go func() {
 		for channelGraphEvent := range listener {
@@ -328,11 +320,9 @@ func processForwardEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionForwardEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionForwardEvent(listener)
+		return
 	}()
 	go func() {
 		for forwardEvent := range listener {
@@ -360,11 +350,9 @@ func processInvoiceEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionInvoiceEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionInvoiceEvent(listener)
+		return
 	}()
 	go func() {
 		for invoiceEvent := range listener {
@@ -386,11 +374,9 @@ func processPaymentEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionPaymentEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionPaymentEvent(listener)
+		return
 	}()
 	go func() {
 		for paymentEvent := range listener {
@@ -414,11 +400,9 @@ func processPeerEvent(ctx context.Context,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionPeerEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionPeerEvent(listener)
+		return
 	}()
 	go func() {
 		for peerEvent := range listener {

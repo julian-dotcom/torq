@@ -368,11 +368,9 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
+		return
 	}()
 	go func() {
 		for channelBalanceEvent := range listener {
@@ -391,11 +389,9 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster br
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			broadcaster.CancelSubscriptionChannelEvent(listener)
-			return
-		}
+		<-ctx.Done()
+		broadcaster.CancelSubscriptionChannelEvent(listener)
+		return
 	}()
 	go func() {
 		for channelEvent := range listener {
