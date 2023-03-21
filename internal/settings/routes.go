@@ -66,6 +66,7 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 	connectionDetails.CustomSettings &= ^customSettings
 }
 
+// You need to update the database before calling this function.
 func startAllLndServicesOrRestartWhenRunning(
 	serviceChannel chan<- commons.ServiceChannelMessage,
 	nodeId int,
@@ -495,30 +496,26 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 		return
 	}
 
-	done := startAllLndServicesOrRestartWhenRunning(serviceChannel, nodeId, commons.Status(statusId) == commons.Active)
-	if done {
-		_, err := setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-		if commons.Status(statusId) == commons.Deleted {
-			node := commons.GetNodeSettingsByNodeId(nodeId)
-			commons.RemoveManagedNodeFromCache(node)
-			commons.RemoveManagedChannelStateFromCache(node.NodeId)
-		} else {
-			nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-			var name string
-			if nodeSettings.Name != nil {
-				name = *nodeSettings.Name
-			}
-			commons.SetTorqNode(nodeId, name, commons.Status(statusId),
-				nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
-		}
-	} else {
-		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
+	_, err = setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
 		return
 	}
+	if commons.Status(statusId) == commons.Deleted {
+		node := commons.GetNodeSettingsByNodeId(nodeId)
+		commons.RemoveManagedNodeFromCache(node)
+		commons.RemoveManagedChannelStateFromCache(node.NodeId)
+	} else {
+		nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+		var name string
+		if nodeSettings.Name != nil {
+			name = *nodeSettings.Name
+		}
+		commons.SetTorqNode(nodeId, name, commons.Status(statusId),
+			nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
+	}
+
+	startAllLndServicesOrRestartWhenRunning(serviceChannel, nodeId, commons.Status(statusId) == commons.Active)
 
 	c.Status(http.StatusOK)
 }
