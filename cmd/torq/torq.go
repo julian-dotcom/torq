@@ -458,16 +458,6 @@ func serviceChannelRoutine(db *sqlx.DB, serviceChannel <-chan commons.ServiceCha
 			name = "CronService"
 		}
 		if name != "" {
-			if serviceCmd.ServiceCommand == commons.Kill {
-				bootCommand := serviceCmd
-				bootCommand.ServiceCommand = commons.Boot
-				services.RemoveDelayedServiceCommand(bootCommand)
-				_, cancelStatus := runningServices.Cancel(serviceCmd.NodeId, serviceCmd.EnforcedServiceStatus, serviceCmd.NoDelay)
-				if cancelStatus == commons.ServiceActive {
-					log.Info().Msgf("%v Service: Killed.", name)
-				}
-				serviceCmd.Out <- cancelStatus
-			}
 			if serviceCmd.ServiceCommand == commons.Boot {
 				if serviceCmd.NodeId != 0 {
 					enforcedServiceStatus = runningServices.GetEnforcedServiceStatusCheck(serviceCmd.NodeId)
