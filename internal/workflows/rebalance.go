@@ -100,7 +100,6 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionRebalanceRequest(listener)
-		return
 	}()
 	go func() {
 		for requests := range listener {

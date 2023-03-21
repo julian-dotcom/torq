@@ -222,7 +222,6 @@ func processServiceEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionServiceEvent(listener)
-		return
 	}()
 	go func() {
 		for serviceEvent := range listener {
@@ -261,7 +260,6 @@ func processChannelEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionChannelEvent(listener)
-		return
 	}()
 	go func() {
 		for channelEvent := range listener {
@@ -293,7 +291,6 @@ func processChannelGraphEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionChannelGraphEvent(listener)
-		return
 	}()
 	go func() {
 		for channelGraphEvent := range listener {
@@ -322,7 +319,6 @@ func processForwardEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionForwardEvent(listener)
-		return
 	}()
 	go func() {
 		for forwardEvent := range listener {
@@ -352,7 +348,6 @@ func processInvoiceEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionInvoiceEvent(listener)
-		return
 	}()
 	go func() {
 		for invoiceEvent := range listener {
@@ -376,7 +371,6 @@ func processPaymentEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionPaymentEvent(listener)
-		return
 	}()
 	go func() {
 		for paymentEvent := range listener {
@@ -402,7 +396,6 @@ func processPeerEvent(ctx context.Context,
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionPeerEvent(listener)
-		return
 	}()
 	go func() {
 		for peerEvent := range listener {

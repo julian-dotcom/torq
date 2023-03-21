@@ -41,7 +41,6 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 		defer wg.Done()
 		<-ctx.Done()
 		broadcaster.CancelSubscriptionLightningRequest(listener)
-		return
 	}()
 	go func() {
 		for lightningRequest := range listener {
