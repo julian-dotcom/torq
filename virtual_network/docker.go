@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +23,7 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
+	"github.com/rs/zerolog/log"
 )
 
 type ContainerConfig struct {
@@ -84,7 +84,7 @@ func (de *DockerDevEnvironment) AddContainer(name string, image string, binds []
 	return de.Containers[name]
 }
 
-func (de *DockerDevEnvironment) pullImage(ctx context.Context, container *ContainerConfig) (err error) {
+func (de *DockerDevEnvironment) pullImage(ctx context.Context, imageName string) (err error) {
 	// pull image if we don't have it already
 	// locally built images should be built before calling this function
 	if de.DockerHubUsername != "" && de.DockerHubPassword != "" {
@@ -96,7 +96,7 @@ func (de *DockerDevEnvironment) pullImage(ctx context.Context, container *Contai
 		imageAlreadyExists := false
 		for _, image := range images {
 			for _, tag := range image.RepoTags {
-				if strings.Contains(tag, container.Image) {
+				if strings.Contains(tag, imageName) {
 					imageAlreadyExists = true
 				}
 			}
@@ -114,7 +114,7 @@ func (de *DockerDevEnvironment) pullImage(ctx context.Context, container *Contai
 			}
 			authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 
-			_, err = de.Client.ImagePull(ctx, container.Image, types.ImagePullOptions{RegistryAuth: authStr})
+			_, err = de.Client.ImagePull(ctx, imageName, types.ImagePullOptions{RegistryAuth: authStr})
 			if err != nil {
 				return errors.Wrap(err, "Docker pulling image")
 			}
@@ -125,7 +125,7 @@ func (de *DockerDevEnvironment) pullImage(ctx context.Context, container *Contai
 
 func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *ContainerConfig) (err error) {
 
-	if err = de.pullImage(ctx, container); err != nil {
+	if err = de.pullImage(ctx, container.Image); err != nil {
 		return errors.Wrap(err, "Pulling image")
 	}
 
@@ -313,6 +313,7 @@ func (de *DockerDevEnvironment) BuildImage(ctx context.Context, path string, nam
 	}
 
 	if de.DockerHubUsername != "" && de.DockerHubPassword != "" {
+		log.Debug().Msgf("Using authentication with docker")
 		opts.AuthConfigs = map[string]types.AuthConfig{"https://index.docker.io/v1/": {Username: de.DockerHubUsername, Password: de.DockerHubPassword}}
 	}
 
@@ -374,7 +375,7 @@ func ExecJSONReturningCommand(ctx context.Context, cli *client.Client, container
 		return errors.Wrap(err, "Exec command on container")
 	}
 	if len(bufStderr.Bytes()) > 0 {
-		log.Println("std error not empty")
+		log.Info().Msg("std error not empty")
 		return errors.New("Stderr not empty")
 	}
 
@@ -438,7 +439,7 @@ func Retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 		if err == nil {
 			break
 		}
-		log.Println("Checking...")
+		log.Info().Msg("Checking...")
 		time.Sleep(time.Duration(delayMilliseconds) * time.Millisecond)
 		totalWaited += delayMilliseconds
 	}

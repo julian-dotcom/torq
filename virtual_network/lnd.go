@@ -3,11 +3,11 @@ package virtual_network
 import (
 	"bytes"
 	"context"
-	"log"
 	"strings"
 
 	"github.com/cockroachdb/errors"
 	"github.com/docker/docker/client"
+	"github.com/rs/zerolog/log"
 )
 
 const defautDelayMS = 2000          // 2s
@@ -87,18 +87,18 @@ func PayInvoice(ctx context.Context, cli *client.Client, containerId string, inv
 			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 		if len(stderr.Bytes()) > 0 {
-			log.Println("Standard error not empty, retrying")
+			log.Info().Msg("Standard error not empty, retrying")
 			return errors.New("Payment not sent")
 		}
 		if len(stdout.Bytes()) == 0 {
-			log.Println("Standard out is empty, retrying")
+			log.Info().Msg("Standard out is empty, retrying")
 			return errors.New("Payment not sent")
 		}
 		if strings.Contains(strings.ToLower(stdout.String()), "error") {
-			log.Println("Word error was found in stdout, retrying")
+			log.Info().Msg("Word error was found in stdout, retrying")
 			return errors.New("Payment not sent")
 		}
-		log.Println("Pay invoice command complete")
+		log.Info().Msg("Pay invoice command complete")
 		return nil
 	}, defautDelayMS, retryWaitTime)
 	if err != nil {
@@ -236,15 +236,15 @@ func CreateChannel(ctx context.Context, cli *client.Client, containerId string, 
 	}
 	log.Printf("Funding transaction ID: %s\n", fundingTxId)
 
-	log.Println("Include funding transaction in block thereby opening the channel")
+	log.Info().Msg("Include funding transaction in block thereby opening the channel")
 
 	err = MineBlocks(ctx, cli, btcdId, 30)
 	if err != nil {
 		return "", errors.Wrap(err, "Mining blocks")
 	}
 
-	log.Println("Blocks mined")
-	log.Println("Checking channel is open")
+	log.Info().Msg("Blocks mined")
+	log.Info().Msg("Checking channel is open")
 
 	err = Retry(func() error {
 		var listChannels struct {
@@ -380,7 +380,7 @@ func AddressSendCoins(ctx context.Context, cli *client.Client, containerId strin
 		cmd := []string{"lncli", "--network=simnet", "sendcoins", address, amt}
 		err := ExecJSONReturningCommand(ctx, cli, containerId, cmd, &transID)
 		if err != nil {
-			log.Println("Error ", err)
+			log.Info().Msgf("Error %v", err)
 			return errors.Wrapf(err, "Running exec command on %s", containerId)
 		}
 
