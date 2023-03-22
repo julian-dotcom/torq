@@ -21,6 +21,7 @@ const (
 	PageTags                = TableViewPage("tag")
 	PageChannelsClosed      = TableViewPage("channelsClosed")
 	PageChannelsPending     = TableViewPage("channelsPending")
+	PagePeers               = TableViewPage("peers")
 )
 
 type NewTableView struct {
@@ -168,7 +169,11 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 	case PageChannelsPending:
 		result = result + "\nimport { ChannelPending } from \"features/channelsPending/channelsPendingTypes\";"
 		result = result + "\n\nexport const AllChannelPendingColumns: ColumnMetaData<ChannelPending>[] = ["
+	case PagePeers:
+		result = result + "\nimport { Peer } from \"features/peers/peersTypes\";"
+		result = result + "\n\nexport const AllPeersColumns: ColumnMetaData<Peer>[] = ["
 	}
+
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		result = result + fmt.Sprintf(
 			"\n\t{\n\t\theading: \"%v\",\n\t\ttype: \"%v\",\n\t\tkey: \"%v\",\n\t\tvalueType: \"%v\",",
@@ -210,6 +215,8 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		result = result + "\nexport const ChannelsClosedSortableColumns: Array<keyof ChannelClosed> = ["
 	case PageChannelsPending:
 		result = result + "\nexport const ChannelsPendingSortableColumns: Array<keyof ChannelPending> = ["
+	case PagePeers:
+		result = result + "\nexport const PeersSortableColumns: Array<keyof Peer> = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.sortable {
@@ -236,6 +243,8 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		result = result + "\nexport const ChannelsClosedFilterableColumns: Array<keyof ChannelClosed> = ["
 	case PageChannelsPending:
 		result = result + "\nexport const ChannelsPendingFilterableColumns: Array<keyof ChannelPending> = ["
+	case PagePeers:
+		result = result + "\nexport const PeersFilterableColumns: Array<keyof Peer> = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.filterable {
@@ -282,6 +291,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageChannels:        1,
 				PageChannelsClosed:  1,
 				PageChannelsPending: 1,
+				PagePeers:           1,
 			},
 		},
 		{
@@ -1124,6 +1134,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageForwards:        16,
 				PageChannelsClosed:  17,
 				PageChannelsPending: 21,
+				PagePeers:           2,
 			},
 		},
 		{
@@ -1579,6 +1590,52 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			pages: map[TableViewPage]int{
 				PageChannelsClosed:  18,
 				PageChannelsPending: 19,
+			},
+		},
+		{
+			key:        "torqNodeAlias",
+			locked:     true,
+			sortable:   true,
+			filterable: true,
+			heading:    "Torq Alias",
+			visualType: "AliasCell",
+			valueType:  "string",
+			pages: map[TableViewPage]int{
+				PagePeers: 3,
+			},
+		},
+		{
+			key:        "setting",
+			locked:     true,
+			sortable:   true,
+			filterable: true,
+			heading:    "Setting",
+			visualType: "TextCell",
+			valueType:  "enum",
+			selectOptions: []tableViewSelectOptions{
+				{value: "AlwaysReconnect", label: "Always Reconnect"},
+				{value: "DisableReconnect", label: "Disable Reconnect"},
+			},
+			pages: map[TableViewPage]int{
+				PagePeers: 4,
+			},
+		},
+		{
+			key:        "connectionStatus",
+			locked:     true,
+			sortable:   true,
+			filterable: true,
+			heading:    "Connection Status",
+			visualType: "TextCell",
+			valueType:  "enum",
+			selectOptions: []tableViewSelectOptions{
+				{value: "NodeConnectionStatusDisconnected", label: "Disconnected"},
+				{value: "NodeConnectionStatusConnected", label: "Connected"},
+				{value: "NodeConnectionStatusArchived", label: "Archived"},
+				{value: "NodeConnectionStatusDeleted", label: "Deleted"},
+			},
+			pages: map[TableViewPage]int{
+				PagePeers: 5,
 			},
 		},
 	}

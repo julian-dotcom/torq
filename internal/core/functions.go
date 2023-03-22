@@ -649,3 +649,69 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 		},
 	}
 }
+<<<<<<< main:internal/core/functions.go
+=======
+
+func GetNodeWalletBalance(nodeId int, lightningRequestChannel chan<- interface{}) NodeWalletBalanceResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan NodeWalletBalanceResponse)
+	request := NodeWalletBalanceRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}
+
+func ConnectPeer(nodeId int, pubKey string, host string, lightningRequestChannel chan<- interface{}) ConnectPeerResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan ConnectPeerResponse)
+	request := ConnectPeerRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		PubKey:          pubKey,
+		Host:            host,
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}
+
+func DisconnectPeer(nodeId int, pubKey string, lightningRequestChannel chan<- interface{}) DisconnectPeerResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan DisconnectPeerResponse)
+	request := DisconnectPeerRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		PubKey:          pubKey,
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}
+
+func ListPeers(nodeId int, lightningRequestChannel chan<- interface{}) ListPeersResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan ListPeersResponse)
+	request := ListPeersRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}
+>>>>>>> Peers page - list peers - connect and disconnect peer - add new peer connection:pkg/commons/functions.go

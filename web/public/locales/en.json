@@ -440,8 +440,22 @@
       "closing": "Closing"
     }
   },
-  "summaryNode": {
-    "online": "Online",
-    "offline": "Disabled"
+  "summaryNode" : {
+    "online" : "Online",
+    "offline" : "Disabled"
+  },
+  "peers" : "Peers",
+  "peerNode" : "Peer Node",
+  "peersPage": {
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connectPeer": "Connect To Peer",
+    "processingConnectPeer": "Please wait while we connect to Peer.",
+    "connectToAnotherPeer": "Connect to another Peer",
+    "confirmationConnectPeer": "The peer connection has been successful",
+    "update": "Update",
+    "updatePeer": "Update Peer",
+    "close": "Close",
+    "setting": "Setting"
   }
 }

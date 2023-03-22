@@ -217,6 +217,12 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 
 	nodeId := cache.GetNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
+		newNode := nodes.Node{
+			PublicKey: publicKey,
+			Network:   network,
+			Chain:     chain,
+		}
+		nodeId, err = nodes.AddNodeWhenNew(db, newNode, nil)
 		nodeId, err = AddNodeWhenNew(db, publicKey, chain, network)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Adding node")

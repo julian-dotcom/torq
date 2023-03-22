@@ -10,6 +10,7 @@ import { Forward } from "features/forwards/forwardsTypes";
 import { workflowListItem } from "pages/WorkflowPage/workflowTypes";
 import { SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 import { ChannelPending } from "features/channelsPending/channelsPendingTypes";
+import { Peer } from "features/peers/peersTypes";
 
 export type ViewResponse<T> = {
   view: ViewInterface<T>;
@@ -29,6 +30,7 @@ export type AllViewsResponse = {
   channel: Array<ViewResponse<channel>>;
   channelsClosed: Array<ViewResponse<ChannelClosed>>;
   channelsPending: Array<ViewResponse<ChannelPending>>;
+  peers: Array<ViewResponse<Peer>>;
 };
 
 export type CreateViewRequest = {

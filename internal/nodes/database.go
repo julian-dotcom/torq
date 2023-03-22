@@ -67,10 +67,10 @@ func getAllNodeInformationByNetwork(db *sqlx.DB, network core.Network) ([]NodeIn
 func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network core.Network) ([]NodeSummary, error) {
 	var nds []NodeSummary
 
-	query := `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
+	query := `SELECT n.node_id, n.public_key, n.chain, n.network, n.created_on, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
 
 	if !includeDeleted {
-		query = `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
+		query = `SELECT n.node_id, n.public_key, n.chain, n.network, n.created_on, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
 	}
 
 	err := db.Select(&nds, query, network)
@@ -83,15 +83,26 @@ func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network core.Network) (
 	return nds, nil
 }
 
-func GetPeerNodes(db *sqlx.DB) ([]Node, error) {
-	var nodes []Node
+func GetPeerNodes(db *sqlx.DB, network commons.Network) ([]PeerNode, error) {
+	var nodes []PeerNode
 	err := db.Select(&nodes, `
-	SELECT n.node_id, public_key, chain, network, n.created_on
-	FROM node n
-	JOIN node_connection_details ncd ON n.node_id = ncd.node_id;`)
+	SELECT
+	n.node_id,
+	ne.alias,
+	nch.torq_node_id,
+	netorq.alias AS torq_node_alias,
+	n.public_key,
+	nch.connection_status,
+	nch.setting
+	FROM Node n
+	LEFT JOIN (SELECT LAST(node_id, created_on) as node_id, LAST(torq_node_id, created_on) as torq_node_id, LAST(connection_status, created_on) as connection_status, LAST(setting, created_on) as setting, LAST(setting, created_on) as address FROM node_connection_history GROUP BY node_id) nch on nch.node_id = n.node_id
+	LEFT JOIN (SELECT LAST(event_node_id, timestamp) as node_id, LAST(alias, timestamp) as alias, LAST(color, timestamp) as color FROM node_event GROUP BY event_node_id) ne ON ne.node_id = n.node_id
+	LEFT JOIN (SELECT LAST(event_node_id, timestamp) as node_id, LAST(alias, timestamp) as alias, LAST(color, timestamp) as color FROM node_event GROUP BY event_node_id) netorq ON netorq.node_id = nch.torq_node_id
+	WHERE n.network = $1 AND nch.torq_node_id IS NOT NULL;`, network)
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []Node{}, nil
+			return []PeerNode{}, nil
 		}
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -115,7 +126,7 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	return nodeEvent, nil
 }
 
-func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
+func AddNodeWhenNew(db *sqlx.DB, node Node, peerConnectionHistory *NodeConnectionHistory) (int, error) {
 	nodeId := cache.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		node.CreatedOn = time.Now().UTC()
@@ -131,6 +142,12 @@ func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
 			}
 			return 0, errors.Wrap(err, database.SqlExecutionError)
 		}
+
+		if peerConnectionHistory != nil {
+			peerConnectionHistory.NodeId = node.NodeId
+			err = addNodeConnectionHistory(db, peerConnectionHistory)
+		}
+
 		return node.NodeId, nil
 	}
 	return nodeId, nil
@@ -153,4 +170,48 @@ func removeNode(db *sqlx.DB, nodeId int) (int64, error) {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
 	return rowsAffected, nil
+}
+
+func addNodeConnectionHistory(db *sqlx.DB, nch *NodeConnectionHistory) error {
+	if nch == nil {
+		return nil
+	}
+	_, err := db.Exec(
+		`INSERT INTO node_connection_history (
+                                     node_id,
+                                     torq_node_id,
+                                     connection_status,
+                                     address,
+                                     setting,
+                                     created_on) VALUES ($1, $2, $3, $4, $5, $6);`,
+		nch.NodeId,
+		nch.TorqNodeId,
+		nch.ConnectionStatus,
+		nch.Address,
+		nch.Setting,
+		time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
+func getNodeConnectionHistoryWithDetail(db *sqlx.DB, nodeId int) (NodeConnectionHistoryWithDetail, error) {
+	var nch NodeConnectionHistoryWithDetail
+	err := db.Get(&nch,
+		`SELECT n.node_id, n.public_key, nch.torq_node_id, nch.connection_status, nch.address, nch.setting
+				FROM node n
+    			LEFT JOIN (
+					SELECT LAST(node_id, created_on) as node_id, LAST(torq_node_id, created_on) as torq_node_id, LAST(connection_status, created_on) as connection_status, LAST(address, created_on) as address, LAST(setting, created_on) as setting
+			  		FROM node_connection_history
+			  		WHERE node_id = $1
+			  		GROUP BY node_id) nch ON nch.node_id = n.node_id
+				WHERE n.node_id = $1;`, nodeId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return NodeConnectionHistoryWithDetail{}, nil
+		}
+		return NodeConnectionHistoryWithDetail{}, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nch, nil
 }

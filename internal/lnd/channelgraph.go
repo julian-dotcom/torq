@@ -177,7 +177,12 @@ func insertRoutingPolicy(
 				Chain:     nodeSettings.Chain,
 				Network:   nodeSettings.Network,
 			}
-			announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			peerConnectionHistory := &nodes.NodeConnectionHistory{
+				TorqNodeId:       nodeSettings.NodeId,
+				ConnectionStatus: commons.NodeConnectionStatusConnected,
+				Setting:          commons.NodeConnectionSettingAlwaysReconnect,
+			}
+			announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 			if err != nil {
 				return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.AdvertisingNode)
 			}
@@ -192,7 +197,12 @@ func insertRoutingPolicy(
 				Chain:     nodeSettings.Chain,
 				Network:   nodeSettings.Network,
 			}
-			connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+			peerConnectionHistory := &nodes.NodeConnectionHistory{
+				TorqNodeId:       nodeSettings.NodeId,
+				ConnectionStatus: commons.NodeConnectionStatusConnected,
+				Setting:          commons.NodeConnectionSettingAlwaysReconnect,
+			}
+			connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 			if err != nil {
 				return errors.Wrapf(err, "Adding node (publicKey: %v)", cu.ConnectingNode)
 			}
