@@ -431,5 +431,6 @@
   "summaryNode" : {
     "online" : "Online",
     "offline" : "Disabled"
-  }
+  },
+  "peers" : "Peers"
 }

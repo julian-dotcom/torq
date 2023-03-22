@@ -45,6 +45,7 @@ type NodeWalletBalance struct {
 }
 
 func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
+	r.GET("/:network/peers", func(c *gin.Context) { getAllPeerNodesHandler(c, db) })
 	r.GET("/:network/nodes", func(c *gin.Context) { getNodesByNetworkHandler(c, db) })
 	r.GET("/:network/walletBalances", func(c *gin.Context) { getNodesWalletBalancesHandler(c, db, lightningRequestChannel) })
 	r.DELETE(":nodeId", func(c *gin.Context) { removeNodeHandler(c, db) })
@@ -109,5 +110,18 @@ func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB, lightningRequest
 	}
 
 	c.JSON(http.StatusOK, walletBalances)
+}
 
+func getAllPeerNodesHandler(c *gin.Context, db *sqlx.DB) {
+	network, err := strconv.Atoi(c.Param("network"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Can't process network")
+		return
+	}
+	nodes, err := GetPeerNodes(db, commons.Network(network))
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Getting all Peer nodes.")
+		return
+	}
+	c.JSON(http.StatusOK, nodes)
 }

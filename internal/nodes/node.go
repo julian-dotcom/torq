@@ -8,7 +8,7 @@ import (
 
 type Node struct {
 	NodeId    int             `json:"nodeId" db:"node_id"`
-	PublicKey string          `json:"publicKey" db:"public_key"`
+	PublicKey string          `json:"pubKey" db:"public_key"`
 	Chain     commons.Chain   `json:"chain" db:"chain"`
 	Network   commons.Network `json:"network" db:"network"`
 	CreatedOn time.Time       `json:"createdOn" db:"created_on"`

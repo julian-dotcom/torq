@@ -24,6 +24,7 @@ import type { nodeConfiguration, settings, timeZone, services, updateSettingsReq
 import { createSelector } from "@reduxjs/toolkit";
 import { Network } from "features/network/networkSlice";
 import { lndServices, nodeWalletBalances, nodeInformation } from "apiTypes";
+import { Peer } from "features/peers/peersTypes";
 
 const API_URL = getRestEndpoint();
 export const WS_URL = getWsEndpoint();
@@ -74,6 +75,7 @@ export const torqApi = createApi({
     "payments",
     "onChainTx",
     "invoices",
+    "peers",
     // "tagsForChannel",
     // "tagsForNodes",
   ],
@@ -242,6 +244,13 @@ export const torqApi = createApi({
     getAutoLoginSetting: builder.query<boolean, void>({
       query: () => `auto-login-setting`,
     }),
+    getPeers: builder.query<Peer[], ActiveNetwork>({
+      query: (params) => ({
+        url: `nodes/${params.network}/peers`,
+        method: "GET",
+      }),
+      providesTags: ["peers"],
+    }),
   }),
 });
 
@@ -276,6 +285,7 @@ export const {
   useGetAutoLoginSettingQuery,
   useGetChannelsClosedQuery,
   useGetChannelsPendingQuery,
+  useGetPeersQuery,
 } = torqApi;
 
 export const SelectChannel = (props: { network: Network; channelId: number }) => {

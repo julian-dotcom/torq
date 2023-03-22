@@ -21,6 +21,7 @@ const (
 	PageTags                = TableViewPage("tag")
 	PageChannelsClosed      = TableViewPage("channelsClosed")
 	PageChannelsPending     = TableViewPage("channelsPending")
+	PagePeers               = TableViewPage("peers")
 )
 
 type NewTableView struct {
@@ -168,7 +169,11 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 	case PageChannelsPending:
 		result = result + "\nimport { ChannelPending } from \"features/channelsPending/channelsPendingTypes\";"
 		result = result + "\n\nexport const AllChannelPendingColumns: ColumnMetaData<ChannelPending>[] = ["
+	case PagePeers:
+		result = result + "\nimport { Peer } from \"features/peers/peersTypes\";"
+		result = result + "\n\nexport const AllPeersColumns: ColumnMetaData<Peer>[] = ["
 	}
+
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		result = result + fmt.Sprintf(
 			"\n\t{\n\t\theading: \"%v\",\n\t\ttype: \"%v\",\n\t\tkey: \"%v\",\n\t\tvalueType: \"%v\",",
@@ -210,6 +215,8 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		result = result + "\nexport const ChannelsClosedSortableColumns: Array<keyof ChannelClosed> = ["
 	case PageChannelsPending:
 		result = result + "\nexport const ChannelsPendingSortableColumns: Array<keyof ChannelPending> = ["
+	case PagePeers:
+		result = result + "\nexport const PeersSortableColumns: Array<keyof Peer> = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.sortable {
@@ -236,6 +243,8 @@ func GetTableViewColumnDefinitionsForPage(page TableViewPage) string {
 		result = result + "\nexport const ChannelsClosedFilterableColumns: Array<keyof ChannelClosed> = ["
 	case PageChannelsPending:
 		result = result + "\nexport const ChannelsPendingFilterableColumns: Array<keyof ChannelPending> = ["
+	case PagePeers:
+		result = result + "\nexport const PeersFilterableColumns: Array<keyof Peer> = ["
 	}
 	for _, definition := range getTableViewColumnDefinitionsSorted(page) {
 		if definition.filterable {
@@ -1124,6 +1133,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageForwards:        16,
 				PageChannelsClosed:  17,
 				PageChannelsPending: 21,
+				PagePeers:           1,
 			},
 		},
 		{
@@ -1579,6 +1589,35 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			pages: map[TableViewPage]int{
 				PageChannelsClosed:  18,
 				PageChannelsPending: 19,
+			},
+		},
+		{
+			key:        "chain",
+			heading:    "Chain",
+			visualType: "TextCell",
+			valueType:  "enum",
+			selectOptions: []tableViewSelectOptions{
+				{value: "Bitcoin", label: "Bitcoin"},
+				{value: "Litecoin", label: "Litecoin"},
+			},
+			pages: map[TableViewPage]int{
+				PagePeers: 2,
+			},
+		},
+		{
+			key:        "network",
+			heading:    "Network",
+			visualType: "TextCell",
+			valueType:  "enum",
+			selectOptions: []tableViewSelectOptions{
+				{value: "MainNet", label: "MainNet"},
+				{value: "TestNet", label: "TestNet"},
+				{value: "RegTest", label: "RegTest"},
+				{value: "SigNet", label: "SigNet"},
+				{value: "SimNet", label: "SimNet"},
+			},
+			pages: map[TableViewPage]int{
+				PagePeers: 3,
 			},
 		},
 	}

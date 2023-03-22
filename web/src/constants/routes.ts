@@ -21,6 +21,7 @@ export const TRANSACTIONS = "transactions";
 export const PAYMENTS = "payments";
 export const INVOICES = "invoices";
 export const ONCHAIN = "onchain";
+export const PEERS = "peers";
 export const ALL = "all";
 
 export const SETTINGS = "/settings";

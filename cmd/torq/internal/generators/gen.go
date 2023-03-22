@@ -65,4 +65,11 @@ func main() {
 		println(err.Error())
 		panic(err)
 	}
+
+	peersColumns := views.GetTableViewColumnDefinitionsForPage(views.PagePeers)
+	err = os.WriteFile("web/src/features/peers/peersColumns.generated.ts", []byte(peersColumns), 0600)
+	if err != nil {
+		println(err.Error())
+		panic(err)
+	}
 }

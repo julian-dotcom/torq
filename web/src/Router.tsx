@@ -31,10 +31,11 @@ import WorkflowsTablePage from "pages/WorkflowPage/WorkflowsTablePage";
 import TagsPage from "pages/tags/tagsPage/TagsPage";
 import TagsModal from "pages/tags/tagPage/TagsModal";
 import AddTag from "pages/tags/addTagPage/AddTag";
-import MessageVerificationModal from "./pages/messageVerificationPage/MessageVerificationModal";
+import MessageVerificationModal from "pages/messageVerificationPage/MessageVerificationModal";
 import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
-import ChannelsPendingPage from "./features/channelsPending/ChannelsPendingPage";
-import FowardsSummaryPage from "./features/channel/ForwardsSummary";
+import ChannelsPendingPage from "features/channelsPending/ChannelsPendingPage";
+import FowardsSummaryPage from "features/channel/ForwardsSummary";
+import PeersPage from "features/peers/PeersPage";
 
 function Logout() {
   const [logout] = useLogoutMutation();
@@ -102,6 +103,7 @@ const authenticatedRoutes: RouteObject = {
             { path: routes.WORKFLOWS, element: <WorkflowsTablePage /> },
             { path: routes.TAGS, element: <TagsPage /> },
             { path: routes.WORKFLOW, element: <WorkflowPage /> },
+            { path: routes.PEERS, element: <PeersPage /> },
           ],
         },
         {

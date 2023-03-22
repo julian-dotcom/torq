@@ -2,7 +2,8 @@ import { channel } from "features/channels/channelsTypes";
 import { Forward } from "features/forwards/forwardsTypes";
 import { ChannelClosed } from "features/channelsClosed/channelsClosedTypes";
 import { ChannelPending } from "features/channelsPending/channelsPendingTypes";
-export function createCsvFile<T extends ChannelClosed | ChannelPending | channel | Forward>(
+import { Peer } from "features/peers/peersTypes";
+export function createCsvFile<T extends ChannelClosed | ChannelPending | channel | Forward | Peer>(
   data: Array<T>,
   filename: string
 ): void {

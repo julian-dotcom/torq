@@ -14,6 +14,7 @@ import { DefaultTagsView } from "pages/tags/tagsPage/tagsDefaults";
 import { ColumnMetaData } from "features/table/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { deserialiseQuery, SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
+import { DefaultPeersView } from "features/peers/peersDefaults";
 
 const initialState = {
   initiated: false,
@@ -55,6 +56,10 @@ const initialState = {
       selected: 0,
       views: [DefaultTagsView],
       // persistedViews: <Array<ViewResponse<tag>>>[],
+    },
+    peers: {
+      selected: 0,
+      views: [DefaultPeersView],
     },
   },
 };
@@ -571,6 +576,12 @@ export const selectClosedChannelView = (state: RootState) => {
 
 export const selectPendingChannelView = (state: RootState) => {
   const page = "channelsPending";
+  const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
+  return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
+};
+
+export const selectPeersViews = (state: RootState) => {
+  const page = "peers";
   const view = state.viewsSlice.pages[page].views[state.viewsSlice.pages[page].selected];
   return { viewResponse: view, selectedViewIndex: state.viewsSlice.pages[page].selected };
 };

@@ -94,12 +94,13 @@ func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network commons.Network
 	return nds, nil
 }
 
-func GetPeerNodes(db *sqlx.DB) ([]Node, error) {
+func GetPeerNodes(db *sqlx.DB, network commons.Network) ([]Node, error) {
 	var nodes []Node
 	err := db.Select(&nodes, `
 	SELECT n.node_id, public_key, chain, network, n.created_on
 	FROM node n
-	JOIN node_connection_details ncd ON n.node_id = ncd.node_id;`)
+	LEFT JOIN node_connection_details ncd ON n.node_id = ncd.node_id
+	WHERE n.network = $1 and ncd.node_id IS NULL;`, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []Node{}, nil
