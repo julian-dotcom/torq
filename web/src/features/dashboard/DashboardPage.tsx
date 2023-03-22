@@ -393,8 +393,8 @@ function DashboardPage() {
                         node.addresses.length > 0 &&
                         node.addresses.map((address, i) => {
                           return (
-                            <div className={styles.addressDetailItemRow} key={"address-row" + i}>
-                              <div className={styles.addressDetailItem} title={address.addr}>
+                            <>
+                              <div className={styles.addressDetailItem} title={address.addr} key={"addr" + i}>
                                 {address.addr}
                               </div>
                               <Button
@@ -402,8 +402,9 @@ function DashboardPage() {
                                 icon={<CopyIcon />}
                                 buttonSize={SizeVariant.tiny}
                                 buttonColor={ColorVariant.success}
+                                key={"addrButton" + i}
                               />
-                            </div>
+                            </>
                           );
                         })}
                     </div>
