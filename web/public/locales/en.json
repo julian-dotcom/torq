@@ -432,5 +432,9 @@
     "online" : "Online",
     "offline" : "Disabled"
   },
-  "peers" : "Peers"
+  "peers" : "Peers",
+  "peersPage": {
+    "connect": "Connect",
+    "disconnect": "Disconnect"
+  }
 }

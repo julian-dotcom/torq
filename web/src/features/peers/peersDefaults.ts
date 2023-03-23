@@ -5,10 +5,22 @@ import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 import { AllPeersColumns, PeersFilterableColumns, PeersSortableColumns } from "./peersColumns.generated";
 
-const defaultColumns: Array<keyof Peer> = ["pubKey", "chain", "network"];
+const defaultColumns: Array<keyof Peer> = ["pubKey", "chain", "network", "actions"];
 
 //changed to not have to rely on the generated file for default columns ordering
-export const DefaultPeersColumns = defaultColumns.map((col) => AllPeersColumns.find((x) => x.key === col)) as Array<
+
+//want to add additional columns that are not really part of the model and needs to be there all the time
+const extraCols: ColumnMetaData<Peer>[] = [
+  {
+    heading: "Peer Actions",
+    type: "LongTextCell",
+    key: "actions",
+    valueType: "string",
+  },
+];
+export const PeersColumns: ColumnMetaData<Peer>[] = AllPeersColumns.concat(extraCols);
+
+export const DefaultPeersColumns = defaultColumns.map((col) => PeersColumns.find((x) => x.key === col)) as Array<
   ColumnMetaData<Peer>
 >;
 

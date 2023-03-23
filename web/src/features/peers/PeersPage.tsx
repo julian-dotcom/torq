@@ -39,7 +39,7 @@ function PeersPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectPeersViews);
-  const channelViews = useAppSelector(selectViews)("peers");
+  const peersView = useAppSelector(selectViews)("peers");
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const [updateTableView] = useUpdateTableViewMutation();
 
@@ -61,7 +61,7 @@ function PeersPage() {
   };
 
   function handleNameChange(name: string) {
-    const view = channelViews.views[selectedViewIndex] as ViewResponse<TableResponses>;
+    const view = peersView.views[selectedViewIndex] as ViewResponse<TableResponses>;
     if (view.id) {
       updateTableView({
         id: view.id,
