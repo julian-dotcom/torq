@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -42,6 +43,14 @@ type NodeWalletBalance struct {
 	UnconfirmedBalance        int64 `json:"unconfirmedBalance"`
 	LockedBalance             int64 `json:"lockedBalance"`
 	ReservedBalanceAnchorChan int64 `json:"reservedBalanceAnchorChan"`
+}
+
+type PeerNode struct {
+	NodeId    int       `json:"nodeId"`
+	PublicKey string    `json:"pubKey"`
+	Chain     string    `json:"chain"`
+	Network   string    `json:"network"`
+	CreatedOn time.Time `json:"createdOn"`
 }
 
 func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
@@ -123,5 +132,18 @@ func getAllPeerNodesHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting all Peer nodes.")
 		return
 	}
-	c.JSON(http.StatusOK, nodes)
+
+	peers := make([]PeerNode, 0)
+	for _, n := range nodes {
+		peer := PeerNode{
+			NodeId:    n.NodeId,
+			PublicKey: n.PublicKey,
+			Chain:     n.Chain.String(),
+			Network:   n.Network.String(),
+			CreatedOn: n.CreatedOn,
+		}
+		peers = append(peers, peer)
+	}
+
+	c.JSON(http.StatusOK, peers)
 }

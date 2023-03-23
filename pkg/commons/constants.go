@@ -63,6 +63,16 @@ const (
 	Litecoin
 )
 
+func (s Chain) String() string {
+	switch s {
+	case Bitcoin:
+		return "MainNet"
+	case Litecoin:
+		return "Litecoin"
+	}
+	return "unknown"
+}
+
 type Network int
 
 const (
@@ -72,6 +82,22 @@ const (
 	SigNet
 	SimNet
 )
+
+func (s Network) String() string {
+	switch s {
+	case MainNet:
+		return "MainNet"
+	case TestNet:
+		return "TestNet"
+	case RegTest:
+		return "RegTest"
+	case SigNet:
+		return "SigNet"
+	case SimNet:
+		return "SimNet"
+	}
+	return "unknown"
+}
 
 type ChannelStatus int
 

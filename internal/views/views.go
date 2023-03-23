@@ -1596,9 +1596,9 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			heading:    "Chain",
 			visualType: "TextCell",
 			valueType:  "enum",
+			sortable:   true,
 			selectOptions: []tableViewSelectOptions{
 				{value: "Bitcoin", label: "Bitcoin"},
-				{value: "Litecoin", label: "Litecoin"},
 			},
 			pages: map[TableViewPage]int{
 				PagePeers: 2,
@@ -1609,6 +1609,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			heading:    "Network",
 			visualType: "TextCell",
 			valueType:  "enum",
+			filterable: true,
+			sortable:   true,
 			selectOptions: []tableViewSelectOptions{
 				{value: "MainNet", label: "MainNet"},
 				{value: "TestNet", label: "TestNet"},
