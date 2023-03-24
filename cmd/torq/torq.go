@@ -917,6 +917,7 @@ func processServiceBoot(name string, db *sqlx.DB, node settings.ConnectionDetail
 			runningServices.RemoveSubscription(node.NodeId)
 			if serviceCmd.ServiceType == commons.LightningCommunicationService {
 				log.Info().Msgf("Lightning Communication will be restarted (when active) for node id: %v", node.NodeId)
+				runningServices.SetBootRequestedStatus(node.NodeId, true)
 			}
 			return
 		}
