@@ -2,7 +2,7 @@ version: "3.7"
 services:
   torq:
     image: "lncapital/torq:latest"
-    restart: on-failure
+    restart: always
     depends_on:
       - "db"
     command:
@@ -18,6 +18,7 @@ services:
     ports:
       - "<YourPort>:<YourPort>"
   db:
+    restart: always
     image: "timescale/timescaledb:latest-pg14"
     environment:
       POSTGRES_PASSWORD: "runningtorq" # Must match db password set above
