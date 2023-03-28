@@ -2,6 +2,7 @@ import {
   Options20Regular as OptionsIcon,
   ArrowDownload20Regular as DownloadCsvIcon,
   ArrowSync20Regular as RefreshIcon,
+  Molecule20Regular as PeersIcon,
 } from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
@@ -33,6 +34,9 @@ import { TableResponses, ViewResponse } from "../viewManagement/types";
 import { createCsvFile } from "utils/JsonTableToCsv";
 import Button, { ColorVariant } from "components/buttons/Button";
 import peerCellRenderer from "./peersCellRenderer";
+import * as Routes from "constants/routes";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router";
 
 function PeersPage() {
   const { t } = useTranslations();
@@ -42,6 +46,8 @@ function PeersPage() {
   const peersView = useAppSelector(selectViews)("peers");
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const [updateTableView] = useUpdateTableViewMutation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const peersResponse = useGetPeersQuery<{
     data: Array<Peer>;
@@ -73,7 +79,19 @@ function PeersPage() {
   const tableControls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup></TableControlsTabsGroup>
+        <TableControlsTabsGroup>
+          <Button
+            buttonColor={ColorVariant.success}
+            hideMobileText={true}
+            icon={<PeersIcon />}
+            onClick={() => {
+              mixpanel.track("Navigate to connect new peer");
+              navigate(Routes.CONNECT_PEER, { state: { background: location } });
+            }}
+          >
+            {t.peersPage.connectPeer}
+          </Button>
+        </TableControlsTabsGroup>
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button

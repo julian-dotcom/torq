@@ -12,3 +12,11 @@ export type Peer = ExpandedPeer & {
 export type ExpandedPeer = {
   actions: boolean;
 };
+
+export type ConnectPeerRequest = {
+  nodeId: number;
+  connectionString: string;
+  network: number;
+};
+
+export type ConnectPeerResponse = {};

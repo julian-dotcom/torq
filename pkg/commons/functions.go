@@ -549,3 +549,20 @@ func GetNodeWalletBalance(nodeId int, lightningRequestChannel chan<- interface{}
 	lightningRequestChannel <- request
 	return <-responseChannel
 }
+
+func ConnectPeer(nodeId int, pubKey string, host string, lightningRequestChannel chan<- interface{}) ConnectPeerResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan ConnectPeerResponse)
+	request := ConnectPeerRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		PubKey:          pubKey,
+		Host:            host,
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}

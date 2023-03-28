@@ -38,6 +38,7 @@ export const UPDATE_TAG = "/update-tag/:tagId";
 export const TAG_CHANNEL = "/tag-channel/:channelId";
 export const TAG_NODE = "/tag-node/:nodeId";
 export const MESSAGE_VERIFICATION = "/message-verification";
+export const CONNECT_PEER = "/connect-peer";
 
 // Automation
 export const WORKFLOWS = "workflows";

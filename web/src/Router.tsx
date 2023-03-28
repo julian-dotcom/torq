@@ -36,7 +36,7 @@ import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
 import ChannelsPendingPage from "features/channelsPending/ChannelsPendingPage";
 import FowardsSummaryPage from "features/channel/ForwardsSummary";
 import PeersPage from "features/peers/PeersPage";
-
+import PeersModal from "features/peers/peersModal";
 function Logout() {
   const [logout] = useLogoutMutation();
   const navigate = useNavigate();
@@ -75,6 +75,7 @@ const modalRoutes: RouteObject = {
     { path: routes.TAG_CHANNEL, element: <AddTag /> },
     { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
     { path: routes.MESSAGE_VERIFICATION, element: <MessageVerificationModal /> },
+    { path: routes.CONNECT_PEER, element: <PeersModal /> },
   ],
 };
 

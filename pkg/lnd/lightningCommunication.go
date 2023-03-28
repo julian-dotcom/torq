@@ -98,6 +98,15 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 					request.ResponseChannel <- response
 				}
 			}
+			if request, ok := lightningRequest.(commons.ConnectPeerRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processConnectPeerRequest(ctx, request, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
 		}
 	}()
 
@@ -664,6 +673,26 @@ func processWalletBalanceRequest(ctx context.Context, _ commons.NodeWalletBalanc
 	response.ConfirmedBalance = wb.ConfirmedBalance
 	response.TotalBalance = wb.TotalBalance
 	response.LockedBalance = wb.LockedBalance
+
+	return response
+}
+
+func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerRequest, client lnrpc.LightningClient) commons.ConnectPeerResponse {
+	response := commons.ConnectPeerResponse{
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	connectPeerRequest := lnrpc.ConnectPeerRequest{
+		Addr: &lnrpc.LightningAddress{Pubkey: request.PubKey, Host: request.Host},
+	}
+
+	_, err := client.ConnectPeer(ctx, &connectPeerRequest)
+
+	if err != nil {
+		response.Error = err.Error()
+	}
 
 	return response
 }

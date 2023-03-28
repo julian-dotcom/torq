@@ -435,6 +435,10 @@
   "peers" : "Peers",
   "peersPage": {
     "connect": "Connect",
-    "disconnect": "Disconnect"
+    "disconnect": "Disconnect",
+    "connectPeer": "Connect To Peer",
+    "processingConnectPeer": "Please wait while we connect to Peer.",
+    "connectToAnotherPeer" : "Connect to another Peer",
+    "confirmationConnectPeer" : "The peer connection has been successful"
   }
 }

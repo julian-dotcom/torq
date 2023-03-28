@@ -447,3 +447,14 @@ type ImportResponse struct {
 	CommunicationResponse
 	Error error `json:"error"`
 }
+
+type ConnectPeerRequest struct {
+	CommunicationRequest
+	PubKey          string                     `json:"pubKey"`
+	Host            string                     `json:"host"`
+	ResponseChannel chan<- ConnectPeerResponse `json:"-"`
+}
+
+type ConnectPeerResponse struct {
+	CommunicationResponse
+}
