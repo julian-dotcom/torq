@@ -27,18 +27,6 @@ func GetNodeByPublicKey(db *sqlx.DB, publicKey string) (Node, error) {
 	return n, nil
 }
 
-func GetNodeById(db *sqlx.DB, nodeId int) (Node, error) {
-	var n Node
-	err := db.Get(&n, `SELECT * FROM node WHERE node_id=$1;`, nodeId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Node{}, nil
-		}
-		return Node{}, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return n, nil
-}
-
 func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]NodeInformation, error) {
 	nds, err := getNodesByNetwork(db, false, network)
 	if err != nil {

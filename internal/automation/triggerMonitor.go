@@ -14,8 +14,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/lnd"
 )
 
 const workflowTickerSeconds = 10
@@ -98,6 +98,7 @@ type CronTriggerParams struct {
 }
 
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
+
 	defer log.Info().Msgf("Cron trigger monitor terminated")
 
 	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
@@ -161,8 +162,7 @@ bootstrappingLoop:
 	<-ctx.Done()
 }
 
-func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
-	broadcaster broadcast.BroadcastServer) {
+func EventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Info().Msgf("EventTriggerMonitor terminated")
 
@@ -171,21 +171,19 @@ func EventTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		channelBalanceEventTriggerMonitor(ctx, db, broadcaster)
+		channelBalanceEventTriggerMonitor(ctx, db)
 	})()
 
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		channelEventTriggerMonitor(ctx, db, broadcaster)
+		channelEventTriggerMonitor(ctx, db)
 	})()
 
 	wg.Wait()
 }
 
-func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests) {
+func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
@@ -341,9 +339,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 			}
 
-			processWorkflowNode(triggerCtx, db, workflowTriggerNode,
-				scheduledTrigger.Reference, events, lightningRequestChannel,
-				rebalanceRequestChannel)
+			processWorkflowNode(triggerCtx, db, workflowTriggerNode, scheduledTrigger.Reference, events)
 
 			triggerCancel()
 
@@ -358,43 +354,34 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB,
 	}
 }
 
-func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB,
-	broadcaster broadcast.BroadcastServer) {
+func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("EventTriggerMonitor terminated")
+	defer log.Debug().Msgf("ChannelBalanceEventTriggerMonitor terminated")
 
-	listener := broadcaster.SubscribeChannelBalanceEvent()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-		broadcaster.CancelSubscriptionChannelBalanceEvent(listener)
-	}()
-	go func() {
-		for channelBalanceEvent := range listener {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case channelBalanceEvent := <-commons.ChannelBalanceChanges:
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
 			processEventTrigger(db, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
 		}
-	}()
-	wg.Wait()
+	}
 }
 
-func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster broadcast.BroadcastServer) {
-	listener := broadcaster.SubscribeChannelEvent()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-		broadcaster.CancelSubscriptionChannelEvent(listener)
-	}()
-	go func() {
-		for channelEvent := range listener {
+func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
+
+	defer log.Debug().Msgf("ChannelEventTriggerMonitor terminated")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case channelEvent := <-lnd.ChannelChanges:
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
-				continue
+				return
 			}
 			switch channelEvent.Type {
 			case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
@@ -403,8 +390,7 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB, broadcaster br
 				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
 			}
 		}
-	}()
-	wg.Wait()
+	}
 }
 
 func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {
@@ -427,11 +413,9 @@ func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType comm
 func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode workflows.WorkflowNode,
 	reference string,
-	events []any,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests) {
+	events []any) {
 
-	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events, lightningRequestChannel, rebalanceRequestChannel)
+	err := workflows.ProcessWorkflow(ctx, db, workflowTriggerNode, reference, events)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to trigger nodes for WorkflowVersionNodeId: %v", workflowTriggerNode.WorkflowVersionNodeId)
 	}

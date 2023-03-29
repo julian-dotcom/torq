@@ -5,7 +5,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -31,7 +30,7 @@ type VerifyMessageResponse struct {
 	PubKey string `json:"pubKey"`
 }
 
-func signMessageHandler(c *gin.Context, lightningRequestChannel chan<- interface{}) {
+func signMessageHandler(c *gin.Context) {
 	var signMsgReq SignMessageRequest
 
 	if err := c.BindJSON(&signMsgReq); err != nil {
@@ -39,7 +38,7 @@ func signMessageHandler(c *gin.Context, lightningRequestChannel chan<- interface
 		return
 	}
 
-	response, err := signMessage(signMsgReq, lightningRequestChannel)
+	response, err := signMessage(signMsgReq)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Sign message")
 		return
@@ -48,7 +47,7 @@ func signMessageHandler(c *gin.Context, lightningRequestChannel chan<- interface
 	c.JSON(http.StatusOK, response)
 }
 
-func verifyMessageHandler(c *gin.Context, lightningRequestChannel chan<- interface{}) {
+func verifyMessageHandler(c *gin.Context) {
 	var verifyMsgReq VerifyMessageRequest
 
 	if err := c.BindJSON(&verifyMsgReq); err != nil {
@@ -56,7 +55,7 @@ func verifyMessageHandler(c *gin.Context, lightningRequestChannel chan<- interfa
 		return
 	}
 
-	response, err := verifyMessage(verifyMsgReq, lightningRequestChannel)
+	response, err := verifyMessage(verifyMsgReq)
 	if err != nil {
 		serr := server_errors.ServerError{}
 		// TODO: Replace with error codes
@@ -68,7 +67,7 @@ func verifyMessageHandler(c *gin.Context, lightningRequestChannel chan<- interfa
 	c.JSON(http.StatusOK, response)
 }
 
-func RegisterMessagesRoutes(r *gin.RouterGroup, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
-	r.POST("sign", func(c *gin.Context) { signMessageHandler(c, lightningRequestChannel) })
-	r.POST("verify", func(c *gin.Context) { verifyMessageHandler(c, lightningRequestChannel) })
+func RegisterMessagesRoutes(r *gin.RouterGroup) {
+	r.POST("sign", func(c *gin.Context) { signMessageHandler(c) })
+	r.POST("verify", func(c *gin.Context) { verifyMessageHandler(c) })
 }

@@ -33,7 +33,7 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, paymentEventChannel chan<- commons.PaymentEvent,
+	nodeSettings commons.ManagedNodeSettings,
 	opt *PayOptions) {
 
 	defer log.Info().Msgf("SubscribeAndStorePayments terminated for nodeId: %v", nodeSettings.NodeId)
@@ -94,7 +94,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				}
 
 				// Store the payments
-				err = storePayments(db, payments.Payments, nodeSettings, paymentEventChannel, bootStrapping)
+				err = storePayments(db, payments.Payments, nodeSettings, bootStrapping)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store payments, will retry in %v seconds", streamPaymentsTickerSeconds)
 					break
@@ -154,7 +154,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	return r, nil
 }
 
-func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.ManagedNodeSettings, paymentEventChannel chan<- commons.PaymentEvent, bootStrapping bool) error {
+func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.ManagedNodeSettings, bootStrapping bool) error {
 	const q = `INSERT INTO payment(
 				  payment_hash,
 				  creation_timestamp,
@@ -250,9 +250,9 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 		}
 	}
 
-	if paymentEventChannel != nil && !bootStrapping {
+	if !bootStrapping {
 		for _, paymentEvent := range paymentEvents {
-			paymentEventChannel <- paymentEvent
+			ProcessPaymentEvent(paymentEvent)
 		}
 	}
 

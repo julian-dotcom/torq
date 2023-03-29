@@ -1,23 +1,21 @@
 package messages
 
 import (
-	"time"
-
 	"github.com/cockroachdb/errors"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/lightning"
 )
 
-func verifyMessage(req VerifyMessageRequest, lightningRequestChannel chan<- interface{}) (VerifyMessageResponse, error) {
+func verifyMessage(req VerifyMessageRequest) (VerifyMessageResponse, error) {
 	if req.NodeId == 0 {
 		return VerifyMessageResponse{}, errors.New("Node Id missing")
 	}
-	response := commons.SignatureVerification(time.Now(), req.NodeId, req.Message, req.Signature, lightningRequestChannel)
-	if response.Status == commons.Active || response.Message == "Signature is not valid" {
-		return VerifyMessageResponse{
-			Valid:  response.Valid,
-			PubKey: response.PublicKey,
-		}, nil
+	publicKey, valid, err := lightning.SignatureVerification(req.NodeId, req.Message, req.Signature)
+	if err != nil {
+		return VerifyMessageResponse{}, errors.Wrapf(err, "Signature Verification (nodeId: %v)", req.NodeId)
 	}
-	return VerifyMessageResponse{}, errors.New(response.Error)
+	return VerifyMessageResponse{
+		Valid:  valid,
+		PubKey: publicKey,
+	}, nil
 }

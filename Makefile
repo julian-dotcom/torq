@@ -10,7 +10,7 @@ virtual_network_send_coins_freq = 30
 #Virtual Network - Frequency(every x minutes; default 10) of opening and closing random channels
 virtual_network_open_close_chan_freq = 10
 lintFrontend = cd web && npm i --legacy-peer-deps && npm run lint
-lintBackend = go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && ~/go/bin/golangci-lint run
+lintBackend = go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && ~/go/bin/golangci-lint run --timeout 5m
 
 .PHONY: test
 test: lint start-dev-db wait-db test-backend-with-db-stop test-frontend-with-db-stop stop-dev-db

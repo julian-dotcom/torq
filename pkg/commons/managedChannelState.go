@@ -12,6 +12,7 @@ import (
 const toleratedSubscriptionDowntimeSeconds = 15
 
 var ManagedChannelStateChannel = make(chan ManagedChannelState) //nolint:gochecknoglobals
+var ChannelBalanceChanges = make(chan ChannelBalanceEvent)      //nolint:gochecknoglobals
 
 type ManagedChannelStateCacheOperationType uint
 
@@ -177,7 +178,7 @@ type ManagedChannelBalanceStateSettings struct {
 }
 
 // ManagedChannelStateCache parameter Context is for test cases...
-func ManagedChannelStateCache(ch <-chan ManagedChannelState, ctx context.Context, channelBalanceEventChannel chan<- ChannelBalanceEvent) {
+func ManagedChannelStateCache(ch <-chan ManagedChannelState, ctx context.Context) {
 	channelStateSettingsByChannelIdCache := make(map[int]map[int]ManagedChannelStateSettings, 0)
 	channelStateSettingsStatusCache := make(map[int]Status, 0)
 	channelStateSettingsDeactivationTimeCache := make(map[int]time.Time, 0)
@@ -188,7 +189,7 @@ func ManagedChannelStateCache(ch <-chan ManagedChannelState, ctx context.Context
 		case managedChannelState := <-ch:
 			processManagedChannelStateSettings(managedChannelState,
 				channelStateSettingsStatusCache, channelStateSettingsByChannelIdCache,
-				channelStateSettingsDeactivationTimeCache, channelBalanceEventChannel)
+				channelStateSettingsDeactivationTimeCache)
 		}
 	}
 }
@@ -196,8 +197,7 @@ func ManagedChannelStateCache(ch <-chan ManagedChannelState, ctx context.Context
 func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 	channelStateSettingsStatusCache map[int]Status,
 	channelStateSettingsByChannelIdCache map[int]map[int]ManagedChannelStateSettings,
-	channelStateSettingsDeactivationTimeCache map[int]time.Time,
-	channelBalanceEventChannel chan<- ChannelBalanceEvent) {
+	channelStateSettingsDeactivationTimeCache map[int]time.Time) {
 	switch managedChannelState.Type {
 	case readChannelState:
 		if managedChannelState.ChannelId == 0 || managedChannelState.NodeId == 0 {
@@ -409,7 +409,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 						channelBalanceEvent.BalanceDeltaAbsolute = -1 * channelBalanceEvent.BalanceDeltaAbsolute
 					}
 					if channelBalanceEvent.BalanceDelta != 0 {
-						channelBalanceEventChannel <- channelBalanceEvent
+						ChannelBalanceChanges <- channelBalanceEvent
 					}
 				}
 			}
@@ -588,7 +588,7 @@ func processManagedChannelStateSettings(managedChannelState ManagedChannelState,
 					PeerLocalBalance:              channelStateSetting.PeerLocalBalance + managedChannelState.Amount,
 					PeerLocalBalancePerMilleRatio: int(channelStateSetting.PeerLocalBalance / channelStateSetting.PeerChannelCapacity * 1000),
 				}
-				channelBalanceEventChannel <- channelBalanceEvent
+				ChannelBalanceChanges <- channelBalanceEvent
 			} else {
 				managedChannelSettings := GetChannelSettingByChannelId(managedChannelState.ChannelId)
 				if managedChannelSettings.Status == Open {

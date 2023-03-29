@@ -11,7 +11,6 @@ import (
 	"github.com/mixer/clock"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
@@ -56,14 +55,14 @@ func TestSubscribePayments(t *testing.T) {
 		panic(err)
 	}
 
-	db, dbCancel, _, err := srv.NewTestDatabase(true)
+	db, dbCancel, err := srv.NewTestDatabase(true)
 	defer dbCancel()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
 
-	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
+	err = settings.InitializeManagedSettingsCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
@@ -75,7 +74,7 @@ func TestSubscribePayments(t *testing.T) {
 		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
 	}
 
-	err = channels.InitializeManagedChannelCache(db)
+	err = settings.InitializeManagedChannelCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
@@ -236,7 +235,7 @@ func TestSubscribePayments(t *testing.T) {
 		defer wg.Done()
 		SubscribeAndStorePayments(ctx, &mclient, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, &opt)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
 	}()
 	// Simulate passing intervals
 	numbTicks := 4

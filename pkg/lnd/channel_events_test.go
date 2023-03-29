@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -13,7 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
@@ -116,13 +116,13 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, _, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
+	err = settings.InitializeManagedSettingsCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
@@ -134,7 +134,7 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
 	}
 
-	err = channels.InitializeManagedChannelCache(db)
+	err = settings.InitializeManagedChannelCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
@@ -254,8 +254,10 @@ type channelEventData struct {
 }
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), commons.ContextKeyTest, true)
 	ctx, cancel := context.WithCancel(ctx)
+
+	startAllDummyListener()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -264,7 +266,8 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		defer wg.Done()
 		SubscribeAndStoreChannelEvents(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)),
+			make(map[ImportType]time.Time))
 	}()
 	wg.Wait()
 
@@ -320,5 +323,24 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	if channelEvents[0].EventType == 1 && expected.ClosingTransactionHash != nil && *expected.ClosingTransactionHash != "" && *channelEvents[0].ClosingTransactionHash != *expected.ClosingTransactionHash {
 		t.Fatalf("Channel ClosingTransactionHash is not stored correctly. Expected: %v, got: %v", *expected.ClosingTransactionHash,
 			channelEvents[0].ClosingTransactionHash)
+	}
+}
+
+func startAllDummyListener() {
+	go startDummyChannelBalanceChangesListener()
+	go startDummyChannelChangesListener()
+}
+
+func startDummyChannelChangesListener() {
+	for {
+		channelEvent := <-ChannelChanges
+		log.Debug().Msgf("Not processing %v in a test case.", channelEvent)
+	}
+}
+
+func startDummyChannelBalanceChangesListener() {
+	for {
+		channelEvent := <-commons.ChannelBalanceChanges
+		log.Debug().Msgf("Not processing %v in a test case.", channelEvent)
 	}
 }

@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/Masterminds/squirrel v1.5.3
-	github.com/benbjohnson/clock v1.3.0
 	github.com/btcsuite/btcd v0.23.4
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1
 	github.com/cockroachdb/errors v1.9.0

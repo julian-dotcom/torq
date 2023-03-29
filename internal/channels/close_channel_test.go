@@ -22,13 +22,13 @@ func Test_prepareCloseRequest(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, _, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
+	err = settings.InitializeManagedSettingsCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
@@ -58,7 +58,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 	}
 	log.Info().Msgf("Created OPEN channel to be closed with channelId: %v", channel.ChannelID)
 
-	err = InitializeManagedChannelCache(db)
+	err = settings.InitializeManagedChannelCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)

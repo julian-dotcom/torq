@@ -1,22 +1,23 @@
 package channels
 
 import (
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
-
-	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
+
+	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -180,28 +181,6 @@ type PendingChannel struct {
 	FundingBlockHeightDelta *uint32    `json:"fundingBlockHeightDelta"`
 	ClosingBlockHeightDelta *uint32    `json:"closingBlockHeightDelta"`
 	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
-}
-
-func updateChannelsHandler(c *gin.Context, lightningRequestChannel chan<- interface{}) {
-	var requestBody commons.RoutingPolicyUpdateRequest
-	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
-		return
-	}
-	// DISABLE the rate limiter
-	requestBody.RateLimitSeconds = 1
-	requestBody.RateLimitCount = 10
-
-	response := SetRoutingPolicy(requestBody, lightningRequestChannel)
-	if response.Status != commons.Active {
-		err := errors.New(response.Error)
-		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
-		err = errors.Wrap(err, "Problem when setting routing policy")
-		log.Error().Err(err).Send()
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
 }
 
 func batchOpenHandler(c *gin.Context, db *sqlx.DB) {

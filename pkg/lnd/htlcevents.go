@@ -152,11 +152,10 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
 func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, htlcEventChannel chan<- commons.HtlcEvent) {
+	nodeSettings commons.ManagedNodeSettings) {
 	var stream routerrpc.Router_SubscribeHtlcEventsClient
 	var err error
 	var htlcEvent *routerrpc.HtlcEvent
-	var storedHtlcEvent HtlcEvent
 	serviceStatus := commons.ServiceInactive
 	subscriptionStream := commons.HtlcEventStream
 
@@ -179,12 +178,12 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		if stream == nil {
@@ -216,52 +215,28 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 
 		switch htlcEvent.Event.(type) {
 		case *routerrpc.HtlcEvent_ForwardEvent:
-			storedHtlcEvent, err = storeForwardEvent(db, htlcEvent, nodeSettings.NodeId)
+			_, err = storeForwardEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardEvent")
 			}
 		case *routerrpc.HtlcEvent_ForwardFailEvent:
-			storedHtlcEvent, err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
+			_, err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardFailEvent")
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
-			storedHtlcEvent, err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
+			_, err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_LinkFailEvent")
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
-			storedHtlcEvent, err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
+			_, err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_SettleEvent")
-			}
-		}
-
-		if htlcEventChannel != nil {
-			htlcEventChannel <- commons.HtlcEvent{
-				EventData: commons.EventData{
-					EventTime: time.Now().UTC(),
-					NodeId:    nodeSettings.NodeId,
-				},
-				Timestamp:         storedHtlcEvent.Time,
-				EventOrigin:       storedHtlcEvent.EventOrigin,
-				EventType:         storedHtlcEvent.EventType,
-				OutgoingHtlcId:    storedHtlcEvent.OutgoingHtlcId,
-				IncomingHtlcId:    storedHtlcEvent.IncomingHtlcId,
-				TimestampNs:       storedHtlcEvent.TimestampNs,
-				IncomingAmtMsat:   storedHtlcEvent.IncomingAmtMsat,
-				OutgoingAmtMsat:   storedHtlcEvent.OutgoingAmtMsat,
-				IncomingTimelock:  storedHtlcEvent.IncomingTimelock,
-				OutgoingTimelock:  storedHtlcEvent.OutgoingTimelock,
-				BoltFailureCode:   storedHtlcEvent.BoltFailureCode,
-				BoltFailureString: storedHtlcEvent.BoltFailureString,
-				LndFailureDetail:  storedHtlcEvent.LndFailureDetail,
-				OutgoingChannelId: storedHtlcEvent.OutgoingChannelId,
-				IncomingChannelId: storedHtlcEvent.IncomingChannelId,
 			}
 		}
 		delay = false

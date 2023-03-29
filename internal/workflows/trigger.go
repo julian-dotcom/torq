@@ -16,6 +16,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/lightning"
 )
 
 type workflowVersionNodeIdInt int
@@ -26,9 +27,7 @@ type originIdInt int
 func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode WorkflowNode,
 	reference string,
-	events []any,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests) error {
+	events []any) error {
 
 	workflowNodeInputCache := make(map[workflowVersionNodeIdInt]map[commons.WorkflowParameterLabel]string)
 	workflowNodeInputByReferenceIdCache := make(map[workflowVersionNodeIdInt]map[channelIdInt]map[commons.WorkflowParameterLabel]string)
@@ -125,8 +124,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 			processStatus, err = processWorkflowNode(ctx, db, workflowVersionNode, workflowVersionNodes, workflowTriggerNode,
 				workflowNodeStatus, reference, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 				workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
-				workflowStageOutputCache, workflowStageOutputByReferenceIdCache,
-				lightningRequestChannel, rebalanceRequestChannel)
+				workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
 			if err != nil {
 				return errors.Wrapf(err, "Failed to process workflow nodes for WorkflowVersionId: %v (stage: %v)",
 					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.Stage)
@@ -172,8 +170,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 				processStatus, err = processWorkflowNode(ctx, db, workflowVersionNode, workflowVersionNodes, workflowTriggerNode,
 					workflowNodeStatus, reference, workflowNodeInputCache, workflowNodeInputByReferenceIdCache,
 					workflowNodeOutputCache, workflowNodeOutputByReferenceIdCache,
-					workflowStageOutputCache, workflowStageOutputByReferenceIdCache,
-					lightningRequestChannel, rebalanceRequestChannel)
+					workflowStageOutputCache, workflowStageOutputByReferenceIdCache)
 				if err != nil {
 					return errors.Wrapf(err, "Failed to process workflow nodes for WorkflowVersionId: %v (stage: %v)",
 						workflowTriggerNode.WorkflowVersionId, workflowStageTriggerNode.Stage)
@@ -259,9 +256,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowNodeOutputCache map[workflowVersionNodeIdInt]map[commons.WorkflowParameterLabel]string,
 	workflowNodeOutputByReferenceIdCache map[workflowVersionNodeIdInt]map[channelIdInt]map[commons.WorkflowParameterLabel]string,
 	workflowStageOutputCache map[stageInt]map[commons.WorkflowParameterLabel]string,
-	workflowStageOutputByReferenceIdCache map[stageInt]map[channelIdInt]map[commons.WorkflowParameterLabel]string,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests) (commons.Status, error) {
+	workflowStageOutputByReferenceIdCache map[stageInt]map[channelIdInt]map[commons.WorkflowParameterLabel]string) (commons.Status, error) {
 
 	select {
 	case <-ctx.Done():
@@ -532,8 +527,7 @@ linkedInputLoop:
 				return commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
 
-			var response commons.RoutingPolicyUpdateResponse
-			response, err = processRoutingPolicyRun(routingPolicySettings, lightningRequestChannel, workflowNode, reference, workflowTriggerNode.Type)
+			err = processRoutingPolicyRun(db, routingPolicySettings, workflowNode, reference, workflowTriggerNode.Type)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
@@ -544,7 +538,7 @@ linkedInputLoop:
 			}
 			outputsByReferenceId[channelId][commons.WorkflowParameterLabelRoutingPolicySettings] = string(marshalledChannelPolicyConfiguration)
 
-			marshalledResponse, err := json.Marshal(response)
+			marshalledResponse, err := json.Marshal(true)
 			if err != nil {
 				return commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Response with ChannelIds: %v for WorkflowVersionNodeId: %v", linkedChannelIds, workflowNode.WorkflowVersionNodeId)
 			}
@@ -572,13 +566,12 @@ linkedInputLoop:
 			}
 
 			if routingPolicySettings.ChannelId != 0 {
-				var response commons.RoutingPolicyUpdateResponse
-				response, err = processRoutingPolicyRun(routingPolicySettings, lightningRequestChannel, workflowNode, reference, workflowTriggerNode.Type)
+				err = processRoutingPolicyRun(db, routingPolicySettings, workflowNode, reference, workflowTriggerNode.Type)
 				if err != nil {
 					return commons.Inactive, errors.Wrapf(err, "Processing Routing Policy Configurator for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
 
-				marshalledResponse, err := json.Marshal(response)
+				marshalledResponse, err := json.Marshal(true)
 				if err != nil {
 					return commons.Inactive, errors.Wrapf(err, "Marshalling Routing Policy Response for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 				}
@@ -727,7 +720,7 @@ linkedInputLoop:
 		}
 
 		var responses []commons.RebalanceResponse
-		responses, err = processRebalanceRun(eventChannelIds, rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+		responses, err = processRebalanceRun(db, eventChannelIds, rebalanceConfigurations, workflowNode, reference)
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
@@ -786,7 +779,7 @@ linkedInputLoop:
 			return commons.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
-		responses, err := processRebalanceRun(eventChannelIds, rebalanceConfigurations, rebalanceRequestChannel, workflowNode, reference)
+		responses, err := processRebalanceRun(db, eventChannelIds, rebalanceConfigurations, workflowNode, reference)
 		if err != nil {
 			return commons.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
@@ -1017,17 +1010,12 @@ func processRebalanceConfigurator(
 }
 
 func processRebalanceRun(
+	db *sqlx.DB,
 	eventChannelIds []int,
 	rebalanceSettings []RebalanceConfiguration,
-	rebalanceRequestChannel chan<- commons.RebalanceRequests,
 	workflowNode WorkflowNode,
 	reference string) ([]commons.RebalanceResponse, error) {
 
-	if rebalanceRequestChannel == nil {
-		return nil, errors.New("Lightning request channel is nil")
-	}
-
-	now := time.Now()
 	requestsMap := make(map[int]*commons.RebalanceRequests)
 	for _, rebalanceSetting := range rebalanceSettings {
 		var maxCostMsat uint64
@@ -1064,9 +1052,7 @@ func processRebalanceRun(
 						if !exists {
 							requestsMap[nodeId] = &commons.RebalanceRequests{
 								CommunicationRequest: commons.CommunicationRequest{
-									RequestId:   reference,
-									RequestTime: &now,
-									NodeId:      nodeId,
+									NodeId: nodeId,
 								},
 							}
 						}
@@ -1103,9 +1089,7 @@ func processRebalanceRun(
 						if !exists {
 							requestsMap[nodeId] = &commons.RebalanceRequests{
 								CommunicationRequest: commons.CommunicationRequest{
-									RequestId:   reference,
-									RequestTime: &now,
-									NodeId:      nodeId,
+									NodeId: nodeId,
 								},
 							}
 						}
@@ -1130,7 +1114,7 @@ func processRebalanceRun(
 	var responses []commons.RebalanceResponse
 	for nodeId := range requestsMap {
 		if commons.RunningServices[commons.RebalanceService].GetStatus(nodeId) != commons.ServiceActive {
-			return nil, errors.New(fmt.Sprintf("Lightning communication service is not active for nodeId: %v", nodeId))
+			return nil, errors.New(fmt.Sprintf("Rebalance service is not active for nodeId: %v", nodeId))
 		}
 		responseChannel := make(chan []commons.RebalanceResponse)
 		requestsMap[nodeId].ResponseChannel = responseChannel
@@ -1143,7 +1127,7 @@ func processRebalanceRun(
 				activeChannelIds = append(activeChannelIds, req.OutgoingChannelId)
 			}
 		}
-		rebalanceRequestChannel <- requests
+		RebalanceRequests(context.Background(), db, requests, nodeId)
 		responses = append(responses, <-responseChannel...)
 	}
 	if len(eventChannelIds) == 0 {
@@ -1198,14 +1182,12 @@ func processRoutingPolicyConfigurator(
 	return channelPolicyInputConfiguration, nil
 }
 
-func processRoutingPolicyRun(
+func processRoutingPolicyRun(db *sqlx.DB,
 	routingPolicySettings ChannelPolicyConfiguration,
-	lightningRequestChannel chan<- interface{},
 	workflowNode WorkflowNode,
 	reference string,
-	triggerType commons.WorkflowNodeType) (commons.RoutingPolicyUpdateResponse, error) {
+	triggerType commons.WorkflowNodeType) error {
 
-	now := time.Now()
 	torqNodeIds := commons.GetAllTorqNodeIds()
 	channelSettings := commons.GetChannelSettingByChannelId(routingPolicySettings.ChannelId)
 	nodeId := channelSettings.FirstNodeId
@@ -1213,31 +1195,23 @@ func processRoutingPolicyRun(
 		nodeId = channelSettings.SecondNodeId
 	}
 	if !slices.Contains(torqNodeIds, nodeId) {
-		return commons.RoutingPolicyUpdateResponse{}, errors.New(fmt.Sprintf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId))
+		return errors.New(fmt.Sprintf("Routing policy update on unmanaged channel for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId))
 	}
-	routingPolicyUpdateRequest := commons.RoutingPolicyUpdateRequest{
-		CommunicationRequest: commons.CommunicationRequest{
-			RequestId:   reference,
-			RequestTime: &now,
-			NodeId:      nodeId,
-		},
-		ChannelId:        routingPolicySettings.ChannelId,
-		FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
-		FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
-		MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
-		MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
-		TimeLockDelta:    routingPolicySettings.TimeLockDelta,
-	}
+	rateLimitSeconds := 0
+	rateLimitCount := 0
 	if triggerType == commons.WorkflowNodeManualTrigger {
 		// DISABLE rate limiter
-		routingPolicyUpdateRequest.RateLimitSeconds = 1
-		routingPolicyUpdateRequest.RateLimitCount = 10
+		rateLimitSeconds = 1
+		rateLimitCount = 10
 	}
-	response := channels.SetRoutingPolicy(routingPolicyUpdateRequest, lightningRequestChannel)
-	if response.Error != "" {
-		log.Error().Err(errors.New(response.Error)).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
+	_, _, err := lightning.SetRoutingPolicy(db, nodeId, rateLimitSeconds, rateLimitCount, routingPolicySettings.ChannelId,
+		routingPolicySettings.FeeRateMilliMsat, routingPolicySettings.FeeBaseMsat,
+		routingPolicySettings.MaxHtlcMsat, routingPolicySettings.MinHtlcMsat,
+		routingPolicySettings.TimeLockDelta)
+	if err != nil {
+		log.Error().Err(err).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 	}
-	return response, nil
+	return nil
 }
 
 func addOrRemoveTags(db *sqlx.DB, linkedChannelIds []int, workflowNode WorkflowNode) error {

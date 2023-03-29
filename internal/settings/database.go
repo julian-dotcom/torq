@@ -6,19 +6,16 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
 func getSettings(db *sqlx.DB) (settings, error) {
 	var settingsData settings
-	err := db.Get(&settingsData, `
-		SELECT default_date_range, default_language, preferred_timezone, week_starts_on, torq_uuid, mixpanel_opt_out
-		FROM settings
-		LIMIT 1;`)
+	err := db.Get(&settingsData, `SELECT * FROM settings LIMIT 1;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return settings{}, nil
@@ -28,12 +25,12 @@ func getSettings(db *sqlx.DB) (settings, error) {
 	return settingsData, nil
 }
 
-func InitializeManagedSettingsCache(db *sqlx.DB, vectorUrl string) error {
+func InitializeManagedSettingsCache(db *sqlx.DB) error {
 	settingsData, err := getSettings(db)
 	if err == nil {
 		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
 		commons.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
-			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut, vectorUrl)
+			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut)
 	} else {
 		log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
 	}
@@ -61,13 +58,12 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 		  mixpanel_opt_out = $5,
 		  updated_on = $6;`,
 		settings.DefaultDateRange, settings.DefaultLanguage, settings.PreferredTimezone, settings.WeekStartsOn,
-		settings.MixpanelOptOut,
-		time.Now().UTC())
+		settings.MixpanelOptOut, time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	commons.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn,
-		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut, commons.GetVectorUrlBase())
+		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut)
 	return nil
 }
 
@@ -136,14 +132,53 @@ func GetAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnec
 	return nodeConnectionDetailsArray, nil
 }
 
+func GetNodeDetailsById(db *sqlx.DB, nodeId int) (string, commons.Chain, commons.Network, error) {
+	var publicKey string
+	var chain commons.Chain
+	var network commons.Network
+	err := db.QueryRowx(`SELECT public_key, chain, network FROM node WHERE node_id=$1;`, nodeId).
+		Scan(&publicKey, &chain, &network)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", commons.Bitcoin, commons.MainNet, nil
+		}
+		return "", commons.Bitcoin, commons.MainNet, errors.Wrap(err, database.SqlExecutionError)
+	}
+	return publicKey, chain, network, nil
+}
+
+func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain commons.Chain, network commons.Network) (int, error) {
+	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
+	if nodeId == 0 {
+		createdOn := time.Now().UTC()
+		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
+			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
+			publicKey, chain, network, createdOn).Scan(&nodeId)
+		if err != nil {
+			if err, ok := err.(*pq.Error); ok {
+				if err.Code == "23505" {
+					err := db.Get(&nodeId, `SELECT node_id FROM node WHERE public_key=$1;`, publicKey)
+					if err != nil {
+						return 0, errors.Wrapf(err, "Obtaining existing nodeId for publicKey: %v", publicKey)
+					}
+					return nodeId, nil
+				}
+			}
+			return 0, errors.Wrap(err, database.SqlExecutionError)
+		}
+		return nodeId, nil
+	}
+	return nodeId, nil
+}
+
 func InitializeManagedNodeCache(db *sqlx.DB) error {
 	nodeConnectionDetailsArray, err := GetAllNodeConnectionDetails(db, true)
 	if err == nil {
 		log.Debug().Msg("Pushing torq nodes to ManagedNodes cache.")
 		for _, torqNode := range nodeConnectionDetailsArray {
-			node, err := nodes.GetNodeById(db, torqNode.NodeId)
+			publicKey, chain, network, err := GetNodeDetailsById(db, torqNode.NodeId)
 			if err == nil {
-				commons.SetTorqNode(node.NodeId, torqNode.Name, torqNode.Status, node.PublicKey, node.Chain, node.Network)
+				commons.SetTorqNode(torqNode.NodeId, torqNode.Name, torqNode.Status, publicKey, chain, network)
 			} else {
 				log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
 			}
@@ -234,6 +269,61 @@ func InitializeManagedTaggedCache(db *sqlx.DB) error {
 	}
 	for channelId, tagIds := range channelTags {
 		commons.SetTagIdsByChannelId(channelId, tagIds)
+	}
+	return nil
+}
+
+func InitializeManagedChannelCache(db *sqlx.DB) error {
+	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
+	rows, err := db.Query(`
+		SELECT channel_id, short_channel_id, lnd_short_channel_id,
+		       funding_transaction_hash, funding_output_index,
+		       funding_block_height, funded_on,
+		       status_id, capacity, private,
+		       first_node_id, second_node_id, initiating_node_id, accepting_node_id,
+		       closing_transaction_hash, closing_node_id,
+		       closing_block_height, closed_on,
+		       flags
+		FROM channel;`)
+	if err != nil {
+		return errors.Wrap(err, "Obtaining channelIds and shortChannelIds")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var channelId int
+		var shortChannelId *string
+		var lndShortChannelId *uint64
+		var fundingTransactionHash string
+		var fundingOutputIndex int
+		var fundingBlockHeight *uint32
+		var fundedOn *time.Time
+		var capacity int64
+		var private bool
+		var firstNodeId int
+		var secondNodeId int
+		var initiatingNodeId *int
+		var acceptingNodeId *int
+		var status commons.ChannelStatus
+		var closingTransactionHash *string
+		var closingNodeId *int
+		var closingBlockHeight *uint32
+		var closedOn *time.Time
+		var flags commons.ChannelFlags
+		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId,
+			&fundingTransactionHash, &fundingOutputIndex,
+			&fundingBlockHeight, &fundedOn,
+			&status, &capacity, &private,
+			&firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId,
+			&closingTransactionHash, &closingNodeId,
+			&closingBlockHeight, &closedOn, &flags)
+		if err != nil {
+			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
+		}
+		commons.SetChannel(channelId, shortChannelId, lndShortChannelId, status,
+			fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundedOn,
+			capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId,
+			closingTransactionHash, closingNodeId, closingBlockHeight, closedOn,
+			flags)
 	}
 	return nil
 }

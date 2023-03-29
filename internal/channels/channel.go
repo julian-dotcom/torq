@@ -304,17 +304,6 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 	return existingChannelId, nil
 }
 
-func UpdateChannelStatus(db *sqlx.DB, channelId int, status commons.ChannelStatus) error {
-	_, err := db.Exec(`
-		UPDATE channel SET status_id=$1, updated_on=$2 WHERE channel_id=$3 AND status_id!=$1`,
-		status, time.Now().UTC(), channelId)
-	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
-	}
-	commons.SetChannelStatus(channelId, status)
-	return nil
-}
-
 func updateChannelClosing(db *sqlx.DB, channelId int,
 	closingTransactionHash string, closingBlockHeight *uint32, closedOn *time.Time, closingNodeId *int,
 	flags commons.ChannelFlags) error {

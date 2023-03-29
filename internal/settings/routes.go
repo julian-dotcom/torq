@@ -16,19 +16,21 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
 type settings struct {
-	DefaultDateRange  string `json:"defaultDateRange" db:"default_date_range"`
-	DefaultLanguage   string `json:"defaultLanguage" db:"default_language"`
-	PreferredTimezone string `json:"preferredTimezone" db:"preferred_timezone"`
-	WeekStartsOn      string `json:"weekStartsOn" db:"week_starts_on"`
-	TorqUuid          string `json:"torqUuid" db:"torq_uuid"`
-	MixpanelOptOut    bool   `json:"mixpanelOptOut" db:"mixpanel_opt_out"`
+	SettingsId        int        `json:"settingsId" db:"settings_id"`
+	DefaultDateRange  string     `json:"defaultDateRange" db:"default_date_range"`
+	DefaultLanguage   string     `json:"defaultLanguage" db:"default_language"`
+	PreferredTimezone string     `json:"preferredTimezone" db:"preferred_timezone"`
+	WeekStartsOn      string     `json:"weekStartsOn" db:"week_starts_on"`
+	TorqUuid          string     `json:"torqUuid" db:"torq_uuid"`
+	MixpanelOptOut    bool       `json:"mixpanelOptOut" db:"mixpanel_opt_out"`
+	CreatedOn         time.Time  `json:"createdOn" db:"created_on"`
+	UpdateOn          *time.Time `json:"updatedOn" db:"updated_on"`
 }
 
 type timeZone struct {
@@ -67,38 +69,31 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 }
 
 // You need to update the database before calling this function.
-func setAllLndServices(
-	serviceChannel chan<- commons.ServiceChannelMessage,
-	nodeId int,
-	lndActive bool) {
-
+func setAllLndServices(nodeId int, lndActive bool) {
 	// Services that aren't tied to a node but to Torq itself:
 	//	TorqService
 	//	AutomationService
 	//	MaintenanceService
 	//	CronService
-	commons.RunningServices[commons.LndService].Cancel(nodeId, nil, true)
 	commons.RunningServices[commons.VectorService].Cancel(nodeId, nil, true)
 	commons.RunningServices[commons.AmbossService].Cancel(nodeId, nil, true)
 	commons.RunningServices[commons.RebalanceService].Cancel(nodeId, nil, true)
-	commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, nil, true)
+	commons.RunningServices[commons.LndService].Cancel(nodeId, nil, true)
 	time.Sleep(5 * time.Second)
 	if lndActive {
-		serviceChannel <- commons.ServiceChannelMessage{
+		commons.ServiceChannel <- commons.ServiceChannelMessage{
 			NodeId:         nodeId,
-			ServiceType:    commons.LightningCommunicationService,
+			ServiceType:    commons.LndService,
 			ServiceCommand: commons.Boot,
 		}
 	}
 }
 
-func setService(serviceChannel chan<- commons.ServiceChannelMessage,
-	serviceType commons.ServiceType, nodeId int, active bool) bool {
-
+func setService(serviceType commons.ServiceType, nodeId int, active bool) bool {
 	commons.RunningServices[serviceType].Cancel(nodeId, nil, true)
 	if active {
 		enforcedServiceStatus := commons.ServiceActive
-		serviceChannel <- commons.ServiceChannelMessage{
+		commons.ServiceChannel <- commons.ServiceChannelMessage{
 			NodeId:                nodeId,
 			ServiceType:           serviceType,
 			EnforcedServiceStatus: &enforcedServiceStatus,
@@ -108,17 +103,19 @@ func setService(serviceChannel chan<- commons.ServiceChannelMessage,
 	return true
 }
 
-func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB, serviceChannel chan<- commons.ServiceChannelMessage) {
+func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getSettingsHandler(c, db) })
 	r.PUT("", func(c *gin.Context) { updateSettingsHandler(c, db) })
 	r.GET("nodeConnectionDetails", func(c *gin.Context) { getAllNodeConnectionDetailsHandler(c, db) })
 	r.GET("nodeConnectionDetails/:nodeId", func(c *gin.Context) { getNodeConnectionDetailsHandler(c, db) })
-	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db, serviceChannel) })
-	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db, serviceChannel) })
+	r.POST("nodeConnectionDetails", func(c *gin.Context) { addNodeConnectionDetailsHandler(c, db) })
+	r.PUT("nodeConnectionDetails", func(c *gin.Context) { setNodeConnectionDetailsHandler(c, db) })
 	r.PUT("nodeConnectionDetails/:nodeId/:statusId", func(c *gin.Context) {
-		setNodeConnectionDetailsStatusHandler(c, db, serviceChannel)
+		setNodeConnectionDetailsStatusHandler(c, db)
 	})
-	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) { setNodeConnectionDetailsPingSystemHandler(c, db, serviceChannel) })
+	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) {
+		setNodeConnectionDetailsPingSystemHandler(c, db)
+	})
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -133,26 +130,27 @@ func getTimeZonesHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, timeZones)
 }
 func getSettingsHandler(c *gin.Context, db *sqlx.DB) {
-	settings, err := getSettings(db)
+	setts, err := getSettings(db)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, settings)
+	c.JSON(http.StatusOK, setts)
 }
 
 func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
-	var settings settings
-	if err := c.BindJSON(&settings); err != nil {
+
+	var setts settings
+	if err := c.BindJSON(&setts); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	err := updateSettings(db, settings)
+	err := updateSettings(db, setts)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, settings)
+	c.JSON(http.StatusOK, setts)
 }
 
 func getAllNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
@@ -178,9 +176,7 @@ func getNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, ncd)
 }
 
-func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan<- commons.ServiceChannelMessage) {
-
+func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	var ncd NodeConnectionDetails
 	var err error
 	existingNcd := NodeConnectionDetails{}
@@ -229,12 +225,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 
 	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
-		newNode := nodes.Node{
-			PublicKey: publicKey,
-			Network:   network,
-			Chain:     chain,
-		}
-		nodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		nodeId, err = AddNodeWhenNew(db, publicKey, chain, network)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Adding node")
 			return
@@ -287,9 +278,9 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status, publicKey, chain, network)
 
 	if ncd.Status == commons.Active {
-		serviceChannel <- commons.ServiceChannelMessage{
+		commons.ServiceChannel <- commons.ServiceChannelMessage{
 			NodeId:         ncd.NodeId,
-			ServiceType:    commons.LightningCommunicationService,
+			ServiceType:    commons.LndService,
 			ServiceCommand: commons.Boot,
 		}
 	}
@@ -297,9 +288,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	c.JSON(http.StatusOK, ncd)
 }
 
-func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan<- commons.ServiceChannelMessage) {
-
+func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	var ncd NodeConnectionDetails
 	var err error
 	if err = c.Bind(&ncd); err != nil {
@@ -372,12 +361,12 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 			return
 		}
 
-		existingNode, err := nodes.GetNodeById(db, ncd.NodeId)
+		existingPublicKey, existingChain, existingNetwork, err := GetNodeDetailsById(db, ncd.NodeId)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Obtaining existing node")
 			return
 		}
-		if existingNode.PublicKey != publicKey || existingNode.Chain != chain || existingNode.Network != network {
+		if existingPublicKey != publicKey || existingChain != chain || existingNetwork != network {
 			server_errors.SendUnprocessableEntity(c, "PublicKey/chain/network does not match, create a new node instead of updating this one")
 			return
 		}
@@ -414,7 +403,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
 		nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 
-	setAllLndServices(serviceChannel, ncd.NodeId, ncd.Status == commons.Active)
+	setAllLndServices(ncd.NodeId, ncd.Status == commons.Active)
 
 	c.JSON(http.StatusOK, ncd)
 }
@@ -452,9 +441,7 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 	return ncd, nil
 }
 
-func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan<- commons.ServiceChannelMessage) {
-
+func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -485,14 +472,12 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB,
 			nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 	}
 
-	setAllLndServices(serviceChannel, nodeId, commons.Status(statusId) == commons.Active)
+	setAllLndServices(nodeId, commons.Status(statusId) == commons.Active)
 
 	c.Status(http.StatusOK)
 }
 
-func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
-	serviceChannel chan<- commons.ServiceChannelMessage) {
-
+func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 	nodeId, err := strconv.Atoi(c.Param("nodeId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
@@ -527,7 +512,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB,
 		subscription = commons.VectorService
 	}
 
-	done := setService(serviceChannel, subscription, nodeId, commons.Status(statusId) == commons.Active)
+	done := setService(subscription, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
 		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, PingSystem(pingSystem), commons.Status(statusId))
 		if err != nil {
