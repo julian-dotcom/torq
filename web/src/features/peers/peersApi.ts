@@ -1,5 +1,5 @@
 import { torqApi } from "apiSlice";
-import { ConnectPeerRequest, ConnectPeerResponse } from "./peersTypes";
+import { ConnectPeerRequest, ConnectPeerResponse, DisconnectPeerRequest, DisconnectPeerResponse } from "./peersTypes";
 
 export const peersApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -11,7 +11,23 @@ export const peersApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["peers"],
     }),
+    disconnectPeer: builder.mutation<DisconnectPeerResponse, DisconnectPeerRequest>({
+      query: (body) => ({
+        url: `nodes/peers/disconnect`,
+        method: "PATCH",
+        body: body,
+      }),
+      invalidatesTags: ["peers"],
+    }),
+    reconnectPeer: builder.mutation<DisconnectPeerResponse, DisconnectPeerRequest>({
+      query: (body) => ({
+        url: `nodes/peers/reconnect`,
+        method: "PATCH",
+        body: body,
+      }),
+      invalidatesTags: ["peers"],
+    }),
   }),
 });
 
-export const { useConnectPeerMutation } = peersApi;
+export const { useConnectPeerMutation, useDisconnectPeerMutation, useReconnectPeerMutation } = peersApi;

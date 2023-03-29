@@ -204,11 +204,6 @@ function ConnectPeerModal() {
             </Note>
           )}
           <div className={styles.peersResultDetails}>
-            {response.isLoading && (
-              <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
-                {t.peersPage.processingConnectPeer}
-              </Note>
-            )}
             {response.isSuccess && (
               <Note title={t.note} icon={<NoteIcon />} noteType={NoteType.info}>
                 {t.peersPage.confirmationConnectPeer}

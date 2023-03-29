@@ -107,6 +107,25 @@ func LightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, d
 					request.ResponseChannel <- response
 				}
 			}
+			if request, ok := lightningRequest.(commons.DisconnectPeerRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processDisconnectPeerRequest(ctx, request, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
+			if request, ok := lightningRequest.(commons.ListPeersRequest); ok {
+				if request.NodeId != nodeSettings.NodeId {
+					continue
+				}
+				response := processListPeersRequest(ctx, request, client)
+				if request.ResponseChannel != nil {
+					request.ResponseChannel <- response
+				}
+			}
+
 		}
 	}()
 
@@ -684,6 +703,10 @@ func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerR
 		},
 	}
 
+	//connectPeerRequest := lnrpc.ConnectPeerRequest{
+	//	Addr: &lnrpc.LightningAddress{Pubkey: request.PubKey, Host: request.Host},
+	//}
+
 	connectPeerRequest := lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{Pubkey: request.PubKey, Host: request.Host},
 	}
@@ -693,6 +716,78 @@ func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerR
 	if err != nil {
 		response.Error = err.Error()
 	}
+
+	return response
+}
+
+func processDisconnectPeerRequest(ctx context.Context, request commons.DisconnectPeerRequest, client lnrpc.LightningClient) commons.DisconnectPeerResponse {
+	response := commons.DisconnectPeerResponse{
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	disconnectPeerRequest := lnrpc.DisconnectPeerRequest{
+		PubKey: request.PubKey,
+	}
+
+	rsp, err := client.DisconnectPeer(ctx, &disconnectPeerRequest)
+
+	fmt.Println(rsp)
+	if err != nil {
+		response.Error = err.Error()
+	}
+
+	return response
+}
+
+func processListPeersRequest(ctx context.Context, _ commons.ListPeersRequest, client lnrpc.LightningClient) commons.ListPeersResponse {
+	response := commons.ListPeersResponse{
+		CommunicationResponse: commons.CommunicationResponse{
+			Status: commons.Inactive,
+		},
+	}
+
+	listPeersRequest := lnrpc.ListPeersRequest{}
+
+	rsp, err := client.ListPeers(ctx, &listPeersRequest)
+
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	peers := make(map[string]commons.Peer)
+
+	for _, peer := range rsp.Peers {
+		p := commons.Peer{
+			PubKey:    peer.PubKey,
+			Address:   peer.Address,
+			BytesSent: peer.BytesSent,
+			BytesRecv: peer.BytesRecv,
+			SatSent:   peer.SatSent,
+			SatRecv:   peer.SatRecv,
+			Inbound:   peer.Inbound,
+			PingTime:  peer.PingTime,
+			SyncType:  commons.PeerSyncType(peer.SyncType),
+		}
+
+		features := make([]commons.Feature, len(peer.Features))
+		for _, feature := range peer.Features {
+			features = append(features, commons.Feature{
+				Name:       feature.Name,
+				IsRequired: feature.IsRequired,
+				IsKnown:    feature.IsKnown,
+			})
+		}
+
+		p.Features = features
+
+		peers[p.PubKey] = p
+	}
+
+	response.Status = commons.Active
+	response.Peers = peers
 
 	return response
 }

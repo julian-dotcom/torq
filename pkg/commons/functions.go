@@ -566,3 +566,34 @@ func ConnectPeer(nodeId int, pubKey string, host string, lightningRequestChannel
 	lightningRequestChannel <- request
 	return <-responseChannel
 }
+
+func DisconnectPeer(nodeId int, pubKey string, lightningRequestChannel chan<- interface{}) DisconnectPeerResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan DisconnectPeerResponse)
+	request := DisconnectPeerRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		PubKey:          pubKey,
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}
+
+func ListPeers(nodeId int, lightningRequestChannel chan<- interface{}) ListPeersResponse {
+	unixTime := time.Now()
+	responseChannel := make(chan ListPeersResponse)
+	request := ListPeersRequest{
+		CommunicationRequest: CommunicationRequest{
+			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
+			RequestTime: &unixTime,
+			NodeId:      nodeId,
+		},
+		ResponseChannel: responseChannel,
+	}
+	lightningRequestChannel <- request
+	return <-responseChannel
+}

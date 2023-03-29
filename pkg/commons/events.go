@@ -458,3 +458,59 @@ type ConnectPeerRequest struct {
 type ConnectPeerResponse struct {
 	CommunicationResponse
 }
+
+type DisconnectPeerRequest struct {
+	CommunicationRequest
+	PubKey          string                        `json:"pubKey"`
+	Host            string                        `json:"host"`
+	ResponseChannel chan<- DisconnectPeerResponse `json:"-"`
+}
+
+type DisconnectPeerResponse struct {
+	CommunicationResponse
+}
+
+type ListPeersRequest struct {
+	CommunicationRequest
+	ResponseChannel chan<- ListPeersResponse `json:"-"`
+}
+
+type Feature struct {
+	Name       string `json:"name"`
+	IsRequired bool   `json:"is_required"`
+	IsKnown    bool   `json:"is_known"`
+}
+
+type PeerSyncType int32
+
+const (
+	// PeerUnknownSync Denotes that we cannot determine the peer's current sync type.
+	PeerUnknownSync PeerSyncType = 0
+	// PeerActiveSync Denotes that we are actively receiving new graph updates from the peer.
+	PeerActiveSync PeerSyncType = 1
+	// PeerPassiveSync Denotes that we are not receiving new graph updates from the peer.
+	PeerPassiveSync PeerSyncType = 2
+	// PeerPinnedSync Denotes that this peer is pinned into an active sync.
+	PeerPinnedSync PeerSyncType = 3
+)
+
+type Peer struct {
+	PubKey          string       `json:"pub_key"`
+	Address         string       `json:"address"`
+	BytesSent       uint64       `json:"bytes_sent"`
+	BytesRecv       uint64       `json:"bytes_recv"`
+	SatSent         int64        `json:"sat_sent"`
+	SatRecv         int64        `json:"sat_recv"`
+	Inbound         bool         `json:"inbound"`
+	PingTime        int64        `json:"ping_time"`
+	SyncType        PeerSyncType `json:"sync_type"`
+	Features        []Feature    `json:"features"`
+	Errors          []string     `json:"errors"`
+	FlapCount       int          `json:"flap_count"`
+	LastFlapNS      string       `json:"last_flap_ns"`
+	LastPingPayload string       `json:"last_ping_payload"`
+}
+type ListPeersResponse struct {
+	Peers map[string]Peer `json:"peers"`
+	CommunicationResponse
+}

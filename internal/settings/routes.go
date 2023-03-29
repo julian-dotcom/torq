@@ -230,9 +230,10 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB,
 	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		newNode := nodes.Node{
-			PublicKey: publicKey,
-			Network:   network,
-			Chain:     chain,
+			PublicKey:          publicKey,
+			Network:            network,
+			Chain:              chain,
+			ConnectionStatusId: commons.Active,
 		}
 		nodeId, err = nodes.AddNodeWhenNew(db, newNode)
 		if err != nil {

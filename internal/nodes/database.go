@@ -78,10 +78,10 @@ func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]Nod
 func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network commons.Network) ([]NodeSummary, error) {
 	var nds []NodeSummary
 
-	query := `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
+	query := `SELECT n.node_id, n.public_key, n.chain, n.network, n.created_on, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
 
 	if !includeDeleted {
-		query = `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
+		query = `SELECT n.node_id, n.public_key, n.chain, n.network, n.created_on, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
 	}
 
 	err := db.Select(&nds, query, network)
@@ -97,10 +97,9 @@ func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network commons.Network
 func GetPeerNodes(db *sqlx.DB, network commons.Network) ([]Node, error) {
 	var nodes []Node
 	err := db.Select(&nodes, `
-	SELECT n.node_id, public_key, chain, network, n.created_on
-	FROM node n
-	LEFT JOIN node_connection_details ncd ON n.node_id = ncd.node_id
-	WHERE n.network = $1 and ncd.node_id IS NULL;`, network)
+	SELECT node_id, public_key, chain, network, created_on, node_connection_details_node_id, connection_status_id, host
+	FROM node
+	WHERE network = $1 and node_connection_details_node_id IS NOT NULL;`, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []Node{}, nil
@@ -131,9 +130,9 @@ func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
 	nodeId := commons.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		node.CreatedOn = time.Now().UTC()
-		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
-			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
-			node.PublicKey, node.Chain, node.Network, node.CreatedOn).Scan(&node.NodeId)
+		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on, node_connection_details_node_id, connection_status_id, host, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING node_id;`,
+			node.PublicKey, node.Chain, node.Network, node.CreatedOn, node.NodeConnectionDetailsNodeId, node.ConnectionStatusId, node.Host, time.Now().UTC()).Scan(&node.NodeId)
 		if err != nil {
 			if err, ok := err.(*pq.Error); ok {
 				if err.Code == "23505" {
@@ -165,4 +164,26 @@ func removeNode(db *sqlx.DB, nodeId int) (int64, error) {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
 	return rowsAffected, nil
+}
+
+func updateNodeHost(db *sqlx.DB, node Node) error {
+	_, err := db.Exec(`UPDATE node SET host = $1, updated_on = $2  WHERE node_id = $3;`, node.Host, time.Now().UTC(), node.NodeId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
+}
+
+func updateNodeConnectionStatus(db *sqlx.DB, node Node) error {
+	_, err := db.Exec(`UPDATE node SET connection_status_id = $1, updated_on = $2  WHERE node_id = $3;`, node.ConnectionStatusId, time.Now().UTC(), node.NodeId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	_, err = db.Exec(`INSERT INTO node_connection_history (node_id, connection_status, created_on) VALUES ($1, $2, $3);`, node.NodeId, node.ConnectionStatusId, time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return nil
 }

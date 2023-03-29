@@ -315,9 +315,11 @@ func addNodeWhenNew(remotePublicKey string, nodeSettings commons.ManagedNodeSett
 	remoteNodeId := commons.GetNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 	if remoteNodeId == 0 {
 		newNode := nodes.Node{
-			PublicKey: remotePublicKey,
-			Chain:     nodeSettings.Chain,
-			Network:   nodeSettings.Network,
+			PublicKey:                   remotePublicKey,
+			Chain:                       nodeSettings.Chain,
+			Network:                     nodeSettings.Network,
+			NodeConnectionDetailsNodeId: &nodeSettings.NodeId,
+			ConnectionStatusId:          commons.Active,
 		}
 		var err error
 		remoteNodeId, err = nodes.AddNodeWhenNew(db, newNode)

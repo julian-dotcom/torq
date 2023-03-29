@@ -1,0 +1,9 @@
+CREATE TABLE node_connection_history
+(
+    id                integer generated always as identity,
+    node_id           integer NOT NULL REFERENCES node(node_id),
+    created_on        timestamptz,
+    connection_status integer
+);
+
+SELECT create_hypertable('node_connection_history','created_on');

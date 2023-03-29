@@ -79,9 +79,10 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 		return NodeConnectionDetails{}, errors.Wrap(err, "Getting public key from node")
 	}
 	newNodeFromConfig := nodes.Node{
-		PublicKey: publicKey,
-		Chain:     chain,
-		Network:   network,
+		PublicKey:          publicKey,
+		Chain:              chain,
+		Network:            network,
+		ConnectionStatusId: commons.Active,
 	}
 	nodeId, err := nodes.AddNodeWhenNew(db, newNodeFromConfig)
 	if err != nil {

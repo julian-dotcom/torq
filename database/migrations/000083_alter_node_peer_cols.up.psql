@@ -1,0 +1,12 @@
+alter table node
+    add node_connection_details_node_id integer NULL REFERENCES node(node_id);
+
+alter table node
+    add connection_status_id integer default 0;
+
+alter table node
+    add host text not null;
+
+alter table node
+    add updated_on timestamptz not null;
+
