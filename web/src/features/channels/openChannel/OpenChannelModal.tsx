@@ -395,7 +395,7 @@ function OpenChannelModal() {
           <div className={styles.closeChannelResultDetails}>
             {isLoading && (
               <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
-                {t.openCloseChannel.processingClose}
+                {t.openCloseChannel.processingOpen}
               </Note>
             )}
             {isSuccess && (

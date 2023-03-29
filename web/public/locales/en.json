@@ -284,6 +284,8 @@
     "error": "Error",
     "note": "Note",
     "processingClose": "Please wait while we close your channel.",
+    "processingOpen": "Please wait while we open your channel.",
+    "processingUpdate": "Please wait while we update your channel.",
     "confirmationOpenning": "The channel open has been published but still need time to be confirmed on-chain.",
     "confirmationClosing": "The channel close has been successfully published to the network but the funds in the channel still need to be confirmed through an on-chain transaction."
   },
@@ -408,28 +410,28 @@
   },
   "dashboard": "Dashboard",
   "dashboardPage": {
-    "welcome" : "Welcome",
+    "welcome": "Welcome",
     "totalBalance": "Total Balance",
     "totalOnChainBalance": "Total On-Chain Balance",
     "totalOffChainBalance": "Total Off-Chain Balance",
     "totalChannelCount": "Total Channel Count",
-    "channels" : "Channels",
-    "capacity" : "Capacity",
-    "peers" : "peers",
-    "btc" : "btc",
+    "channels": "Channels",
+    "capacity": "Capacity",
+    "peers": "peers",
+    "btc": "btc",
     "publicKey": "Public Key",
-    "onChainDetail" : {
-      "confirmed" : "Confirmed",
-      "unconfirmed" : "Unconfirmed",
-      "lockedBalance" : "Locked Balance"
+    "onChainDetail": {
+      "confirmed": "Confirmed",
+      "unconfirmed": "Unconfirmed",
+      "lockedBalance": "Locked Balance"
     },
-    "channelsDetail" : {
-      "opening" : "Opening",
-      "closing" : "Closing"
+    "channelsDetail": {
+      "opening": "Opening",
+      "closing": "Closing"
     }
   },
-  "summaryNode" : {
-    "online" : "Online",
-    "offline" : "Disabled"
+  "summaryNode": {
+    "online": "Online",
+    "offline": "Disabled"
   }
 }
