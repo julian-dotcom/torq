@@ -124,7 +124,7 @@ export const torqApi = createApi({
     }),
     updateChannel: builder.mutation<UpdateChannelResponse, PolicyInterface>({
       query: (data: PolicyInterface) => ({
-        url: "channels/update",
+        url: "lightning/updateRoutingPolicy",
         method: "PUT",
         body: data,
       }),
@@ -177,7 +177,7 @@ export const torqApi = createApi({
       providesTags: ["nodeConfigurations"],
     }),
     getNodesWalletBalances: builder.query<nodeWalletBalances[], number>({
-      query: (network) => `nodes/${network}/walletBalances`,
+      query: (network) => `lightning/${network}/walletBalances`,
       providesTags: ["nodeWalletBalance"],
     }),
     getNodesInformationByCategory: builder.query<nodeInformation[], number>({

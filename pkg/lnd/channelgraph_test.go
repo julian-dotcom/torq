@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/testutil"
@@ -70,13 +69,13 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		panic(err)
 	}
 
-	db, cancel, _, err := srv.NewTestDatabase(true)
+	db, cancel, err := srv.NewTestDatabase(true)
 	defer cancel()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db, commons.VectorUrl)
+	err = settings.InitializeManagedSettingsCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
@@ -88,7 +87,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
 	}
 
-	err = channels.InitializeManagedChannelCache(db)
+	err = settings.InitializeManagedChannelCache(db)
 	if err != nil {
 		cancel()
 		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
@@ -313,31 +312,34 @@ type routingPolicyData struct {
 
 func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC,
 	fundingTransactionHash string, fundingOutputIndex int) (r []routingPolicyData) {
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), commons.ContextKeyTest, true)
 	ctx, cancel := context.WithCancel(ctx)
 	client.CancelFunc = cancel
 
-	lndShortChannelId := uint64(1111)
-	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-	channel := channels.Channel{
-		ShortChannelID:         &shortChannelId,
-		FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
-		SecondNodeId:           commons.GetNodeIdByPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
-		Capacity:               1_000_000,
-		LNDShortChannelID:      &lndShortChannelId,
-		FundingTransactionHash: fundingTransactionHash,
-		FundingOutputIndex:     fundingOutputIndex,
-		Status:                 commons.Open,
-	}
-	channelId, err := channels.AddChannelOrUpdateChannelStatus(
-		db,
-		commons.GetNodeSettingsByNodeId(
-			commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), channel)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to create channel %v", lndShortChannelId)
-		t.Fatalf("Problem adding channel %v", channel)
-	}
-	t.Logf("channel added with channelId: %v", channelId)
+	// TODO FIXME CAUSES CIRCULAR DEPENDENCY
+	//lndShortChannelId := uint64(1111)
+	//shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
+	//channel := channels.Channel{
+	//	ShortChannelID:         &shortChannelId,
+	//	FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+	//	SecondNodeId:           commons.GetNodeIdByPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
+	//	Capacity:               1_000_000,
+	//	LNDShortChannelID:      &lndShortChannelId,
+	//	FundingTransactionHash: fundingTransactionHash,
+	//	FundingOutputIndex:     fundingOutputIndex,
+	//	Status:                 commons.Open,
+	//}
+	//channelId, err := channels.AddChannelOrUpdateChannelStatus(
+	//	db,
+	//	commons.GetNodeSettingsByNodeId(
+	//		commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), channel)
+	//if err != nil {
+	//	log.Error().Err(err).Msgf("Failed to create channel %v", lndShortChannelId)
+	//	t.Fatalf("Problem adding channel %v", channel)
+	//}
+	//t.Logf("channel added with channelId: %v", channelId)
+
+	go startAllDummyListener()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -345,12 +347,13 @@ func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscr
 		defer wg.Done()
 		SubscribeAndStoreChannelGraph(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), nil, nil, nil)
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)),
+			make(map[ImportType]time.Time))
 	}()
 	wg.Wait()
 
 	var result []routingPolicyData
-	err = db.Select(&result, `
+	err := db.Select(&result, `
 			select rp.ts,
 				   rp.fee_rate_mill_msat,
 				   rp.fee_base_msat,

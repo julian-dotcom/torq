@@ -8,7 +8,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -78,12 +77,7 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 	if err != nil {
 		return NodeConnectionDetails{}, errors.Wrap(err, "Getting public key from node")
 	}
-	newNodeFromConfig := nodes.Node{
-		PublicKey: publicKey,
-		Chain:     chain,
-		Network:   network,
-	}
-	nodeId, err := nodes.AddNodeWhenNew(db, newNodeFromConfig)
+	nodeId, err := AddNodeWhenNew(db, publicKey, chain, network)
 	if err != nil {
 		return NodeConnectionDetails{}, errors.Wrap(err, "Getting node from db")
 	}

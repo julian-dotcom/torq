@@ -11,15 +11,10 @@ import (
 
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
-	"github.com/lncapital/torq/pkg/lnd"
 )
 
-func Start(ctx context.Context, db *sqlx.DB,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests,
-	broadcaster broadcast.BroadcastServer) {
+func Start(ctx context.Context, db *sqlx.DB) {
 
 	var wg sync.WaitGroup
 
@@ -48,7 +43,7 @@ func Start(ctx context.Context, db *sqlx.DB,
 				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		automation.EventTriggerMonitor(ctx, db, broadcaster)
+		automation.EventTriggerMonitor(ctx, db)
 	})()
 
 	// Scheduled Trigger Monitor
@@ -61,29 +56,13 @@ func Start(ctx context.Context, db *sqlx.DB,
 				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
 			}
 		}()
-		automation.ScheduledTriggerMonitor(ctx, db, lightningRequestChannel, rebalanceRequestChannel)
+		automation.ScheduledTriggerMonitor(ctx, db)
 	})()
 
 	wg.Wait()
 }
 
-func StartLightningCommunicationService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
-
-	active := commons.ServiceActive
-
-	defer func() {
-		if panicError := recover(); panicError != nil {
-			log.Error().Msgf("Panic occurred in LightningCommunicationService %v with stack: %v", panicError, string(debug.Stack()))
-			commons.RunningServices[commons.LightningCommunicationService].Cancel(nodeId, &active, true)
-		}
-	}()
-
-	lnd.LightningCommunicationService(ctx, conn, db, nodeId, broadcaster)
-}
-
-func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
+func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
 	active := commons.ServiceActive
 
@@ -94,7 +73,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		}
 	}()
 
-	workflows.RebalanceServiceStart(ctx, conn, db, nodeId, broadcaster)
+	workflows.RebalanceServiceStart(ctx, conn, db, nodeId)
 }
 
 func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {

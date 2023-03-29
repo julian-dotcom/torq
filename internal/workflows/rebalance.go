@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -21,7 +20,6 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/rebalances"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -83,37 +81,12 @@ func (runner *RebalanceRunner) isFailedHop(
 			rebalanceRouteFailedHopAllowedDeltaPerMille
 }
 
-func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int,
-	broadcaster broadcast.BroadcastServer) {
+func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
 	defer log.Info().Msgf("RebalanceService terminated for nodeId: %v", nodeId)
 
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
-
-	go initiateDelayedRebalancers(ctx, db, client, router)
-
-	listener := broadcaster.SubscribeRebalanceRequest()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-		broadcaster.CancelSubscriptionRebalanceRequest(listener)
-	}()
-	go func() {
-		for requests := range listener {
-			if requests.NodeId != nodeId {
-				continue
-			}
-			processRebalanceRequests(ctx, db, requests, nodeId)
-		}
-	}()
-	wg.Wait()
-}
-
-func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
-	client lnrpc.LightningClient, router routerrpc.RouterClient) {
 
 	ticker := clock.New().Tick(rebalanceQueueTickerSeconds * time.Second)
 	pending := commons.Pending
@@ -180,7 +153,7 @@ func initiateDelayedRebalancers(ctx context.Context, db *sqlx.DB,
 	}
 }
 
-func processRebalanceRequests(ctx context.Context, db *sqlx.DB, requests commons.RebalanceRequests, nodeId int) {
+func RebalanceRequests(ctx context.Context, db *sqlx.DB, requests commons.RebalanceRequests, nodeId int) {
 	var incoming bool
 	var outgoing bool
 	for _, request := range requests.Requests {
@@ -373,7 +346,7 @@ func processRebalanceRequests(ctx context.Context, db *sqlx.DB, requests commons
 }
 
 func sendError(requests commons.RebalanceRequests, err error) {
-	log.Error().Err(err).Msg("processRebalanceRequests failed")
+	log.Error().Err(err).Msg("RebalanceRequests failed")
 	if requests.ResponseChannel != nil {
 		requests.ResponseChannel <- []commons.RebalanceResponse{{
 			Request:               commons.RebalanceRequest{},

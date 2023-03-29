@@ -199,8 +199,7 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings,
-	invoiceEventChannel chan<- commons.InvoiceEvent) {
+	nodeSettings commons.ManagedNodeSettings) {
 
 	defer log.Info().Msgf("SubscribeAndStoreInvoices terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -226,12 +225,12 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
@@ -265,7 +264,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
-			processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
+			processInvoice(invoice, nodeSettings, db, bootStrapping)
 		}
 		if bootStrapping && len(listInvoiceResponse.Invoices) < streamLndMaxInvoices {
 			bootStrapping = false
@@ -284,12 +283,12 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		// Get the latest settle and add index to prevent duplicate entries.
@@ -326,13 +325,13 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			delay = true
 			continue
 		}
-		processInvoice(invoice, nodeSettings, db, invoiceEventChannel, bootStrapping)
+		processInvoice(invoice, nodeSettings, db, bootStrapping)
 		delay = false
 		cancel()
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, invoiceEventChannel chan<- commons.InvoiceEvent, bootStrapping bool) {
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, bootStrapping bool) {
 	invoiceEvent := commons.InvoiceEvent{
 		EventData: commons.EventData{
 			EventTime: time.Now().UTC(),
@@ -358,7 +357,7 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 		}
 	}
 
-	err := insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, invoiceEventChannel, bootStrapping)
+	err := insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, bootStrapping)
 	if err != nil {
 		log.Error().Err(err).Msg("Storing invoice failed")
 	}
@@ -412,7 +411,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
-	invoiceEvent commons.InvoiceEvent, invoiceEventChannel chan<- commons.InvoiceEvent, bootStrapping bool) error {
+	invoiceEvent commons.InvoiceEvent, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
@@ -551,7 +550,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, dest
 		return errors.Wrapf(err, "insert invoice")
 	}
 
-	if invoiceEventChannel != nil && !bootStrapping {
+	if !bootStrapping {
 		invoiceEvent.AddIndex = invoice.AddIndex
 		invoiceEvent.ValueMSat = uint64(invoice.ValueMsat)
 		invoiceEvent.State = invoice.GetState()
@@ -567,7 +566,7 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, dest
 		if channelId != nil {
 			invoiceEvent.ChannelId = *channelId
 		}
-		invoiceEventChannel <- invoiceEvent
+		ProcessInvoiceEvent(invoiceEvent)
 	}
 	return nil
 }

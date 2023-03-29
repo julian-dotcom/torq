@@ -1,5 +1,11 @@
 package commons
 
+type ContextKey int
+
+const (
+	ContextKeyTest ContextKey = iota
+)
+
 type ServiceType int
 
 // When adding here also add to GetServiceTypes
@@ -9,13 +15,13 @@ const (
 	AmbossService
 	TorqService
 	AutomationService
-	LightningCommunicationService
 	RebalanceService
 	MaintenanceService
 	CronService
 )
 
 const TorqDummyNodeId = -1337
+const UnknownEnumString = "Unknown"
 
 type ServiceCommand int
 
@@ -34,8 +40,6 @@ type ServiceChannelMessage = struct {
 	DelaySeconds *int
 	Out          chan<- ServiceStatus
 }
-
-const LIGHTNING_COMMUNICATION_TIMEOUT_SECONDS = 10
 
 type Status int
 
@@ -117,7 +121,7 @@ func (s ChannelStatus) String() string {
 	case AbandonedClosed:
 		return "Abandoned Closed"
 	}
-	return "unknown"
+	return UnknownEnumString
 }
 
 type NodeConnectionDetailCustomSettings uint32
@@ -241,5 +245,3 @@ const (
 	BalanceUpdateInvoiceEvent
 	BalanceUpdatePaymentEvent
 )
-
-type ChannelStatusRequest int

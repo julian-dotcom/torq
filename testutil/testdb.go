@@ -14,7 +14,6 @@ import (
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/tags"
-	"github.com/lncapital/torq/pkg/broadcast"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -145,18 +144,18 @@ func (srv *Server) createDatabase() (string, error) {
 }
 
 // NewTestDatabase opens a connection to a freshly created database on the server.
-func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, broadcast.BroadcastServer, error) {
+func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, error) {
 
 	// Create the new test database based on the main server connection
 	dns, err := srv.createDatabase()
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "srv.createDatabase(ctx)")
+		return nil, nil, errors.Wrap(err, "srv.createDatabase(ctx)")
 	}
 
 	// Connect to the new test database
 	db, err := sqlx.Open("postgres", dns)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
+		return nil, nil, errors.Wrapf(err, "sqlx.Open(\"postgres\", %s)", dns)
 	}
 
 	ctx := context.Background()
@@ -166,84 +165,63 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	err = database.MigrateUp(db)
 	if err != nil {
 		cancel()
-		return nil, nil, nil, errors.Wrap(err, "Database Migrate Up")
+		return nil, nil, errors.Wrap(err, "Database Migrate Up")
 	}
 
 	testNodeId1, err := addNode(db, TestPublicKey1, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
+		return nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
 	}
 
 	testNodeId2, err := addNode(db, TestPublicKey2, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
+		return nil, nil, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey2)
 	}
 
 	err = addNodeConnectionDetails(db, testNodeId1, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
+		return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId1)
 	}
 
 	err = addNodeConnectionDetails(db, testNodeId2, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
+		return nil, nil, errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId2)
 	}
 
 	lndShortChannelId := uint64(1111)
 	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	lndShortChannelId = 2222
 	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	lndShortChannelId = 3333
 	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	lndShortChannelId = 4444
 	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
+		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	//var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)
 	//var lightningRequestChannelGlobal = make(chan interface{})
 	//var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest)
 
-	var serviceEventChannelGlobal = make(chan commons.ServiceEvent)
-	var htlcEventChannelGlobal = make(chan commons.HtlcEvent)
-	var forwardEventChannelGlobal = make(chan commons.ForwardEvent)
-	var channelBalanceEventChannelGlobal = make(chan commons.ChannelBalanceEvent)
-	var channelEventChannelGlobal = make(chan commons.ChannelEvent)
-	var nodeGraphEventChannelGlobal = make(chan commons.NodeGraphEvent)
-	var channelGraphEventChannelGlobal = make(chan commons.ChannelGraphEvent)
-	var invoiceEventChannelGlobal = make(chan commons.InvoiceEvent)
-	var paymentEventChannelGlobal = make(chan commons.PaymentEvent)
-	var transactionEventChannelGlobal = make(chan commons.TransactionEvent)
-	var peerEventChannelGlobal = make(chan commons.PeerEvent)
-	var blockEventChannelGlobal = make(chan commons.BlockEvent)
-	var lightningRequestChannelGlobal = make(chan interface{})
-	var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequests)
-
-	broadcaster := broadcast.NewBroadcastServer(ctx,
-		serviceEventChannelGlobal, htlcEventChannelGlobal, forwardEventChannelGlobal,
-		channelBalanceEventChannelGlobal, channelEventChannelGlobal, nodeGraphEventChannelGlobal, channelGraphEventChannelGlobal,
-		invoiceEventChannelGlobal, paymentEventChannelGlobal, transactionEventChannelGlobal, peerEventChannelGlobal, blockEventChannelGlobal,
-		lightningRequestChannelGlobal, rebalanceRequestChannelGlobal)
-
 	go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
-	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx, channelBalanceEventChannelGlobal)
+	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx)
 	go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
 	go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
 	go commons.ManagedNodeAliasCache(commons.ManagedNodeAliasChannel, ctx)
@@ -262,7 +240,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(testNodeId1, commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax))
 	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(testNodeId2, commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax))
 
-	return db, cancel, broadcaster, nil
+	return db, cancel, nil
 }
 
 func addNode(db *sqlx.DB, testPublicKey string, cancel context.CancelFunc) (int, error) {

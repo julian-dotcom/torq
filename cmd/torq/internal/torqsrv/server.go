@@ -26,6 +26,7 @@ import (
 	"github.com/lncapital/torq/internal/flow"
 	"github.com/lncapital/torq/internal/forwards"
 	"github.com/lncapital/torq/internal/invoices"
+	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/messages"
 	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/internal/on_chain_tx"
@@ -36,17 +37,9 @@ import (
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/broadcast"
-	"github.com/lncapital/torq/pkg/commons"
 )
 
-func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
-	broadcaster broadcast.BroadcastServer,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests,
-	serviceChannel chan<- commons.ServiceChannelMessage,
-	autoLogin bool) error {
-
+func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, autoLogin bool) error {
 	r := gin.Default()
 
 	if err := auth.RefreshCookieFile(cookiePath); err != nil {
@@ -58,7 +51,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB,
 		return errors.Wrap(err, "Creating Gin Session")
 	}
 
-	registerRoutes(r, db, apiPswd, cookiePath, broadcaster, lightningRequestChannel, rebalanceRequestChannel, serviceChannel, autoLogin)
+	registerRoutes(r, db, apiPswd, cookiePath, autoLogin)
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
@@ -117,13 +110,7 @@ func equalASCIIFold(s, t string) bool {
 	return s == t
 }
 
-func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string,
-	broadcaster broadcast.BroadcastServer,
-	lightningRequestChannel chan<- interface{},
-	rebalanceRequestChannel chan<- commons.RebalanceRequests,
-	serviceChannel chan<- commons.ServiceChannelMessage,
-	autoLogin bool) {
-
+func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string, autoLogin bool) {
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	applyCors(r)
 	// Websocket
@@ -206,13 +193,13 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		nodeRoutes := api.Group("/nodes")
 		{
-			nodes.RegisterNodeRoutes(nodeRoutes, db, lightningRequestChannel)
+			nodes.RegisterNodeRoutes(nodeRoutes, db)
 		}
 
 		channelRoutes := api.Group("/channels")
 		{
 			channel_history.RegisterChannelHistoryRoutes(channelRoutes, db)
-			channels.RegisterChannelRoutes(channelRoutes, db, lightningRequestChannel)
+			channels.RegisterChannelRoutes(channelRoutes, db)
 		}
 
 		forwardRoutes := api.Group("/forwards")
@@ -225,6 +212,11 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			flow.RegisterFlowRoutes(flowRoutes, db)
 		}
 
+		lightningRoutes := api.Group("/lightning")
+		{
+			lightning.RegisterLightningRoutes(lightningRoutes, db)
+		}
+
 		workflowRoutes := api.Group("/workflows")
 		{
 			workflows.RegisterWorkflowRoutes(workflowRoutes, db)
@@ -232,17 +224,17 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 
 		automationRoutes := api.Group("/automation")
 		{
-			automation.RegisterAutomationRoutes(automationRoutes, rebalanceRequestChannel)
+			automation.RegisterAutomationRoutes(automationRoutes, db)
 		}
 
 		messageRoutes := api.Group("messages")
 		{
-			messages.RegisterMessagesRoutes(messageRoutes, db, lightningRequestChannel)
+			messages.RegisterMessagesRoutes(messageRoutes)
 		}
 
 		settingRoutes := api.Group("settings")
 		{
-			settings.RegisterSettingRoutes(settingRoutes, db, serviceChannel)
+			settings.RegisterSettingRoutes(settingRoutes, db)
 		}
 
 		api.GET("/ping", func(c *gin.Context) {

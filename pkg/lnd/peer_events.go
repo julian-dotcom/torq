@@ -19,7 +19,7 @@ type peerEventsClient interface {
 }
 
 func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
-	nodeSettings commons.ManagedNodeSettings, peerEventChannel chan<- commons.PeerEvent) {
+	nodeSettings commons.ManagedNodeSettings) {
 
 	defer log.Info().Msgf("SubscribePeerEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -46,12 +46,12 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		if stream == nil {
@@ -81,18 +81,16 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 			continue
 		}
 
-		if peerEventChannel != nil {
-			eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
-			if eventNodeId != 0 {
-				peerEventChannel <- commons.PeerEvent{
-					EventData: commons.EventData{
-						EventTime: time.Now().UTC(),
-						NodeId:    nodeSettings.NodeId,
-					},
-					Type:        peerEvent.Type,
-					EventNodeId: eventNodeId,
-				}
-			}
+		eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		if eventNodeId != 0 {
+			ProcessPeerEvent(commons.PeerEvent{
+				EventData: commons.EventData{
+					EventTime: time.Now().UTC(),
+					NodeId:    nodeSettings.NodeId,
+				},
+				Type:        peerEvent.Type,
+				EventNodeId: eventNodeId,
+			})
 		}
 		delay = false
 	}

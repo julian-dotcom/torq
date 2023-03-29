@@ -23,6 +23,8 @@ import (
 
 const streamErrorSleepSeconds = 60
 
+var ChannelChanges = make(chan commons.ChannelEvent) //nolint:gochecknoglobals
+
 func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 	ch, err := chainhash.NewHash(cb)
 	if err != nil {
@@ -34,11 +36,11 @@ func chanPointFromByte(cb []byte, oi uint32) (string, error) {
 // storeChannelEvent extracts the timestamp, channel ID and PubKey from the
 // ChannelEvent and converts the original struct to json.
 // Then it's stored in the database in the channel_event table.
-func storeChannelEvent(db *sqlx.DB,
+func storeChannelEvent(ctx context.Context,
+	db *sqlx.DB,
 	ce *lnrpc.ChannelEventUpdate,
 	nodeSettings commons.ManagedNodeSettings,
-	channelEventChannel chan<- commons.ChannelEvent,
-	lightningRequestChannel chan<- interface{}) error {
+	successTimes map[ImportType]time.Time) error {
 
 	timestampMs := time.Now().UTC()
 
@@ -107,7 +109,7 @@ func storeChannelEvent(db *sqlx.DB,
 		commons.SetChannelState(nodeSettings.NodeId, stateSettings)
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
-			channelEvent, channelEventChannel)
+			channelEvent)
 		if err != nil {
 			return errors.Wrap(err, "Insert Open Channel Event")
 		}
@@ -143,7 +145,7 @@ func storeChannelEvent(db *sqlx.DB,
 		}
 
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channel.ChannelID, false, jsonByteArray,
-			channelEvent, channelEventChannel)
+			channelEvent)
 		if err != nil {
 			return errors.Wrap(err, "Insert Closed Channel Event")
 		}
@@ -172,13 +174,17 @@ func storeChannelEvent(db *sqlx.DB,
 			return errors.Wrap(err, "ACTIVE_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, channelEventChannel)
+			channelEvent)
 		if err != nil {
 			return errors.Wrap(err, "Insert Active Channel Event")
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
-		importPendingChannels(false, nodeSettings, lightningRequestChannel)
+		contextValue := ctx.Value(commons.ContextKeyTest)
+		if contextValue == nil || contextValue == false {
+			// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
+			importPendingChannels(db, false, nodeSettings, successTimes)
+		}
 		c := ce.GetInactiveChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
@@ -190,13 +196,16 @@ func storeChannelEvent(db *sqlx.DB,
 			return errors.Wrap(err, "INACTIVE_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, channelEventChannel)
+			channelEvent)
 		if err != nil {
 			return errors.Wrap(err, "Insert Inactive Channel Event")
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
-		importPendingChannels(true, nodeSettings, lightningRequestChannel)
+		contextValue := ctx.Value(commons.ContextKeyTest)
+		if contextValue == nil || contextValue == false {
+			importPendingChannels(db, true, nodeSettings, successTimes)
+		}
 		c := ce.GetFullyResolvedChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
 		if err != nil {
@@ -208,13 +217,16 @@ func storeChannelEvent(db *sqlx.DB,
 			return errors.Wrap(err, "FULLY_RESOLVED_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, channelEventChannel)
+			channelEvent)
 		if err != nil {
 			return errors.Wrap(err, "Insert Fully Resolved Channel Event")
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
-		importPendingChannels(true, nodeSettings, lightningRequestChannel)
+		contextValue := ctx.Value(commons.ContextKeyTest)
+		if contextValue == nil || contextValue == false {
+			importPendingChannels(db, true, nodeSettings, successTimes)
+		}
 		c := ce.GetPendingOpenChannel()
 		channelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
 		if err != nil {
@@ -231,7 +243,7 @@ func storeChannelEvent(db *sqlx.DB,
 			return errors.Wrap(err, "PENDING_OPEN_CHANNEL: JSON Marshall")
 		}
 		err = insertChannelEvent(db, timestampMs, ce.Type, nodeSettings.NodeId, channelId, false, jsonByteArray,
-			channelEvent, channelEventChannel)
+			channelEvent)
 		if err != nil {
 			return errors.Wrap(err, "Insert Pending Open Channel Event")
 		}
@@ -240,27 +252,90 @@ func storeChannelEvent(db *sqlx.DB,
 	return nil
 }
 
-func importPendingChannels(force bool, nodeSettings commons.ManagedNodeSettings, lightningRequestChannel chan<- interface{}) {
-	// HACK to know if the context is a testcase.
-	if lightningRequestChannel != nil {
-		// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
-		responseChannel := make(chan commons.ImportResponse)
-		now := time.Now()
-		lightningRequestChannel <- commons.ImportRequest{
-			CommunicationRequest: commons.CommunicationRequest{
-				RequestId:   fmt.Sprintf("%v", now.Unix()),
-				RequestTime: &now,
-				NodeId:      nodeSettings.NodeId,
-			},
-			ImportType:      commons.ImportPendingChannelsOnly,
-			Force:           force,
-			ResponseChannel: responseChannel,
-		}
-		response := <-responseChannel
-		if response.Error != nil {
-			log.Error().Err(response.Error).Msgf("Obtaining Pending Channels from LND failed")
-		}
+func importPendingChannels(db *sqlx.DB,
+	force bool,
+	nodeSettings commons.ManagedNodeSettings,
+	successTimes map[ImportType]time.Time) {
+
+	request := ImportRequest{
+		CommunicationRequest: CommunicationRequest{
+			NodeId: nodeSettings.NodeId,
+		},
+		Db:           db,
+		Force:        force,
+		ImportType:   ImportPendingChannelsOnly,
+		SuccessTimes: successTimes,
 	}
+	response := Import(request)
+	if response.Error != nil {
+		log.Error().Err(response.Error).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
+	}
+}
+
+func importChannelRoutingPolicies(db *sqlx.DB,
+	force bool,
+	nodeSettings commons.ManagedNodeSettings,
+	successTimes map[ImportType]time.Time) error {
+
+	request := ImportRequest{
+		CommunicationRequest: CommunicationRequest{
+			NodeId: nodeSettings.NodeId,
+		},
+		Db:           db,
+		Force:        force,
+		ImportType:   ImportChannelRoutingPolicies,
+		SuccessTimes: successTimes,
+	}
+	response := Import(request)
+	if response.Error != nil {
+		log.Error().Err(response.Error).Msgf("Failed to obtain channel routing policies for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(response.Error, "Obtaining channel routing policies for nodeId: %v", nodeSettings.NodeId)
+	}
+	return nil
+}
+
+func importAllChannels(db *sqlx.DB,
+	force bool,
+	nodeSettings commons.ManagedNodeSettings,
+	successTimes map[ImportType]time.Time) error {
+
+	request := ImportRequest{
+		CommunicationRequest: CommunicationRequest{
+			NodeId: nodeSettings.NodeId,
+		},
+		Db:           db,
+		Force:        force,
+		ImportType:   ImportAllChannels,
+		SuccessTimes: successTimes,
+	}
+	response := Import(request)
+	if response.Error != nil {
+		log.Error().Err(response.Error).Msgf("Failed to obtain all channels for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(response.Error, "Obtaining all channels for nodeId: %v", nodeSettings.NodeId)
+	}
+	return nil
+}
+
+func importNodeInformation(db *sqlx.DB,
+	force bool,
+	nodeSettings commons.ManagedNodeSettings,
+	successTimes map[ImportType]time.Time) error {
+
+	request := ImportRequest{
+		CommunicationRequest: CommunicationRequest{
+			NodeId: nodeSettings.NodeId,
+		},
+		Db:           db,
+		Force:        force,
+		ImportType:   ImportNodeInformation,
+		SuccessTimes: successTimes,
+	}
+	response := Import(request)
+	if response.Error != nil {
+		log.Error().Err(response.Error).Msgf("Failed to obtaining node information for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(response.Error, "Obtaining node information for nodeId: %v", nodeSettings.NodeId)
+	}
+	return nil
 }
 
 func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, channelStatus *commons.ChannelStatus,
@@ -346,8 +421,7 @@ type lndClientSubscribeChannelEvent interface {
 // SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
 // database as a time series
 func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, channelEventChannel chan<- commons.ChannelEvent,
-	lightningRequestChannel chan<- interface{}) {
+	nodeSettings commons.ManagedNodeSettings, successTimes map[ImportType]time.Time) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -366,12 +440,12 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		if stream == nil {
@@ -386,47 +460,27 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 				delay = true
 				continue
 			}
-			// HACK to know if the context is a testcase.
-			if lightningRequestChannel != nil {
 
-				now := time.Now()
-				responseChannel := make(chan commons.ImportResponse)
-				lightningRequestChannel <- commons.ImportRequest{
-					CommunicationRequest: commons.CommunicationRequest{
-						RequestId:   fmt.Sprintf("%v", now.Unix()),
-						RequestTime: &now,
-						NodeId:      nodeSettings.NodeId,
-					},
-					ImportType:      commons.ImportAllChannels,
-					ResponseChannel: responseChannel,
-				}
-				response := <-responseChannel
-				if response.Error != nil {
-					log.Error().Err(response.Error).Msgf("Obtaining Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+			contextValue := ctx.Value(commons.ContextKeyTest)
+			if contextValue == nil || contextValue == false {
+				err = importAllChannels(db, false, nodeSettings, successTimes)
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
 					delay = true
 					continue
 				}
-				responseChannel = make(chan commons.ImportResponse)
-				lightningRequestChannel <- commons.ImportRequest{
-					CommunicationRequest: commons.CommunicationRequest{
-						RequestId:   fmt.Sprintf("%v", now.Unix()),
-						RequestTime: &now,
-						NodeId:      nodeSettings.NodeId,
-					},
-					ImportType:      commons.ImportChannelRoutingPolicies,
-					ResponseChannel: responseChannel,
-				}
-				response = <-responseChannel
-				if response.Error != nil {
-					log.Error().Err(response.Error).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
+
+				err = importChannelRoutingPolicies(db, false, nodeSettings, successTimes)
+				if err != nil {
+					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
 					delay = true
 					continue
 				}
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		}
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 
 		chanEvent, err = stream.Recv()
 		if err != nil {
@@ -440,7 +494,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscri
 			continue
 		}
 
-		err = storeChannelEvent(db, chanEvent, nodeSettings, channelEventChannel, lightningRequestChannel)
+		err = storeChannelEvent(ctx, db, chanEvent, nodeSettings, successTimes)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
 			log.Error().Err(err).Msg("Storing channel event failed")
@@ -667,7 +721,7 @@ icoLoop:
 		}
 
 		err = insertChannelEvent(db, time.Now().UTC(), lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL, nodeSettings.NodeId,
-			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{}, nil)
+			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{})
 		if err != nil {
 			return errors.Wrap(err, "ImportedPendingOpenChannels: Insert channel event")
 		}
@@ -768,7 +822,7 @@ icoLoop:
 		}
 
 		err = insertChannelEvent(db, time.Now().UTC(), lnrpc.ChannelEventUpdate_OPEN_CHANNEL, nodeSettings.NodeId,
-			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{}, nil)
+			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{})
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Insert channel event")
 		}
@@ -842,7 +896,7 @@ icoLoop:
 		}
 
 		err = insertChannelEvent(db, time.Now().UTC(), lnrpc.ChannelEventUpdate_CLOSED_CHANNEL, nodeSettings.NodeId,
-			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{}, nil)
+			channel.ChannelID, true, jsonByteArray, commons.ChannelEvent{})
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Insert channel event")
 		}
@@ -887,7 +941,7 @@ func processEmptyChanId(channelPoint string, nodeSettings commons.ManagedNodeSet
 
 func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.ChannelEventUpdate_UpdateType,
 	nodeId, channelId int, imported bool, jsonByteArray []byte,
-	channelEvent commons.ChannelEvent, channelEventChannel chan<- commons.ChannelEvent) error {
+	channelEvent commons.ChannelEvent) error {
 
 	var sqlStm = `INSERT INTO channel_event (time, event_type, channel_id, imported, event, node_id)
 		VALUES($1, $2, $3, $4, $5, $6);`
@@ -897,9 +951,10 @@ func insertChannelEvent(db *sqlx.DB, eventTime time.Time, eventType lnrpc.Channe
 		return errors.Wrap(err, "DB Exec")
 	}
 
-	if channelEventChannel != nil {
-		channelEvent.ChannelId = channelId
-		channelEventChannel <- channelEvent
+	channelEvent.ChannelId = channelId
+	if !imported {
+		ChannelChanges <- channelEvent
+		ProcessChannelEvent(channelEvent)
 	}
 
 	return nil

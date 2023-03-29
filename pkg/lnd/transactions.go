@@ -47,9 +47,7 @@ func fetchLastTxHeight(db *sqlx.DB, nodeId int) (txHeight uint32, err error) {
 // database as a time series. It will also import unregistered transactions on startup.
 func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningClient, chain chainrpc.ChainNotifierClient,
 	db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings,
-	transactionEventChannel chan<- commons.TransactionEvent,
-	blockEventChannel chan<- commons.BlockEvent) {
+	nodeSettings commons.ManagedNodeSettings) {
 
 	defer log.Info().Msgf("SubscribeAndStoreTransactions terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -80,12 +78,12 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		if stream == nil {
@@ -134,16 +132,14 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				continue
 			}
 			commons.SetBlockHeight(blockEpoch.Height)
-			if blockEventChannel != nil {
-				blockEventChannel <- commons.BlockEvent{
-					EventData: commons.EventData{
-						EventTime: time.Now().UTC(),
-						NodeId:    nodeSettings.NodeId,
-					},
-					Hash:   blockEpoch.Hash,
-					Height: blockEpoch.Height,
-				}
-			}
+			//commons.BlockEvent{
+			//	EventData: commons.EventData{
+			//		EventTime: time.Now().UTC(),
+			//		NodeId:    nodeSettings.NodeId,
+			//	},
+			//	Hash:   blockEpoch.Hash,
+			//	Height: blockEpoch.Height,
+			//}
 			// transactionHeight + 1: otherwise that last transaction will be downloaded over-and-over.
 			transactionDetails, err = client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{
 				StartHeight: int32(transactionHeight + 1),
@@ -171,24 +167,24 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				// TODO FIXME This transaction is now missing
 				log.Error().Err(err).Msg("Failed to store the transaction (transaction is now missing and can only be recovered by emptying the transactions table)")
 			}
-			if transactionEventChannel != nil && !bootStrapping {
-				transactionEventChannel <- commons.TransactionEvent{
-					EventData: commons.EventData{
-						EventTime: time.Now().UTC(),
-						NodeId:    nodeSettings.NodeId,
-					},
-					Timestamp:             storedTx.Timestamp,
-					TransactionHash:       storedTx.TransactionHash,
-					Amount:                storedTx.Amount,
-					NumberOfConfirmations: storedTx.NumberOfConfirmations,
-					BlockHash:             storedTx.BlockHash,
-					BlockHeight:           storedTx.BlockHeight,
-					TotalFees:             storedTx.TotalFees,
-					DestinationAddresses:  storedTx.DestinationAddresses,
-					RawTransactionHex:     storedTx.RawTransactionHex,
-					Label:                 storedTx.Label,
-				}
-			}
+			//if !bootStrapping {
+			//	commons.TransactionEvent{
+			//		EventData: commons.EventData{
+			//			EventTime: time.Now().UTC(),
+			//			NodeId:    nodeSettings.NodeId,
+			//		},
+			//		Timestamp:             storedTx.Timestamp,
+			//		TransactionHash:       storedTx.TransactionHash,
+			//		Amount:                storedTx.Amount,
+			//		NumberOfConfirmations: storedTx.NumberOfConfirmations,
+			//		BlockHash:             storedTx.BlockHash,
+			//		BlockHeight:           storedTx.BlockHeight,
+			//		TotalFees:             storedTx.TotalFees,
+			//		DestinationAddresses:  storedTx.DestinationAddresses,
+			//		RawTransactionHex:     storedTx.RawTransactionHex,
+			//		Label:                 storedTx.Label,
+			//	}
+			//}
 			if uint32(*storedTx.BlockHeight) > transactionHeight {
 				transactionHeight = *storedTx.BlockHeight
 			}

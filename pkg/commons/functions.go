@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
@@ -114,7 +113,7 @@ func CopyParameters(destination map[WorkflowParameterLabel]string, source map[Wo
 
 func (s *Status) String() string {
 	if s == nil {
-		return "Unknown"
+		return UnknownEnumString
 	}
 	switch *s {
 	case Inactive:
@@ -132,12 +131,12 @@ func (s *Status) String() string {
 	case TimedOut:
 		return "TimedOut"
 	}
-	return "Unknown"
+	return UnknownEnumString
 }
 
 func (s *ServiceStatus) String() string {
 	if s == nil {
-		return "Unknown"
+		return UnknownEnumString
 	}
 	switch *s {
 	case ServiceInactive:
@@ -155,7 +154,7 @@ func (s *ServiceStatus) String() string {
 	case ServiceBootRequestedWithDelay:
 		return "BootRequestedWithDelay"
 	}
-	return "Unknown"
+	return UnknownEnumString
 }
 
 func GetServiceTypes() []ServiceType {
@@ -165,7 +164,6 @@ func GetServiceTypes() []ServiceType {
 		AmbossService,
 		TorqService,
 		AutomationService,
-		LightningCommunicationService,
 		RebalanceService,
 		MaintenanceService,
 		CronService,
@@ -174,7 +172,7 @@ func GetServiceTypes() []ServiceType {
 
 func (st *ServiceType) String() string {
 	if st == nil {
-		return "Unknown"
+		return UnknownEnumString
 	}
 	switch *st {
 	case LndService:
@@ -187,8 +185,6 @@ func (st *ServiceType) String() string {
 		return "TorqService"
 	case AutomationService:
 		return "AutomationService"
-	case LightningCommunicationService:
-		return "LightningCommunicationService"
 	case RebalanceService:
 		return "RebalanceService"
 	case MaintenanceService:
@@ -196,7 +192,7 @@ func (st *ServiceType) String() string {
 	case CronService:
 		return "CronService"
 	}
-	return "Unknown"
+	return UnknownEnumString
 }
 
 func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
@@ -214,7 +210,7 @@ func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
 
 func (ss *SubscriptionStream) String() string {
 	if ss == nil {
-		return "Unknown"
+		return UnknownEnumString
 	}
 	switch *ss {
 	case TransactionStream:
@@ -277,42 +273,6 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 		WorkflowParameterLabelRebalanceSettings,
 		WorkflowParameterLabelStatus,
 	}
-}
-
-func SignMessage(unixTime time.Time, nodeId int, message string, singleHash *bool,
-	lightningRequestChannel chan<- interface{}) SignMessageResponse {
-
-	responseChannel := make(chan SignMessageResponse)
-	request := SignMessageRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		ResponseChannel: responseChannel,
-		Message:         message,
-		SingleHash:      singleHash,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
-}
-
-func SignatureVerification(unixTime time.Time, nodeId int, message string, signature string,
-	lightningRequestChannel chan<- interface{}) SignatureVerificationResponse {
-
-	responseChannel := make(chan SignatureVerificationResponse)
-	request := SignatureVerificationRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		ResponseChannel: responseChannel,
-		Message:         message,
-		Signature:       signature,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
@@ -533,19 +493,4 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 			OptionalOutputs:  all,
 		},
 	}
-}
-
-func GetNodeWalletBalance(nodeId int, lightningRequestChannel chan<- interface{}) NodeWalletBalanceResponse {
-	unixTime := time.Now()
-	responseChannel := make(chan NodeWalletBalanceResponse)
-	request := NodeWalletBalanceRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		ResponseChannel: responseChannel,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
 }

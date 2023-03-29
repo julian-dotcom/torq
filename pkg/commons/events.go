@@ -179,6 +179,13 @@ type ForwardEvent struct {
 	IncomingChannelId *int      `json:"incomingChannelId"`
 }
 
+type NotifierEvent struct {
+	EventData
+	Notification     *string
+	NotificationType NotificationType
+	NodeGraphEvent   *NodeGraphEvent
+}
+
 type ChannelPoint struct {
 	TxId        []byte `json:"txId"`
 	OutputIndex uint32 `json:"outputIndex"`
@@ -292,12 +299,6 @@ type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
 }
 
-// GENERIC REQUEST/RESPONSE STRUCTS
-type FailedRequest struct {
-	Reason string `json:"reason"`
-	Error  string `json:"error"`
-}
-
 // Request/Response for Vector
 type ShortChannelIdRequest struct {
 	CommunicationRequest
@@ -312,75 +313,34 @@ type ShortChannelIdResponse struct {
 	ShortChannelId string `json:"shortChannelId"`
 }
 
-// Request/Response for lightningCommunication
+type InformationResponse struct {
+	NodeId                  int            `json:"nodeId"`
+	Implementation          Implementation `json:"implementation"`
+	Version                 string         `json:"version"`
+	PublicKey               string         `json:"publicKey"`
+	Alias                   string         `json:"alias"`
+	Color                   string         `json:"color"`
+	PendingChannelCount     int            `json:"pendingChannelCount"`
+	ActiveChannelCount      int            `json:"activeChannelCount"`
+	InactiveChannelCount    int            `json:"inactiveChannelCount"`
+	PeerCount               int            `json:"peerCount"`
+	BlockHeight             uint32         `json:"blockHeight"`
+	BlockHash               string         `json:"blockHash"`
+	BestHeaderTimestamp     time.Time      `json:"bestHeaderTimestamp"`
+	ChainSynced             bool           `json:"chainSynced"`
+	GraphSynced             bool           `json:"graphSynced"`
+	Addresses               []string       `json:"addresses"`
+	HtlcInterceptorRequired bool           `json:"htlcInterceptorRequired"`
+}
+
 type CommunicationRequest struct {
-	RequestId   string     `json:"requestId"`
-	RequestTime *time.Time `json:"requestTime"`
-	NodeId      int        `json:"nodeId"`
+	NodeId int `json:"nodeId"`
 }
 
 type CommunicationResponse struct {
 	Status  Status `json:"status"`
 	Message string `json:"message"`
 	Error   string `json:"error"`
-}
-
-type ChannelStatusUpdateRequest struct {
-	ResponseChannel chan<- ChannelStatusUpdateResponse `json:"-"`
-	CommunicationRequest
-	ChannelId     int    `json:"channelId"`
-	ChannelStatus Status `json:"channelStatus"`
-}
-
-type ChannelStatusUpdateResponse struct {
-	Request ChannelStatusUpdateRequest `json:"request"`
-	CommunicationResponse
-}
-
-type RoutingPolicyUpdateRequest struct {
-	CommunicationRequest
-	ResponseChannel  chan<- RoutingPolicyUpdateResponse `json:"-"`
-	RateLimitSeconds int                                `json:"rateLimitSeconds"`
-	RateLimitCount   int                                `json:"rateLimitCount"`
-	ChannelId        int                                `json:"channelId"`
-	FeeRateMilliMsat *int64                             `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *int64                             `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64                            `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64                            `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32                            `json:"timeLockDelta"`
-}
-
-type RoutingPolicyUpdateResponse struct {
-	Request RoutingPolicyUpdateRequest `json:"request"`
-	CommunicationResponse
-	FailedUpdates []FailedRequest `json:"failedUpdates"`
-}
-
-type SignatureVerificationRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
-	Message         string                               `json:"message"`
-	Signature       string                               `json:"signature"`
-}
-
-type SignatureVerificationResponse struct {
-	Request SignatureVerificationRequest `json:"request"`
-	CommunicationResponse
-	PublicKey string `json:"publicKey"`
-	Valid     bool   `json:"valid"`
-}
-
-type SignMessageRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- SignMessageResponse `json:"-"`
-	Message         string                     `json:"message"`
-	SingleHash      *bool                      `json:"singleHash"`
-}
-
-type SignMessageResponse struct {
-	Request SignMessageRequest `json:"request"`
-	CommunicationResponse
-	Signature string `json:"signature"`
 }
 
 type RebalanceRequests struct {
@@ -410,40 +370,4 @@ type RebalanceRequest struct {
 type RebalanceResponse struct {
 	Request RebalanceRequest `json:"request"`
 	CommunicationResponse
-}
-
-type NodeWalletBalanceRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- NodeWalletBalanceResponse `json:"-"`
-}
-
-type NodeWalletBalanceResponse struct {
-	TotalBalance              int64
-	ConfirmedBalance          int64
-	UnconfirmedBalance        int64
-	LockedBalance             int64
-	ReservedBalanceAnchorChan int64
-	CommunicationResponse
-	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
-}
-type ImportType int
-
-const (
-	ImportChannelRoutingPolicies = ImportType(iota)
-	ImportNodeInformation
-	ImportAllChannels
-	ImportPendingChannelsOnly
-)
-
-type ImportRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- ImportResponse `json:"-"`
-	Force           bool
-	ImportType      ImportType
-}
-
-type ImportResponse struct {
-	Request ImportRequest `json:"request"`
-	CommunicationResponse
-	Error error `json:"error"`
 }

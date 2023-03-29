@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -138,12 +137,15 @@ func ImportRoutingPolicies(ctx context.Context, client lndClientChannelEvent, db
 			}
 			channelStatus := commons.GetChannelStatusByChannelId(channelId)
 			if channelStatus != commons.Open {
-				err := channels.UpdateChannelStatus(db, channelId, commons.Open)
+				_, err := db.Exec(`
+					UPDATE channel SET status_id=$1, updated_on=$2 WHERE channel_id=$3 AND status_id!=$1`,
+					commons.Open, time.Now().UTC(), channelId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
 				}
+				commons.SetChannelStatus(channelId, commons.Open)
 			}
-			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu, nil)
+			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu)
 			if err != nil {
 				return errors.Wrap(err, "Insert routing policy")
 			}

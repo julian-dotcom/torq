@@ -20,8 +20,7 @@ const streamForwardsTickerSeconds = 10
 const streamLndMaxForwards = 50000
 
 // storeForwardingHistory
-func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int,
-	forwardEventChannel chan<- commons.ForwardEvent, bootStrapping bool) error {
+func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int, bootStrapping bool) error {
 
 	if len(fwh) > 0 {
 		var forwardEvents []commons.ForwardEvent
@@ -73,9 +72,9 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 		if err != nil {
 			return errors.Wrap(err, "DB Commit")
 		}
-		if forwardEventChannel != nil && !bootStrapping {
+		if !bootStrapping {
 			for _, forwardEvent := range forwardEvents {
-				forwardEventChannel <- forwardEvent
+				ProcessForwardEvent(forwardEvent)
 			}
 		}
 	}
@@ -118,7 +117,7 @@ type FwhOptions struct {
 // SubscribeForwardingEvents repeatedly requests forwarding history starting after the last
 // forwarding stored in the database and stores new forwards.
 func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwardingHistory, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, forwardEventChannel chan<- commons.ForwardEvent,
+	nodeSettings commons.ManagedNodeSettings,
 	opt *FwhOptions) {
 
 	defer log.Info().Msgf("SubscribeForwardingEvents terminated for nodeId: %v", nodeSettings.NodeId)
@@ -211,7 +210,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 				}
 				// Store the forwarding history
-				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, forwardEventChannel, bootStrapping)
+				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, bootStrapping)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to store forward event")
 				}

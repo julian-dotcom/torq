@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var ServiceChannel = make(chan ServiceChannelMessage) //nolint:gochecknoglobals
+
 type Services struct {
 	ServiceType ServiceType
 	// serviceStatus: Active=Service is running normal, Inactive=Service has been cancelled, Pending=Service is booting

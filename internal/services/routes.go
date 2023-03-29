@@ -95,9 +95,14 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	for svc := range commons.RunningServices {
 		switch svc {
-		case commons.TorqService, commons.LndService, commons.VectorService, commons.AmbossService:
+		case commons.TorqService,
+			commons.LndService,
+			commons.VectorService,
+			commons.AmbossService:
 			// Already done
-		case commons.AutomationService, commons.MaintenanceService, commons.CronService:
+		case commons.AutomationService,
+			commons.MaintenanceService,
+			commons.CronService:
 			service := Service{
 				CommonService: CommonService{
 					Status:   commons.RunningServices[svc].GetStatus(commons.TorqDummyNodeId),

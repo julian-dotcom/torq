@@ -9,7 +9,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/commons"
@@ -173,61 +172,6 @@ func GetNodesForTag(db *sqlx.DB) ([]NodeForTag, error) {
 		response = append(response, node)
 	}
 	return response, nil
-}
-
-func InitializeManagedChannelCache(db *sqlx.DB) error {
-	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
-	rows, err := db.Query(`
-		SELECT channel_id, short_channel_id, lnd_short_channel_id,
-		       funding_transaction_hash, funding_output_index,
-		       funding_block_height, funded_on,
-		       status_id, capacity, private,
-		       first_node_id, second_node_id, initiating_node_id, accepting_node_id,
-		       closing_transaction_hash, closing_node_id,
-		       closing_block_height, closed_on,
-		       flags
-		FROM channel;`)
-	if err != nil {
-		return errors.Wrap(err, "Obtaining channelIds and shortChannelIds")
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var channelId int
-		var shortChannelId *string
-		var lndShortChannelId *uint64
-		var fundingTransactionHash string
-		var fundingOutputIndex int
-		var fundingBlockHeight *uint32
-		var fundedOn *time.Time
-		var capacity int64
-		var private bool
-		var firstNodeId int
-		var secondNodeId int
-		var initiatingNodeId *int
-		var acceptingNodeId *int
-		var status commons.ChannelStatus
-		var closingTransactionHash *string
-		var closingNodeId *int
-		var closingBlockHeight *uint32
-		var closedOn *time.Time
-		var flags commons.ChannelFlags
-		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId,
-			&fundingTransactionHash, &fundingOutputIndex,
-			&fundingBlockHeight, &fundedOn,
-			&status, &capacity, &private,
-			&firstNodeId, &secondNodeId, &initiatingNodeId, &acceptingNodeId,
-			&closingTransactionHash, &closingNodeId,
-			&closingBlockHeight, &closedOn, &flags)
-		if err != nil {
-			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
-		}
-		commons.SetChannel(channelId, shortChannelId, lndShortChannelId, status,
-			fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundedOn,
-			capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId,
-			closingTransactionHash, closingNodeId, closingBlockHeight, closedOn,
-			flags)
-	}
-	return nil
 }
 
 func getChannelIdByShortChannelId(db *sqlx.DB, shortChannelId *string) (int, error) {
