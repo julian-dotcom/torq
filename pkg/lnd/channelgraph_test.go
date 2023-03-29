@@ -133,8 +133,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			ClosedChans: nil,
 		}
 
-		result := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-		GraphTopologyUpdate{&irrelecantUpdateEvent}}, fundingTransactionHash, fundingOutputIndex)
+		result := simulateChannelGraphUpdate(t, db,
+			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&irrelecantUpdateEvent}})
 
 		if len(result) != 0 {
 			testutil.Fatalf(t, "Expected to find no routing policy record stored in the database. Found %d",
@@ -180,8 +180,7 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 		}
 
 		result := simulateChannelGraphUpdate(t, db,
-			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&updateEvent}},
-			fundingTransactionHash, fundingOutputIndex)
+			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&updateEvent}})
 
 		if len(result) != 1 {
 			testutil.Fatalf(t, "Expected to find a single routing policy record stored in the database. Found %d",
@@ -233,8 +232,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 				result[0].TimeLockDelta)
 		}
 
-		r2 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-		GraphTopologyUpdate{&updateEvent}}, fundingTransactionHash, fundingOutputIndex)
+		r2 := simulateChannelGraphUpdate(t, db,
+			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&updateEvent}})
 
 		if len(r2) != 1 {
 			testutil.Fatalf(t, "Expected to find a single routing policy record stored in the database. Found %d",
@@ -280,8 +279,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 			Disabled:               secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.Disabled,
 		}
 
-		r3 := simulateChannelGraphUpdate(t, db, &stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.
-		GraphTopologyUpdate{&secondUpdateEvent}}, fundingTransactionHash, fundingOutputIndex)
+		r3 := simulateChannelGraphUpdate(t, db,
+			&stubLNDSubscribeChannelGraphRPC{GraphTopologyUpdate: []*lnrpc.GraphTopologyUpdate{&secondUpdateEvent}})
 
 		if r3[1].AnnouncingPubKey != e3.AnnouncingPubKey {
 			testutil.Errorf(t, "Incorrect announcing pub key. Expected: %v, got %v", e3.AnnouncingPubKey,
@@ -310,34 +309,12 @@ type routingPolicyData struct {
 	LNDShortChannelId      *uint64 `db:"lnd_short_channel_id"`
 }
 
-func simulateChannelGraphUpdate(t *testing.T, db *sqlx.DB, client *stubLNDSubscribeChannelGraphRPC,
-	fundingTransactionHash string, fundingOutputIndex int) (r []routingPolicyData) {
+func simulateChannelGraphUpdate(t *testing.T,
+	db *sqlx.DB,
+	client *stubLNDSubscribeChannelGraphRPC) (r []routingPolicyData) {
 	ctx := context.WithValue(context.Background(), commons.ContextKeyTest, true)
 	ctx, cancel := context.WithCancel(ctx)
 	client.CancelFunc = cancel
-
-	// TODO FIXME CAUSES CIRCULAR DEPENDENCY
-	//lndShortChannelId := uint64(1111)
-	//shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-	//channel := channels.Channel{
-	//	ShortChannelID:         &shortChannelId,
-	//	FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
-	//	SecondNodeId:           commons.GetNodeIdByPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
-	//	Capacity:               1_000_000,
-	//	LNDShortChannelID:      &lndShortChannelId,
-	//	FundingTransactionHash: fundingTransactionHash,
-	//	FundingOutputIndex:     fundingOutputIndex,
-	//	Status:                 commons.Open,
-	//}
-	//channelId, err := channels.AddChannelOrUpdateChannelStatus(
-	//	db,
-	//	commons.GetNodeSettingsByNodeId(
-	//		commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), channel)
-	//if err != nil {
-	//	log.Error().Err(err).Msgf("Failed to create channel %v", lndShortChannelId)
-	//	t.Fatalf("Problem adding channel %v", channel)
-	//}
-	//t.Logf("channel added with channelId: %v", channelId)
 
 	go startAllDummyListener()
 

@@ -239,28 +239,6 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_SettleEvent")
 			}
 		}
-
-		//commons.HtlcEvent{
-		//	EventData: commons.EventData{
-		//		EventTime: time.Now().UTC(),
-		//		NodeId:    nodeSettings.NodeId,
-		//	},
-		//	Timestamp:         storedHtlcEvent.Time,
-		//	EventOrigin:       storedHtlcEvent.EventOrigin,
-		//	EventType:         storedHtlcEvent.EventType,
-		//	OutgoingHtlcId:    storedHtlcEvent.OutgoingHtlcId,
-		//	IncomingHtlcId:    storedHtlcEvent.IncomingHtlcId,
-		//	TimestampNs:       storedHtlcEvent.TimestampNs,
-		//	IncomingAmtMsat:   storedHtlcEvent.IncomingAmtMsat,
-		//	OutgoingAmtMsat:   storedHtlcEvent.OutgoingAmtMsat,
-		//	IncomingTimelock:  storedHtlcEvent.IncomingTimelock,
-		//	OutgoingTimelock:  storedHtlcEvent.OutgoingTimelock,
-		//	BoltFailureCode:   storedHtlcEvent.BoltFailureCode,
-		//	BoltFailureString: storedHtlcEvent.BoltFailureString,
-		//	LndFailureDetail:  storedHtlcEvent.LndFailureDetail,
-		//	OutgoingChannelId: storedHtlcEvent.OutgoingChannelId,
-		//	IncomingChannelId: storedHtlcEvent.IncomingChannelId,
-		//}
 		delay = false
 	}
 }

@@ -415,14 +415,6 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 
-		// TODO FIXME channels with short_channel_id = null and status IN (1,2,100,101,102,103) should be fixed somehow???
-		//  Open                   = 1
-		//  Closing                = 2
-		//	CooperativeClosed      = 100
-		//	LocalForceClosed       = 101
-		//	RemoteForceClosed      = 102
-		//	BreachClosed           = 103
-
 		err = settings.InitializeManagedChannelCache(request.Db)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")

@@ -179,13 +179,6 @@ type ForwardEvent struct {
 	IncomingChannelId *int      `json:"incomingChannelId"`
 }
 
-type NotifierEvent struct {
-	EventData
-	Notification     *string
-	NotificationType NotificationType
-	NodeGraphEvent   *NodeGraphEvent
-}
-
 type ChannelPoint struct {
 	TxId        []byte `json:"txId"`
 	OutputIndex uint32 `json:"outputIndex"`

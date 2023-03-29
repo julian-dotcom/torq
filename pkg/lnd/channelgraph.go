@@ -414,14 +414,5 @@ func insertNodeEvent(db *sqlx.DB, eventTime time.Time, eventNodeId int, alias st
 			Features:  nodeEvent.Features,
 		}
 	}
-	// TODO FIXME DOES NOT WORK CYCLIC DEPENDENCY
-	//communications.HandleNotification(db, commons.NotifierEvent{
-	//	EventData: commons.EventData{
-	//		EventTime: eventTime,
-	//		NodeId:    nodeId,
-	//	},
-	//	NotificationType: commons.NodeDetails,
-	//	NodeGraphEvent:   &nodeGraphEvent,
-	//})
 	return nil
 }
