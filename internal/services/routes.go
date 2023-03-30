@@ -22,11 +22,25 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	var bitcoinNetworks []commons.Network
 	for _, torqServiceType := range commons.GetTorqServiceTypes() {
 		torqService := commons.GetCurrentTorqServiceState(torqServiceType)
-		result.TorqService = append(result.TorqService, TorqService{
+		if torqServiceType == commons.TorqService {
+			result.MainService = TorqService{
+				CommonService: CommonService{
+					ServiceType:       torqServiceType,
+					ServiceTypeString: torqServiceType.String(),
+					Status:            torqService.Status,
+					BootTime:          torqService.BootTime,
+					StatusString:      torqService.Status.String(),
+				},
+			}
+			continue
+		}
+		result.TorqServices = append(result.TorqServices, TorqService{
 			CommonService: CommonService{
-				Status:       torqService.Status,
-				BootTime:     torqService.BootTime,
-				StatusString: torqService.Status.String(),
+				ServiceType:       torqServiceType,
+				ServiceTypeString: torqServiceType.String(),
+				Status:            torqService.Status,
+				BootTime:          torqService.BootTime,
+				StatusString:      torqService.Status.String(),
 			},
 		})
 	}
@@ -36,9 +50,11 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			lndService := commons.GetCurrentLndServiceState(lndServiceType, lndNodeId)
 			result.LndServices = append(result.LndServices, LndService{
 				CommonService: CommonService{
-					Status:       lndService.Status,
-					BootTime:     lndService.BootTime,
-					StatusString: lndService.Status.String(),
+					ServiceType:       lndServiceType,
+					ServiceTypeString: lndServiceType.String(),
+					Status:            lndService.Status,
+					BootTime:          lndService.BootTime,
+					StatusString:      lndService.Status.String(),
 				},
 				NodeId:         lndNodeId,
 				BitcoinNetwork: bitcoinNetwork,
@@ -63,9 +79,11 @@ func getLndServicesHandler(c *gin.Context, db *sqlx.DB) {
 		lndService := commons.GetCurrentLndServiceState(lndServiceType, nodeId)
 		lndServices = append(lndServices, LndService{
 			CommonService: CommonService{
-				Status:       lndService.Status,
-				BootTime:     lndService.BootTime,
-				StatusString: lndService.Status.String(),
+				ServiceType:       lndServiceType,
+				ServiceTypeString: lndServiceType.String(),
+				Status:            lndService.Status,
+				BootTime:          lndService.BootTime,
+				StatusString:      lndService.Status.String(),
 			},
 			NodeId:         nodeId,
 			BitcoinNetwork: bitcoinNetwork,

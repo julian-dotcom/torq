@@ -465,7 +465,6 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	setAllLndServices(context.Background(), nodeId, true, ncd.CustomSettings, ncd.PingSystem)
 	c.Status(http.StatusOK)
-	return
 }
 
 func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {

@@ -380,10 +380,12 @@ func manageServices(db *sqlx.DB) {
 				}
 			}
 			if !allGood {
+				log.Info().Msg("Torq initialization is done.")
 				continue
 			}
+			log.Info().Msg("Torq is initializing.")
 		case commons.ServicePending:
-			log.Info().Msg("Torq is initialising.")
+			log.Info().Msg("Torq is setting up caches.")
 
 			err := settings.InitializeManagedSettingsCache(db)
 			if err != nil {
@@ -419,6 +421,8 @@ func manageServices(db *sqlx.DB) {
 			}
 			commons.SetInitializingTorqServiceState(commons.TorqService)
 			continue
+		case commons.ServiceActive:
+			// All is good
 		default:
 			// We are waiting for the Torq service to become active
 			continue
@@ -428,7 +432,7 @@ func manageServices(db *sqlx.DB) {
 		proccessTorqInitialBoot(db)
 
 		// We end up here when the main Torq service AND all non node specific services have the desired states
-		for nodeId := range commons.GetLndNodeIds() {
+		for _, nodeId := range commons.GetLndNodeIds() {
 			// check channel events first only if that one works we start the others
 			// because channel events downloads our channels and routing policies from LND
 			channelEventStream := commons.GetCurrentLndServiceState(commons.LndServiceChannelEventStream, nodeId)
@@ -462,6 +466,8 @@ func proccessTorqInitialBoot(db *sqlx.DB) {
 			log.Error().Err(err).Msgf("Could not obtain desired state for nodeId: %v", torqNode.NodeId)
 			continue
 		}
+
+		log.Info().Msgf("Torq is setting up the desired states for nodeId: %v.", torqNode.NodeId)
 
 		for _, lndServiceType := range commons.GetLndServiceTypes() {
 			serviceStatus := commons.ServiceActive
@@ -520,9 +526,11 @@ func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int)
 	switch desiredState.Status {
 	case commons.ServiceActive:
 		if currentState.Status == commons.ServiceInactive {
+			log.Info().Msgf("Activating %v for nodeId: %v.", serviceType.String(), nodeId)
 			processServiceBoot(db, serviceType, nodeId)
 		}
 	case commons.ServiceInactive:
+		log.Info().Msgf("Inactivating %v for nodeId: %v.", serviceType.String(), nodeId)
 		commons.SetInactiveLndServiceState(serviceType, nodeId)
 	}
 }
@@ -581,9 +589,9 @@ func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int
 		if err != nil {
 			log.Error().Err(err).Msgf("%v Failed to connect to lnd for node id: %v", serviceType.String(), nodeId)
 			if nodeId == 0 {
-				commons.SetInactiveTorqServiceState(serviceType)
+				commons.SetFailedTorqServiceState(serviceType)
 			} else {
-				commons.SetInactiveLndServiceState(serviceType, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 			}
 			return
 		}

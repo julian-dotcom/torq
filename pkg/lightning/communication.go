@@ -2,7 +2,6 @@ package lightning
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -131,21 +130,19 @@ func GetInformationRequest(nodeId int) (commons.InformationResponse, error) {
 func Import(db *sqlx.DB,
 	importType commons.ImportType,
 	force bool,
-	nodeId int,
-	successTimes map[commons.ImportType]time.Time) (map[commons.ImportType]time.Time, error) {
+	nodeId int) error {
 
 	request := lnd.ImportRequest{
 		CommunicationRequest: lnd.CommunicationRequest{
 			NodeId: nodeId,
 		},
-		SuccessTimes: successTimes,
-		ImportType:   importType,
-		Db:           db,
-		Force:        force,
+		ImportType: importType,
+		Db:         db,
+		Force:      force,
 	}
 	response := lnd.Import(request)
 	if response.Error != nil {
-		return successTimes, response.Error
+		return response.Error
 	}
-	return response.SuccessTimes, nil
+	return nil
 }

@@ -29,6 +29,8 @@ const (
 	writeCurrentLndServiceState
 	writeDesiredTorqServiceState
 	writeDesiredLndServiceState
+	writeCurrentTorqServiceFailure
+	writeCurrentLndServiceFailure
 	readLndNodeIds
 	writeSuccessTimes
 	writeNodeConnectionDetails
@@ -67,6 +69,7 @@ type ServiceState struct {
 	PendingTime        *time.Time
 	InitializationTime *time.Time
 	InactivationTime   *time.Time
+	FailureTime        *time.Time
 }
 
 func (ss *ServiceState) Pending(cancelFunc context.CancelFunc) ServiceState {
@@ -107,6 +110,13 @@ func (ss *ServiceState) Inactivate() ServiceState {
 	}
 	ss.InactivationTime = &now
 	ss.CancelFunc = nil
+	return *ss
+}
+
+func (ss *ServiceState) Failure() ServiceState {
+	now := time.Now()
+	ss.Inactivate()
+	ss.FailureTime = &now
 	return *ss
 }
 
@@ -304,7 +314,6 @@ func processManagedService(
 					torqCurrentStateCache.TorqServiceStates[managedService.ServiceType] = state.Pending(*state.CancelFunc)
 				default:
 					log.Error().Msgf("No empty cancelFunc (%v) allowed", managedService.CancelFunc)
-					break
 				}
 			case ServiceActive:
 				torqCurrentStateCache.TorqServiceStates[managedService.ServiceType] = state.Activate()
@@ -338,7 +347,6 @@ func processManagedService(
 					n[managedService.ServiceType] = state.Pending(*state.CancelFunc)
 				default:
 					log.Error().Msgf("No empty cancelFunc (%v) allowed", managedService.CancelFunc)
-					break
 				}
 				torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId] = n
 			case ServiceActive:
@@ -352,6 +360,21 @@ func processManagedService(
 				torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId] = n
 			}
 		}
+	case writeCurrentTorqServiceFailure:
+		state := torqCurrentStateCache.TorqServiceStates[managedService.ServiceType]
+		torqCurrentStateCache.TorqServiceStates[managedService.ServiceType] = state.Failure()
+	case writeCurrentLndServiceFailure:
+		if managedService.NodeId == 0 {
+			log.Error().Msgf("No empty nodeId (%v) allowed", managedService.NodeId)
+			break
+		}
+		n, nodeExists := torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId]
+		if !nodeExists {
+			n = make(map[ServiceType]ServiceState)
+		}
+		state := n[managedService.ServiceType]
+		n[managedService.ServiceType] = state.Failure()
+		torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId] = n
 	case writeSuccessTimes:
 		if managedService.NodeId == 0 {
 			log.Error().Msgf("No empty nodeId (%v) allowed", managedService.NodeId)
@@ -469,6 +492,7 @@ func IsChannelBalanceCacheStreamActive(nodeId int) bool {
 }
 
 func SetDesiredTorqServiceState(serviceType ServiceType, serviceStatus ServiceStatus) {
+	log.Info().Msgf("Torq desired state for service: %v is %v.", serviceType.String(), serviceStatus.String())
 	managedService := ManagedService{
 		ServiceType:   serviceType,
 		ServiceStatus: serviceStatus,
@@ -478,6 +502,8 @@ func SetDesiredTorqServiceState(serviceType ServiceType, serviceStatus ServiceSt
 }
 
 func SetDesiredLndServiceState(serviceType ServiceType, nodeId int, serviceStatus ServiceStatus) {
+	log.Info().Msgf("Torq desired state for service: %v is %v with nodeId: %v.",
+		serviceType.String(), serviceStatus.String(), nodeId)
 	managedService := ManagedService{
 		ServiceType:   serviceType,
 		NodeId:        nodeId,
@@ -551,12 +577,19 @@ func SetInactiveLndServiceState(serviceType ServiceType, nodeId int) {
 	setLndServiceStatus(serviceType, nodeId, ServiceInactive)
 }
 
-func setLndServiceStatus(serviceType ServiceType, nodeId int, serviceStatus ServiceStatus) {
+func SetFailedTorqServiceState(serviceType ServiceType) {
 	managedService := ManagedService{
-		ServiceType:   serviceType,
-		NodeId:        nodeId,
-		ServiceStatus: serviceStatus,
-		Type:          writeCurrentLndServiceState,
+		ServiceType: serviceType,
+		Type:        writeCurrentTorqServiceFailure,
+	}
+	ManagedServiceChannel <- managedService
+}
+
+func SetFailedLndServiceState(serviceType ServiceType, nodeId int) {
+	managedService := ManagedService{
+		ServiceType: serviceType,
+		NodeId:      nodeId,
+		Type:        writeCurrentLndServiceFailure,
 	}
 	ManagedServiceChannel <- managedService
 }
@@ -566,6 +599,16 @@ func setTorqServiceStatus(serviceType ServiceType, serviceStatus ServiceStatus) 
 		ServiceType:   serviceType,
 		ServiceStatus: serviceStatus,
 		Type:          writeCurrentTorqServiceState,
+	}
+	ManagedServiceChannel <- managedService
+}
+
+func setLndServiceStatus(serviceType ServiceType, nodeId int, serviceStatus ServiceStatus) {
+	managedService := ManagedService{
+		ServiceType:   serviceType,
+		NodeId:        nodeId,
+		ServiceStatus: serviceStatus,
+		Type:          writeCurrentLndServiceState,
 	}
 	ManagedServiceChannel <- managedService
 }

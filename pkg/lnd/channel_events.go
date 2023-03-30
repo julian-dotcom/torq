@@ -182,7 +182,10 @@ func storeChannelEvent(ctx context.Context,
 		contextValue := ctx.Value(commons.ContextKeyTest)
 		if contextValue == nil || contextValue == false {
 			// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
-			importPendingChannels(db, false, nodeSettings)
+			err := importPendingChannels(db, false, nodeSettings)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
+			}
 		}
 		c := ce.GetInactiveChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
@@ -203,7 +206,10 @@ func storeChannelEvent(ctx context.Context,
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
 		contextValue := ctx.Value(commons.ContextKeyTest)
 		if contextValue == nil || contextValue == false {
-			importPendingChannels(db, true, nodeSettings)
+			err := importPendingChannels(db, true, nodeSettings)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
+			}
 		}
 		c := ce.GetFullyResolvedChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
@@ -224,7 +230,10 @@ func storeChannelEvent(ctx context.Context,
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
 		contextValue := ctx.Value(commons.ContextKeyTest)
 		if contextValue == nil || contextValue == false {
-			importPendingChannels(db, true, nodeSettings)
+			err := importPendingChannels(db, true, nodeSettings)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
+			}
 		}
 		c := ce.GetPendingOpenChannel()
 		channelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
@@ -256,17 +265,15 @@ func importPendingChannels(db *sqlx.DB, force bool, nodeSettings commons.Managed
 		CommunicationRequest: CommunicationRequest{
 			NodeId: nodeSettings.NodeId,
 		},
-		Db:           db,
-		Force:        force,
-		ImportType:   commons.ImportPendingChannelsOnly,
-		SuccessTimes: commons.GetSuccessTimes(nodeSettings.NodeId),
+		Db:         db,
+		Force:      force,
+		ImportType: commons.ImportPendingChannelsOnly,
 	}
 	response := Import(request)
 	if response.Error != nil {
 		log.Error().Err(response.Error).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
 		return errors.Wrapf(response.Error, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
 	}
-	commons.SetSuccessTimes(nodeSettings.NodeId, response.SuccessTimes)
 	return nil
 }
 
@@ -275,17 +282,15 @@ func importChannelRoutingPolicies(db *sqlx.DB, force bool, nodeSettings commons.
 		CommunicationRequest: CommunicationRequest{
 			NodeId: nodeSettings.NodeId,
 		},
-		Db:           db,
-		Force:        force,
-		ImportType:   commons.ImportChannelRoutingPolicies,
-		SuccessTimes: commons.GetSuccessTimes(nodeSettings.NodeId),
+		Db:         db,
+		Force:      force,
+		ImportType: commons.ImportChannelRoutingPolicies,
 	}
 	response := Import(request)
 	if response.Error != nil {
 		log.Error().Err(response.Error).Msgf("Failed to obtain channel routing policies for nodeId: %v", nodeSettings.NodeId)
 		return errors.Wrapf(response.Error, "Obtaining channel routing policies for nodeId: %v", nodeSettings.NodeId)
 	}
-	commons.SetSuccessTimes(nodeSettings.NodeId, response.SuccessTimes)
 	return nil
 }
 
@@ -294,17 +299,15 @@ func importAllChannels(db *sqlx.DB, force bool, nodeSettings commons.ManagedNode
 		CommunicationRequest: CommunicationRequest{
 			NodeId: nodeSettings.NodeId,
 		},
-		Db:           db,
-		Force:        force,
-		ImportType:   commons.ImportAllChannels,
-		SuccessTimes: commons.GetSuccessTimes(nodeSettings.NodeId),
+		Db:         db,
+		Force:      force,
+		ImportType: commons.ImportAllChannels,
 	}
 	response := Import(request)
 	if response.Error != nil {
 		log.Error().Err(response.Error).Msgf("Failed to obtain all channels for nodeId: %v", nodeSettings.NodeId)
 		return errors.Wrapf(response.Error, "Obtaining all channels for nodeId: %v", nodeSettings.NodeId)
 	}
-	commons.SetSuccessTimes(nodeSettings.NodeId, response.SuccessTimes)
 	return nil
 }
 
@@ -313,17 +316,15 @@ func importNodeInformation(db *sqlx.DB, force bool, nodeSettings commons.Managed
 		CommunicationRequest: CommunicationRequest{
 			NodeId: nodeSettings.NodeId,
 		},
-		Db:           db,
-		Force:        force,
-		ImportType:   commons.ImportNodeInformation,
-		SuccessTimes: commons.GetSuccessTimes(nodeSettings.NodeId),
+		Db:         db,
+		Force:      force,
+		ImportType: commons.ImportNodeInformation,
 	}
 	response := Import(request)
 	if response.Error != nil {
 		log.Error().Err(response.Error).Msgf("Failed to obtaining node information for nodeId: %v", nodeSettings.NodeId)
 		return errors.Wrapf(response.Error, "Obtaining node information for nodeId: %v", nodeSettings.NodeId)
 	}
-	commons.SetSuccessTimes(nodeSettings.NodeId, response.SuccessTimes)
 	return nil
 }
 

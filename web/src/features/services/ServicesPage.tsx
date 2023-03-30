@@ -11,13 +11,13 @@ function ServicesPage() {
   const { t } = useTranslations();
   const { data: servicesData, refetch: getServices } = useGetServicesQuery();
   const [servicesState, setServicesState] = React.useState({} as services);
-  const version = servicesState?.torqService ? servicesState?.torqService.version : "Unknown";
+  const version = servicesState?.version ? servicesState?.version : "Unknown";
 
   const navigate = useNavigate();
 
   const retryServices = () => {
     getServices();
-    if (servicesState.torqService.status == 1) {
+    if (servicesState.mainService.status == 1) {
       navigate("/");
     }
   };

@@ -320,17 +320,15 @@ type InformationResponse struct {
 
 type ImportRequest struct {
 	CommunicationRequest
-	Db           *sqlx.DB
-	Force        bool
-	ImportType   commons.ImportType
-	SuccessTimes map[commons.ImportType]time.Time
+	Db         *sqlx.DB
+	Force      bool
+	ImportType commons.ImportType
 }
 
 type ImportResponse struct {
 	Request ImportRequest
 	CommunicationResponse
-	SuccessTimes map[commons.ImportType]time.Time
-	Error        error
+	Error error
 }
 
 func processImportRequest(ctx context.Context, request ImportRequest) ImportResponse {
@@ -340,12 +338,13 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		CommunicationResponse: CommunicationResponse{
 			Status: Inactive,
 		},
-		Request:      request,
-		SuccessTimes: request.SuccessTimes,
+		Request: request,
 	}
-
+	// TODO FIXME For now there is no concurrency enabled for lightning communication
+	// When concurrency is enabled this need to be revisited
+	successTimes := commons.GetSuccessTimes(request.NodeId)
 	if !request.Force {
-		successTime, exists := request.SuccessTimes[request.ImportType]
+		successTime, exists := commons.GetSuccessTimes(request.NodeId)[request.ImportType]
 		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
 			switch request.ImportType {
 			case commons.ImportAllChannels:
@@ -445,7 +444,8 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		}
 		log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 	}
-	response.SuccessTimes[request.ImportType] = time.Now()
+	successTimes[request.ImportType] = time.Now()
+	commons.SetSuccessTimes(request.NodeId, successTimes)
 	response.Status = Active
 	return response
 }

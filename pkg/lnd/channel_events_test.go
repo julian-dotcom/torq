@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -266,8 +265,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		defer wg.Done()
 		SubscribeAndStoreChannelEvents(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)),
-			make(map[ImportType]time.Time))
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)))
 	}()
 	wg.Wait()
 

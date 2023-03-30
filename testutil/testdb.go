@@ -231,14 +231,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	go tags.ManagedTagCache(tags.ManagedTagChannel, ctx)
 	// TODO FIXME cyclic dependency so if you need this in tests then initialise it in the test
 	//go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctx)
-
-	// initialise package level var for keeping state of subsciptions
-	commons.RunningServices = make(map[commons.ServiceType]*commons.Services, 0)
-	for _, serviceType := range commons.GetServiceTypes() {
-		commons.RunningServices[serviceType] = &commons.Services{ServiceType: serviceType}
-	}
-	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(testNodeId1, commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax))
-	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(testNodeId2, commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax))
+	go commons.ManagedServiceCache(commons.ManagedServiceChannel, ctx)
 
 	return db, cancel, nil
 }

@@ -95,22 +95,6 @@ func GetPingSystemNodeIds(db *sqlx.DB, pingSystem commons.PingSystem) ([]int, er
 	return nodeIds, nil
 }
 
-func getPingConnectionDetails(db *sqlx.DB, pingSystem commons.PingSystem) ([]NodeConnectionDetails, error) {
-	var ncds []NodeConnectionDetails
-	err := db.Select(&ncds, `
-		SELECT *
-		FROM node_connection_details
-		WHERE status_id = $1 AND ping_system%$2>=$3
-		ORDER BY node_id;`, commons.Active, pingSystem*2, pingSystem)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []NodeConnectionDetails{}, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return ncds, nil
-}
-
 func GetAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnectionDetails, error) {
 	var nodeConnectionDetailsArray []NodeConnectionDetails
 	var err error
@@ -339,19 +323,6 @@ func getNodeAlias(db *sqlx.DB, nodeId int) string {
 		log.Info().Msgf("Tried to obtain node alias for ManagedNodeAlias cache with nodeId: %v.", nodeId)
 	}
 	return alias
-}
-
-func getNodeConnectionDetailsByStatus(db *sqlx.DB, status commons.Status) ([]NodeConnectionDetails, error) {
-	var nodeConnectionDetailsArray []NodeConnectionDetails
-	err := db.Select(&nodeConnectionDetailsArray, `
-		SELECT * FROM node_connection_details WHERE status_id = $1 ORDER BY node_id;`, status)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []NodeConnectionDetails{}, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return nodeConnectionDetailsArray, nil
 }
 
 func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) (int64, error) {
