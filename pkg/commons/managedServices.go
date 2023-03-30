@@ -97,6 +97,7 @@ func (ss *ServiceState) Activate() ServiceState {
 	ss.PendingTime = nil
 	ss.InitializationTime = nil
 	ss.InactivationTime = nil
+	ss.FailureTime = nil
 	return *ss
 }
 
@@ -109,6 +110,7 @@ func (ss *ServiceState) Inactivate() ServiceState {
 		(*ss.CancelFunc)()
 	}
 	ss.InactivationTime = &now
+	ss.FailureTime = nil
 	ss.CancelFunc = nil
 	return *ss
 }
