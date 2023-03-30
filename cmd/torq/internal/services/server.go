@@ -2,11 +2,9 @@ package services
 
 import (
 	"context"
-	"runtime/debug"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/automation"
@@ -16,20 +14,15 @@ import (
 
 func Start(ctx context.Context, db *sqlx.DB) {
 
+	commons.SetActiveTorqServiceState(commons.AutomationService)
 	var wg sync.WaitGroup
-
-	active := commons.ServiceActive
 
 	// Interval Trigger Monitor
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in IntervalTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
-			}
-		}()
+		defer commons.SetInactiveTorqServiceState(commons.AutomationService)
+
 		automation.IntervalTriggerMonitor(ctx, db)
 	})()
 
@@ -37,12 +30,8 @@ func Start(ctx context.Context, db *sqlx.DB) {
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in EventTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
-			}
-		}()
+		defer commons.SetInactiveTorqServiceState(commons.AutomationService)
+
 		automation.EventTriggerMonitor(ctx, db)
 	})()
 
@@ -50,12 +39,8 @@ func Start(ctx context.Context, db *sqlx.DB) {
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ScheduledTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
-				commons.RunningServices[commons.AutomationService].Cancel(commons.TorqDummyNodeId, &active, true)
-			}
-		}()
+		defer commons.SetInactiveTorqServiceState(commons.AutomationService)
+
 		automation.ScheduledTriggerMonitor(ctx, db)
 	})()
 
@@ -64,43 +49,24 @@ func Start(ctx context.Context, db *sqlx.DB) {
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	active := commons.ServiceActive
-
-	defer func() {
-		if panicError := recover(); panicError != nil {
-			log.Error().Msgf("Panic occurred in RebalanceServiceStart %v with stack: %v", panicError, string(debug.Stack()))
-			commons.RunningServices[commons.RebalanceService].Cancel(nodeId, &active, true)
-		}
-	}()
+	defer commons.SetInactiveLndServiceState(commons.RebalanceService, nodeId)
+	commons.SetActiveLndServiceState(commons.RebalanceService, nodeId)
 
 	workflows.RebalanceServiceStart(ctx, conn, db, nodeId)
 }
 
 func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
-	active := commons.ServiceActive
-
-	defer func() {
-		if panicError := recover(); panicError != nil {
-			log.Error().Msgf("Panic occurred in MaintenanceService %v with stack: %v", panicError, string(debug.Stack()))
-			commons.RunningServices[commons.MaintenanceService].Cancel(commons.TorqDummyNodeId, &active, true)
-		}
-	}()
+	defer commons.SetInactiveTorqServiceState(commons.MaintenanceService)
+	commons.SetActiveTorqServiceState(commons.MaintenanceService)
 
 	commons.MaintenanceServiceStart(ctx, db)
 }
 
 func StartCronService(ctx context.Context, db *sqlx.DB) {
 
-	active := commons.ServiceActive
-
-	// Cron Trigger Monitor
-	defer func() {
-		if panicError := recover(); panicError != nil {
-			log.Error().Msgf("Panic occurred in CronTriggerMonitor %v with stack: %v", panicError, string(debug.Stack()))
-			commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
-		}
-	}()
+	defer commons.SetInactiveTorqServiceState(commons.CronService)
+	commons.SetActiveTorqServiceState(commons.CronService)
 
 	automation.CronTriggerMonitor(ctx, db)
 }

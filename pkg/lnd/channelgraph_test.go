@@ -324,8 +324,7 @@ func simulateChannelGraphUpdate(t *testing.T,
 		defer wg.Done()
 		SubscribeAndStoreChannelGraph(ctx, client, db,
 			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)),
-			make(map[ImportType]time.Time))
+				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)))
 	}()
 	wg.Wait()
 

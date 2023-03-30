@@ -44,17 +44,17 @@ type ConnectionDetails struct {
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
 	Status            commons.Status
-	PingSystem        PingSystem
+	PingSystem        commons.PingSystem
 	CustomSettings    commons.NodeConnectionDetailCustomSettings
 }
 
-func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem PingSystem) {
+func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
 	connectionDetails.PingSystem |= pingSystem
 }
-func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem PingSystem) bool {
+func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.PingSystem) bool {
 	return connectionDetails.PingSystem&pingSystem != 0
 }
-func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem PingSystem) {
+func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
 	connectionDetails.PingSystem &= ^pingSystem
 }
 
@@ -68,37 +68,22 @@ func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSett
 	connectionDetails.CustomSettings &= ^customSettings
 }
 
-// You need to update the database before calling this function.
-func setAllLndServices(nodeId int, lndActive bool) {
-	// Services that aren't tied to a node but to Torq itself:
-	//	TorqService
-	//	AutomationService
-	//	MaintenanceService
-	//	CronService
-	commons.RunningServices[commons.VectorService].Cancel(nodeId, nil, true)
-	commons.RunningServices[commons.AmbossService].Cancel(nodeId, nil, true)
-	commons.RunningServices[commons.RebalanceService].Cancel(nodeId, nil, true)
-	commons.RunningServices[commons.LndService].Cancel(nodeId, nil, true)
-	time.Sleep(5 * time.Second)
+func setAllLndServices(ctx context.Context,
+	nodeId int,
+	lndActive bool,
+	customSettings commons.NodeConnectionDetailCustomSettings,
+	pingSystem commons.PingSystem) {
+
+	commons.InactivateLndService(ctx, nodeId)
 	if lndActive {
-		commons.ServiceChannel <- commons.ServiceChannelMessage{
-			NodeId:         nodeId,
-			ServiceType:    commons.LndService,
-			ServiceCommand: commons.Boot,
-		}
+		commons.ActivateLndService(ctx, nodeId, customSettings, pingSystem)
 	}
 }
 
-func setService(serviceType commons.ServiceType, nodeId int, active bool) bool {
-	commons.RunningServices[serviceType].Cancel(nodeId, nil, true)
+func setService(ctx context.Context, serviceType commons.ServiceType, nodeId int, active bool) bool {
+	commons.InactivateLndServiceState(ctx, serviceType, nodeId)
 	if active {
-		enforcedServiceStatus := commons.ServiceActive
-		commons.ServiceChannel <- commons.ServiceChannelMessage{
-			NodeId:                nodeId,
-			ServiceType:           serviceType,
-			EnforcedServiceStatus: &enforcedServiceStatus,
-			ServiceCommand:        commons.Boot,
-		}
+		commons.ActivateLndServiceState(ctx, serviceType, nodeId)
 	}
 	return true
 }
@@ -278,11 +263,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status, publicKey, chain, network)
 
 	if ncd.Status == commons.Active {
-		commons.ServiceChannel <- commons.ServiceChannelMessage{
-			NodeId:         ncd.NodeId,
-			ServiceType:    commons.LndService,
-			ServiceCommand: commons.Boot,
-		}
+		commons.ActivateLndService(context.Background(), nodeId, ncd.CustomSettings, ncd.PingSystem)
 	}
 
 	c.JSON(http.StatusOK, ncd)
@@ -383,17 +364,16 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
-	if ncd.HasNotificationType(Amboss) &&
+	if ncd.HasNotificationType(commons.Amboss) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	if ncd.HasNotificationType(Vector) &&
+	if ncd.HasNotificationType(commons.Vector) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	commons.RunningServices[commons.LndService].SetNodeConnectionDetailCustomSettings(ncd.NodeId, ncd.CustomSettings)
 
 	ncd, err = SetNodeConnectionDetails(db, ncd)
 	if err != nil {
@@ -403,7 +383,7 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
 		nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 
-	setAllLndServices(ncd.NodeId, ncd.Status == commons.Active)
+	setAllLndServices(context.Background(), ncd.NodeId, ncd.Status == commons.Active, ncd.CustomSettings, ncd.PingSystem)
 
 	c.JSON(http.StatusOK, ncd)
 }
@@ -424,10 +404,10 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 	if err != nil {
 		return NodeConnectionDetails{}, errors.New("Failed to find/parse pingSystem in the request.")
 	}
-	if pingSystem > PingSystemMax {
+	if pingSystem > commons.PingSystemMax {
 		return NodeConnectionDetails{}, errors.New("Failed to parse pingSystem in the request.")
 	}
-	ncd.PingSystem = PingSystem(pingSystem)
+	ncd.PingSystem = commons.PingSystem(pingSystem)
 
 	// TODO c.Bind cannot process customSettings?
 	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
@@ -472,9 +452,20 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 			nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 	}
 
-	setAllLndServices(nodeId, commons.Status(statusId) == commons.Active)
+	if commons.Status(statusId) != commons.Active {
+		setAllLndServices(context.Background(), nodeId, false, 0, 0)
+		c.Status(http.StatusOK)
+		return
+	}
 
+	ncd, err := getNodeConnectionDetails(db, nodeId)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+	setAllLndServices(context.Background(), nodeId, true, ncd.CustomSettings, ncd.PingSystem)
 	c.Status(http.StatusOK)
+	return
 }
 
 func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
@@ -488,7 +479,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
 		return
 	}
-	if pingSystem > PingSystemMax {
+	if pingSystem > commons.PingSystemMax {
 		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
 		return
 	}
@@ -504,17 +495,17 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	var subscription commons.ServiceType
-	if PingSystem(pingSystem) == Amboss {
-		subscription = commons.AmbossService
+	var serviceType commons.ServiceType
+	if commons.PingSystem(pingSystem) == commons.Amboss {
+		serviceType = commons.AmbossService
 	}
-	if PingSystem(pingSystem) == Vector {
-		subscription = commons.VectorService
+	if commons.PingSystem(pingSystem) == commons.Vector {
+		serviceType = commons.VectorService
 	}
 
-	done := setService(subscription, nodeId, commons.Status(statusId) == commons.Active)
+	done := setService(context.Background(), serviceType, nodeId, commons.Status(statusId) == commons.Active)
 	if done {
-		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, PingSystem(pingSystem), commons.Status(statusId))
+		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
 		if err != nil {
 			server_errors.LogAndSendServerError(c, err)
 			return
@@ -525,49 +516,6 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func GetActiveNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	activeNcds, err := getNodeConnectionDetailsByStatus(db, commons.Active)
-	if err != nil {
-		return []ConnectionDetails{}, errors.Wrap(err, "Getting active node connection details from db")
-	}
-	return processConnectionDetails(activeNcds), nil
-}
-
-func GetAmbossPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	ncds, err := getPingConnectionDetails(db, Amboss)
-	if err != nil {
-		return nil, errors.Wrap(err, "Getting node connection details for Amboss from db")
-	}
-	return processConnectionDetails(ncds), nil
-}
-
-func GetVectorPingNodesConnectionDetails(db *sqlx.DB) ([]ConnectionDetails, error) {
-	ncds, err := getPingConnectionDetails(db, Vector)
-	if err != nil {
-		return nil, errors.Wrap(err, "Getting node connection details for Vector from db")
-	}
-	return processConnectionDetails(ncds), nil
-}
-
-func processConnectionDetails(ncds []NodeConnectionDetails) []ConnectionDetails {
-	var processedNodes []ConnectionDetails
-	for _, ncd := range ncds {
-		if ncd.GRPCAddress == nil || ncd.TLSDataBytes == nil || ncd.MacaroonDataBytes == nil {
-			continue
-		}
-		processedNodes = append(processedNodes, ConnectionDetails{
-			NodeId:            ncd.NodeId,
-			GRPCAddress:       *ncd.GRPCAddress,
-			TLSFileBytes:      ncd.TLSDataBytes,
-			MacaroonFileBytes: ncd.MacaroonDataBytes,
-			Name:              ncd.Name,
-			PingSystem:        ncd.PingSystem,
-			CustomSettings:    ncd.CustomSettings,
-		})
-	}
-	return processedNodes
 }
 
 // GetConnectionDetailsById will still fetch details even if node is disabled or deleted

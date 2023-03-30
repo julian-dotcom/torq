@@ -27,14 +27,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 	var err error
 	var peerEvent *lnrpc.PeerEvent
 	serviceStatus := commons.ServiceInactive
-	subscriptionStream := commons.PeerEventStream
-
-	importPeerEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPeerEvents)
-	if !importPeerEvents {
-		log.Info().Msgf("Import of peer events is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
-	}
+	serviceType := commons.LndServicePeerEventStream
 
 	var delay bool
 
@@ -55,7 +48,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 		}
 
 		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			stream, err = client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -66,7 +59,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				delay = true
 				continue
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 		}
 
 		peerEvent, err = stream.Recv()
@@ -74,7 +67,7 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
 			delay = true

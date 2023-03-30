@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/andres-erbsen/clock"
-	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -58,9 +57,12 @@ type VectorPingChain struct {
 }
 
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
+func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 
 	defer log.Info().Msgf("Vector Ping Service terminated for nodeId: %v", nodeId)
+
+	defer commons.SetInactiveLndServiceState(commons.VectorService, nodeId)
+	commons.SetActiveLndServiceState(commons.VectorService, nodeId)
 
 	client := lnrpc.NewLightningClient(conn)
 
@@ -69,12 +71,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case <-ticker:
 			getInfoRequest := lnrpc.GetInfoRequest{}
 			info, err := client.GetInfo(ctx, &getInfoRequest)
 			if err != nil {
-				return errors.Wrapf(err, "Obtaining LND info")
+				log.Error().Err(err).Msgf("VectorService: Obtaining LND info for nodeId: %v", nodeId)
+				return
 			}
 
 			pingInfo := VectorPing{
@@ -108,23 +111,26 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 
 			pingInfoJsonByteArray, err := json.Marshal(pingInfo)
 			if err != nil {
-				return errors.Wrapf(err, "Marshalling message: %v", info)
+				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", info)
 			}
 			signMsgReq := lnrpc.SignMessageRequest{
 				Msg: pingInfoJsonByteArray,
 			}
 			signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
 			if err != nil {
-				return errors.Wrapf(err, "Signing message: %v", string(pingInfoJsonByteArray))
+				log.Error().Err(err).Msgf("VectorService: Signing message: %v", string(pingInfoJsonByteArray))
+				return
 			}
 			b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signMsgResp.Signature})
 			if err != nil {
-				return errors.Wrapf(err, "Marshalling message: %v", string(pingInfoJsonByteArray))
+				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", string(pingInfoJsonByteArray))
+				return
 			}
 
 			req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
 			if err != nil {
-				return errors.Wrapf(err, "Creating new request for message: %v", string(pingInfoJsonByteArray))
+				log.Error().Err(err).Msgf("VectorService: Creating new request for message: %v", string(pingInfoJsonByteArray))
+				return
 			}
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Torq-Version", build.ExtendedVersion())
@@ -132,11 +138,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) error {
 			httpClient := &http.Client{}
 			resp, err := httpClient.Do(req)
 			if err != nil {
-				return errors.Wrapf(err, "Posting message: %v", string(pingInfoJsonByteArray))
+				log.Error().Err(err).Msgf("VectorService: Posting message: %v", string(pingInfoJsonByteArray))
+				return
 			}
 			err = resp.Body.Close()
 			if err != nil {
-				return errors.Wrapf(err, "Closing response body.")
+				log.Error().Err(err).Msg("VectorService: Closing response body.")
+				return
 			}
 			log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
 		}

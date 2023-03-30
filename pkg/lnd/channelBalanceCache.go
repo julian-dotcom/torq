@@ -18,8 +18,6 @@ import (
 
 const channelbalanceTickerSeconds = 150
 
-var initiateSync = make(chan bool) //nolint:gochecknoglobals
-
 func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.LightningClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings) {
 
@@ -27,23 +25,38 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 
 	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
-	subscriptionStream := commons.ChannelBalanceCacheStream
+	serviceType := commons.LndServiceChannelBalanceCacheStream
 	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
+	fastTicker := clock.New().Tick(10 * time.Second)
 	mutex := &sync.RWMutex{}
-
-	bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-		serviceStatus, subscriptionStream, lndClient, db, mutex)
+	channelBalanceStreamActive := false
+	initiateSync := true
 
 	for {
+		if initiateSync {
+			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
+				serviceStatus, serviceType, lndClient, db, mutex)
+			initiateSync = false
+		}
 		select {
 		case <-ctx.Done():
 			return
+		case <-fastTicker:
+			if commons.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
+				if !channelBalanceStreamActive {
+					initiateSync = true
+					commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Active)
+					channelBalanceStreamActive = true
+				}
+				continue
+			}
+			if channelBalanceStreamActive {
+				commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Inactive)
+				channelBalanceStreamActive = false
+			}
 		case <-lndSyncTicker:
 			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-				serviceStatus, subscriptionStream, lndClient, db, mutex)
-		case <-initiateSync:
-			bootStrapping, serviceStatus = synchronizeDataFromLnd(nodeSettings, bootStrapping,
-				serviceStatus, subscriptionStream, lndClient, db, mutex)
+				serviceStatus, serviceType, lndClient, db, mutex)
 		}
 	}
 }
@@ -51,31 +64,31 @@ func ChannelBalanceCacheMaintenance(ctx context.Context, lndClient lnrpc.Lightni
 func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings,
 	bootStrapping bool,
 	serviceStatus commons.ServiceStatus,
-	subscriptionStream commons.SubscriptionStream,
+	serviceType commons.ServiceType,
 	lndClient lnrpc.LightningClient,
 	db *sqlx.DB,
 	mutex *sync.RWMutex) (bool, commons.ServiceStatus) {
 
-	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.ServiceActive {
+	if !commons.IsLndServiceActive(nodeSettings.NodeId) {
 		if !bootStrapping {
 			bootStrapping = true
 			log.Error().Msgf("Channel balance cache got out-of-sync because of a non-active LND stream. (nodeId: %v)", nodeSettings.NodeId)
 		}
 	}
 	if bootStrapping {
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
 	} else {
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 	}
 	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
 	if err != nil {
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 		log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
 		return bootStrapping, serviceStatus
 	}
-	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) == commons.ServiceActive {
+	if commons.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
 		bootStrapping = false
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 	}
 	return bootStrapping, serviceStatus
 }
@@ -193,36 +206,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettingsList = append(channelStateSettingsList, channelStateSettings)
 	}
 	commons.SetChannelStates(nodeId, channelStateSettingsList)
-	serviceStatus := commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeId)
-	if serviceStatus < commons.ServiceBootRequested {
-		commons.SetChannelStateNodeStatus(nodeId, commons.Status(serviceStatus))
-	} else {
-		commons.SetChannelStateNodeStatus(nodeId, commons.Inactive)
-	}
 	return nil
-}
-
-func ProcessServiceEvent(serviceEvent commons.ServiceEvent) {
-	if serviceEvent.NodeId == 0 || serviceEvent.Type != commons.LndService {
-		return
-	}
-	if serviceEvent.SubscriptionStream == nil {
-		return
-	}
-	// Invoice Stream is the last ChannelBalance related stream to boot in the LND boot sequence
-	if *serviceEvent.SubscriptionStream == commons.InvoiceStream && serviceEvent.Status == commons.ServiceActive {
-		initiateSync <- true
-	}
-	if !serviceEvent.SubscriptionStream.IsChannelBalanceCache() {
-		return
-	}
-	channelBalanceStreamStatus :=
-		commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(serviceEvent.NodeId)
-	if channelBalanceStreamStatus < commons.ServiceBootRequested {
-		commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.Status(channelBalanceStreamStatus))
-	} else {
-		commons.SetChannelStateNodeStatus(serviceEvent.NodeId, commons.Inactive)
-	}
 }
 
 func ProcessChannelEvent(channelEvent commons.ChannelEvent) {

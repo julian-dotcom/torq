@@ -48,7 +48,7 @@ func getConnection(nodeId int) (*grpc.ClientConn, error) {
 
 	_, exists := connectionWrapper.connections[nodeId]
 	if !exists {
-		ncd := commons.GetNodeConnectionDetailsByNodeId(nodeId)
+		ncd := commons.GetLndNodeConnectionDetails(nodeId)
 		conn, err := lnd_connect.Connect(ncd.GRPCAddress, ncd.TLSFileBytes, ncd.MacaroonFileBytes)
 		if err != nil {
 			log.Error().Err(err).Msgf("GRPC connection Failed for node id: %v", nodeId)
@@ -318,27 +318,18 @@ type InformationResponse struct {
 	HtlcInterceptorRequired bool      `json:"htlcInterceptorRequired"`
 }
 
-type ImportType int
-
-const (
-	ImportChannelRoutingPolicies = ImportType(iota)
-	ImportNodeInformation
-	ImportAllChannels
-	ImportPendingChannelsOnly
-)
-
 type ImportRequest struct {
 	CommunicationRequest
 	Db           *sqlx.DB
 	Force        bool
-	ImportType   ImportType
-	SuccessTimes map[ImportType]time.Time
+	ImportType   commons.ImportType
+	SuccessTimes map[commons.ImportType]time.Time
 }
 
 type ImportResponse struct {
 	Request ImportRequest
 	CommunicationResponse
-	SuccessTimes map[ImportType]time.Time
+	SuccessTimes map[commons.ImportType]time.Time
 	Error        error
 }
 
@@ -357,13 +348,13 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		successTime, exists := request.SuccessTimes[request.ImportType]
 		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
 			switch request.ImportType {
-			case ImportAllChannels:
+			case commons.ImportAllChannels:
 				log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case ImportPendingChannelsOnly:
+			case commons.ImportPendingChannelsOnly:
 				log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case ImportChannelRoutingPolicies:
+			case commons.ImportChannelRoutingPolicies:
 				log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
-			case ImportNodeInformation:
+			case commons.ImportNodeInformation:
 				log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
 			}
 			return response
@@ -371,13 +362,13 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 	}
 	if request.Force {
 		switch request.ImportType {
-		case ImportAllChannels:
+		case commons.ImportAllChannels:
 			log.Info().Msgf("Forced import of All Channels for nodeId: %v.", request.NodeId)
-		case ImportPendingChannelsOnly:
+		case commons.ImportPendingChannelsOnly:
 			log.Info().Msgf("Forced import of Pending Channels for nodeId: %v.", request.NodeId)
-		case ImportChannelRoutingPolicies:
+		case commons.ImportChannelRoutingPolicies:
 			log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
-		case ImportNodeInformation:
+		case commons.ImportNodeInformation:
 			log.Info().Msgf("Forced import of NodeInformation for nodeId: %v.", request.NodeId)
 		}
 	}
@@ -390,7 +381,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 	}
 
 	switch request.ImportType {
-	case ImportAllChannels:
+	case commons.ImportAllChannels:
 		//Import Pending channels
 		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
 		if err != nil {
@@ -422,7 +413,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 		log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case ImportPendingChannelsOnly:
+	case commons.ImportPendingChannelsOnly:
 		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to import pending channels.")
@@ -437,7 +428,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 		log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case ImportChannelRoutingPolicies:
+	case commons.ImportChannelRoutingPolicies:
 		err = ImportRoutingPolicies(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to import routing policies.")
@@ -445,7 +436,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 		log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case ImportNodeInformation:
+	case commons.ImportNodeInformation:
 		err := ImportNodeInfo(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to import node information.")

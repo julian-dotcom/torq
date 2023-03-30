@@ -13,45 +13,17 @@ type CommonService struct {
 }
 type TorqService struct {
 	CommonService
-	Version string `json:"version"`
-}
-
-type Service struct {
-	CommonService
-	NodeId     *int                `json:"nodeId,omitempty"`
-	Type       commons.ServiceType `json:"type"`
-	TypeString string              `json:"typeString"`
-}
-
-type Stream struct {
-	CommonService
-	NodeId     int                        `json:"nodeId,omitempty"`
-	Type       commons.SubscriptionStream `json:"type"`
-	TypeString string                     `json:"typeString"`
 }
 
 type LndService struct {
 	CommonService
 	NodeId         int             `json:"nodeId"`
 	BitcoinNetwork commons.Network `json:"bitcoinNetwork"`
-	StreamStatus   []Stream        `json:"streamStatus,omitempty"`
-}
-
-type VectorService struct {
-	CommonService
-	NodeId int `json:"nodeId"`
-}
-
-type AmbossService struct {
-	CommonService
-	NodeId int `json:"nodeId"`
 }
 
 type Services struct {
+	Version         string            `json:"version"`
 	BitcoinNetworks []commons.Network `json:"bitcoinNetworks"`
-	TorqService     TorqService       `json:"torqService"`
+	TorqService     []TorqService     `json:"torqService"`
 	LndServices     []LndService      `json:"lndServices,omitempty"`
-	Services        []Service         `json:"services,omitempty"`
-	VectorServices  []VectorService   `json:"vectorServices,omitempty"`
-	AmbossServices  []AmbossService   `json:"ambossServices,omitempty"`
 }

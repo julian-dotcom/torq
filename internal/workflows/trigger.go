@@ -1113,7 +1113,7 @@ func processRebalanceRun(
 	var activeChannelIds []int
 	var responses []commons.RebalanceResponse
 	for nodeId := range requestsMap {
-		if commons.RunningServices[commons.RebalanceService].GetStatus(nodeId) != commons.ServiceActive {
+		if commons.GetCurrentLndServiceState(commons.RebalanceService, nodeId).Status != commons.ServiceActive {
 			return nil, errors.New(fmt.Sprintf("Rebalance service is not active for nodeId: %v", nodeId))
 		}
 		responseChannel := make(chan []commons.RebalanceResponse)

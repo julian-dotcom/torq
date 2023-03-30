@@ -59,14 +59,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 	var blockEpoch *chainrpc.BlockEpoch
 	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
-	subscriptionStream := commons.TransactionStream
-
-	importTransactions := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportTransactions)
-	if !importTransactions {
-		log.Info().Msgf("Import of transactions is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
-	}
+	serviceType := commons.LndServiceTransactionStream
 
 	var delay bool
 
@@ -87,7 +80,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			transactionHeight, err = fetchLastTxHeight(db, nodeSettings.NodeId)
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -125,7 +118,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 				log.Error().Err(err).Msgf("Receiving block epoch from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
 				delay = true
@@ -148,7 +141,7 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 				if errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 				log.Error().Err(err).Msgf("Failed to obtain last transaction details, will retry in %v seconds", streamErrorSleepSeconds)
 				stream = nil
 				delay = true
@@ -157,9 +150,9 @@ func SubscribeAndStoreTransactions(ctx context.Context, client lnrpc.LightningCl
 		}
 
 		if bootStrapping {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
 		} else {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 		}
 		for _, transaction := range transactionDetails.Transactions {
 			storedTx, err = storeTransaction(db, transaction, nodeSettings.NodeId)

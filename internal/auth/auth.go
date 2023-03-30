@@ -63,8 +63,8 @@ func RefreshCookieFile(cookiePath string) error {
 
 // TorqRequired checks the status of the torq service
 func TorqRequired(c *gin.Context) {
-	torqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
-	if torqServiceStatus != commons.ServiceActive {
+	torqService := commons.GetCurrentTorqServiceState(commons.TorqService)
+	if torqService.Status != commons.ServiceActive {
 		c.AbortWithStatusJSON(http.StatusFailedDependency, gin.H{"error": "initializing"})
 		return
 	}

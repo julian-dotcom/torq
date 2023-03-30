@@ -43,20 +43,13 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	var err error
 	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
-	subscriptionStream := commons.PaymentStream
+	serviceType := commons.LndServicePaymentStream
 	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
-	includeIncomplete := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
+	includeIncomplete := commons.HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
-	}
-
-	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
-	if !importPayments {
-		log.Info().Msgf("Import of payments is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
 	}
 
 	// Request the Payments at the requested interval.
@@ -72,23 +65,23 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 			lastPaymentIndex, err = fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamPaymentsTickerSeconds)
 				continue
 			}
 
 			for {
 				if bootStrapping {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
 				} else {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 				}
 				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", streamPaymentsTickerSeconds)
 					break
 				}
@@ -267,19 +260,12 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 	var listPaymentsResponse *lnrpc.ListPaymentsResponse
 	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
-	subscriptionStream := commons.InFlightPaymentStream
+	serviceType := commons.LndServiceInFlightPaymentStream
 	ticker := clock.New().Tick(streamInflightPaymentsTickerSeconds * time.Second)
 
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
-	}
-
-	importPayments := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPayments)
-	if !importPayments {
-		log.Info().Msgf("Import of payments (including in-flight) is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
 	}
 
 	// Request the in flight payments at the requested interval.
@@ -293,14 +279,14 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", streamInflightPaymentsTickerSeconds)
 				continue
 			}
 			if bootStrapping {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
 			} else {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.

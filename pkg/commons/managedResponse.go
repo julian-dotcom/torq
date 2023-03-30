@@ -37,10 +37,6 @@ func SendToManagedNodeSettingChannel(ch chan<- ManagedNodeSettings, nodeSetting 
 	ch <- nodeSetting
 }
 
-func SendToManagedNodeConnectionDetailsChannel(ch chan<- NodeConnectionDetails, nodeConnectionDetails NodeConnectionDetails) {
-	ch <- nodeConnectionDetails
-}
-
 func SendToManagedNodeSettingsChannel(ch chan<- []ManagedNodeSettings, nodeSettings []ManagedNodeSettings) {
 	ch <- nodeSettings
 }

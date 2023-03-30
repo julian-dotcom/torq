@@ -11,12 +11,21 @@ func convertMicro(ns int64) time.Time {
 }
 
 func SetStreamStatus(nodeId int,
-	subscriptionStream commons.SubscriptionStream,
+	serviceType commons.ServiceType,
 	previousStatus commons.ServiceStatus,
 	status commons.ServiceStatus) commons.ServiceStatus {
 
 	if status == commons.ServiceInitializing || previousStatus != status {
-		commons.RunningServices[commons.LndService].SetStreamStatus(nodeId, subscriptionStream, status)
+		switch status {
+		case commons.ServiceActive:
+			commons.SetActiveLndServiceState(serviceType, nodeId)
+		case commons.ServiceInactive:
+			commons.SetInactiveLndServiceState(serviceType, nodeId)
+		case commons.ServiceInitializing:
+			commons.SetInitializingLndServiceState(serviceType, nodeId)
+		case commons.ServicePending:
+			commons.SetPendingLndServiceState(serviceType, nodeId)
+		}
 	}
 	return status
 }

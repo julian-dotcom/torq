@@ -27,7 +27,7 @@ func rebalanceHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
-	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(rr.NodeId) != commons.ServiceActive {
+	if !commons.IsChannelBalanceCacheStreamActive(rr.NodeId) {
 		server_errors.SendBadRequest(c, "The node for the provided nodeId is not active (yet?).")
 		return
 	}

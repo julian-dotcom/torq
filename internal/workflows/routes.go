@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -117,7 +118,6 @@ func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
 	manualTriggerEvent := commons.ManualTriggerEvent{
 		EventData: commons.EventData{
 			EventTime: time.Now(),
-			NodeId:    commons.TorqDummyNodeId,
 		},
 		WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
 	}
@@ -190,8 +190,8 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 			log.Error().Err(err).Msg("Could not obtain workflowIds for WorkflowNodeCronTrigger")
 		}
 		if slices.Contains(workflowIds, req.WorkflowId) {
-			active := commons.ServiceActive
-			commons.RunningServices[commons.CronService].Cancel(commons.TorqDummyNodeId, &active, true)
+			commons.InactivateTorqService(context.Background(), commons.CronService)
+			commons.ActivateTorqService(context.Background(), commons.CronService)
 		}
 	}
 

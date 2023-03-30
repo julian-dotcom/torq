@@ -125,7 +125,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 	maxEvents := streamLndMaxForwards
 	serviceStatus := commons.ServiceInactive
 	bootStrapping := true
-	subscriptionStream := commons.ForwardStream
+	serviceType := commons.LndServiceForwardStream
 	ticker := clock.New().Tick(streamForwardsTickerSeconds * time.Second)
 
 	// Check if maxEvents has been set and that it is bellow the hard coded maximum defined by
@@ -141,18 +141,11 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
-	importForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportForwards)
-	if !importForwards {
-		log.Info().Msgf("Import of forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
-	}
-
 	var enforcedReferenceDate *time.Time
-	importHistoricForwards := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
+	importHistoricForwards := commons.HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
 	if !importHistoricForwards {
 		log.Info().Msgf("Import of historic forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 		enforcedReferenceDateO := time.Now()
 		enforcedReferenceDate = &enforcedReferenceDateO
 		bootStrapping = false
@@ -174,7 +167,7 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 				// Fetch the nanosecond timestamp of the most recent record we have.
 				lastNs, err := fetchLastForwardTime(db, nodeSettings.NodeId)
 				if err != nil {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 					log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamForwardsTickerSeconds)
 					break
 				}
@@ -199,15 +192,15 @@ func SubscribeForwardingEvents(ctx context.Context, client lightningClientForwar
 					if errors.Is(ctx.Err(), context.Canceled) {
 						return
 					}
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 					log.Error().Err(err).Msgf("Failed to obtain forwards, will retry in %v seconds", streamForwardsTickerSeconds)
 					break
 				}
 
 				if bootStrapping {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
 				} else {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 				}
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, bootStrapping)

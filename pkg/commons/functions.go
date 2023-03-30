@@ -145,28 +145,40 @@ func (s *ServiceStatus) String() string {
 		return "Active"
 	case ServicePending:
 		return "Pending"
-	case ServiceDeleted:
-		return "Deleted"
 	case ServiceInitializing:
 		return "Initializing"
-	case ServiceBootRequested:
-		return "BootRequested"
-	case ServiceBootRequestedWithDelay:
-		return "BootRequestedWithDelay"
 	}
 	return UnknownEnumString
 }
 
 func GetServiceTypes() []ServiceType {
+	return append(GetTorqServiceTypes(), GetLndServiceTypes()...)
+}
+
+func GetTorqServiceTypes() []ServiceType {
 	return []ServiceType{
-		LndService,
+		TorqService,
+		MaintenanceService,
+		AutomationService,
+		CronService,
+	}
+}
+
+func GetLndServiceTypes() []ServiceType {
+	return []ServiceType{
 		VectorService,
 		AmbossService,
-		TorqService,
-		AutomationService,
 		RebalanceService,
-		MaintenanceService,
-		CronService,
+		LndServiceChannelEventStream,
+		LndServiceGraphEventStream,
+		LndServiceTransactionStream,
+		LndServiceHtlcEventStream,
+		LndServiceForwardStream,
+		LndServiceInvoiceStream,
+		LndServicePaymentStream,
+		LndServicePeerEventStream,
+		LndServiceInFlightPaymentStream,
+		LndServiceChannelBalanceCacheStream,
 	}
 }
 
@@ -175,8 +187,6 @@ func (st *ServiceType) String() string {
 		return UnknownEnumString
 	}
 	switch *st {
-	case LndService:
-		return "LndService"
 	case VectorService:
 		return "VectorService"
 	case AmbossService:
@@ -191,50 +201,41 @@ func (st *ServiceType) String() string {
 		return "MaintenanceService"
 	case CronService:
 		return "CronService"
+	case LndServiceChannelEventStream:
+		return "LndServiceChannelEventStream"
+	case LndServiceGraphEventStream:
+		return "LndServiceGraphEventStream"
+	case LndServiceTransactionStream:
+		return "LndServiceTransactionStream"
+	case LndServiceHtlcEventStream:
+		return "LndServiceHtlcEventStream"
+	case LndServiceForwardStream:
+		return "LndServiceForwardStream"
+	case LndServiceInvoiceStream:
+		return "LndServiceInvoiceStream"
+	case LndServicePaymentStream:
+		return "LndServicePaymentStream"
+	case LndServicePeerEventStream:
+		return "LndServicePeerEventStream"
+	case LndServiceInFlightPaymentStream:
+		return "LndServiceInFlightPaymentStream"
+	case LndServiceChannelBalanceCacheStream:
+		return "LndServiceChannelBalanceCacheStream"
 	}
 	return UnknownEnumString
 }
 
-func (ss *SubscriptionStream) IsChannelBalanceCache() bool {
-	if ss != nil && (*ss == ForwardStream ||
-		*ss == InvoiceStream ||
-		*ss == PaymentStream ||
-		*ss == PeerEventStream ||
-		*ss == ChannelEventStream ||
-		*ss == GraphEventStream ||
-		*ss == HtlcEventStream) {
+func (st *ServiceType) IsChannelBalanceCache() bool {
+	if st != nil && (*st == LndServiceForwardStream ||
+		*st == LndServiceInvoiceStream ||
+		*st == LndServicePaymentStream ||
+		*st == LndServicePeerEventStream ||
+		*st == LndServiceChannelEventStream ||
+		*st == LndServiceGraphEventStream ||
+		*st == LndServiceHtlcEventStream) {
 		return true
 	}
 	return false
-}
-
-func (ss *SubscriptionStream) String() string {
-	if ss == nil {
-		return UnknownEnumString
-	}
-	switch *ss {
-	case TransactionStream:
-		return "TransactionStream"
-	case HtlcEventStream:
-		return "HtlcEventStream"
-	case ChannelEventStream:
-		return "ChannelEventStream"
-	case GraphEventStream:
-		return "GraphEventStream"
-	case ForwardStream:
-		return "ForwardStream"
-	case InvoiceStream:
-		return "InvoiceStream"
-	case PaymentStream:
-		return "PaymentStream"
-	case InFlightPaymentStream:
-		return "InFlightPaymentStream"
-	case PeerEventStream:
-		return "PeerEventStream"
-	case ChannelBalanceCacheStream:
-		return "ChannelBalanceCacheStream"
-	}
-	return "Unknown"
 }
 
 func GetDeltaPerMille(base uint64, amt uint64) int {

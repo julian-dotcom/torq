@@ -2,12 +2,7 @@ package subscribe
 
 import (
 	"context"
-	"runtime/debug"
-	"sync"
-	"time"
 
-	"github.com/andres-erbsen/clock"
-	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
@@ -21,266 +16,123 @@ import (
 	"google.golang.org/grpc"
 )
 
-const streamBootedCheckSeconds = 5
-const streamPaymentsTickerSeconds = 10
-const streamInflightPaymentsTickerSeconds = 60
-const streamForwardsTickerSeconds = 10
+func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-const genericBootstrappingTimeSeconds = 60
+	defer commons.SetInactiveLndServiceState(commons.LndServiceChannelEventStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceChannelEventStream, nodeId)
 
-// Start runs the background server. It subscribes to events, gossip and
-// fetches data as needed and stores it in the database.
-// It is meant to run as a background task / daemon and is the bases for all
-// of Torqs data collection
-func Start(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) error {
-	active := commons.ServiceActive
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+
+	successTimes, err := lightning.Import(db, commons.ImportAllChannels, false, nodeId, commons.GetSuccessTimes(nodeId))
+	if err != nil {
+		log.Error().Err(err).Msgf("LND import Channels for nodeId: %v", nodeSettings.NodeId)
+		return
+	}
+
+	successTimes, err = lightning.Import(db, commons.ImportChannelRoutingPolicies, false, nodeId, successTimes)
+	if err != nil {
+		log.Error().Err(err).Msgf("LND import Channel routing policies for nodeId: %v", nodeSettings.NodeId)
+		return
+	}
+
+	successTimes, err = lightning.Import(db, commons.ImportNodeInformation, false, nodeId, successTimes)
+	if err != nil {
+		log.Error().Err(err).Msgf("LND import Node Information for nodeId: %v", nodeSettings.NodeId)
+		return
+	}
+
+	commons.SetSuccessTimes(nodeId, successTimes)
+	lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings)
+}
+
+func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServiceGraphEventStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceGraphEventStream, nodeId)
+
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings)
+}
+
+func StartHtlcEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServiceHtlcEventStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceHtlcEventStream, nodeId)
 
 	router := routerrpc.NewRouterClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings)
+}
+
+func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServicePeerEventStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServicePeerEventStream, nodeId)
+
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.SubscribePeerEvents(ctx, client, nodeSettings)
+}
+
+func StartChannelBalanceCacheMaintenance(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServiceChannelBalanceCacheStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceChannelBalanceCacheStream, nodeId)
+
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings)
+}
+
+func StartTransactionStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServiceTransactionStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceTransactionStream, nodeId)
+
 	client := lnrpc.NewLightningClient(conn)
 	chain := chainrpc.NewChainNotifierClient(conn)
 	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-	successTimes := make(map[lnd.ImportType]time.Time)
-
-	successTimes, err := lightning.Import(db, lnd.ImportAllChannels, false, nodeId, successTimes)
-	if err != nil {
-		return errors.Wrapf(err, "LND import Channels for nodeId: %v", nodeSettings.NodeId)
-	}
-
-	successTimes, err = lightning.Import(db, lnd.ImportChannelRoutingPolicies, false, nodeId, successTimes)
-	if err != nil {
-		return errors.Wrapf(err, "LND import Channel routing policies for nodeId: %v", nodeSettings.NodeId)
-	}
-
-	successTimes, err = lightning.Import(db, lnd.ImportNodeInformation, false, nodeId, successTimes)
-	if err != nil {
-		return errors.Wrapf(err, "LND import Node Information for nodeId: %v", nodeSettings.NodeId)
-	}
-
-	var wg sync.WaitGroup
-
-	// Channel events
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ChannelEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeAndStoreChannelEvents(ctx, client, db, nodeSettings, successTimes)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.ChannelEventStream, "ChannelEventStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Graph (Node updates, fee updates etc.)
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in GraphEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeAndStoreChannelGraph(ctx, client, db, nodeSettings, successTimes)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.GraphEventStream, "GraphEventStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// HTLC events
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in HtlcEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeAndStoreHtlcEvents(ctx, router, db, nodeSettings)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.HtlcEventStream, "HtlcEventStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Peer Events
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in PeerEventStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribePeerEvents(ctx, client, nodeSettings)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.PeerEventStream, "PeerEventStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Channel Balance Cache Maintenance
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ChannelBalanceCacheStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.ChannelBalanceCacheMaintenance(ctx, client, db, nodeSettings)
-	})()
-	// No need to waitForReadyState for ChannelBalanceCacheMaintenance
-
-	// Transactions
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in TransactionStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.TransactionStream, "TransactionStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Forwarding history
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in ForwardStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, nil)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.ForwardStream, "ForwardStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Payments
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in PaymentStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, nil)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.PaymentStream, "PaymentStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Invoices
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in InvoiceStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings)
-	})()
-
-	waitForReadyState(ctx, nodeSettings.NodeId, commons.InvoiceStream, "InvoiceStream")
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil
-	}
-
-	// Update in flight payments
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer func() {
-			if panicError := recover(); panicError != nil {
-				log.Error().Msgf("Panic occurred in InFlightPaymentStream (nodeId: %v) %v with stack: %v", nodeId, panicError, string(debug.Stack()))
-				commons.RunningServices[commons.LndService].Cancel(nodeId, &active, true)
-			}
-		}()
-		lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, nil)
-	})()
-
-	// No need to waitForReadyState for UpdateInFlightPayments
-
-	log.Info().Msgf("All LND specific streams are initializing for nodeId: %v", nodeId)
-
-	wg.Wait()
-
-	return nil
+	lnd.SubscribeAndStoreTransactions(ctx, client, chain, db, nodeSettings)
 }
 
-func waitForReadyState(ctx context.Context, nodeId int, subscriptionStream commons.SubscriptionStream, name string) {
-	log.Info().Msgf("LND %v initialization started for nodeId: %v", name, nodeId)
-	streamStartTime := time.Now()
+func StartForwardStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	ticker := clock.New().Tick(streamBootedCheckSeconds * time.Second)
+	defer commons.SetInactiveLndServiceState(commons.LndServiceForwardStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceForwardStream, nodeId)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker:
-			if errors.Is(ctx.Err(), context.Canceled) {
-				return
-			}
-			if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.ServiceActive {
-				log.Info().Msgf("LND %v initial download done (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
-				return
-			}
-			if commons.RunningServices[commons.LndService].GetStreamStatus(nodeId, subscriptionStream) == commons.ServiceDeleted {
-				log.Info().Msgf("LND %v skipped (in less then %s) for nodeId: %v", name, time.Since(streamStartTime).Round(1*time.Second), nodeId)
-				return
-			}
-			if time.Since(streamStartTime).Seconds() > genericBootstrappingTimeSeconds {
-				lastInitializationPing := commons.RunningServices[commons.LndService].GetStreamInitializationPingTime(nodeId, subscriptionStream)
-				if lastInitializationPing == nil {
-					log.Error().Msgf("LND %v could not be initialized for nodeId: %v", name, nodeId)
-					return
-				}
-				pingTimeOutInSeconds := genericBootstrappingTimeSeconds
-				switch subscriptionStream {
-				case commons.ForwardStream:
-					pingTimeOutInSeconds = pingTimeOutInSeconds + streamForwardsTickerSeconds
-				case commons.PaymentStream:
-					pingTimeOutInSeconds = pingTimeOutInSeconds + streamPaymentsTickerSeconds
-				case commons.InFlightPaymentStream:
-					pingTimeOutInSeconds = pingTimeOutInSeconds + streamInflightPaymentsTickerSeconds
-				}
-				if time.Since(*lastInitializationPing).Seconds() > float64(pingTimeOutInSeconds) {
-					log.Info().Msgf("LND %v idle for over %v seconds for nodeId: %v", name, pingTimeOutInSeconds, nodeId)
-					lnd.SetStreamStatus(nodeId, subscriptionStream, commons.ServiceInitializing, commons.ServiceActive)
-					return
-				}
-			}
-		}
-	}
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.SubscribeForwardingEvents(ctx, client, db, nodeSettings, nil)
+}
+
+func StartPaymentStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServicePaymentStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServicePaymentStream, nodeId)
+
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.SubscribeAndStorePayments(ctx, client, db, nodeSettings, nil)
+}
+
+func StartInvoiceStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServiceInvoiceStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceInvoiceStream, nodeId)
+
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.SubscribeAndStoreInvoices(ctx, client, db, nodeSettings)
+}
+
+func StartInFlightPaymentStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	defer commons.SetInactiveLndServiceState(commons.LndServiceInFlightPaymentStream, nodeId)
+	commons.SetActiveLndServiceState(commons.LndServiceInFlightPaymentStream, nodeId)
+
+	client := lnrpc.NewLightningClient(conn)
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	lnd.UpdateInFlightPayments(ctx, client, db, nodeSettings, nil)
 }

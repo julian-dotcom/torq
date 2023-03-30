@@ -157,16 +157,9 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 	var err error
 	var htlcEvent *routerrpc.HtlcEvent
 	serviceStatus := commons.ServiceInactive
-	subscriptionStream := commons.HtlcEventStream
+	serviceType := commons.LndServiceHtlcEventStream
 
 	defer log.Info().Msgf("SubscribeAndStoreHtlcEvents terminated for nodeId: %v", nodeSettings.NodeId)
-
-	importHtlcEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHtlcEvents)
-	if !importHtlcEvents {
-		log.Info().Msgf("Import of HTLC events is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
-	}
 
 	var delay bool
 
@@ -187,7 +180,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 		}
 
 		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -198,7 +191,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 				delay = true
 				continue
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 		}
 
 		htlcEvent, err = stream.Recv()
@@ -206,7 +199,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
 			delay = true

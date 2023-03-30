@@ -54,22 +54,11 @@ type ChannelBalanceEventData struct {
 type ServiceStatus int
 
 const (
-	ServiceInactive               = ServiceStatus(Inactive)
-	ServiceActive                 = ServiceStatus(Active)
-	ServicePending                = ServiceStatus(Pending)
-	ServiceDeleted                = ServiceStatus(Deleted)
-	ServiceInitializing           = ServiceStatus(Initializing)
-	ServiceBootRequested          = ServiceStatus(100)
-	ServiceBootRequestedWithDelay = ServiceStatus(101)
+	ServiceInactive     = ServiceStatus(Inactive)
+	ServiceActive       = ServiceStatus(Active)
+	ServicePending      = ServiceStatus(Pending)
+	ServiceInitializing = ServiceStatus(Initializing)
 )
-
-type ServiceEvent struct {
-	EventData
-	Type               ServiceType
-	SubscriptionStream *SubscriptionStream
-	Status             ServiceStatus
-	PreviousStatus     ServiceStatus
-}
 
 type NodeGraphEvent struct {
 	GraphEventData

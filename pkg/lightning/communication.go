@@ -22,7 +22,7 @@ func SetRoutingPolicy(db *sqlx.DB,
 	minHtlcMsat *uint64,
 	timeLockDelta *uint32) (commons.Status, string, error) {
 
-	if commons.RunningServices[commons.LndService].GetStatus(nodeId) != commons.ServiceActive {
+	if !commons.IsLndServiceActive(nodeId) {
 		return commons.Inactive, "",
 			errors.New(fmt.Sprintf("LND service is not active for nodeId: %v", nodeId))
 	}
@@ -48,7 +48,7 @@ func SetRoutingPolicy(db *sqlx.DB,
 }
 
 func SignMessage(nodeId int, message string, singleHash *bool) (string, error) {
-	if commons.RunningServices[commons.LndService].GetStatus(nodeId) != commons.ServiceActive {
+	if !commons.IsLndServiceActive(nodeId) {
 		return "", errors.New(fmt.Sprintf("LND service is not active for nodeId: %v", nodeId))
 	}
 
@@ -129,10 +129,10 @@ func GetInformationRequest(nodeId int) (commons.InformationResponse, error) {
 }
 
 func Import(db *sqlx.DB,
-	importType lnd.ImportType,
+	importType commons.ImportType,
 	force bool,
 	nodeId int,
-	successTimes map[lnd.ImportType]time.Time) (map[lnd.ImportType]time.Time, error) {
+	successTimes map[commons.ImportType]time.Time) (map[commons.ImportType]time.Time, error) {
 
 	request := lnd.ImportRequest{
 		CommunicationRequest: lnd.CommunicationRequest{

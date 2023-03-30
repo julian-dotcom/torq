@@ -31,7 +31,7 @@ type subscribeChannelGraphClient interface {
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
 func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, successTimes map[ImportType]time.Time) {
+	nodeSettings commons.ManagedNodeSettings) {
 
 	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
 
@@ -39,7 +39,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 	var err error
 	var gpu *lnrpc.GraphTopologyUpdate
 	serviceStatus := commons.ServiceInactive
-	subscriptionStream := commons.GraphEventStream
+	serviceType := commons.LndServiceGraphEventStream
 	var delay bool
 
 	for {
@@ -59,7 +59,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 		}
 
 		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 			if err != nil {
 				if errors.Is(ctx.Err(), context.Canceled) {
@@ -73,7 +73,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 
 			contextValue := ctx.Value(commons.ContextKeyTest)
 			if contextValue == nil || contextValue == false {
-				err = importAllChannels(db, false, nodeSettings, successTimes)
+				err = importAllChannels(db, false, nodeSettings)
 				if err != nil {
 					log.Error().Err(err).Msgf("Obtaining All Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
@@ -81,7 +81,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					continue
 				}
 
-				err = importChannelRoutingPolicies(db, false, nodeSettings, successTimes)
+				err = importChannelRoutingPolicies(db, false, nodeSettings)
 				if err != nil {
 					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
@@ -89,7 +89,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 					continue
 				}
 
-				err = importNodeInformation(db, false, nodeSettings, successTimes)
+				err = importNodeInformation(db, false, nodeSettings)
 				if err != nil {
 					log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
 					stream = nil
@@ -98,7 +98,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 				}
 			}
 
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 		}
 
 		gpu, err = stream.Recv()
@@ -106,7 +106,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelG
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
+			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
 			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
 			stream = nil
 			delay = true

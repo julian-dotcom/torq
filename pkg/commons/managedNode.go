@@ -31,24 +31,20 @@ const (
 	readActiveChannelPublicKeys
 	readNodeSetting
 	removeManagedNodeFromCached
-	writeNodeConnectionDetails
-	readNodeConnectionDetails
 )
 
 type ManagedNode struct {
-	Type                     ManagedNodeCacheOperationType
-	NodeId                   int
-	Chain                    *Chain
-	Network                  *Network
-	PublicKey                string
-	Name                     *string
-	NodeConnectionDetails    NodeConnectionDetails
-	Out                      chan<- ManagedNode
-	NodeIdsOut               chan<- []int
-	NodeSettingOut           chan<- ManagedNodeSettings
-	NodeSettingsOut          chan<- []ManagedNodeSettings
-	PublicKeysOut            chan<- []string
-	NodeConnectionDetailsOut chan<- NodeConnectionDetails
+	Type            ManagedNodeCacheOperationType
+	NodeId          int
+	Chain           *Chain
+	Network         *Network
+	PublicKey       string
+	Name            *string
+	Out             chan<- ManagedNode
+	NodeIdsOut      chan<- []int
+	NodeSettingOut  chan<- ManagedNodeSettings
+	NodeSettingsOut chan<- []ManagedNodeSettings
+	PublicKeysOut   chan<- []string
 }
 
 type ManagedNodeSettings struct {
@@ -60,12 +56,6 @@ type ManagedNodeSettings struct {
 	Status    Status
 }
 
-type NodeConnectionDetails struct {
-	GRPCAddress       string
-	TLSFileBytes      []byte
-	MacaroonFileBytes []byte
-}
-
 // ManagedNodeCache parameter Context is for test cases...
 func ManagedNodeCache(ch <-chan ManagedNode, ctx context.Context) {
 	allTorqNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
@@ -74,7 +64,6 @@ func ManagedNodeCache(ch <-chan ManagedNode, ctx context.Context) {
 	channelNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	allChannelNodeIdCache := make(map[Chain]map[Network]map[string]int, 0)
 	torqNodeNameByNodeIdCache := make(map[int]string, 0)
-	torqNodeConnectionDetailsCache := make(map[int]NodeConnectionDetails)
 	for {
 		select {
 		case <-ctx.Done():
@@ -82,7 +71,7 @@ func ManagedNodeCache(ch <-chan ManagedNode, ctx context.Context) {
 		case managedNode := <-ch:
 			processManagedNode(managedNode, allTorqNodeIdCache, activeTorqNodeIdCache,
 				channelNodeIdCache, allChannelNodeIdCache, nodeSettingsByNodeIdCache,
-				torqNodeNameByNodeIdCache, torqNodeConnectionDetailsCache)
+				torqNodeNameByNodeIdCache)
 		}
 	}
 }
@@ -91,7 +80,7 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 	activeTorqNodeIdCache map[Chain]map[Network]map[string]int,
 	channelNodeIdCache map[Chain]map[Network]map[string]int, allChannelNodeIdCache map[Chain]map[Network]map[string]int,
 	nodeSettingsByNodeIdCache map[int]ManagedNodeSettings,
-	torqNodeNameByNodeIdCache map[int]string, torqNodeConnectionDetailsCache map[int]NodeConnectionDetails) {
+	torqNodeNameByNodeIdCache map[int]string) {
 	switch managedNode.Type {
 	case readAllTorqNode:
 		if managedNode.Chain == nil || managedNode.Network == nil {
@@ -274,11 +263,6 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 			}
 			SendToManagedNodeSettingChannel(managedNode.NodeSettingOut, nodeSettings)
 		}
-	case readNodeConnectionDetails:
-		if managedNode.NodeId == 0 {
-			log.Error().Msgf("No empty nodeId (%v) allowed", managedNode.NodeId)
-		}
-		SendToManagedNodeConnectionDetailsChannel(managedNode.NodeConnectionDetailsOut, torqNodeConnectionDetailsCache[managedNode.NodeId])
 	case writeInactiveTorqNode:
 		if managedNode.Name == nil || *managedNode.Name == "" || managedNode.PublicKey == "" || managedNode.NodeId == 0 ||
 			managedNode.Chain == nil || managedNode.Network == nil {
@@ -361,12 +345,6 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 				Status:    Inactive,
 			}
 		}
-	case writeNodeConnectionDetails:
-		if managedNode.NodeId == 0 {
-			log.Error().Msgf("No empty nodeId (%v) allowed", managedNode.NodeId)
-		} else {
-			torqNodeConnectionDetailsCache[managedNode.NodeId] = managedNode.NodeConnectionDetails
-		}
 	case removeManagedNodeFromCached:
 		delete(channelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
 		delete(allTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
@@ -374,7 +352,6 @@ func processManagedNode(managedNode ManagedNode, allTorqNodeIdCache map[Chain]ma
 		delete(activeTorqNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
 		delete(allChannelNodeIdCache[*managedNode.Chain][*managedNode.Network], managedNode.PublicKey)
 		delete(torqNodeNameByNodeIdCache, managedNode.NodeId)
-		delete(torqNodeConnectionDetailsCache, managedNode.NodeId)
 	}
 }
 
@@ -565,30 +542,6 @@ func GetNodeSettingsByNodeId(nodeId int) ManagedNodeSettings {
 	}
 	ManagedNodeChannel <- managedNode
 	return <-nodeResponseChannel
-}
-
-func GetNodeConnectionDetailsByNodeId(nodeId int) NodeConnectionDetails {
-	nodeResponseChannel := make(chan NodeConnectionDetails)
-	managedNode := ManagedNode{
-		NodeId:                   nodeId,
-		Type:                     readNodeConnectionDetails,
-		NodeConnectionDetailsOut: nodeResponseChannel,
-	}
-	ManagedNodeChannel <- managedNode
-	return <-nodeResponseChannel
-}
-
-func SetNodeConnectionDetailsByNodeId(nodeId int, grpcAddress string, tls []byte, macaroon []byte) {
-	managedNode := ManagedNode{
-		NodeId: nodeId,
-		Type:   writeNodeConnectionDetails,
-		NodeConnectionDetails: NodeConnectionDetails{
-			GRPCAddress:       grpcAddress,
-			TLSFileBytes:      tls,
-			MacaroonFileBytes: macaroon,
-		},
-	}
-	ManagedNodeChannel <- managedNode
 }
 
 func RemoveManagedNodeFromCache(node ManagedNodeSettings) {

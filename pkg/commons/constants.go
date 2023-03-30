@@ -10,36 +10,26 @@ type ServiceType int
 
 // When adding here also add to GetServiceTypes
 const (
-	LndService = ServiceType(iota)
+	TorqService = ServiceType(iota)
+	MaintenanceService
+	AutomationService
+	CronService
 	VectorService
 	AmbossService
-	TorqService
-	AutomationService
 	RebalanceService
-	MaintenanceService
-	CronService
+	LndServiceChannelEventStream
+	LndServiceGraphEventStream
+	LndServiceTransactionStream
+	LndServiceHtlcEventStream
+	LndServiceForwardStream
+	LndServiceInvoiceStream
+	LndServicePaymentStream
+	LndServicePeerEventStream
+	LndServiceInFlightPaymentStream
+	LndServiceChannelBalanceCacheStream
 )
 
-const TorqDummyNodeId = -1337
 const UnknownEnumString = "Unknown"
-
-type ServiceCommand int
-
-const (
-	Boot = ServiceCommand(iota)
-)
-
-type ServiceChannelMessage = struct {
-	ServiceType    ServiceType
-	ServiceCommand ServiceCommand
-	NodeId         int
-	// EnforcedServiceStatus is a one time status enforcement for a service
-	EnforcedServiceStatus *ServiceStatus
-	// NoDelay is a one time no delay enforcement for a service
-	NoDelay      bool
-	DelaySeconds *int
-	Out          chan<- ServiceStatus
-}
 
 type Status int
 
@@ -124,6 +114,14 @@ func (s ChannelStatus) String() string {
 	return UnknownEnumString
 }
 
+type PingSystem uint32
+
+const (
+	Amboss PingSystem = 1 << iota
+	Vector
+)
+const PingSystemMax = int(Vector)*2 - 1
+
 type NodeConnectionDetailCustomSettings uint32
 
 const (
@@ -138,33 +136,14 @@ const (
 )
 const NodeConnectionDetailCustomSettingsMax = int(ImportHistoricForwards)*2 - 1
 
-type SubscriptionStream int
+type ImportType int
 
 const (
-	TransactionStream = SubscriptionStream(iota)
-	HtlcEventStream
-	ChannelEventStream
-	GraphEventStream
-	ForwardStream
-	InvoiceStream
-	PaymentStream
-	InFlightPaymentStream
-	PeerEventStream
-	ChannelBalanceCacheStream
+	ImportChannelRoutingPolicies = ImportType(iota)
+	ImportNodeInformation
+	ImportAllChannels
+	ImportPendingChannelsOnly
 )
-
-var SubscriptionStreams = []SubscriptionStream{ //nolint:gochecknoglobals
-	TransactionStream,
-	HtlcEventStream,
-	ChannelEventStream,
-	GraphEventStream,
-	ForwardStream,
-	InvoiceStream,
-	PaymentStream,
-	InFlightPaymentStream,
-	PeerEventStream,
-	ChannelBalanceCacheStream,
-}
 
 const (
 	MEMPOOL string = "https://mempool.space/lightning/channel/"
