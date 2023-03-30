@@ -1,5 +1,5 @@
 import { ColumnMetaData } from "features/table/types";
-import { Peer } from "features/peers/peersTypes";
+import { Peer, PeerStatus } from "features/peers/peersTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import CellWrapper from "components/table/cells/cellWrapper/CellWrapper";
 import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
@@ -23,7 +23,7 @@ export default function peerCellRenderer(
     return (
       <CellWrapper cellWrapperClassName={styles.actionsWrapper} key={"connect-button-" + row.nodeId}>
         <Button
-          // disabled={!(row.tagId !== undefined && row.tagId >= 0)}
+          disabled={row.status === PeerStatus.Active}
           buttonSize={SizeVariant.small}
           onClick={() => {
             mixpanel.track("Connect Peer", {
@@ -36,7 +36,7 @@ export default function peerCellRenderer(
           {t.peersPage.connect}
         </Button>
         <Button
-          // disabled={!(row.tagId !== undefined && row.tagId >= 0)}
+          disabled={row.status === PeerStatus.Inactive}
           buttonSize={SizeVariant.small}
           onClick={() => {
             mixpanel.track("Disconnect Peer", {

@@ -6,7 +6,7 @@ export type Peer = ExpandedPeer & {
   chain: string;
   network: string;
   nodeConnectionDetailsNodeId: number;
-  status: number;
+  status: PeerStatus;
   tags: Tag[];
 };
 
@@ -20,11 +20,20 @@ export type ConnectPeerRequest = {
   network: number;
 };
 
-export type ConnectPeerResponse = {};
+export type ConnectPeerResponse = {
+  success: boolean;
+};
 
 export type DisconnectPeerRequest = {
   nodeId: number;
   nodeConnectionDetailsNodeId: number;
 };
 
-export type DisconnectPeerResponse = {};
+export type DisconnectPeerResponse = {
+  success: boolean;
+};
+
+export enum PeerStatus {
+  Inactive = 0,
+  Active = 1,
+}
