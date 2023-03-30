@@ -34,6 +34,8 @@ const (
 	readLndNodeIds
 	writeSuccessTimes
 	writeNodeConnectionDetails
+	cancelTorqService
+	cancelLndService
 )
 
 type ManagedService struct {
@@ -101,14 +103,20 @@ func (ss *ServiceState) Activate() ServiceState {
 	return *ss
 }
 
+func (ss *ServiceState) Cancel() ServiceState {
+	if ss.CancelFunc != nil {
+		(*ss.CancelFunc)()
+		ss.CancelFunc = nil
+	}
+	return *ss
+}
+
 func (ss *ServiceState) Inactivate() ServiceState {
 	now := time.Now()
+	ss.Cancel()
 	ss.Status = ServiceInactive
 	ss.PendingTime = nil
 	ss.InitializationTime = nil
-	if ss.CancelFunc != nil {
-		(*ss.CancelFunc)()
-	}
 	ss.InactivationTime = &now
 	ss.FailureTime = nil
 	ss.CancelFunc = nil
@@ -362,6 +370,21 @@ func processManagedService(
 				torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId] = n
 			}
 		}
+	case cancelTorqService:
+		state := torqCurrentStateCache.TorqServiceStates[managedService.ServiceType]
+		torqCurrentStateCache.TorqServiceStates[managedService.ServiceType] = state.Cancel()
+	case cancelLndService:
+		if managedService.NodeId == 0 {
+			log.Error().Msgf("No empty nodeId (%v) allowed", managedService.NodeId)
+			break
+		}
+		n, nodeExists := torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId]
+		if !nodeExists {
+			n = make(map[ServiceType]ServiceState)
+		}
+		state := n[managedService.ServiceType]
+		n[managedService.ServiceType] = state.Cancel()
+		torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId] = n
 	case writeCurrentTorqServiceFailure:
 		state := torqCurrentStateCache.TorqServiceStates[managedService.ServiceType]
 		torqCurrentStateCache.TorqServiceStates[managedService.ServiceType] = state.Failure()
@@ -525,7 +548,6 @@ func InitTorqService(cancelFunc context.CancelFunc) {
 	ManagedServiceChannel <- managedService
 }
 
-// InitTorqServiceState sets serviceType as Pending
 func InitTorqServiceState(serviceType ServiceType, cancelFunc context.CancelFunc) {
 	managedService := ManagedService{
 		ServiceType:   serviceType,
@@ -579,6 +601,24 @@ func SetInactiveLndServiceState(serviceType ServiceType, nodeId int) {
 	setLndServiceStatus(serviceType, nodeId, ServiceInactive)
 }
 
+func CancelTorqService(serviceType ServiceType) {
+	managedService := ManagedService{
+		ServiceType: serviceType,
+		Type:        cancelTorqService,
+	}
+	ManagedServiceChannel <- managedService
+}
+
+func CancelLndService(serviceType ServiceType, nodeId int) {
+	managedService := ManagedService{
+		ServiceType: serviceType,
+		NodeId:      nodeId,
+		Type:        cancelLndService,
+	}
+	ManagedServiceChannel <- managedService
+
+}
+
 func SetFailedTorqServiceState(serviceType ServiceType) {
 	managedService := ManagedService{
 		ServiceType: serviceType,
@@ -626,7 +666,7 @@ func GetLndNodeIds() []int {
 }
 
 func InactivateTorqService(ctx context.Context, serviceType ServiceType) {
-	SetInactiveTorqServiceState(serviceType)
+	SetDesiredTorqServiceState(serviceType, ServiceInactive)
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
@@ -660,7 +700,7 @@ func ActivateTorqService(ctx context.Context, serviceType ServiceType) {
 
 func InactivateLndService(ctx context.Context, nodeId int) {
 	for _, lndServiceType := range GetLndServiceTypes() {
-		SetInactiveLndServiceState(lndServiceType, nodeId)
+		SetDesiredLndServiceState(lndServiceType, nodeId, ServiceInactive)
 	}
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
@@ -740,7 +780,7 @@ func ActivateLndService(ctx context.Context, nodeId int, customSettings NodeConn
 }
 
 func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) {
-	SetInactiveLndServiceState(serviceType, nodeId)
+	SetDesiredLndServiceState(serviceType, nodeId, ServiceInactive)
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {

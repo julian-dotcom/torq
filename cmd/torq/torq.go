@@ -296,6 +296,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 	err := database.MigrateUp(db)
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Error().Err(err).Msg("Torq could not migrate the database.")
+		commons.CancelTorqService(commons.TorqService)
 		commons.SetInactiveTorqServiceState(commons.TorqService)
 		return
 	}
@@ -347,6 +348,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 				log.Info().Msg("Node specified in config is present, updating Macaroon and TLS files")
 				if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
 					log.Error().Err(err).Msg("Problem updating node files")
+					commons.CancelTorqService(commons.TorqService)
 					commons.SetInactiveTorqServiceState(commons.TorqService)
 				}
 			}
@@ -380,10 +382,10 @@ func manageServices(db *sqlx.DB) {
 				}
 			}
 			if !allGood {
-				log.Info().Msg("Torq initialization is done.")
+				log.Info().Msg("Torq is initializing.")
 				continue
 			}
-			log.Info().Msg("Torq is initializing.")
+			log.Info().Msg("Torq initialization is done.")
 		case commons.ServicePending:
 			log.Info().Msg("Torq is setting up caches.")
 
@@ -530,7 +532,7 @@ func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int)
 		}
 	case commons.ServiceInactive:
 		log.Info().Msgf("Inactivating %v for nodeId: %v.", serviceType.String(), nodeId)
-		commons.SetInactiveLndServiceState(serviceType, nodeId)
+		commons.CancelLndService(serviceType, nodeId)
 	}
 }
 
@@ -546,7 +548,7 @@ func processTorqService(db *sqlx.DB, serviceType commons.ServiceType) bool {
 			processServiceBoot(db, serviceType, 0)
 		}
 	case commons.ServiceInactive:
-		commons.SetInactiveTorqServiceState(serviceType)
+		commons.CancelTorqService(serviceType)
 	}
 	return false
 }

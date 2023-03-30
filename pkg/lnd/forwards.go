@@ -157,7 +157,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-ticker:
 			importCounter := 0
@@ -191,7 +191,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 				fwh, err := client.ForwardingHistory(ctx, fwhReq)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
-						commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+						commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
 					log.Error().Err(err).Msgf("Failed to obtain forwards for nodeId: %v", nodeSettings.NodeId)
