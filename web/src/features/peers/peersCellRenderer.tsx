@@ -7,6 +7,11 @@ import mixpanel from "mixpanel-browser";
 import useTranslations from "services/i18n/useTranslations";
 import styles from "features/peers/peers.module.scss";
 import { useDisconnectPeerMutation, useReconnectPeerMutation } from "features/peers/peersApi";
+import React from "react";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "../toast/Toasts";
+import { mergeServerError, ServerErrorType } from "components/errors/errors";
+
 export default function peerCellRenderer(
   row: Peer,
   rowIndex: number,
@@ -16,8 +21,27 @@ export default function peerCellRenderer(
   maxRow?: Peer
 ): JSX.Element {
   const { t } = useTranslations();
-  const [disconnectNodeMutation] = useDisconnectPeerMutation();
-  const [reconnectMutation] = useReconnectPeerMutation();
+  const [disconnectNodeMutation, { error: disconnectError }] = useDisconnectPeerMutation();
+  const [reconnectMutation, { error: reconnectError }] = useReconnectPeerMutation();
+  const toastRef = React.useContext(ToastContext);
+
+  React.useEffect(() => {
+    if (disconnectError && "data" in disconnectError && disconnectError.data) {
+      const err = mergeServerError(disconnectError.data as ServerErrorType, {});
+      if (err?.server && err.server.length > 0) {
+        toastRef?.current?.addToast(err.server[0].description || "", toastCategory.error);
+      }
+    }
+  }, [disconnectError]);
+
+  React.useEffect(() => {
+    if (reconnectError && "data" in reconnectError && reconnectError.data) {
+      const err = mergeServerError(reconnectError.data as ServerErrorType, {});
+      if (err?.server && err.server.length > 0) {
+        toastRef?.current?.addToast(err.server[0].description || "", toastCategory.error);
+      }
+    }
+  }, [reconnectError]);
 
   if (column.key === "actions") {
     return (
