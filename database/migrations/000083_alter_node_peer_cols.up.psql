@@ -2,7 +2,7 @@ alter table node
     add node_connection_details_node_id integer NULL REFERENCES node(node_id);
 
 alter table node
-    add connection_status_id integer default 0;
+    add connection_status_id integer default 1;
 
 alter table node
     add host text not null;
