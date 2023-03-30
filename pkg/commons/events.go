@@ -457,6 +457,7 @@ type ConnectPeerRequest struct {
 
 type ConnectPeerResponse struct {
 	CommunicationResponse
+	RequestFailCurrentlyConnected bool `json:"requestFailCurrentlyConnected"`
 }
 
 type DisconnectPeerRequest struct {
@@ -468,6 +469,7 @@ type DisconnectPeerRequest struct {
 
 type DisconnectPeerResponse struct {
 	CommunicationResponse
+	RequestFailedCurrentlyDisconnected bool `json:"requestFailCurrentlyDisconnected"`
 }
 
 type ListPeersRequest struct {

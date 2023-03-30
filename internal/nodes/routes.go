@@ -251,6 +251,15 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 
 	disconnectResp := commons.DisconnectPeer(req.NodeConnectionDetailsNodeId, node.PublicKey, lightningRequestChannel)
 	if disconnectResp.CommunicationResponse.Error != "" {
+		if disconnectResp.RequestFailedCurrentlyDisconnected {
+			//correct the status of the node
+			node.ConnectionStatusId = commons.Inactive
+			err := updateNodeConnectionStatus(db, node)
+			if err != nil {
+				server_errors.WrapLogAndSendServerError(c, err, "Updating node connection status.")
+				return
+			}
+		}
 		server_errors.WrapLogAndSendServerError(c, errors.New(disconnectResp.CommunicationResponse.Error), "Error disconnecting peer.")
 		return
 	}
@@ -294,6 +303,15 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel c
 
 	connectResp := commons.ConnectPeer(req.NodeConnectionDetailsNodeId, node.PublicKey, node.Host, lightningRequestChannel)
 	if connectResp.CommunicationResponse.Error != "" {
+		if connectResp.RequestFailCurrentlyConnected {
+			//correct the status of the node
+			node.ConnectionStatusId = commons.Active
+			err := updateNodeConnectionStatus(db, node)
+			if err != nil {
+				server_errors.WrapLogAndSendServerError(c, err, "Updating node connection status.")
+				return
+			}
+		}
 		server_errors.WrapLogAndSendServerError(c, errors.New(connectResp.CommunicationResponse.Error), "Error reconnecting peer.")
 		return
 	}

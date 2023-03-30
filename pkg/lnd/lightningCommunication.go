@@ -3,6 +3,8 @@ package lnd
 import (
 	"context"
 	"fmt"
+	"github.com/cockroachdb/errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -703,10 +705,6 @@ func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerR
 		},
 	}
 
-	//connectPeerRequest := lnrpc.ConnectPeerRequest{
-	//	Addr: &lnrpc.LightningAddress{Pubkey: request.PubKey, Host: request.Host},
-	//}
-
 	connectPeerRequest := lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{Pubkey: request.PubKey, Host: request.Host},
 	}
@@ -714,10 +712,39 @@ func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerR
 	_, err := client.ConnectPeer(ctx, &connectPeerRequest)
 
 	if err != nil {
+		errMessage := err.Error()
+		response.Error = errMessage
+		if strings.Contains(errMessage, "already connected to peer") {
+			response.RequestFailCurrentlyConnected = true
+		}
+		response.Error = err.Error()
+	}
+
+	// check if there are any errors from the previous request
+	err = checkPeerForErrors(ctx, client, request.PubKey)
+	if err != nil {
 		response.Error = err.Error()
 	}
 
 	return response
+}
+
+// It seems that the errors are not returned in the Connect/Disconnect response, so we need to check the peers list
+func checkPeerForErrors(ctx context.Context, client lnrpc.LightningClient, pubKey string) error {
+	listPeersRequest := lnrpc.ListPeersRequest{}
+	peersResponse, err := client.ListPeers(ctx, &listPeersRequest)
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range peersResponse.Peers {
+		if peer.PubKey == pubKey {
+			if len(peer.Errors) > 0 {
+				return errors.New(peer.Errors[0].Error)
+			}
+		}
+	}
+	return nil
 }
 
 func processDisconnectPeerRequest(ctx context.Context, request commons.DisconnectPeerRequest, client lnrpc.LightningClient) commons.DisconnectPeerResponse {
@@ -731,9 +758,17 @@ func processDisconnectPeerRequest(ctx context.Context, request commons.Disconnec
 		PubKey: request.PubKey,
 	}
 
-	rsp, err := client.DisconnectPeer(ctx, &disconnectPeerRequest)
+	_, err := client.DisconnectPeer(ctx, &disconnectPeerRequest)
+	if err != nil {
+		errMessage := err.Error()
+		response.Error = errMessage
+		if strings.Contains(errMessage, "not connected") {
+			response.RequestFailedCurrentlyDisconnected = true
+		}
+	}
 
-	fmt.Println(rsp)
+	// check if there are any errors from the previous request
+	err = checkPeerForErrors(ctx, client, request.PubKey)
 	if err != nil {
 		response.Error = err.Error()
 	}
