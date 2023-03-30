@@ -157,8 +157,6 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 
 	serviceType := commons.LndServiceHtlcEventStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	stream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {

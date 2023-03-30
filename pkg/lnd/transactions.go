@@ -52,8 +52,6 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 
 	serviceType := commons.LndServiceTransactionStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	var transactionHeight uint32
 	var err error
 	var transactionDetails *lnrpc.TransactionDetails

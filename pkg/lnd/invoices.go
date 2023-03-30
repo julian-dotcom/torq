@@ -202,8 +202,6 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 
 	serviceType := commons.LndServiceInvoiceStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	bootStrapping := true
 	importCounter := 0
 

@@ -23,8 +23,6 @@ func SubscribePeerEvents(ctx context.Context,
 
 	serviceType := commons.LndServiceHtlcEventStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	stream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {

@@ -124,8 +124,6 @@ func SubscribeForwardingEvents(ctx context.Context,
 
 	serviceType := commons.LndServiceInvoiceStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	maxEvents := streamLndMaxForwards
 	bootStrapping := true
 

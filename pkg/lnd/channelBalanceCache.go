@@ -25,8 +25,6 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 
 	serviceType := commons.LndServiceChannelBalanceCacheStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	bootStrapping := true
 	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
 	fastTicker := clock.New().Tick(10 * time.Second)

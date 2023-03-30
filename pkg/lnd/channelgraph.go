@@ -36,8 +36,6 @@ func SubscribeAndStoreChannelGraph(ctx context.Context,
 
 	serviceType := commons.LndServiceGraphEventStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	stream, err := client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {

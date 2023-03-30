@@ -354,8 +354,6 @@ func SubscribeAndStoreChannelEvents(ctx context.Context,
 
 	serviceType := commons.LndServiceChannelEventStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	stream, err := client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {

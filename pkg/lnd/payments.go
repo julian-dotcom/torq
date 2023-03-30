@@ -38,8 +38,6 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 
 	serviceType := commons.LndServiceInvoiceStream
 
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-
 	bootStrapping := true
 	includeIncomplete := commons.HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
 
@@ -257,8 +255,6 @@ func UpdateInFlightPayments(ctx context.Context,
 	opt *PayOptions) {
 
 	serviceType := commons.LndServiceInFlightPaymentStream
-
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
 
 	bootStrapping := true
 
