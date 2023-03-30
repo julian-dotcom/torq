@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -201,27 +200,17 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings) {
 
-	defer log.Info().Msgf("SubscribeAndStoreInvoices terminated for nodeId: %v", nodeSettings.NodeId)
-
-	var serviceStatus commons.ServiceStatus
-	bootStrapping := true
 	serviceType := commons.LndServiceInvoiceStream
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+
+	bootStrapping := true
 	importCounter := 0
 
-	var delay bool
-
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -229,9 +218,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, _, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, nodeSettings, serviceType, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain last know invoice for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		listInvoiceResponse, err := client.ListInvoices(ctx, &lnrpc.ListInvoiceRequest{
@@ -240,11 +229,12 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		})
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
+				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = processError(serviceStatus, nodeSettings, serviceType, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain list invoice for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		if bootStrapping {
@@ -252,9 +242,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if len(listInvoiceResponse.Invoices) >= streamLndMaxInvoices {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
-		} else {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
+			commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, bootStrapping)
@@ -262,22 +250,12 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if bootStrapping && len(listInvoiceResponse.Invoices) < streamLndMaxInvoices {
 			bootStrapping = false
 			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
+			commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 			break
 		}
 	}
 
-	delay = false
-
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
 			return
@@ -287,9 +265,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, nodeSettings, serviceType, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain last invoice index for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		streamCtx, cancel := context.WithCancel(ctx)
@@ -300,26 +278,27 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
+				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = processError(serviceStatus, nodeSettings, serviceType, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain Invoices stream for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
 		invoice, err := stream.Recv()
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
+				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = processError(serviceStatus, nodeSettings, serviceType, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf(
+				"Failed to obtain receive Invoices from the stream for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 		processInvoice(invoice, nodeSettings, db, bootStrapping)
-		delay = false
 		cancel()
 	}
 }
@@ -354,14 +333,6 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 	if err != nil {
 		log.Error().Err(err).Msg("Storing invoice failed")
 	}
-}
-
-func processError(serviceStatus commons.ServiceStatus, nodeSettings commons.ManagedNodeSettings,
-	serviceType commons.ServiceType, err error) commons.ServiceStatus {
-
-	serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", streamErrorSleepSeconds)
-	return serviceStatus
 }
 
 // getNodeNetwork

@@ -1,11 +1,5 @@
 package commons
 
-type ContextKey int
-
-const (
-	ContextKeyTest ContextKey = iota
-)
-
 type ServiceType int
 
 // When adding here also add to GetServiceTypes

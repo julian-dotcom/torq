@@ -71,6 +71,8 @@ func Start(ctx context.Context, db *sqlx.DB) {
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
+	defer log.Info().Msgf("RebalanceService terminated for nodeId: %v", nodeId)
+
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("Panic occurred in RebalanceService (nodeId: %v)", nodeId)

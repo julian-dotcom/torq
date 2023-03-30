@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -20,8 +19,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
-
-const streamErrorSleepSeconds = 60
 
 var ChannelChanges = make(chan commons.ChannelEvent) //nolint:gochecknoglobals
 
@@ -179,13 +176,10 @@ func storeChannelEvent(ctx context.Context,
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
-		contextValue := ctx.Value(commons.ContextKeyTest)
-		if contextValue == nil || contextValue == false {
-			// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
-			err := importPendingChannels(db, false, nodeSettings)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
-			}
+		// We receive this event in case of a closure. So let's ask LND for a fresh copy of the pending channels.
+		err := importPendingChannels(db, false, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
 		}
 		c := ce.GetInactiveChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
@@ -204,12 +198,9 @@ func storeChannelEvent(ctx context.Context,
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_FULLY_RESOLVED_CHANNEL:
-		contextValue := ctx.Value(commons.ContextKeyTest)
-		if contextValue == nil || contextValue == false {
-			err := importPendingChannels(db, true, nodeSettings)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
-			}
+		err := importPendingChannels(db, true, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
 		}
 		c := ce.GetFullyResolvedChannel()
 		channelPoint, err := chanPointFromByte(c.GetFundingTxidBytes(), c.GetOutputIndex())
@@ -228,12 +219,9 @@ func storeChannelEvent(ctx context.Context,
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL:
-		contextValue := ctx.Value(commons.ContextKeyTest)
-		if contextValue == nil || contextValue == false {
-			err := importPendingChannels(db, true, nodeSettings)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
-			}
+		err := importPendingChannels(db, true, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import pending channels for nodeId: %v", nodeSettings.NodeId)
 		}
 		c := ce.GetPendingOpenChannel()
 		channelPoint, err := chanPointFromByte(c.GetTxid(), c.GetOutputIndex())
@@ -273,57 +261,6 @@ func importPendingChannels(db *sqlx.DB, force bool, nodeSettings commons.Managed
 	if response.Error != nil {
 		log.Error().Err(response.Error).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
 		return errors.Wrapf(response.Error, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
-	}
-	return nil
-}
-
-func importChannelRoutingPolicies(db *sqlx.DB, force bool, nodeSettings commons.ManagedNodeSettings) error {
-	request := ImportRequest{
-		CommunicationRequest: CommunicationRequest{
-			NodeId: nodeSettings.NodeId,
-		},
-		Db:         db,
-		Force:      force,
-		ImportType: commons.ImportChannelRoutingPolicies,
-	}
-	response := Import(request)
-	if response.Error != nil {
-		log.Error().Err(response.Error).Msgf("Failed to obtain channel routing policies for nodeId: %v", nodeSettings.NodeId)
-		return errors.Wrapf(response.Error, "Obtaining channel routing policies for nodeId: %v", nodeSettings.NodeId)
-	}
-	return nil
-}
-
-func importAllChannels(db *sqlx.DB, force bool, nodeSettings commons.ManagedNodeSettings) error {
-	request := ImportRequest{
-		CommunicationRequest: CommunicationRequest{
-			NodeId: nodeSettings.NodeId,
-		},
-		Db:         db,
-		Force:      force,
-		ImportType: commons.ImportAllChannels,
-	}
-	response := Import(request)
-	if response.Error != nil {
-		log.Error().Err(response.Error).Msgf("Failed to obtain all channels for nodeId: %v", nodeSettings.NodeId)
-		return errors.Wrapf(response.Error, "Obtaining all channels for nodeId: %v", nodeSettings.NodeId)
-	}
-	return nil
-}
-
-func importNodeInformation(db *sqlx.DB, force bool, nodeSettings commons.ManagedNodeSettings) error {
-	request := ImportRequest{
-		CommunicationRequest: CommunicationRequest{
-			NodeId: nodeSettings.NodeId,
-		},
-		Db:         db,
-		Force:      force,
-		ImportType: commons.ImportNodeInformation,
-	}
-	response := Import(request)
-	if response.Error != nil {
-		log.Error().Err(response.Error).Msgf("Failed to obtaining node information for nodeId: %v", nodeSettings.NodeId)
-		return errors.Wrapf(response.Error, "Obtaining node information for nodeId: %v", nodeSettings.NodeId)
 	}
 	return nil
 }
@@ -408,88 +345,56 @@ type lndClientSubscribeChannelEvent interface {
 		opts ...grpc.CallOption) (*lnrpc.PendingChannelsResponse, error)
 }
 
-// SubscribeAndStoreChannelEvents Subscribes to channel events from LND and stores them in the
-// database as a time series
-func SubscribeAndStoreChannelEvents(ctx context.Context, client lndClientSubscribeChannelEvent, db *sqlx.DB,
+// SubscribeAndStoreChannelEvents Subscribes to channel events from LND and
+// stores them in the database as a time series
+func SubscribeAndStoreChannelEvents(ctx context.Context,
+	client lndClientSubscribeChannelEvent,
+	db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings) {
 
-	defer log.Info().Msgf("SubscribeAndStoreChannelEvents terminated for nodeId: %v", nodeSettings.NodeId)
-
-	var stream lnrpc.Lightning_SubscribeChannelEventsClient
-	var err error
-	var chanEvent *lnrpc.ChannelEventUpdate
-	serviceStatus := commons.ServiceInactive
 	serviceType := commons.LndServiceChannelEventStream
-	var delay bool
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+
+	stream, err := client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
+	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			return
+		}
+		log.Error().Err(err).Msgf(
+			"Obtaining stream (%v) from LND failed for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		return
+	}
+
+	commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
 
-		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-			stream, err = client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
-			if err != nil {
-				if errors.Is(ctx.Err(), context.Canceled) {
-					return
-				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelEvents) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-				stream = nil
-				delay = true
-				continue
-			}
-
-			contextValue := ctx.Value(commons.ContextKeyTest)
-			if contextValue == nil || contextValue == false {
-				err = importAllChannels(db, false, nodeSettings)
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-					stream = nil
-					delay = true
-					continue
-				}
-
-				err = importChannelRoutingPolicies(db, false, nodeSettings)
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-					stream = nil
-					delay = true
-					continue
-				}
-			}
-		}
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
-
-		chanEvent, err = stream.Recv()
+		chanEvent, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
+				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-			log.Error().Err(err).Msgf("Receiving channel events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
-			stream = nil
-			delay = true
-			continue
+			log.Error().Err(err).Msgf(
+				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		err = storeChannelEvent(ctx, db, chanEvent, nodeSettings)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNELEVENT IS NOW IGNORED???
-			log.Error().Err(err).Msg("Storing channel event failed")
+			log.Error().Err(err).Msgf("Storing channel event failed for nodeId: %v", nodeSettings.NodeId)
 		}
-		delay = false
 	}
 }
 

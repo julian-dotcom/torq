@@ -526,7 +526,6 @@ func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int)
 	switch desiredState.Status {
 	case commons.ServiceActive:
 		if currentState.Status == commons.ServiceInactive {
-			log.Info().Msgf("Activating %v for nodeId: %v.", serviceType.String(), nodeId)
 			processServiceBoot(db, serviceType, nodeId)
 		}
 	case commons.ServiceInactive:
@@ -558,9 +557,10 @@ func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int
 		return
 	}
 
+	log.Info().Msgf("Activating %v for nodeId: %v.", serviceType.String(), nodeId)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
-	log.Info().Msgf("Generating %v for nodeId: %v", serviceType.String(), nodeId)
 	if nodeId == 0 {
 		commons.InitTorqServiceState(serviceType, cancel)
 	} else {

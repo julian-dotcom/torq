@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -30,101 +29,60 @@ type subscribeChannelGraphClient interface {
 }
 
 // SubscribeAndStoreChannelGraph Subscribes to channel updates
-func SubscribeAndStoreChannelGraph(ctx context.Context, client subscribeChannelGraphClient, db *sqlx.DB,
+func SubscribeAndStoreChannelGraph(ctx context.Context,
+	client subscribeChannelGraphClient,
+	db *sqlx.DB,
 	nodeSettings commons.ManagedNodeSettings) {
 
-	defer log.Info().Msgf("SubscribeAndStoreChannelGraph terminated for nodeId: %v", nodeSettings.NodeId)
-
-	var stream lnrpc.Lightning_SubscribeChannelGraphClient
-	var err error
-	var gpu *lnrpc.GraphTopologyUpdate
-	serviceStatus := commons.ServiceInactive
 	serviceType := commons.LndServiceGraphEventStream
-	var delay bool
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+
+	stream, err := client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
+	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			return
+		}
+		log.Error().Err(err).Msgf(
+			"Obtaining stream (%v) from LND failed for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		return
+	}
+
+	commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
 
-		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-			stream, err = client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
-			if err != nil {
-				if errors.Is(ctx.Err(), context.Canceled) {
-					return
-				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-				stream = nil
-				delay = true
-				continue
-			}
-
-			contextValue := ctx.Value(commons.ContextKeyTest)
-			if contextValue == nil || contextValue == false {
-				err = importAllChannels(db, false, nodeSettings)
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining All Channels (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-					stream = nil
-					delay = true
-					continue
-				}
-
-				err = importChannelRoutingPolicies(db, false, nodeSettings)
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining RoutingPolicies (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-					stream = nil
-					delay = true
-					continue
-				}
-
-				err = importNodeInformation(db, false, nodeSettings)
-				if err != nil {
-					log.Error().Err(err).Msgf("Obtaining Node Information (SubscribeChannelGraph) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-					stream = nil
-					delay = true
-					continue
-				}
-			}
-
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
-		}
-
-		gpu, err = stream.Recv()
+		gpu, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
+				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-			log.Error().Err(err).Msgf("Receiving channel graph events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
-			stream = nil
-			delay = true
-			continue
+			log.Error().Err(err).Msgf(
+				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
+			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		err = processNodeUpdates(gpu.NodeUpdates, db, nodeSettings)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? NODE UPDATES ARE NOW IGNORED???
-			log.Error().Err(err).Msgf("Failed to store node update events")
+			log.Error().Err(err).Msgf("Failed to store node update events for nodeId: %v", nodeSettings.NodeId)
 		}
 
 		err = processChannelUpdates(gpu.ChannelUpdates, db, nodeSettings)
 		if err != nil {
 			// TODO FIXME STORE THIS SOMEWHERE??? CHANNEL UPDATES ARE NOW IGNORED???
-			log.Error().Err(err).Msgf("Failed to store channel update events")
+			log.Error().Err(err).Msgf("Failed to store channel update events for nodeId: %v", nodeSettings.NodeId)
 		}
-		delay = false
 	}
 }
 

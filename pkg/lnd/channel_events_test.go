@@ -253,8 +253,7 @@ type channelEventData struct {
 }
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
-	ctx := context.WithValue(context.Background(), commons.ContextKeyTest, true)
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	startAllDummyListener()
 

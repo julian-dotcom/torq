@@ -233,6 +233,11 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	//go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctx)
 	go commons.ManagedServiceCache(commons.ManagedServiceChannel, ctx)
 
+	commons.InitStates(true)
+	_, cancelTorq := context.WithCancel(ctx)
+	commons.InitTorqService(cancelTorq)
+	commons.SetActiveTorqServiceState(commons.TorqService)
+
 	return db, cancel, nil
 }
 

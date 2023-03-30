@@ -312,8 +312,7 @@ type routingPolicyData struct {
 func simulateChannelGraphUpdate(t *testing.T,
 	db *sqlx.DB,
 	client *stubLNDSubscribeChannelGraphRPC) (r []routingPolicyData) {
-	ctx := context.WithValue(context.Background(), commons.ContextKeyTest, true)
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	client.CancelFunc = cancel
 
 	go startAllDummyListener()

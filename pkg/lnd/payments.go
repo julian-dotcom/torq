@@ -36,17 +36,14 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	nodeSettings commons.ManagedNodeSettings,
 	opt *PayOptions) {
 
-	defer log.Info().Msgf("SubscribeAndStorePayments terminated for nodeId: %v", nodeSettings.NodeId)
+	serviceType := commons.LndServiceInvoiceStream
 
-	var lastPaymentIndex uint64
-	var payments *lnrpc.ListPaymentsResponse
-	var err error
-	serviceStatus := commons.ServiceInactive
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+
 	bootStrapping := true
-	serviceType := commons.LndServicePaymentStream
-	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
 	includeIncomplete := commons.HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
 
+	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
@@ -59,31 +56,31 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		// Exit if canceled
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-ticker:
 			importCounter := 0
 
-			lastPaymentIndex, err = fetchLastPaymentIndex(db, nodeSettings.NodeId)
+			lastPaymentIndex, err := fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-				log.Error().Err(err).Msgf("Failed to obtain last know forward, will retry in %v seconds", streamPaymentsTickerSeconds)
-				continue
+				commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				log.Error().Err(err).Msgf("Failed to obtain last know payment for nodeId: %v", nodeSettings.NodeId)
+				return
 			}
 
 			for {
 				if bootStrapping {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
-				} else {
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
+					commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 				}
-				payments, err = fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
+				payments, err := fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
+						commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
-					serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-					log.Error().Err(err).Msgf("Failed to obtain payments, will retry in %v seconds", streamPaymentsTickerSeconds)
-					break
+					commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+					log.Error().Err(err).Msgf("Failed to obtain payments for nodeId: %v", nodeSettings.NodeId)
+					return
 				}
 
 				// Store the payments
@@ -100,6 +97,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 						log.Info().Msgf("Bulk import of payments: %v", importCounter)
 					}
 					bootStrapping = false
+					commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 					break
 				}
 				lastPaymentIndex = payments.LastIndexOffset
@@ -252,17 +250,19 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 	return nil
 }
 
-func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings, opt *PayOptions) {
+func UpdateInFlightPayments(ctx context.Context,
+	client lightningClient_ListPayments,
+	db *sqlx.DB,
+	nodeSettings commons.ManagedNodeSettings,
+	opt *PayOptions) {
 
-	defer log.Info().Msgf("UpdateInFlightPayments terminated for nodeId: %v", nodeSettings.NodeId)
-
-	var listPaymentsResponse *lnrpc.ListPaymentsResponse
-	serviceStatus := commons.ServiceInactive
-	bootStrapping := true
 	serviceType := commons.LndServiceInFlightPaymentStream
-	ticker := clock.New().Tick(streamInflightPaymentsTickerSeconds * time.Second)
 
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+
+	bootStrapping := true
+
+	ticker := clock.New().Tick(streamInflightPaymentsTickerSeconds * time.Second)
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
 		ticker = opt.Tick
@@ -275,34 +275,35 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 		// Exit if canceled
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-ticker:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServicePending)
-				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes, will retry in %v seconds", streamInflightPaymentsTickerSeconds)
-				continue
+				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes for nodeId: %v", nodeSettings.NodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				return
 			}
 			if bootStrapping {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceInitializing)
-			} else {
-				serviceStatus = SetStreamStatus(nodeSettings.NodeId, serviceType, serviceStatus, commons.ServiceActive)
+				commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
 				// we will only get one payment back. Might not be the right one.
-				listPaymentsResponse, err = fetchPayments(ctx, client, ifPayIndex, true)
+				listPaymentsResponse, err := fetchPayments(ctx, client, ifPayIndex, true)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
+						commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
-					log.Error().Err(err).Msg("Error with subscribe and update payments")
+					log.Error().Err(err).Msgf("Error with subscribe and update payments for nodeId: %v", nodeSettings.NodeId)
 					continue
 				}
 				if len(listPaymentsResponse.Payments) == 0 {
 					log.Info().Msgf("We had an inflight payment but nothing from LND: %v", i)
 					if err = setPaymentToFailedDetailsUnavailable(db, i); err != nil {
-						log.Error().Err(err).Msg("Error with Setting payment to failed details unavailable")
+						log.Error().Err(err).Msgf(
+							"Error with Setting payment to failed details unavailable for nodeId: %v", nodeSettings.NodeId)
 					}
 					continue
 				}
@@ -310,7 +311,8 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 				if listPaymentsResponse.Payments[0].PaymentIndex != i {
 					log.Warn().Msgf("Payment data missing from LND for payment index: %v", i)
 					if err = setPaymentToFailedDetailsUnavailable(db, i); err != nil {
-						log.Error().Err(err).Msg("Error with Setting payment to failed details unavailable")
+						log.Error().Err(err).Msgf(
+							"Error with Setting payment to failed details unavailable for nodeId: %v", nodeSettings.NodeId)
 					}
 					continue
 				}
@@ -318,10 +320,14 @@ func UpdateInFlightPayments(ctx context.Context, client lightningClient_ListPaym
 				// Store the payments
 				err = updatePayments(db, listPaymentsResponse.Payments, nodeSettings.NodeId)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to store update payments")
+					log.Error().Err(err).Msgf(
+						"Failed to store update payments for nodeId: %v", nodeSettings.NodeId)
 				}
 			}
-			bootStrapping = false
+			if bootStrapping {
+				bootStrapping = false
+				commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+			}
 		}
 	}
 }
