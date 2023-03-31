@@ -240,6 +240,14 @@ export const torqApi = createApi({
       }),
       invalidatesTags: ["nodeConfigurations", "channels", "nodes"],
     }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    updateCustomSettings: builder.mutation<any, { nodeId: number; customSettings: number; pingSystems: number }>({
+      query: (nodeConfiguration) => ({
+        url: `settings/customSettings/${nodeConfiguration.nodeId}/${nodeConfiguration.customSettings}/${nodeConfiguration.pingSystems}`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["nodeConfigurations", "channels", "nodes"],
+    }),
     getServices: builder.query<services, void>({
       query: () => "services/status",
       providesTags: ["services"],
@@ -279,6 +287,7 @@ export const {
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
   useUpdateNodeCustomSettingStatusMutation,
+  useUpdateCustomSettingsMutation,
   useUpdateChannelMutation,
   useGetServicesQuery,
   useGetLndServicesQuery,

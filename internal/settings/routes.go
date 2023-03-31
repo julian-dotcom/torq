@@ -90,6 +90,9 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.PUT("nodeCustomSetting/:nodeId/:customSetting/:statusId", func(c *gin.Context) {
 		setNodeConnectionDetailsCustomSettingHandler(c, db)
 	})
+	r.PUT("customSettings/:nodeId/:customSettings/:pingSystems", func(c *gin.Context) {
+		setNodeConnectionDetailsCustomSettingsHandler(c, db)
+	})
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("timezones", func(c *gin.Context) { getTimeZonesHandler(c, db) })
@@ -492,6 +495,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
 		return
 	}
+	ps := commons.PingSystem(pingSystem)
 	statusId, err := strconv.Atoi(c.Param("statusId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
@@ -503,22 +507,15 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Ping Services are only allowed on Bitcoin Mainnet.")
 		return
 	}
+	s := commons.Status(statusId)
 
-	var serviceType commons.ServiceType
-	switch commons.PingSystem(pingSystem) {
-	case commons.Amboss:
-		serviceType = commons.AmbossService
-	case commons.Vector:
-		serviceType = commons.VectorService
-	}
-
-	_, err = setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+	_, err = setNodeConnectionDetailsPingSystemStatus(db, nodeId, ps, s)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	done := setService(serviceType, nodeId, commons.Status(statusId) == commons.Active)
+	done := setService(*ps.GetServiceType(), nodeId, s == commons.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -542,42 +539,124 @@ func setNodeConnectionDetailsCustomSettingHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
 		return
 	}
+	cs := commons.NodeConnectionDetailCustomSettings(customSetting)
 	statusId, err := strconv.Atoi(c.Param("statusId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
 		return
 	}
+	s := commons.Status(statusId)
 
-	var serviceType commons.ServiceType
-	switch commons.NodeConnectionDetailCustomSettings(customSetting) {
-	case commons.ImportFailedPayments, commons.ImportPayments:
-		serviceType = commons.LndServicePaymentStream
-	case commons.ImportHtlcEvents:
-		serviceType = commons.LndServiceHtlcEventStream
-	case commons.ImportPeerEvents:
-		serviceType = commons.LndServicePeerEventStream
-	case commons.ImportTransactions:
-		serviceType = commons.LndServiceTransactionStream
-	case commons.ImportInvoices:
-		serviceType = commons.LndServiceInvoiceStream
-	case commons.ImportForwards, commons.ImportHistoricForwards:
-		serviceType = commons.LndServiceForwardStream
-	}
-
-	_, err = setNodeConnectionDetailsCustomSettingStatus(db, nodeId,
-		commons.NodeConnectionDetailCustomSettings(customSetting), commons.Status(statusId))
+	_, err = setNodeConnectionDetailsCustomSettingStatus(db, nodeId, cs, s)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	done := setService(serviceType, nodeId, commons.Status(statusId) == commons.Active)
+	done := setService(*cs.GetServiceType(), nodeId, s == commons.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) {
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+	customSettings, err := strconv.Atoi(c.Param("customSettings"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse customSetting in the request.")
+		return
+	}
+	if customSettings > commons.NodeConnectionDetailCustomSettingsMax {
+		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
+		return
+	}
+	cs := commons.NodeConnectionDetailCustomSettings(customSettings)
+
+	pingSystems, err := strconv.Atoi(c.Param("pingSystems"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
+		return
+	}
+	if pingSystems > commons.PingSystemMax {
+		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
+		return
+	}
+	ps := commons.PingSystem(pingSystems)
+
+	services := make(map[bool][]commons.ServiceType)
+	appendPingSystemServiceType(ps, services, commons.Vector)
+	appendPingSystemServiceType(ps, services, commons.Amboss)
+	appendCustomSettingServiceType(cs, services, commons.ImportFailedPayments, commons.ImportPayments)
+	appendCustomSettingServiceType(cs, services, commons.ImportHtlcEvents)
+	appendCustomSettingServiceType(cs, services, commons.ImportPeerEvents)
+	appendCustomSettingServiceType(cs, services, commons.ImportTransactions)
+	appendCustomSettingServiceType(cs, services, commons.ImportInvoices)
+	appendCustomSettingServiceType(cs, services, commons.ImportForwards, commons.ImportHistoricForwards)
+
+	_, err = setCustomSettings(db, nodeId, cs, ps)
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	allSuccess := true
+	for active, serviceTypes := range services {
+		for _, serviceType := range serviceTypes {
+			done := setService(serviceType, nodeId, active)
+			if !done {
+				allSuccess = false
+			}
+		}
+	}
+	if !allSuccess {
+		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func appendPingSystemServiceType(ps commons.PingSystem,
+	services map[bool][]commons.ServiceType,
+	referencePingSystem commons.PingSystem) {
+
+	if ps.HasPingSystem(referencePingSystem) {
+		services[true] = append(services[true], *referencePingSystem.GetServiceType())
+	} else {
+		services[false] = append(services[false], *referencePingSystem.GetServiceType())
+	}
+}
+
+func appendCustomSettingServiceType(cs commons.NodeConnectionDetailCustomSettings,
+	services map[bool][]commons.ServiceType,
+	referenceCustomSettings ...commons.NodeConnectionDetailCustomSettings) {
+
+	active := false
+	var serviceType *commons.ServiceType
+	for ix, referenceCustomSetting := range referenceCustomSettings {
+		st := referenceCustomSettings[ix].GetServiceType()
+		if serviceType == nil {
+			serviceType = st
+		}
+		if *st != *serviceType {
+			return
+		}
+		if cs.HasNodeConnectionDetailCustomSettings(referenceCustomSetting) {
+			active = true
+		}
+	}
+	if active {
+		services[true] = append(services[true], *serviceType)
+	} else {
+		services[false] = append(services[false], *serviceType)
+	}
 }
 
 // GetConnectionDetailsById will still fetch details even if node is disabled or deleted

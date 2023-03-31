@@ -491,36 +491,24 @@ func proccessTorqInitialBoot(db *sqlx.DB) {
 		for _, lndServiceType := range commons.GetLndServiceTypes() {
 			serviceStatus := commons.ServiceActive
 			switch lndServiceType {
-			case commons.VectorService:
-				if pingSystem&commons.Vector == 0 {
+			case commons.VectorService, commons.AmbossService:
+				if pingSystem&(*lndServiceType.GetPingSystem()) == 0 {
 					serviceStatus = commons.ServiceInactive
 				}
-			case commons.AmbossService:
-				if pingSystem&commons.Amboss == 0 {
-					serviceStatus = commons.ServiceInactive
+			case commons.LndServiceTransactionStream,
+				commons.LndServiceHtlcEventStream,
+				commons.LndServiceForwardStream,
+				commons.LndServiceInvoiceStream,
+				commons.LndServicePaymentStream,
+				commons.LndServicePeerEventStream:
+				active := false
+				for _, cs := range lndServiceType.GetNodeConnectionDetailCustomSettings() {
+					if customSettings&cs != 0 {
+						active = true
+						break
+					}
 				}
-			case commons.LndServiceTransactionStream:
-				if customSettings&commons.ImportTransactions == 0 {
-					serviceStatus = commons.ServiceInactive
-				}
-			case commons.LndServiceHtlcEventStream:
-				if customSettings&commons.ImportHtlcEvents == 0 {
-					serviceStatus = commons.ServiceInactive
-				}
-			case commons.LndServiceForwardStream:
-				if customSettings&commons.ImportForwards == 0 && customSettings&commons.ImportHistoricForwards == 0 {
-					serviceStatus = commons.ServiceInactive
-				}
-			case commons.LndServiceInvoiceStream:
-				if customSettings&commons.ImportInvoices == 0 {
-					serviceStatus = commons.ServiceInactive
-				}
-			case commons.LndServicePaymentStream:
-				if customSettings&commons.ImportPayments == 0 && customSettings&commons.ImportFailedPayments == 0 {
-					serviceStatus = commons.ServiceInactive
-				}
-			case commons.LndServicePeerEventStream:
-				if customSettings&commons.ImportPeerEvents == 0 {
+				if !active {
 					serviceStatus = commons.ServiceInactive
 				}
 			}

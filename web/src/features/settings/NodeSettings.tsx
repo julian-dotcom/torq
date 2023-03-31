@@ -24,8 +24,7 @@ import {
   useGetNodeConfigurationQuery,
   useUpdateNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
-  useUpdateNodePingSystemStatusMutation,
-  useUpdateNodeCustomSettingStatusMutation,
+  useUpdateCustomSettingsMutation,
 } from "apiSlice";
 import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
@@ -120,12 +119,12 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [updateNodeConfiguration] = useUpdateNodeConfigurationMutation();
   const [addNodeConfiguration] = useAddNodeConfigurationMutation();
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
-  const [setNodePingSystemStatus] = useUpdateNodePingSystemStatusMutation();
-  const [setNodeCustomSettingStatus] = useUpdateNodeCustomSettingStatusMutation();
+  const [setCustomSettings] = useUpdateCustomSettingsMutation();
 
   const [nodeConfigurationState, setNodeConfigurationState] = useState<nodeConfiguration>(nodeConfigurationTemplate);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
   const [customSettingsCollapsedState, setCustomSettingsCollapsedState] = useState(true);
+  const [customSettingsSaveEnabledState, setCustomSettingsSaveEnabledState] = useState(false);
   const [showModalState, setShowModalState] = useState(false);
   const [deleteConfirmationTextInputState, setDeleteConfirmationTextInputState] = useState("");
   const [deleteEnabled, setDeleteEnabled] = useState(false);
@@ -133,6 +132,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [enableEnableButtonState, setEnableEnableButtonState] = useState(true);
   const [customSettingsState, setCustomSettingsState] = React.useState(customSettingsDefault);
   const [formErrorState, setFormErrorState] = React.useState({} as FormErrors);
+  const [toggleErrorState, setToggleErrorState] = React.useState({} as FormErrors);
 
   React.useImperativeHandle(ref, () => ({
     clear() {
@@ -237,6 +237,25 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
+  const submitCustomSettings = async () => {
+    setCustomSettingsSaveEnabledState(false);
+    setCustomSettings({ nodeId: nodeConfigurationState.nodeId, customSettings: nodeConfigurationState.customSettings,
+      pingSystems: nodeConfigurationState.pingSystem })
+      .unwrap()
+      .then((_) => {
+        setCustomSettingsSaveEnabledState(true);
+        setEnableEnableButtonState(true);
+        toastRef?.current?.addToast("Custom Settings Saved", toastCategory.success);
+      })
+      .catch((error) => {
+        setCustomSettingsSaveEnabledState(true);
+        /* toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error); */
+        const mergedErrors = mergeServerError(error.data, formErrorState);
+        setToggleErrorState(mergedErrors);
+      });
+    mixpanel.track("Save Custom Settings");
+  };
+
   React.useEffect(() => {
     setNodeConfigurationState(nodeConfigurationData || nodeConfigurationTemplate);
     if (nodeConfigurationData == undefined) {
@@ -256,6 +275,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         importForwardsHistory:
           nodeConfigurationData.customSettings % (importForwardsHistoryValue * 2) >= importForwardsHistoryValue,
       });
+      setCustomSettingsCollapsedState(false)
     }
     if (nodeConfigurationData != undefined && nodeConfigurationData.status == 0) {
       setSaveEnabledState(true);
@@ -350,66 +370,35 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   };
 
   const handleAmbossPingClick = () => {
-    const ambossActive = nodeConfigurationState.pingSystem % 2 >= 1;
-    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 1, statusId: ambossActive ? 0 : 1 })
-      .unwrap()
-      .then((_) => {
-        if (ambossActive) {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - 1 });
-        } else {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + 1 });
-        }
-      })
-      .catch((error) => {
-        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
-      });
-    if (popoverRef.current) {
-      (popoverRef.current as { close: () => void }).close();
+    setCustomSettingsSaveEnabledState(true)
+    const pingSystem = 1;
+    if (nodeConfigurationState.pingSystem % (pingSystem*2) >= pingSystem) {
+      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - pingSystem });
+    } else {
+      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + pingSystem });
     }
   };
 
   const handleVectorPingClick = () => {
-    const vectorActive = nodeConfigurationState.pingSystem % 4 >= 2;
-    setNodePingSystemStatus({ nodeId: nodeConfigurationState.nodeId, pingSystem: 2, statusId: vectorActive ? 0 : 1 })
-      .unwrap()
-      .then((_) => {
-        if (vectorActive) {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - 2 });
-        } else {
-          setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + 2 });
-        }
-      })
-      .catch((error) => {
-        toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
-      });
-    if (popoverRef.current) {
-      (popoverRef.current as { close: () => void }).close();
+    setCustomSettingsSaveEnabledState(true)
+    const pingSystem = 2
+    if (nodeConfigurationState.pingSystem % (pingSystem*2) >= pingSystem) {
+      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - pingSystem });
+    } else {
+      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + pingSystem });
     }
   };
 
   const toggleCustomSettingsStateNow = (key: string) => {
+    setCustomSettingsSaveEnabledState(true)
     const data = customSettingsSidebarData.get(key);
     if (data !== undefined) {
-      setNodeCustomSettingStatus({ nodeId: nodeConfigurationState.nodeId, customSetting: data.value, statusId: getCustomSettingsState(key) ? 0 : 1 })
-        .unwrap()
-        .then((_) => {
-          if (getCustomSettingsState(key)) {
-            setNodeConfigurationState({
-              ...nodeConfigurationState,
-              customSettings: nodeConfigurationState.customSettings - data.value,
-            });
-          } else {
-            setNodeConfigurationState({
-              ...nodeConfigurationState,
-              customSettings: nodeConfigurationState.customSettings + data.value,
-            });
-          }
-        })
-        .catch((error) => {
-          toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
-        });
-      if (popoverRef.current) {
-        (popoverRef.current as { close: () => void }).close();
+      if (getCustomSettingsState(key)) {
+        setNodeConfigurationState({ ...nodeConfigurationState,
+          customSettings: nodeConfigurationState.customSettings - data.value });
+      } else {
+        setNodeConfigurationState({ ...nodeConfigurationState,
+          customSettings: nodeConfigurationState.customSettings + data.value });
       }
     }
   };
@@ -659,6 +648,17 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       <p>{t.header.ambossPingSystem}</p>
                     </Note>
                   </div>
+                  <ErrorSummary errors={toggleErrorState} />
+                  <Button
+                    id={"customSettings-save-node"}
+                    buttonColor={ColorVariant.success}
+                    icon={<SaveIcon />}
+                    onClick={submitCustomSettings}
+                    buttonPosition={ButtonPosition.fullWidth}
+                    disabled={!customSettingsSaveEnabledState}
+                  >
+                    Save toggles
+                  </Button>
                 </>
               )}
             </Form>

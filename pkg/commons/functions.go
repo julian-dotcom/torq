@@ -160,6 +160,19 @@ func (ps PingSystem) HasPingSystem(pingSystem PingSystem) bool {
 func (ps PingSystem) RemovePingSystem(pingSystem PingSystem) PingSystem {
 	return ps & ^pingSystem
 }
+func (ps PingSystem) GetServiceType() *ServiceType {
+	switch {
+	case ps.HasPingSystem(Vector):
+		vectorService := VectorService
+		return &vectorService
+	case ps.HasPingSystem(Amboss):
+		ambossService := AmbossService
+		return &ambossService
+	default:
+		log.Error().Msgf("DEVELOPMENT ERROR: PingSystem not supported")
+		return nil
+	}
+}
 
 func (cs NodeConnectionDetailCustomSettings) AddNodeConnectionDetailCustomSettings(
 	customSettings NodeConnectionDetailCustomSettings) NodeConnectionDetailCustomSettings {
@@ -175,6 +188,33 @@ func (cs NodeConnectionDetailCustomSettings) RemoveNodeConnectionDetailCustomSet
 	customSettings NodeConnectionDetailCustomSettings) NodeConnectionDetailCustomSettings {
 
 	return cs & ^customSettings
+}
+func (cs NodeConnectionDetailCustomSettings) GetServiceType() *ServiceType {
+	switch {
+	case cs.HasNodeConnectionDetailCustomSettings(ImportFailedPayments),
+		cs.HasNodeConnectionDetailCustomSettings(ImportPayments):
+		lndServicePaymentStream := LndServicePaymentStream
+		return &lndServicePaymentStream
+	case cs.HasNodeConnectionDetailCustomSettings(ImportHtlcEvents):
+		lndServiceHtlcEventStream := LndServiceHtlcEventStream
+		return &lndServiceHtlcEventStream
+	case cs.HasNodeConnectionDetailCustomSettings(ImportPeerEvents):
+		lndServicePeerEventStream := LndServicePeerEventStream
+		return &lndServicePeerEventStream
+	case cs.HasNodeConnectionDetailCustomSettings(ImportTransactions):
+		lndServiceTransactionStream := LndServiceTransactionStream
+		return &lndServiceTransactionStream
+	case cs.HasNodeConnectionDetailCustomSettings(ImportInvoices):
+		lndServiceInvoiceStream := LndServiceInvoiceStream
+		return &lndServiceInvoiceStream
+	case cs.HasNodeConnectionDetailCustomSettings(ImportForwards),
+		cs.HasNodeConnectionDetailCustomSettings(ImportHistoricForwards):
+		lndServiceForwardStream := LndServiceForwardStream
+		return &lndServiceForwardStream
+	default:
+		log.Error().Msgf("DEVELOPMENT ERROR: NodeConnectionDetailCustomSettings not supported")
+		return nil
+	}
 }
 
 func (cf ChannelFlags) AddChannelFlag(channelFlags ChannelFlags) ChannelFlags {
@@ -211,6 +251,19 @@ func GetLndServiceTypes() []ServiceType {
 		LndServicePeerEventStream,
 		LndServiceInFlightPaymentStream,
 		LndServiceChannelBalanceCacheStream,
+	}
+}
+
+func GetNodeConnectionDetailCustomSettings() []NodeConnectionDetailCustomSettings {
+	return []NodeConnectionDetailCustomSettings{
+		ImportFailedPayments,
+		ImportHtlcEvents,
+		ImportPeerEvents,
+		ImportTransactions,
+		ImportPayments,
+		ImportInvoices,
+		ImportForwards,
+		ImportHistoricForwards,
 	}
 }
 
@@ -268,6 +321,46 @@ func (st *ServiceType) IsChannelBalanceCache() bool {
 		return true
 	}
 	return false
+}
+
+func (st *ServiceType) GetNodeConnectionDetailCustomSettings() []NodeConnectionDetailCustomSettings {
+	if st == nil {
+		return nil
+	}
+	switch *st {
+	case LndServicePaymentStream:
+		return []NodeConnectionDetailCustomSettings{ImportFailedPayments, ImportPayments}
+	case LndServiceHtlcEventStream:
+		return []NodeConnectionDetailCustomSettings{ImportHtlcEvents}
+	case LndServicePeerEventStream:
+		return []NodeConnectionDetailCustomSettings{ImportPeerEvents}
+	case LndServiceTransactionStream:
+		return []NodeConnectionDetailCustomSettings{ImportTransactions}
+	case LndServiceInvoiceStream:
+		return []NodeConnectionDetailCustomSettings{ImportInvoices}
+	case LndServiceForwardStream:
+		return []NodeConnectionDetailCustomSettings{ImportForwards, ImportHistoricForwards}
+	default:
+		log.Error().Msgf("DEVELOPMENT ERROR: ServiceType not supported")
+		return nil
+	}
+}
+
+func (st *ServiceType) GetPingSystem() *PingSystem {
+	if st == nil {
+		return nil
+	}
+	switch *st {
+	case AmbossService:
+		amboss := Amboss
+		return &amboss
+	case VectorService:
+		vector := Vector
+		return &vector
+	default:
+		log.Error().Msgf("DEVELOPMENT ERROR: ServiceType not supported")
+		return nil
+	}
 }
 
 func GetDeltaPerMille(base uint64, amt uint64) int {

@@ -800,36 +800,24 @@ func ActivateLndService(ctx context.Context,
 	var relavantServiceTypes []ServiceType
 	for _, lndServiceType := range GetLndServiceTypes() {
 		switch lndServiceType {
-		case VectorService:
-			if pingSystem&Vector != 0 {
+		case VectorService, AmbossService:
+			if pingSystem&(*lndServiceType.GetPingSystem()) != 0 {
 				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
 			}
-		case AmbossService:
-			if pingSystem&Amboss != 0 {
-				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
+		case LndServiceTransactionStream,
+			LndServiceHtlcEventStream,
+			LndServiceForwardStream,
+			LndServiceInvoiceStream,
+			LndServicePaymentStream,
+			LndServicePeerEventStream:
+			active := false
+			for _, cs := range lndServiceType.GetNodeConnectionDetailCustomSettings() {
+				if customSettings&cs != 0 {
+					active = true
+					break
+				}
 			}
-		case LndServiceTransactionStream:
-			if customSettings&ImportTransactions != 0 {
-				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
-			}
-		case LndServiceHtlcEventStream:
-			if customSettings&ImportHtlcEvents != 0 {
-				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
-			}
-		case LndServiceForwardStream:
-			if customSettings&ImportForwards != 0 || customSettings&ImportHistoricForwards != 0 {
-				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
-			}
-		case LndServiceInvoiceStream:
-			if customSettings&ImportInvoices != 0 {
-				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
-			}
-		case LndServicePaymentStream:
-			if customSettings&ImportPayments != 0 || customSettings&ImportFailedPayments != 0 {
-				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
-			}
-		case LndServicePeerEventStream:
-			if customSettings&ImportPeerEvents != 0 {
+			if active {
 				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
 			}
 		default:

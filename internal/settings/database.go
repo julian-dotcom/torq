@@ -391,6 +391,24 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	return rowsAffected, nil
 }
 
+func setCustomSettings(db *sqlx.DB,
+	nodeId int,
+	customSettings commons.NodeConnectionDetailCustomSettings,
+	pingSystems commons.PingSystem) (int64, error) {
+
+	res, err := db.Exec(`
+		UPDATE node_connection_details SET custom_settings=$1, ping_system=$2, updated_on=$3 WHERE node_id=$4;`,
+		customSettings, pingSystems, time.Now().UTC(), nodeId)
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
+}
+
 func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
