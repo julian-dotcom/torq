@@ -21,8 +21,9 @@ export default function peerCellRenderer(
   maxRow?: Peer
 ): JSX.Element {
   const { t } = useTranslations();
-  const [disconnectNodeMutation, { error: disconnectError }] = useDisconnectPeerMutation();
-  const [reconnectMutation, { error: reconnectError }] = useReconnectPeerMutation();
+  const [disconnectNodeMutation, { error: disconnectError, isLoading: disconnectIsLoading }] =
+    useDisconnectPeerMutation();
+  const [reconnectMutation, { error: reconnectError, isLoading: reconnectIsLoading }] = useReconnectPeerMutation();
   const toastRef = React.useContext(ToastContext);
 
   React.useEffect(() => {
@@ -47,7 +48,7 @@ export default function peerCellRenderer(
     return (
       <CellWrapper cellWrapperClassName={styles.actionsWrapper} key={"connect-button-" + row.nodeId}>
         <Button
-          disabled={row.connectionStatus === PeerStatus.Active}
+          disabled={row.connectionStatus === PeerStatus.Active || reconnectIsLoading || disconnectIsLoading}
           buttonSize={SizeVariant.small}
           onClick={() => {
             mixpanel.track("Connect Peer", {
@@ -60,7 +61,7 @@ export default function peerCellRenderer(
           {t.peersPage.connect}
         </Button>
         <Button
-          disabled={row.connectionStatus === PeerStatus.Inactive}
+          disabled={row.connectionStatus === PeerStatus.Inactive || reconnectIsLoading || disconnectIsLoading}
           buttonSize={SizeVariant.small}
           onClick={() => {
             mixpanel.track("Disconnect Peer", {
