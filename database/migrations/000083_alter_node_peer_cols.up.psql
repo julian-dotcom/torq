@@ -1,5 +1,5 @@
 alter table node
-    add node_connection_details_node_id integer NULL REFERENCES node(node_id);
+    add node_connection_details_node_id integer;
 
 alter table node
     add connection_status_id integer default 1;
