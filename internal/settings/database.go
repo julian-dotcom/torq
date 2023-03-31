@@ -340,7 +340,9 @@ func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Stat
 }
 
 func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
-	nodeId int, pingSystem commons.PingSystem, status commons.Status) (int64, error) {
+	nodeId int,
+	pingSystem commons.PingSystem,
+	status commons.Status) (int64, error) {
 
 	var err error
 	var res sql.Result
@@ -352,6 +354,32 @@ func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
 		res, err = db.Exec(`
 		UPDATE node_connection_details SET ping_system = ping_system-$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 >= $5;`,
 			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
+	}
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlExecutionError)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+	}
+	return rowsAffected, nil
+}
+
+func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
+	nodeId int,
+	customSettings commons.NodeConnectionDetailCustomSettings,
+	status commons.Status) (int64, error) {
+
+	var err error
+	var res sql.Result
+	if status == commons.Active {
+		res, err = db.Exec(`
+		UPDATE node_connection_details SET custom_settings = custom_settings+$1, updated_on = $2 WHERE node_id = $3 AND custom_settings%$4 < $5;`,
+			customSettings, time.Now().UTC(), nodeId, customSettings*2, customSettings)
+	} else {
+		res, err = db.Exec(`
+		UPDATE node_connection_details SET custom_settings = custom_settings-$1, updated_on = $2 WHERE node_id = $3 AND custom_settings%$4 >= $5;`,
+			customSettings, time.Now().UTC(), nodeId, customSettings*2, customSettings)
 	}
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)

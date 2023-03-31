@@ -86,14 +86,14 @@ type ManagedChannelSettings struct {
 	Flags                  ChannelFlags
 }
 
-func (channelSettings *ManagedChannelSettings) AddChannelFlags(flags ChannelFlags) {
-	channelSettings.Flags |= flags
+func (channel *ManagedChannelSettings) AddChannelFlags(flags ChannelFlags) {
+	channel.Flags = channel.Flags.AddChannelFlag(flags)
 }
-func (channelSettings *ManagedChannelSettings) HasChannelFlags(flags ChannelFlags) bool {
-	return channelSettings.Flags&flags != 0
+func (channel *ManagedChannelSettings) HasChannelFlags(flags ChannelFlags) bool {
+	return channel.Flags.HasChannelFlag(flags)
 }
-func (channelSettings *ManagedChannelSettings) RemoveChannelFlags(flags ChannelFlags) {
-	channelSettings.Flags &= ^flags
+func (channel *ManagedChannelSettings) RemoveChannelFlags(flags ChannelFlags) {
+	channel.Flags = channel.Flags.RemoveChannelFlag(flags)
 }
 
 func ManagedChannelCache(ch <-chan ManagedChannel, ctx context.Context) {

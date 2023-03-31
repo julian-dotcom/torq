@@ -59,13 +59,13 @@ type Channel struct {
 }
 
 func (channel *Channel) AddChannelFlags(flags commons.ChannelFlags) {
-	channel.Flags |= flags
+	channel.Flags = channel.Flags.AddChannelFlag(flags)
 }
 func (channel *Channel) HasChannelFlags(flags commons.ChannelFlags) bool {
-	return channel.Flags&flags != 0
+	return channel.Flags.HasChannelFlag(flags)
 }
 func (channel *Channel) RemoveChannelFlags(flags commons.ChannelFlags) {
-	channel.Flags &= ^flags
+	channel.Flags = channel.Flags.RemoveChannelFlag(flags)
 }
 
 func AddChannelOrUpdateChannelStatus(db *sqlx.DB,

@@ -359,6 +359,9 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 	commons.SetPendingTorqServiceState(commons.TorqService)
 }
 
+const hangingTimeoutInSeconds = 120
+const failureTimeoutInSeconds = 60
+
 func manageServices(db *sqlx.DB) {
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
@@ -435,17 +438,31 @@ func manageServices(db *sqlx.DB) {
 
 		// We end up here when the main Torq service AND all non node specific services have the desired states
 		for _, nodeId := range commons.GetLndNodeIds() {
+			serviceType := commons.LndServiceChannelEventStream
 			// check channel events first only if that one works we start the others
 			// because channel events downloads our channels and routing policies from LND
-			channelEventStream := commons.GetCurrentLndServiceState(commons.LndServiceChannelEventStream, nodeId)
+			channelEventStream := commons.GetCurrentLndServiceState(serviceType, nodeId)
 			switch channelEventStream.Status {
 			case commons.ServiceActive:
 				for _, lndServiceType := range commons.GetLndServiceTypes() {
 					processLndService(db, lndServiceType, nodeId)
 				}
 			case commons.ServiceInactive:
-				processLndService(db, commons.LndServiceChannelEventStream, nodeId)
+				processLndService(db, serviceType, nodeId)
+			case commons.ServicePending:
+				pendingTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServicePending)
+				if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
+					// hanging idle on pending
+					commons.CancelLndService(serviceType, nodeId)
+				}
+			case commons.ServiceInitializing:
+				initializationTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServiceInitializing)
+				if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
+					// hanging idle on initialization
+					commons.CancelLndService(serviceType, nodeId)
+				}
 			}
+
 		}
 	}
 }
@@ -525,14 +542,26 @@ func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int)
 	if currentState.Status == desiredState.Status {
 		return
 	}
-	switch desiredState.Status {
+	switch currentState.Status {
 	case commons.ServiceActive:
-		if currentState.Status == commons.ServiceInactive {
-			processServiceBoot(db, serviceType, nodeId)
+		if desiredState.Status == commons.ServiceInactive {
+			log.Info().Msgf("Inactivating %v for nodeId: %v.", serviceType.String(), nodeId)
+			commons.CancelLndService(serviceType, nodeId)
 		}
 	case commons.ServiceInactive:
-		log.Info().Msgf("Inactivating %v for nodeId: %v.", serviceType.String(), nodeId)
-		commons.CancelLndService(serviceType, nodeId)
+		processServiceBoot(db, serviceType, nodeId)
+	case commons.ServicePending:
+		pendingTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServicePending)
+		if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
+			// hanging idle on pending
+			commons.CancelLndService(serviceType, nodeId)
+		}
+	case commons.ServiceInitializing:
+		initializationTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServiceInitializing)
+		if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
+			// hanging idle on initialization
+			commons.CancelLndService(serviceType, nodeId)
+		}
 	}
 }
 
@@ -542,20 +571,33 @@ func processTorqService(db *sqlx.DB, serviceType commons.ServiceType) bool {
 	if currentState.Status == desiredState.Status {
 		return true
 	}
-	switch desiredState.Status {
+	switch currentState.Status {
 	case commons.ServiceActive:
-		if currentState.Status == commons.ServiceInactive {
-			processServiceBoot(db, serviceType, 0)
+		if desiredState.Status == commons.ServiceInactive {
+			log.Info().Msgf("Inactivating %v.", serviceType.String())
+			commons.CancelTorqService(serviceType)
 		}
 	case commons.ServiceInactive:
-		commons.CancelTorqService(serviceType)
+		processServiceBoot(db, serviceType, 0)
+	case commons.ServicePending:
+		pendingTime := commons.GetTorqServiceTime(serviceType, commons.ServicePending)
+		if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
+			// hanging idle on pending
+			commons.CancelTorqService(serviceType)
+		}
+	case commons.ServiceInitializing:
+		initializationTime := commons.GetTorqServiceTime(serviceType, commons.ServiceInitializing)
+		if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
+			// hanging idle on initialization
+			commons.CancelTorqService(serviceType)
+		}
 	}
 	return false
 }
 
 func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int) {
 	failedAttemptTime := commons.GetLndFailedAttemptTime(serviceType, nodeId)
-	if failedAttemptTime != nil && time.Since(*failedAttemptTime).Seconds() < 60 {
+	if failedAttemptTime != nil && time.Since(*failedAttemptTime).Seconds() < failureTimeoutInSeconds {
 		return
 	}
 

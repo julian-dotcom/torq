@@ -19,6 +19,8 @@ const (
 	readCurrentLndServiceState
 	readDesiredTorqServiceState
 	readDesiredLndServiceState
+	readTorqServiceTime
+	readLndServiceTime
 	readLatestTorqFailedAttempt
 	readLatestLndFailedAttempt
 	readSuccessTimes
@@ -67,7 +69,7 @@ type SystemServiceState struct {
 type ServiceState struct {
 	Status             ServiceStatus
 	CancelFunc         *context.CancelFunc
-	BootTime           *time.Time
+	ActiveTime         *time.Time
 	PendingTime        *time.Time
 	InitializationTime *time.Time
 	InactivationTime   *time.Time
@@ -78,7 +80,7 @@ func (ss *ServiceState) Pending(cancelFunc context.CancelFunc) ServiceState {
 	now := time.Now()
 	ss.Status = ServicePending
 	ss.CancelFunc = &cancelFunc
-	ss.BootTime = nil
+	ss.ActiveTime = nil
 	ss.PendingTime = &now
 	ss.InitializationTime = nil
 	return *ss
@@ -87,7 +89,7 @@ func (ss *ServiceState) Pending(cancelFunc context.CancelFunc) ServiceState {
 func (ss *ServiceState) Initializing() ServiceState {
 	now := time.Now()
 	ss.Status = ServiceInitializing
-	ss.BootTime = nil
+	ss.ActiveTime = nil
 	ss.InitializationTime = &now
 	return *ss
 }
@@ -95,7 +97,7 @@ func (ss *ServiceState) Initializing() ServiceState {
 func (ss *ServiceState) Activate() ServiceState {
 	now := time.Now()
 	ss.Status = ServiceActive
-	ss.BootTime = &now
+	ss.ActiveTime = &now
 	ss.PendingTime = nil
 	ss.InitializationTime = nil
 	ss.InactivationTime = nil
@@ -105,6 +107,7 @@ func (ss *ServiceState) Activate() ServiceState {
 
 func (ss *ServiceState) Cancel() ServiceState {
 	if ss.CancelFunc != nil {
+		log.Info().Msgf("Cancel function called.")
 		(*ss.CancelFunc)()
 		ss.CancelFunc = nil
 	}
@@ -135,16 +138,6 @@ type LndNodeConnectionDetails struct {
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
 	CustomSettings    NodeConnectionDetailCustomSettings
-}
-
-func (ncd *LndNodeConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings NodeConnectionDetailCustomSettings) {
-	ncd.CustomSettings |= customSettings
-}
-func (ncd *LndNodeConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings NodeConnectionDetailCustomSettings) bool {
-	return ncd.CustomSettings&customSettings != 0
-}
-func (ncd *LndNodeConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings NodeConnectionDetailCustomSettings) {
-	ncd.CustomSettings &= ^customSettings
 }
 
 func ManagedServiceCache(ch <-chan ManagedService, ctx context.Context) {
@@ -212,11 +205,46 @@ func processManagedService(
 			break
 		}
 		managedService.ServiceStateOut <- ServiceState{}
+	case readTorqServiceTime:
+		var t *time.Time
+		state, exist := torqCurrentStateCache.TorqServiceStates[managedService.ServiceType]
+		if exist {
+			switch managedService.ServiceStatus {
+			case ServicePending:
+				t = state.PendingTime
+			case ServiceInitializing:
+				t = state.InitializationTime
+			case ServiceActive:
+				t = state.ActiveTime
+			case ServiceInactive:
+				t = state.InactivationTime
+			}
+		}
+		managedService.TimeOut <- t
+	case readLndServiceTime:
+		var t *time.Time
+		n, nodeExist := torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId]
+		if nodeExist {
+			state, exists := n[managedService.ServiceType]
+			if exists {
+				switch managedService.ServiceStatus {
+				case ServicePending:
+					t = state.PendingTime
+				case ServiceInitializing:
+					t = state.InitializationTime
+				case ServiceActive:
+					t = state.ActiveTime
+				case ServiceInactive:
+					t = state.InactivationTime
+				}
+			}
+		}
+		managedService.TimeOut <- t
 	case readLatestTorqFailedAttempt:
 		var t *time.Time
 		state, exist := torqCurrentStateCache.TorqServiceStates[managedService.ServiceType]
 		if exist {
-			t = state.InactivationTime
+			t = state.FailureTime
 		}
 		managedService.TimeOut <- t
 	case readLatestLndFailedAttempt:
@@ -225,7 +253,7 @@ func processManagedService(
 		if nodeExist {
 			state, exists := n[managedService.ServiceType]
 			if exists {
-				t = state.InactivationTime
+				t = state.FailureTime
 			}
 		}
 		managedService.TimeOut <- t
@@ -473,9 +501,10 @@ func GetDesiredLndServiceState(serviceType ServiceType, nodeId int) ServiceState
 func GetTorqFailedAttemptTime(serviceType ServiceType) *time.Time {
 	responseChannel := make(chan *time.Time)
 	managedService := ManagedService{
-		ServiceType: serviceType,
-		Type:        readLatestTorqFailedAttempt,
-		TimeOut:     responseChannel,
+		ServiceType:   serviceType,
+		ServiceStatus: ServiceInactive,
+		Type:          readLatestTorqFailedAttempt,
+		TimeOut:       responseChannel,
 	}
 	ManagedServiceChannel <- managedService
 	return <-responseChannel
@@ -488,6 +517,31 @@ func GetLndFailedAttemptTime(serviceType ServiceType, nodeId int) *time.Time {
 		NodeId:      nodeId,
 		Type:        readLatestLndFailedAttempt,
 		TimeOut:     responseChannel,
+	}
+	ManagedServiceChannel <- managedService
+	return <-responseChannel
+}
+
+func GetTorqServiceTime(serviceType ServiceType, serviceStatus ServiceStatus) *time.Time {
+	responseChannel := make(chan *time.Time)
+	managedService := ManagedService{
+		ServiceType:   serviceType,
+		ServiceStatus: serviceStatus,
+		Type:          readTorqServiceTime,
+		TimeOut:       responseChannel,
+	}
+	ManagedServiceChannel <- managedService
+	return <-responseChannel
+}
+
+func GetLndServiceTime(serviceType ServiceType, nodeId int, serviceStatus ServiceStatus) *time.Time {
+	responseChannel := make(chan *time.Time)
+	managedService := ManagedService{
+		ServiceType:   serviceType,
+		NodeId:        nodeId,
+		ServiceStatus: serviceStatus,
+		Type:          readLndServiceTime,
+		TimeOut:       responseChannel,
 	}
 	ManagedServiceChannel <- managedService
 	return <-responseChannel
@@ -665,40 +719,40 @@ func GetLndNodeIds() []int {
 	return <-responseChannel
 }
 
-func InactivateTorqService(ctx context.Context, serviceType ServiceType) {
+func InactivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 	SetDesiredTorqServiceState(serviceType, ServiceInactive)
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case <-ticker:
 			state := GetCurrentTorqServiceState(serviceType)
 			if state.Status == ServiceInactive {
-				return
+				return true
 			}
 		}
 	}
 }
 
-func ActivateTorqService(ctx context.Context, serviceType ServiceType) {
+func ActivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 	SetDesiredTorqServiceState(serviceType, ServiceActive)
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case <-ticker:
 			state := GetCurrentTorqServiceState(serviceType)
 			if state.Status != ServiceInactive {
 				continue
 			}
-			return
+			return true
 		}
 	}
 }
 
-func InactivateLndService(ctx context.Context, nodeId int) {
+func InactivateLndService(ctx context.Context, nodeId int) bool {
 	for _, lndServiceType := range GetLndServiceTypes() {
 		SetDesiredLndServiceState(lndServiceType, nodeId, ServiceInactive)
 	}
@@ -706,7 +760,7 @@ func InactivateLndService(ctx context.Context, nodeId int) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case <-ticker:
 			for _, lndServiceType := range GetLndServiceTypes() {
 				state := GetCurrentLndServiceState(lndServiceType, nodeId)
@@ -714,12 +768,16 @@ func InactivateLndService(ctx context.Context, nodeId int) {
 					continue
 				}
 			}
-			return
+			return true
 		}
 	}
 }
 
-func ActivateLndService(ctx context.Context, nodeId int, customSettings NodeConnectionDetailCustomSettings, pingSystem PingSystem) {
+func ActivateLndService(ctx context.Context,
+	nodeId int,
+	customSettings NodeConnectionDetailCustomSettings,
+	pingSystem PingSystem) bool {
+
 	var relavantServiceTypes []ServiceType
 	for _, lndServiceType := range GetLndServiceTypes() {
 		switch lndServiceType {
@@ -766,7 +824,7 @@ func ActivateLndService(ctx context.Context, nodeId int, customSettings NodeConn
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case <-ticker:
 			for _, lndServiceType := range relavantServiceTypes {
 				state := GetCurrentLndServiceState(lndServiceType, nodeId)
@@ -774,41 +832,41 @@ func ActivateLndService(ctx context.Context, nodeId int, customSettings NodeConn
 					continue
 				}
 			}
-			return
+			return true
 		}
 	}
 }
 
-func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) {
+func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
 	SetDesiredLndServiceState(serviceType, nodeId, ServiceInactive)
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case <-ticker:
 			state := GetCurrentLndServiceState(serviceType, nodeId)
 			if state.Status != ServiceInactive {
 				continue
 			}
-			return
+			return true
 		}
 	}
 }
 
-func ActivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) {
+func ActivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
 	SetDesiredLndServiceState(serviceType, nodeId, ServiceActive)
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case <-ticker:
 			state := GetCurrentLndServiceState(serviceType, nodeId)
 			if state.Status != ServiceInactive {
 				continue
 			}
-			return
+			return true
 		}
 	}
 }
@@ -855,5 +913,5 @@ func SetLndNodeConnectionDetails(nodeId int, details LndNodeConnectionDetails) {
 
 func HasCustomSetting(nodeId int, customSetting NodeConnectionDetailCustomSettings) bool {
 	ncd := GetLndNodeConnectionDetails(nodeId)
-	return ncd.HasNodeConnectionDetailCustomSettings(customSetting)
+	return ncd.CustomSettings.HasNodeConnectionDetailCustomSettings(customSetting)
 }

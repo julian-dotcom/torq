@@ -190,8 +190,16 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 			log.Error().Err(err).Msg("Could not obtain workflowIds for WorkflowNodeCronTrigger")
 		}
 		if slices.Contains(workflowIds, req.WorkflowId) {
-			commons.InactivateTorqService(context.Background(), commons.CronService)
-			commons.ActivateTorqService(context.Background(), commons.CronService)
+			ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer cancel()
+			success := commons.InactivateTorqService(ctxWithTimeout, commons.CronService)
+			if success {
+				success = commons.ActivateTorqService(ctxWithTimeout, commons.CronService)
+			}
+			if !success {
+				server_errors.WrapLogAndSendServerError(c, err, "Could not restart CronService.")
+				return
+			}
 		}
 	}
 

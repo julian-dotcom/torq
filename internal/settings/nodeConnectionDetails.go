@@ -29,26 +29,6 @@ type NodeConnectionDetails struct {
 	UpdatedOn         *time.Time                                 `json:"updatedOn"  db:"updated_on"`
 }
 
-func (ncd *NodeConnectionDetails) AddNotificationType(pingSystem commons.PingSystem) {
-	ncd.PingSystem |= pingSystem
-}
-func (ncd *NodeConnectionDetails) HasNotificationType(pingSystem commons.PingSystem) bool {
-	return ncd.PingSystem&pingSystem != 0
-}
-func (ncd *NodeConnectionDetails) RemoveNotificationType(pingSystem commons.PingSystem) {
-	ncd.PingSystem &= ^pingSystem
-}
-
-func (ncd *NodeConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
-	ncd.CustomSettings |= customSettings
-}
-func (ncd *NodeConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) bool {
-	return ncd.CustomSettings&customSettings != 0
-}
-func (ncd *NodeConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
-	ncd.CustomSettings &= ^customSettings
-}
-
 func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 	allNodeConnectionDetails, err := GetAllNodeConnectionDetails(db, true)
 	if err != nil {

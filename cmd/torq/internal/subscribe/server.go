@@ -58,7 +58,7 @@ func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sql
 
 func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := commons.LndServiceChannelEventStream
+	serviceType := commons.LndServiceGraphEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 

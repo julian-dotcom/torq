@@ -25,6 +25,7 @@ import {
   useUpdateNodeConfigurationMutation,
   useUpdateNodeConfigurationStatusMutation,
   useUpdateNodePingSystemStatusMutation,
+  useUpdateNodeCustomSettingStatusMutation,
 } from "apiSlice";
 import { nodeConfiguration } from "apiTypes";
 import classNames from "classnames";
@@ -120,6 +121,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [addNodeConfiguration] = useAddNodeConfigurationMutation();
   const [setNodeConfigurationStatus] = useUpdateNodeConfigurationStatusMutation();
   const [setNodePingSystemStatus] = useUpdateNodePingSystemStatusMutation();
+  const [setNodeCustomSettingStatus] = useUpdateNodeCustomSettingStatusMutation();
 
   const [nodeConfigurationState, setNodeConfigurationState] = useState<nodeConfiguration>(nodeConfigurationTemplate);
   const [collapsedState, setCollapsedState] = useState(collapsed ?? false);
@@ -385,6 +387,33 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
+  const toggleCustomSettingsStateNow = (key: string) => {
+    const data = customSettingsSidebarData.get(key);
+    if (data !== undefined) {
+      setNodeCustomSettingStatus({ nodeId: nodeConfigurationState.nodeId, customSetting: data.value, statusId: getCustomSettingsState(key) ? 0 : 1 })
+        .unwrap()
+        .then((_) => {
+          if (getCustomSettingsState(key)) {
+            setNodeConfigurationState({
+              ...nodeConfigurationState,
+              customSettings: nodeConfigurationState.customSettings - data.value,
+            });
+          } else {
+            setNodeConfigurationState({
+              ...nodeConfigurationState,
+              customSettings: nodeConfigurationState.customSettings + data.value,
+            });
+          }
+        })
+        .catch((error) => {
+          toastRef?.current?.addToast(error.data["errors"]["server"][0].split(":")[0], toastCategory.error);
+        });
+      if (popoverRef.current) {
+        (popoverRef.current as { close: () => void }).close();
+      }
+    }
+  };
+
   const implementationOptions: Array<SelectOption> = [{ value: "0", label: "LND" }];
 
   const menuButton = <MoreIcon className={styles.moreIcon} />;
@@ -485,78 +514,57 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   fileName={nodeConfigurationState?.macaroonFileName}
                 />
               </span>
-              <div className={styles.customImportSettings}>
-                <div
-                  className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
-                  onClick={handleCustomSettingsCollapseClick}
-                >
-                  <div className={styles.title}>{t.advancedSettings}</div>
+              {addMode && (
+                <div className={styles.customImportSettings}>
                   <div
-                    className={classNames(styles.collapseIcon, { [styles.collapsed]: customSettingsCollapsedState })}
+                    className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
+                    onClick={handleCustomSettingsCollapseClick}
                   >
-                    {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
-                  </div>
-                </div>
-                <Collapse collapsed={customSettingsCollapsedState} animate={true}>
-                  <div className={styles.customImportSettingsBody}>
-                    {addMode &&
-                      Object.keys(customSettingsState).map((key) => {
-                        const k = key as keyof typeof customSettingsState;
-                        const data = customSettingsSidebarData.get(key);
-                        if (data !== undefined && data.label !== undefined) {
-                          return (
-                            <div className={styles.import} key={key}>
-                              <Switch
-                                label={data.label}
-                                checked={nodeConfigurationState.customSettings % (data.value * 2) >= data.value}
-                                onChange={() => {
-                                  toggleCustomSettingsState(k);
-                                }}
-                              />
-                            </div>
-                          );
-                        }
-                      })}
-                    {!addMode &&
-                      Object.keys(customSettingsState).map((key) => {
-                        const k = key as keyof typeof customSettingsState;
-                        const data = customSettingsSidebarData.get(key);
-                        if (data !== undefined && data.label !== undefined) {
-                          return (
-                            <div className={styles.import} key={key}>
-                              <Switch
-                                label={data.label || ""}
-                                checked={customSettingsState[k]}
-                                onChange={() => {
-                                  setCustomSettingsState({
-                                    ...customSettingsState,
-                                    [key]: !customSettingsState[k],
-                                  });
-                                  toggleCustomSettingsState(key);
-                                }}
-                              />
-                            </div>
-                          );
-                        }
-                      })}
-                    <Switch
-                      label={t.ImportFailedPayments}
-                      checked={
-                        nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
-                        importFailedPaymentsValue
-                      }
-                      onChange={() => {
-                        toggleCustomSettingsState(importFailedPayments);
-                      }}
-                    />
-                    <div className={styles.importFailedPayments}>
-                      <Note title={"Failed Payments"} noteType={NoteType.warning}>
-                        {t.importFailedPayments}
-                      </Note>
+                    <div className={styles.title}>{t.advancedSettings}</div>
+                    <div
+                      className={classNames(styles.collapseIcon, { [styles.collapsed]: customSettingsCollapsedState })}
+                    >
+                      {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
                     </div>
                   </div>
-                </Collapse>
-              </div>
+                  <Collapse collapsed={customSettingsCollapsedState} animate={true}>
+                    <div className={styles.customImportSettingsBody}>
+                      {Object.keys(customSettingsState).map((key) => {
+                          const k = key as keyof typeof customSettingsState;
+                          const data = customSettingsSidebarData.get(key);
+                          if (data !== undefined && data.label !== undefined) {
+                            return (
+                              <div className={styles.import} key={key}>
+                                <Switch
+                                  label={data.label}
+                                  checked={nodeConfigurationState.customSettings % (data.value * 2) >= data.value}
+                                  onChange={() => {
+                                    toggleCustomSettingsState(k);
+                                  }}
+                                />
+                              </div>
+                            );
+                          }
+                        })}
+                      <Switch
+                        label={t.ImportFailedPayments}
+                        checked={
+                          nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
+                          importFailedPaymentsValue
+                        }
+                        onChange={() => {
+                          toggleCustomSettingsState(importFailedPayments);
+                        }}
+                      />
+                      <div className={styles.importFailedPayments}>
+                        <Note title={"Failed Payments"} noteType={NoteType.warning}>
+                          {t.importFailedPayments}
+                        </Note>
+                      </div>
+                    </div>
+                  </Collapse>
+                </div>
+              )}
               <ErrorSummary errors={formErrorState} />
               <Button
                 id={"save-node"}
@@ -575,28 +583,83 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   : "Saving..."}
               </Button>
               {!addMode && (
-                <div className={styles.pingSystems}>
-                  <div className={styles.vectorPingSystem}>
-                    <Switch
-                      label="Vector Ping"
-                      checked={nodeConfigurationState.pingSystem % 4 >= 2}
-                      onChange={handleVectorPingClick}
-                    />
+                <>
+                  <div className={styles.customImportSettings}>
+                    <div
+                      className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
+                      onClick={handleCustomSettingsCollapseClick}
+                    >
+                      <div className={styles.title}>{t.advancedSettings}</div>
+                      <div
+                        className={classNames(styles.collapseIcon, { [styles.collapsed]: customSettingsCollapsedState })}
+                      >
+                        {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
+                      </div>
+                    </div>
+                    <Collapse collapsed={customSettingsCollapsedState} animate={true}>
+                      <div className={styles.customImportSettingsBody}>
+                        {Object.keys(customSettingsState).map((key) => {
+                            const k = key as keyof typeof customSettingsState;
+                            const data = customSettingsSidebarData.get(key);
+                            if (data !== undefined && data.label !== undefined) {
+                              return (
+                                <div className={styles.import} key={key}>
+                                  <Switch
+                                    label={data.label || ""}
+                                    checked={customSettingsState[k]}
+                                    onChange={() => {
+                                      setCustomSettingsState({
+                                        ...customSettingsState,
+                                        [key]: !customSettingsState[k],
+                                      });
+                                      toggleCustomSettingsStateNow(key);
+                                    }}
+                                  />
+                                </div>
+                              );
+                            }
+                          })}
+                        <Switch
+                          label={t.ImportFailedPayments}
+                          checked={
+                            nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
+                            importFailedPaymentsValue
+                          }
+                          onChange={() => {
+                            toggleCustomSettingsStateNow(importFailedPayments);
+                          }}
+                        />
+                        <div className={styles.importFailedPayments}>
+                          <Note title={"Failed Payments"} noteType={NoteType.warning}>
+                            {t.importFailedPayments}
+                          </Note>
+                        </div>
+                      </div>
+                    </Collapse>
                   </div>
-                  <div className={styles.ambossPingSystem}>
-                    <Switch
-                      label="Amboss Ping"
-                      checked={nodeConfigurationState.pingSystem % 2 >= 1}
-                      onChange={handleAmbossPingClick}
-                    />
+                  <div className={styles.pingSystems}>
+                    <div className={styles.vectorPingSystem}>
+                      <Switch
+                        label="Vector Ping"
+                        checked={nodeConfigurationState.pingSystem % 4 >= 2}
+                        onChange={handleVectorPingClick}
+                      />
+                    </div>
+                    <div className={styles.ambossPingSystem}>
+                      <Switch
+                        label="Amboss Ping"
+                        checked={nodeConfigurationState.pingSystem % 2 >= 1}
+                        onChange={handleAmbossPingClick}
+                      />
+                    </div>
+                    <Note title={t.header.pingNoteHeader} noteType={NoteType.info}>
+                      <p>{t.pingNote}</p>
+                      <p>{t.header.pingSystem}</p>
+                      <p>{t.header.vectorPingSystem}</p>
+                      <p>{t.header.ambossPingSystem}</p>
+                    </Note>
                   </div>
-                  <Note title={t.header.pingNoteHeader} noteType={NoteType.info}>
-                    <p>{t.pingNote}</p>
-                    <p>{t.header.pingSystem}</p>
-                    <p>{t.header.vectorPingSystem}</p>
-                    <p>{t.header.ambossPingSystem}</p>
-                  </Note>
-                </div>
+                </>
               )}
             </Form>
           </div>

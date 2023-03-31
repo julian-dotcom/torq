@@ -151,8 +151,40 @@ func (s *ServiceStatus) String() string {
 	return UnknownEnumString
 }
 
-func GetServiceTypes() []ServiceType {
-	return append(GetTorqServiceTypes(), GetLndServiceTypes()...)
+func (ps PingSystem) AddPingSystem(pingSystem PingSystem) PingSystem {
+	return ps | pingSystem
+}
+func (ps PingSystem) HasPingSystem(pingSystem PingSystem) bool {
+	return ps&pingSystem != 0
+}
+func (ps PingSystem) RemovePingSystem(pingSystem PingSystem) PingSystem {
+	return ps & ^pingSystem
+}
+
+func (cs NodeConnectionDetailCustomSettings) AddNodeConnectionDetailCustomSettings(
+	customSettings NodeConnectionDetailCustomSettings) NodeConnectionDetailCustomSettings {
+
+	return cs | customSettings
+}
+func (cs NodeConnectionDetailCustomSettings) HasNodeConnectionDetailCustomSettings(
+	customSettings NodeConnectionDetailCustomSettings) bool {
+
+	return cs&customSettings != 0
+}
+func (cs NodeConnectionDetailCustomSettings) RemoveNodeConnectionDetailCustomSettings(
+	customSettings NodeConnectionDetailCustomSettings) NodeConnectionDetailCustomSettings {
+
+	return cs & ^customSettings
+}
+
+func (cf ChannelFlags) AddChannelFlag(channelFlags ChannelFlags) ChannelFlags {
+	return cf | channelFlags
+}
+func (cf ChannelFlags) HasChannelFlag(channelFlags ChannelFlags) bool {
+	return cf&channelFlags != 0
+}
+func (cf ChannelFlags) RemoveChannelFlag(channelFlags ChannelFlags) ChannelFlags {
+	return cf & ^channelFlags
 }
 
 func GetTorqServiceTypes() []ServiceType {

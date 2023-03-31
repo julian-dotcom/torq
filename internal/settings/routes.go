@@ -48,44 +48,30 @@ type ConnectionDetails struct {
 	CustomSettings    commons.NodeConnectionDetailCustomSettings
 }
 
-func (connectionDetails *ConnectionDetails) AddPingSystem(pingSystem commons.PingSystem) {
-	connectionDetails.PingSystem |= pingSystem
-}
-func (connectionDetails *ConnectionDetails) HasPingSystem(pingSystem commons.PingSystem) bool {
-	return connectionDetails.PingSystem&pingSystem != 0
-}
-func (connectionDetails *ConnectionDetails) RemovePingSystem(pingSystem commons.PingSystem) {
-	connectionDetails.PingSystem &= ^pingSystem
-}
-
-func (connectionDetails *ConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
-	connectionDetails.CustomSettings |= customSettings
-}
-func (connectionDetails *ConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) bool {
-	return connectionDetails.CustomSettings&customSettings != 0
-}
-func (connectionDetails *ConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
-	connectionDetails.CustomSettings &= ^customSettings
-}
-
-func setAllLndServices(ctx context.Context,
-	nodeId int,
+func setAllLndServices(nodeId int,
 	lndActive bool,
 	customSettings commons.NodeConnectionDetailCustomSettings,
-	pingSystem commons.PingSystem) {
+	pingSystem commons.PingSystem) bool {
 
-	commons.InactivateLndService(ctx, nodeId)
-	if lndActive {
-		commons.ActivateLndService(ctx, nodeId, customSettings, pingSystem)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	success := commons.InactivateLndService(ctxWithTimeout, nodeId)
+	if success && lndActive {
+		success = commons.ActivateLndService(ctxWithTimeout, nodeId, customSettings, pingSystem)
 	}
+	return success
 }
 
-func setService(ctx context.Context, serviceType commons.ServiceType, nodeId int, active bool) bool {
-	commons.InactivateLndServiceState(ctx, serviceType, nodeId)
-	if active {
-		commons.ActivateLndServiceState(ctx, serviceType, nodeId)
+func setService(serviceType commons.ServiceType, nodeId int, active bool) bool {
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	success := commons.InactivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
+	if success && active {
+		success = commons.ActivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
 	}
-	return true
+	return success
 }
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -100,6 +86,9 @@ func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	})
 	r.PUT("nodePingSystem/:nodeId/:pingSystem/:statusId", func(c *gin.Context) {
 		setNodeConnectionDetailsPingSystemHandler(c, db)
+	})
+	r.PUT("nodeCustomSetting/:nodeId/:customSetting/:statusId", func(c *gin.Context) {
+		setNodeConnectionDetailsCustomSettingHandler(c, db)
 	})
 }
 func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -263,7 +252,14 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status, publicKey, chain, network)
 
 	if ncd.Status == commons.Active {
-		commons.ActivateLndService(context.Background(), nodeId, ncd.CustomSettings, ncd.PingSystem)
+		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		success := commons.ActivateLndService(ctxWithTimeout, nodeId, ncd.CustomSettings, ncd.PingSystem)
+		if !success {
+			server_errors.WrapLogAndSendServerError(c, err, "Service activation failed.")
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, ncd)
@@ -364,12 +360,12 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
-	if ncd.HasNotificationType(commons.Amboss) &&
+	if ncd.PingSystem.HasPingSystem(commons.Amboss) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	if ncd.HasNotificationType(commons.Vector) &&
+	if ncd.PingSystem.HasPingSystem(commons.Vector) &&
 		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
@@ -383,7 +379,11 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
 		nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 
-	setAllLndServices(context.Background(), ncd.NodeId, ncd.Status == commons.Active, ncd.CustomSettings, ncd.PingSystem)
+	success := setAllLndServices(ncd.NodeId, ncd.Status == commons.Active, ncd.CustomSettings, ncd.PingSystem)
+	if !success {
+		server_errors.LogAndSendServerError(c, errors.New("Some services did not start correctly"))
+		return
+	}
 
 	c.JSON(http.StatusOK, ncd)
 }
@@ -438,11 +438,13 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	if commons.Status(statusId) == commons.Deleted {
+
+	switch commons.Status(statusId) {
+	case commons.Deleted:
 		node := commons.GetNodeSettingsByNodeId(nodeId)
 		commons.RemoveManagedNodeFromCache(node)
 		commons.RemoveManagedChannelStatesFromCache(node.NodeId)
-	} else {
+	default:
 		nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
 		var name string
 		if nodeSettings.Name != nil {
@@ -453,7 +455,11 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	if commons.Status(statusId) != commons.Active {
-		setAllLndServices(context.Background(), nodeId, false, 0, 0)
+		success := setAllLndServices(nodeId, false, 0, 0)
+		if !success {
+			server_errors.LogAndSendServerError(c, errors.New("Some services did not start correctly"))
+			return
+		}
 		c.Status(http.StatusOK)
 		return
 	}
@@ -463,7 +469,11 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	setAllLndServices(context.Background(), nodeId, true, ncd.CustomSettings, ncd.PingSystem)
+	success := setAllLndServices(nodeId, true, ncd.CustomSettings, ncd.PingSystem)
+	if !success {
+		server_errors.LogAndSendServerError(c, errors.New("Some services did not start correctly"))
+		return
+	}
 	c.Status(http.StatusOK)
 }
 
@@ -495,22 +505,75 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	var serviceType commons.ServiceType
-	if commons.PingSystem(pingSystem) == commons.Amboss {
+	switch commons.PingSystem(pingSystem) {
+	case commons.Amboss:
 		serviceType = commons.AmbossService
-	}
-	if commons.PingSystem(pingSystem) == commons.Vector {
+	case commons.Vector:
 		serviceType = commons.VectorService
 	}
 
-	done := setService(context.Background(), serviceType, nodeId, commons.Status(statusId) == commons.Active)
-	if done {
-		_, err := setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
-		if err != nil {
-			server_errors.LogAndSendServerError(c, err)
-			return
-		}
-	} else {
-		server_errors.LogAndSendServerError(c, errors.New("Service could not be stopped please try again."))
+	_, err = setNodeConnectionDetailsPingSystemStatus(db, nodeId, commons.PingSystem(pingSystem), commons.Status(statusId))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	done := setService(serviceType, nodeId, commons.Status(statusId) == commons.Active)
+	if !done {
+		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func setNodeConnectionDetailsCustomSettingHandler(c *gin.Context, db *sqlx.DB) {
+	nodeId, err := strconv.Atoi(c.Param("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+	customSetting, err := strconv.Atoi(c.Param("customSetting"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse customSetting in the request.")
+		return
+	}
+	if customSetting > commons.NodeConnectionDetailCustomSettingsMax {
+		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
+		return
+	}
+	statusId, err := strconv.Atoi(c.Param("statusId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
+		return
+	}
+
+	var serviceType commons.ServiceType
+	switch commons.NodeConnectionDetailCustomSettings(customSetting) {
+	case commons.ImportFailedPayments, commons.ImportPayments:
+		serviceType = commons.LndServicePaymentStream
+	case commons.ImportHtlcEvents:
+		serviceType = commons.LndServiceHtlcEventStream
+	case commons.ImportPeerEvents:
+		serviceType = commons.LndServicePeerEventStream
+	case commons.ImportTransactions:
+		serviceType = commons.LndServiceTransactionStream
+	case commons.ImportInvoices:
+		serviceType = commons.LndServiceInvoiceStream
+	case commons.ImportForwards, commons.ImportHistoricForwards:
+		serviceType = commons.LndServiceForwardStream
+	}
+
+	_, err = setNodeConnectionDetailsCustomSettingStatus(db, nodeId,
+		commons.NodeConnectionDetailCustomSettings(customSetting), commons.Status(statusId))
+	if err != nil {
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	done := setService(serviceType, nodeId, commons.Status(statusId) == commons.Active)
+	if !done {
+		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
 	}
 
