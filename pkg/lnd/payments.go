@@ -93,9 +93,9 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				if len(payments.Payments) == 0 || lastPaymentIndex == payments.LastIndexOffset {
 					if bootStrapping {
 						log.Info().Msgf("Bulk import of payments: %v", importCounter)
+						commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 					}
 					bootStrapping = false
-					commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 					break
 				}
 				lastPaymentIndex = payments.LastIndexOffset

@@ -99,8 +99,10 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings,
 		return bootStrapping, err
 	}
 	if commons.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
-		bootStrapping = false
-		commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+		if bootStrapping {
+			bootStrapping = false
+			commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+		}
 	}
 	return bootStrapping, nil
 }

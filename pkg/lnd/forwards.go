@@ -214,9 +214,9 @@ func SubscribeForwardingEvents(ctx context.Context,
 				if len(fwh.ForwardingEvents) < maxEvents {
 					if bootStrapping {
 						log.Info().Msgf("Bulk import of forward done (%v)", importCounter)
+						commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 					}
 					bootStrapping = false
-					commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 					break
 				} else {
 					log.Info().Msgf("Still running bulk import of forward events (%v)", importCounter)
