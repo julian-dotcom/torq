@@ -57,7 +57,7 @@ type PeerNode struct {
 	ConnectionStatusId          commons.Status  `json:"connectionStatus" db:"connection_status_id"`
 	Host                        string          `json:"host" db:"host"`
 	UpdatedOn                   time.Time       `json:"updatedOn" db:"updated_on"`
-	Alias                       string          `json:"alias" db:"node_alias"`
+	Alias                       string          `json:"peerAlias" db:"node_alias"`
 }
 
 type ConnectPeerRequest struct {
@@ -158,7 +158,7 @@ func getAllPeersHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting all Peer nodes.")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, peerNodes)
 }
 

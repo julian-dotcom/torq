@@ -8,6 +8,13 @@ import { Peer } from "features/peers/peersTypes";
 
 export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 	{
+		heading: "Peer Alias",
+		type: "AliasCell",
+		key: "peerAlias",
+		valueType: "string",
+		locked: true,
+	},
+	{
 		heading: "Public key",
 		type: "LongTextCell",
 		key: "pubKey",
@@ -43,6 +50,7 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 // For more information look at cmd/torq/gen.go
 
 export const PeersSortableColumns: Array<keyof Peer> = [
+	"peerAlias",
 	"chain",
 	"network",
 ];
@@ -53,5 +61,6 @@ export const PeersSortableColumns: Array<keyof Peer> = [
 // For more information look at cmd/torq/gen.go
 
 export const PeersFilterableColumns: Array<keyof Peer> = [
+	"peerAlias",
 	"network",
 ];

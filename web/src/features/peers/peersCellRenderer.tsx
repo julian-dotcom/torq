@@ -47,7 +47,7 @@ export default function peerCellRenderer(
     return (
       <CellWrapper cellWrapperClassName={styles.actionsWrapper} key={"connect-button-" + row.nodeId}>
         <Button
-          disabled={row.status === PeerStatus.Active}
+          disabled={row.connectionStatus === PeerStatus.Active}
           buttonSize={SizeVariant.small}
           onClick={() => {
             mixpanel.track("Connect Peer", {
@@ -60,7 +60,7 @@ export default function peerCellRenderer(
           {t.peersPage.connect}
         </Button>
         <Button
-          disabled={row.status === PeerStatus.Inactive}
+          disabled={row.connectionStatus === PeerStatus.Inactive}
           buttonSize={SizeVariant.small}
           onClick={() => {
             mixpanel.track("Disconnect Peer", {

@@ -5,7 +5,7 @@ import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 import { AllPeersColumns, PeersFilterableColumns, PeersSortableColumns } from "./peersColumns.generated";
 
-const defaultColumns: Array<keyof Peer> = ["pubKey", "chain", "network", "actions"];
+const defaultColumns: Array<keyof Peer> = ["peerAlias", "pubKey", "chain", "network", "actions"];
 
 //changed to not have to rely on the generated file for default columns ordering
 
@@ -36,7 +36,7 @@ export const PeersFilterTemplate: FilterInterface = {
 };
 
 export const PeersSortTemplate: { key: keyof Peer; direction: "desc" | "asc" } = {
-  key: "pubKey",
+  key: "peerAlias",
   direction: "desc",
 };
 

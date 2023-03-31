@@ -6,8 +6,9 @@ export type Peer = ExpandedPeer & {
   chain: string;
   network: string;
   nodeConnectionDetailsNodeId: number;
-  status: PeerStatus;
+  connectionStatus: PeerStatus;
   tags: Tag[];
+  peerAlias: string;
 };
 
 export type ExpandedPeer = {

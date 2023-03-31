@@ -291,6 +291,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageChannels:        1,
 				PageChannelsClosed:  1,
 				PageChannelsPending: 1,
+				PagePeers:           1,
 			},
 		},
 		{
@@ -1133,7 +1134,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageForwards:        16,
 				PageChannelsClosed:  17,
 				PageChannelsPending: 21,
-				PagePeers:           1,
+				PagePeers:           2,
 			},
 		},
 		{
@@ -1601,7 +1602,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				{value: "Bitcoin", label: "Bitcoin"},
 			},
 			pages: map[TableViewPage]int{
-				PagePeers: 2,
+				PagePeers: 3,
 			},
 		},
 		{
@@ -1619,7 +1620,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				{value: "SimNet", label: "SimNet"},
 			},
 			pages: map[TableViewPage]int{
-				PagePeers: 3,
+				PagePeers: 4,
 			},
 		},
 	}
