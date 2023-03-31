@@ -342,6 +342,9 @@ func processManagedService(
 		torqDesiredStateCache.LndNodeServiceStates[managedService.NodeId] = n
 	case writeCurrentTorqServiceState:
 		state := torqCurrentStateCache.TorqServiceStates[managedService.ServiceType]
+		if state.Status == managedService.ServiceStatus && managedService.ServiceStatus == ServiceInitializing {
+			torqCurrentStateCache.TorqServiceStates[managedService.ServiceType] = state.Initializing()
+		}
 		if state.Status != managedService.ServiceStatus {
 			switch managedService.ServiceStatus {
 			case ServicePending:
@@ -375,6 +378,10 @@ func processManagedService(
 			n = make(map[ServiceType]ServiceState)
 		}
 		state := n[managedService.ServiceType]
+		if state.Status == managedService.ServiceStatus && managedService.ServiceStatus == ServiceInitializing {
+			n[managedService.ServiceType] = state.Initializing()
+			torqCurrentStateCache.LndNodeServiceStates[managedService.NodeId] = n
+		}
 		if state.Status != managedService.ServiceStatus {
 			switch managedService.ServiceStatus {
 			case ServicePending:
@@ -571,7 +578,7 @@ func IsChannelBalanceCacheStreamActive(nodeId int) bool {
 }
 
 func SetDesiredTorqServiceState(serviceType ServiceType, serviceStatus ServiceStatus) {
-	log.Info().Msgf("Torq desired state for service: %v is %v.", serviceType.String(), serviceStatus.String())
+	log.Info().Msgf("%v desired state is now %v.", serviceType.String(), serviceStatus.String())
 	managedService := ManagedService{
 		ServiceType:   serviceType,
 		ServiceStatus: serviceStatus,
@@ -581,8 +588,9 @@ func SetDesiredTorqServiceState(serviceType ServiceType, serviceStatus ServiceSt
 }
 
 func SetDesiredLndServiceState(serviceType ServiceType, nodeId int, serviceStatus ServiceStatus) {
-	log.Info().Msgf("Torq desired state for service: %v is %v with nodeId: %v.",
-		serviceType.String(), serviceStatus.String(), nodeId)
+	log.Info().Msgf("%v desired state is now %v with nodeId: %v.", serviceType.String(), serviceStatus.String(),
+		nodeId)
+
 	managedService := ManagedService{
 		ServiceType:   serviceType,
 		NodeId:        nodeId,
@@ -656,6 +664,7 @@ func SetInactiveLndServiceState(serviceType ServiceType, nodeId int) {
 }
 
 func CancelTorqService(serviceType ServiceType) {
+	log.Debug().Msgf("%v cancellation requested", serviceType.String())
 	managedService := ManagedService{
 		ServiceType: serviceType,
 		Type:        cancelTorqService,
@@ -664,6 +673,7 @@ func CancelTorqService(serviceType ServiceType) {
 }
 
 func CancelLndService(serviceType ServiceType, nodeId int) {
+	log.Debug().Msgf("%v cancellation requested for nodeId: %v", serviceType.String(), nodeId)
 	managedService := ManagedService{
 		ServiceType: serviceType,
 		NodeId:      nodeId,
@@ -674,6 +684,8 @@ func CancelLndService(serviceType ServiceType, nodeId int) {
 }
 
 func SetFailedTorqServiceState(serviceType ServiceType) {
+	inactive := ServiceInactive
+	log.Debug().Msgf("%v updating current state to %v", serviceType.String(), (&inactive).String())
 	managedService := ManagedService{
 		ServiceType: serviceType,
 		Type:        writeCurrentTorqServiceFailure,
@@ -682,6 +694,9 @@ func SetFailedTorqServiceState(serviceType ServiceType) {
 }
 
 func SetFailedLndServiceState(serviceType ServiceType, nodeId int) {
+	inactive := ServiceInactive
+	log.Debug().Msgf("%v updating current state to %v for nodeId: %v", serviceType.String(),
+		(&inactive).String(), nodeId)
 	managedService := ManagedService{
 		ServiceType: serviceType,
 		NodeId:      nodeId,
@@ -691,6 +706,7 @@ func SetFailedLndServiceState(serviceType ServiceType, nodeId int) {
 }
 
 func setTorqServiceStatus(serviceType ServiceType, serviceStatus ServiceStatus) {
+	log.Debug().Msgf("%v updating current state to %v", serviceType.String(), serviceStatus.String())
 	managedService := ManagedService{
 		ServiceType:   serviceType,
 		ServiceStatus: serviceStatus,
@@ -700,6 +716,9 @@ func setTorqServiceStatus(serviceType ServiceType, serviceStatus ServiceStatus) 
 }
 
 func setLndServiceStatus(serviceType ServiceType, nodeId int, serviceStatus ServiceStatus) {
+	log.Debug().Msgf("%v updating current state to %v for nodeId: %v", serviceType.String(),
+		serviceStatus.String(), nodeId)
+
 	managedService := ManagedService{
 		ServiceType:   serviceType,
 		NodeId:        nodeId,
@@ -798,7 +817,7 @@ func ActivateLndService(ctx context.Context,
 				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
 			}
 		case LndServiceForwardStream:
-			if customSettings&ImportForwards != 0 {
+			if customSettings&ImportForwards != 0 || customSettings&ImportHistoricForwards != 0 {
 				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
 			}
 		case LndServiceInvoiceStream:
@@ -806,7 +825,7 @@ func ActivateLndService(ctx context.Context,
 				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
 			}
 		case LndServicePaymentStream:
-			if customSettings&ImportPayments != 0 {
+			if customSettings&ImportPayments != 0 || customSettings&ImportFailedPayments != 0 {
 				relavantServiceTypes = append(relavantServiceTypes, lndServiceType)
 			}
 		case LndServicePeerEventStream:

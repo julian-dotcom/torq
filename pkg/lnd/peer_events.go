@@ -21,7 +21,7 @@ func SubscribePeerEvents(ctx context.Context,
 	client peerEventsClient,
 	nodeSettings commons.ManagedNodeSettings) {
 
-	serviceType := commons.LndServiceHtlcEventStream
+	serviceType := commons.LndServicePeerEventStream
 
 	stream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 	if err != nil {
@@ -30,7 +30,7 @@ func SubscribePeerEvents(ctx context.Context,
 			return
 		}
 		log.Error().Err(err).Msgf(
-			"Obtaining stream (%v) from LND failed for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
 		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}

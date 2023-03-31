@@ -2,6 +2,7 @@ package subscribe
 
 import (
 	"context"
+	"runtime/debug"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -24,7 +25,7 @@ func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sql
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -64,7 +65,7 @@ func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -104,7 +105,7 @@ func StartHtlcEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -123,7 +124,7 @@ func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -142,7 +143,7 @@ func StartChannelBalanceCacheMaintenance(ctx context.Context, conn *grpc.ClientC
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -161,7 +162,7 @@ func StartTransactionStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -184,7 +185,7 @@ func StartForwardStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB,
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -203,7 +204,7 @@ func StartPaymentStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB,
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -222,7 +223,7 @@ func StartInvoiceStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB,
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
@@ -241,7 +242,7 @@ func StartInFlightPaymentStream(ctx context.Context, conn *grpc.ClientConn, db *
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in %v (nodeId: %v)", serviceType.String(), nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
 			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}

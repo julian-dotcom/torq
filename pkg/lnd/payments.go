@@ -36,7 +36,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	nodeSettings commons.ManagedNodeSettings,
 	opt *PayOptions) {
 
-	serviceType := commons.LndServiceInvoiceStream
+	serviceType := commons.LndServicePaymentStream
 
 	bootStrapping := true
 	includeIncomplete := commons.HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)

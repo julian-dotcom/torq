@@ -22,6 +22,18 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	var bitcoinNetworks []commons.Network
 	for _, torqServiceType := range commons.GetTorqServiceTypes() {
 		torqService := commons.GetCurrentTorqServiceState(torqServiceType)
+		desiredState := commons.GetDesiredTorqServiceState(torqServiceType)
+		if desiredState.Status != torqService.Status {
+			result.ServiceMismatches = append(result.ServiceMismatches, ServiceMismatch{
+				ServiceType:         torqServiceType,
+				ServiceTypeString:   torqServiceType.String(),
+				Status:              torqService.Status,
+				StatusString:        torqService.Status.String(),
+				DesiredStatus:       desiredState.Status,
+				DesiredStatusString: desiredState.Status.String(),
+				FailureTime:         commons.GetTorqFailedAttemptTime(torqServiceType),
+			})
+		}
 		if torqServiceType == commons.TorqService {
 			result.MainService = TorqService{
 				CommonService: CommonService{
@@ -46,8 +58,22 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	for _, lndNodeId := range commons.GetLndNodeIds() {
 		bitcoinNetwork := commons.GetNodeSettingsByNodeId(lndNodeId).Network
-		for _, lndServiceType := range commons.GetTorqServiceTypes() {
+		for _, lndServiceType := range commons.GetLndServiceTypes() {
 			lndService := commons.GetCurrentLndServiceState(lndServiceType, lndNodeId)
+			desiredState := commons.GetDesiredLndServiceState(lndServiceType, lndNodeId)
+			if desiredState.Status != lndService.Status {
+				result.ServiceMismatches = append(result.ServiceMismatches, ServiceMismatch{
+					ServiceType:         lndServiceType,
+					ServiceTypeString:   lndServiceType.String(),
+					Status:              lndService.Status,
+					StatusString:        lndService.Status.String(),
+					DesiredStatus:       desiredState.Status,
+					DesiredStatusString: desiredState.Status.String(),
+					NodeId:              &lndNodeId,
+					BitcoinNetwork:      &bitcoinNetwork,
+					FailureTime:         commons.GetLndFailedAttemptTime(lndServiceType, lndNodeId),
+				})
+			}
 			result.LndServices = append(result.LndServices, LndService{
 				CommonService: CommonService{
 					ServiceType:       lndServiceType,

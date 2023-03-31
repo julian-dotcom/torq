@@ -58,6 +58,9 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 				continue
 			}
 			// channel balance streams are not all active here
+			if bootStrapping {
+				commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+			}
 			if channelBalanceStreamActive {
 				commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Inactive)
 				channelBalanceStreamActive = false

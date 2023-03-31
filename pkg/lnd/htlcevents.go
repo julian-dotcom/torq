@@ -164,7 +164,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 			return
 		}
 		log.Error().Err(err).Msgf(
-			"Obtaining stream (%v) from LND failed for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
 		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}

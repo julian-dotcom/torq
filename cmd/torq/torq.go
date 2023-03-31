@@ -508,7 +508,7 @@ func proccessTorqInitialBoot(db *sqlx.DB) {
 					serviceStatus = commons.ServiceInactive
 				}
 			case commons.LndServiceForwardStream:
-				if customSettings&commons.ImportForwards == 0 {
+				if customSettings&commons.ImportForwards == 0 && customSettings&commons.ImportHistoricForwards == 0 {
 					serviceStatus = commons.ServiceInactive
 				}
 			case commons.LndServiceInvoiceStream:
@@ -516,7 +516,7 @@ func proccessTorqInitialBoot(db *sqlx.DB) {
 					serviceStatus = commons.ServiceInactive
 				}
 			case commons.LndServicePaymentStream:
-				if customSettings&commons.ImportPayments == 0 {
+				if customSettings&commons.ImportPayments == 0 && customSettings&commons.ImportFailedPayments == 0 {
 					serviceStatus = commons.ServiceInactive
 				}
 			case commons.LndServicePeerEventStream:
@@ -545,7 +545,7 @@ func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int)
 	switch currentState.Status {
 	case commons.ServiceActive:
 		if desiredState.Status == commons.ServiceInactive {
-			log.Info().Msgf("Inactivating %v for nodeId: %v.", serviceType.String(), nodeId)
+			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
 			commons.CancelLndService(serviceType, nodeId)
 		}
 	case commons.ServiceInactive:
@@ -574,7 +574,7 @@ func processTorqService(db *sqlx.DB, serviceType commons.ServiceType) bool {
 	switch currentState.Status {
 	case commons.ServiceActive:
 		if desiredState.Status == commons.ServiceInactive {
-			log.Info().Msgf("Inactivating %v.", serviceType.String())
+			log.Info().Msgf("%v Inactivation.", serviceType.String())
 			commons.CancelTorqService(serviceType)
 		}
 	case commons.ServiceInactive:
@@ -601,7 +601,7 @@ func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int
 		return
 	}
 
-	log.Info().Msgf("Activating %v for nodeId: %v.", serviceType.String(), nodeId)
+	log.Info().Msgf("%v Activation for nodeId: %v.", serviceType.String(), nodeId)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -641,7 +641,7 @@ func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int
 		}
 	}
 
-	log.Info().Msgf("%v Service booted for node id: %v", serviceType.String(), nodeId)
+	log.Info().Msgf("%v Service booted for nodeId: %v", serviceType.String(), nodeId)
 	switch serviceType {
 	// NOT NODE ID SPECIFIC
 	case commons.AutomationService:

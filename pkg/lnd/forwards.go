@@ -122,7 +122,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	nodeSettings commons.ManagedNodeSettings,
 	opt *FwhOptions) {
 
-	serviceType := commons.LndServiceInvoiceStream
+	serviceType := commons.LndServiceForwardStream
 
 	maxEvents := streamLndMaxForwards
 	bootStrapping := true
