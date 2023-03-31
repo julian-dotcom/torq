@@ -57,10 +57,11 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 		})
 	}
 	for _, lndNodeId := range commons.GetLndNodeIds() {
-		bitcoinNetwork := commons.GetNodeSettingsByNodeId(lndNodeId).Network
+		nodeId := lndNodeId
+		bitcoinNetwork := commons.GetNodeSettingsByNodeId(nodeId).Network
 		for _, lndServiceType := range commons.GetLndServiceTypes() {
-			lndService := commons.GetCurrentLndServiceState(lndServiceType, lndNodeId)
-			desiredState := commons.GetDesiredLndServiceState(lndServiceType, lndNodeId)
+			lndService := commons.GetCurrentLndServiceState(lndServiceType, nodeId)
+			desiredState := commons.GetDesiredLndServiceState(lndServiceType, nodeId)
 			if desiredState.Status != lndService.Status {
 				result.ServiceMismatches = append(result.ServiceMismatches, ServiceMismatch{
 					ServiceType:         lndServiceType,
@@ -69,9 +70,9 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 					StatusString:        lndService.Status.String(),
 					DesiredStatus:       desiredState.Status,
 					DesiredStatusString: desiredState.Status.String(),
-					NodeId:              &lndNodeId,
+					NodeId:              &nodeId,
 					BitcoinNetwork:      &bitcoinNetwork,
-					FailureTime:         commons.GetLndFailedAttemptTime(lndServiceType, lndNodeId),
+					FailureTime:         commons.GetLndFailedAttemptTime(lndServiceType, nodeId),
 				})
 			}
 			result.LndServices = append(result.LndServices, LndService{
@@ -82,7 +83,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 					BootTime:          lndService.ActiveTime,
 					StatusString:      lndService.Status.String(),
 				},
-				NodeId:         lndNodeId,
+				NodeId:         nodeId,
 				BitcoinNetwork: bitcoinNetwork,
 			})
 		}
