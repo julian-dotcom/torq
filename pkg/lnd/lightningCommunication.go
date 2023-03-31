@@ -3,7 +3,6 @@ package lnd
 import (
 	"context"
 	"fmt"
-	"github.com/cockroachdb/errors"
 	"strings"
 	"sync"
 	"time"
@@ -703,6 +702,7 @@ func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerR
 		CommunicationResponse: commons.CommunicationResponse{
 			Status: commons.Inactive,
 		},
+		RequestFailCurrentlyConnected: false,
 	}
 
 	connectPeerRequest := lnrpc.ConnectPeerRequest{
@@ -718,33 +718,32 @@ func processConnectPeerRequest(ctx context.Context, request commons.ConnectPeerR
 			response.RequestFailCurrentlyConnected = true
 		}
 		response.Error = err.Error()
+		return response
 	}
 
-	// check if there are any errors from the previous request
-	err = checkPeerForErrors(ctx, client, request.PubKey)
-	if err != nil {
-		response.Error = err.Error()
-	}
+	//ticker is needed to give lnd time to connect to the peer
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
 
-	return response
-}
-
-// It seems that the errors are not returned in the Connect/Disconnect response, so we need to check the peers list
-func checkPeerForErrors(ctx context.Context, client lnrpc.LightningClient, pubKey string) error {
-	listPeersRequest := lnrpc.ListPeersRequest{}
-	peersResponse, err := client.ListPeers(ctx, &listPeersRequest)
-	if err != nil {
-		return err
-	}
-
-	for _, peer := range peersResponse.Peers {
-		if peer.PubKey == pubKey {
-			if len(peer.Errors) > 0 {
-				return errors.New(peer.Errors[0].Error)
+	for {
+		select {
+		case <-ticker.C:
+			// call lnd again to see if the peer is still connected
+			peer, err := getPeersByPublicKey(ctx, client, request.PubKey)
+			if err != nil {
+				response.Error = err.Error()
+				return response
 			}
+
+			if peer == nil {
+				response.Error = "Connection unsuccessful"
+				return response
+			}
+
+			return response
 		}
 	}
-	return nil
+
 }
 
 func processDisconnectPeerRequest(ctx context.Context, request commons.DisconnectPeerRequest, client lnrpc.LightningClient) commons.DisconnectPeerResponse {
@@ -752,6 +751,7 @@ func processDisconnectPeerRequest(ctx context.Context, request commons.Disconnec
 		CommunicationResponse: commons.CommunicationResponse{
 			Status: commons.Inactive,
 		},
+		RequestFailedCurrentlyDisconnected: false,
 	}
 
 	disconnectPeerRequest := lnrpc.DisconnectPeerRequest{
@@ -765,15 +765,32 @@ func processDisconnectPeerRequest(ctx context.Context, request commons.Disconnec
 		if strings.Contains(errMessage, "not connected") {
 			response.RequestFailedCurrentlyDisconnected = true
 		}
+		return response
 	}
 
-	// check if there are any errors from the previous request
-	err = checkPeerForErrors(ctx, client, request.PubKey)
-	if err != nil {
-		response.Error = err.Error()
+	//ticker is needed to give lnd time to disconnect from the peer
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			peer, err := getPeersByPublicKey(ctx, client, request.PubKey)
+			if err != nil {
+				response.Error = err.Error()
+				return response
+			}
+
+			if peer != nil {
+				response.Error = "Disconnection unsuccessful"
+				return response
+			}
+			ticker.Stop()
+
+			return response
+		}
 	}
 
-	return response
 }
 
 func processListPeersRequest(ctx context.Context, _ commons.ListPeersRequest, client lnrpc.LightningClient) commons.ListPeersResponse {
@@ -825,4 +842,22 @@ func processListPeersRequest(ctx context.Context, _ commons.ListPeersRequest, cl
 	response.Peers = peers
 
 	return response
+}
+
+// It seems that the errors are not returned in the Connect/Disconnect response, so we need to check the peers list
+func getPeersByPublicKey(ctx context.Context, client lnrpc.LightningClient, pubKey string) (*lnrpc.Peer, error) {
+	listPeersRequest := lnrpc.ListPeersRequest{}
+	peersResponse, err := client.ListPeers(ctx, &listPeersRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	var peer *lnrpc.Peer
+	for _, p := range peersResponse.Peers {
+		if p.PubKey == pubKey {
+			peer = p
+			break
+		}
+	}
+	return peer, nil
 }
