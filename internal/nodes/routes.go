@@ -48,13 +48,16 @@ type NodeWalletBalance struct {
 }
 
 type PeerNode struct {
-	NodeId                      int            `json:"nodeId"`
-	PublicKey                   string         `json:"pubKey"`
-	Chain                       string         `json:"chain"`
-	Network                     string         `json:"network"`
-	Status                      commons.Status `json:"status"`
-	NodeConnectionDetailsNodeId int            `json:"nodeConnectionDetailsNodeId"`
-	CreatedOn                   time.Time      `json:"createdOn"`
+	NodeId                      int             `json:"nodeId" db:"node_id"`
+	PublicKey                   string          `json:"pubKey" db:"public_key"`
+	Chain                       commons.Chain   `json:"chain" db:"chain"`
+	Network                     commons.Network `json:"network" db:"network"`
+	CreatedOn                   time.Time       `json:"createdOn" db:"created_on"`
+	NodeConnectionDetailsNodeId *int            `json:"nodeConnectionDetailsNodeId" db:"node_connection_details_node_id" description:"The node that established a connection to this node"`
+	ConnectionStatusId          commons.Status  `json:"connectionStatus" db:"connection_status_id"`
+	Host                        string          `json:"host" db:"host"`
+	UpdatedOn                   time.Time       `json:"updatedOn" db:"updated_on"`
+	Alias                       string          `json:"alias" db:"node_alias"`
 }
 
 type ConnectPeerRequest struct {
@@ -150,32 +153,13 @@ func getAllPeersHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Can't process network")
 		return
 	}
-	nodes, err := GetPeerNodes(db, commons.Network(network))
+	peerNodes, err := GetPeerNodes(db, commons.Network(network))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting all Peer nodes.")
 		return
 	}
-
-	peers := make([]PeerNode, 0)
-	for _, n := range nodes {
-
-		peer := PeerNode{
-			NodeId:    n.NodeId,
-			PublicKey: n.PublicKey,
-			Chain:     n.Chain.String(),
-			Network:   n.Network.String(),
-			Status:    n.ConnectionStatusId,
-			CreatedOn: n.CreatedOn,
-		}
-
-		if n.NodeConnectionDetailsNodeId != nil {
-			peer.NodeConnectionDetailsNodeId = *n.NodeConnectionDetailsNodeId
-		}
-
-		peers = append(peers, peer)
-	}
-
-	c.JSON(http.StatusOK, peers)
+	
+	c.JSON(http.StatusOK, peerNodes)
 }
 
 func connectNewPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
