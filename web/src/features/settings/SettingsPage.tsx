@@ -20,6 +20,7 @@ import Modal from "features/modal/Modal";
 import { useGetServicesQuery } from "apiSlice";
 import useTranslations from "services/i18n/useTranslations";
 import { supportedLangs } from "config/i18nConfig";
+import Input from "components/formsWithValidation/input/InputWithValidation";
 
 function Settings() {
   const { t, setLang } = useTranslations();
@@ -89,6 +90,22 @@ function Settings() {
     setSettingsState({ ...settingsState, weekStartsOn: combiner.value });
   };
 
+  const handleSlackOAuthTokenChange = (value: string) => {
+    setSettingsState({ ...settingsState, slackOAuthToken: value });
+  };
+
+  const handleSlackBotAppTokenChange = (value: string) => {
+    setSettingsState({ ...settingsState, slackBotAppToken: value });
+  };
+
+  const handleTelegramHighPriorityCredentialsChange = (value: string) => {
+    setSettingsState({ ...settingsState, telegramHighPriorityCredentials: value });
+  };
+
+  const handleTelegramLowPriorityCredentialsChange = (value: string) => {
+    setSettingsState({ ...settingsState, telegramLowPriorityCredentials: value });
+  };
+
   const submitPreferences = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateSettings(settingsState);
@@ -149,6 +166,30 @@ function Settings() {
                   onChange={handleWeekStartsOnChange}
                   options={weekStartsOnOptions}
                   value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
+                />
+                <Input
+                  label={t.slackOAuthToken}
+                  value={settingsState?.slackOAuthToken}
+                  type={"text"}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSlackOAuthTokenChange(e.target.value)}
+                />
+                <Input
+                  label={t.slackBotAppToken}
+                  value={settingsState?.slackBotAppToken}
+                  type={"text"}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSlackBotAppTokenChange(e.target.value)}
+                />
+                <Input
+                  label={t.telegramHighPriorityCredentials}
+                  value={settingsState?.telegramHighPriorityCredentials}
+                  type={"text"}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTelegramHighPriorityCredentialsChange(e.target.value)}
+                />
+                <Input
+                  label={t.telegramLowPriorityCredentials}
+                  value={settingsState?.telegramLowPriorityCredentials}
+                  type={"text"}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTelegramLowPriorityCredentialsChange(e.target.value)}
                 />
                 <Button
                   type={"submit"}

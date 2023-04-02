@@ -29,9 +29,11 @@ func getSettings(db *sqlx.DB) (settings, error) {
 func InitializeSettingsCache(db *sqlx.DB) error {
 	settingsData, err := getSettings(db)
 	if err == nil {
-		log.Debug().Msg("Pushing settings to SettingsCache cache.")
+		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
 		cache.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
-			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut)
+			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut,
+			settingsData.SlackOAuthToken, settingsData.SlackBotAppToken,
+			settingsData.TelegramHighPriorityCredentials, settingsData.TelegramLowPriorityCredentials)
 	} else {
 		log.Error().Err(err).Msg("Failed to obtain settings for SettingsCache cache.")
 	}
@@ -57,14 +59,22 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 		  preferred_timezone = $3,
 		  week_starts_on = $4,
 		  mixpanel_opt_out = $5,
-		  updated_on = $6;`,
+		  slack_oauth_token = $6,
+		  slack_bot_app_token = $7,
+		  telegram_high_priority_credentials = $8,
+		  telegram_low_priority_credentials = $9,
+		  updated_on = $10;`,
 		settings.DefaultDateRange, settings.DefaultLanguage, settings.PreferredTimezone, settings.WeekStartsOn,
-		settings.MixpanelOptOut, time.Now().UTC())
+		settings.MixpanelOptOut, settings.SlackOAuthToken, settings.SlackBotAppToken,
+		settings.TelegramHighPriorityCredentials, settings.TelegramLowPriorityCredentials,
+		time.Now().UTC())
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	cache.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn,
-		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut)
+		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut,
+		settings.SlackOAuthToken, settings.SlackBotAppToken,
+		settings.TelegramHighPriorityCredentials, settings.TelegramLowPriorityCredentials)
 	return nil
 }
 
