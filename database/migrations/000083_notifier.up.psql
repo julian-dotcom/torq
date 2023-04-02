@@ -1,0 +1,22 @@
+
+ALTER TABLE settings ADD COLUMN slack_oauth_token TEXT;
+ALTER TABLE settings ADD COLUMN slack_bot_app_token TEXT;
+ALTER TABLE settings ADD COLUMN telegram_high_priority_credentials TEXT;
+ALTER TABLE settings ADD COLUMN telegram_low_priority_credentials TEXT;
+
+CREATE TABLE communication (
+    communication_id SERIAL PRIMARY KEY,
+    activation_flag_node_details BOOLEAN NOT NULL,
+    -- Alias for the communication channel i.e. name of the Slack channel
+    target_name TEXT,
+    -- Type of communication telegram/slack/...
+    target_type INTEGER NOT NULL,
+    -- Reference information to a communication channel for Slack
+    target_text TEXT,
+    -- Reference information to a communication channel for Telegram
+    target_number BIGINT,
+    node_id INTEGER REFERENCES node(node_id),
+    channel_id INTEGER REFERENCES channel(channel_id),
+    created_on TIMESTAMPTZ NOT NULL,
+    updated_on TIMESTAMPTZ NOT NULL
+);

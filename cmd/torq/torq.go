@@ -22,6 +22,7 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/amboss_ping"
+	"github.com/lncapital/torq/cmd/torq/internal/notifications"
 	"github.com/lncapital/torq/cmd/torq/internal/services"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
@@ -633,6 +634,12 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 		go services.StartMaintenanceService(ctx, db)
 	case core.CronService:
 		go services.StartCronService(ctx, db)
+	case commons.NotifierService:
+		go notifications.StartNotifier(ctx, db)
+	case commons.SlackService:
+		go notifications.StartSlackListener(ctx, db)
+	case commons.TelegramService:
+		go notifications.StartTelegramListeners(ctx, db)
 	// NODE SPECIFIC
 	case core.VectorService:
 		go vector_ping.Start(ctx, conn, nodeId)
