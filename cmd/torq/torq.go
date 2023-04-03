@@ -427,7 +427,9 @@ func manageServices(db *sqlx.DB) {
 			commons.SetInitializingTorqServiceState(commons.TorqService)
 			continue
 		case commons.ServiceActive:
-			// All is good
+			for _, torqServiceType := range commons.GetTorqServiceTypes() {
+				processTorqService(db, torqServiceType)
+			}
 		default:
 			// We are waiting for the Torq service to become active
 			continue
@@ -584,7 +586,12 @@ func processTorqService(db *sqlx.DB, serviceType commons.ServiceType) bool {
 }
 
 func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int) {
-	failedAttemptTime := commons.GetLndFailedAttemptTime(serviceType, nodeId)
+	var failedAttemptTime *time.Time
+	if nodeId == 0 {
+		failedAttemptTime = commons.GetTorqFailedAttemptTime(serviceType)
+	} else {
+		failedAttemptTime = commons.GetLndFailedAttemptTime(serviceType, nodeId)
+	}
 	if failedAttemptTime != nil && time.Since(*failedAttemptTime).Seconds() < failureTimeoutInSeconds {
 		return
 	}

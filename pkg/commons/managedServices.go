@@ -685,7 +685,7 @@ func CancelLndService(serviceType ServiceType, nodeId int) {
 
 func SetFailedTorqServiceState(serviceType ServiceType) {
 	inactive := ServiceInactive
-	log.Debug().Msgf("%v updating current state to %v", serviceType.String(), (&inactive).String())
+	log.Debug().Msgf("%v updating current state to %v (due to failure)", serviceType.String(), (&inactive).String())
 	managedService := ManagedService{
 		ServiceType: serviceType,
 		Type:        writeCurrentTorqServiceFailure,
@@ -695,7 +695,7 @@ func SetFailedTorqServiceState(serviceType ServiceType) {
 
 func SetFailedLndServiceState(serviceType ServiceType, nodeId int) {
 	inactive := ServiceInactive
-	log.Debug().Msgf("%v updating current state to %v for nodeId: %v", serviceType.String(),
+	log.Debug().Msgf("%v updating current state to %v (due to failure) for nodeId: %v", serviceType.String(),
 		(&inactive).String(), nodeId)
 	managedService := ManagedService{
 		ServiceType: serviceType,
