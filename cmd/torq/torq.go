@@ -617,9 +617,15 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 			cache.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
-	case commons.TelegramService:
-		if commons.GetSettings().GetTelegramCredential(true) == "" &&
-			commons.GetSettings().GetTelegramCredential(false) == "" {
+	case commons.TelegramHighService:
+		if commons.GetSettings().GetTelegramCredential(true) == "" {
+			commons.SetInactiveTorqServiceState(serviceType)
+			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
+			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
+			return
+		}
+	case commons.TelegramLowService:
+		if commons.GetSettings().GetTelegramCredential(false) == "" {
 			commons.SetInactiveTorqServiceState(serviceType)
 			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
 			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
@@ -664,8 +670,10 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 		go notifications.StartNotifier(ctx, db)
 	case commons.SlackService:
 		go notifications.StartSlackListener(ctx, db)
-	case commons.TelegramService:
-		go notifications.StartTelegramListeners(ctx, db)
+	case commons.TelegramHighService:
+		go notifications.StartTelegramListeners(ctx, db, true)
+	case commons.TelegramLowService:
+		go notifications.StartTelegramListeners(ctx, db, false)
 	// NODE SPECIFIC
 	case core.VectorService:
 		go vector_ping.Start(ctx, conn, nodeId)

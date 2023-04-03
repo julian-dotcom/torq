@@ -218,8 +218,12 @@ func getTelegramLowPriority() (*Telegram, error) {
 }
 
 func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
-
-	serviceType := commons.TelegramService
+	serviceType := commons.TelegramHighService
+	communicationTargetType := CommunicationTelegramHighPriority
+	if !highPriority {
+		serviceType = commons.TelegramLowService
+		communicationTargetType = CommunicationTelegramLowPriority
+	}
 
 	for {
 		select {
@@ -229,28 +233,11 @@ func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
 		default:
 		}
 
-		var communicationTargetType CommunicationTargetType
-		var telegram *Telegram
-		var err error
-		if highPriority {
-			log.Info().Msg("Connecting to Telegram HIGH priority events.")
-			communicationTargetType = CommunicationTelegramHighPriority
-			telegram, err = getTelegramHighPriority()
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to obtain telegram bot")
-				commons.SetFailedTorqServiceState(serviceType)
-				return
-			}
-		}
-		if !highPriority {
-			log.Info().Msg("Connecting to Telegram LOW priority events.")
-			communicationTargetType = CommunicationTelegramLowPriority
-			telegram, err = getTelegramLowPriority()
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to obtain telegram bot")
-				commons.SetFailedTorqServiceState(serviceType)
-				return
-			}
+		telegram, err := getTelegramBot(communicationTargetType)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to obtain telegram bot")
+			commons.SetFailedTorqServiceState(serviceType)
+			return
 		}
 
 		log.Debug().Msgf("Initiating tgbotapi.NewUpdate for Telegram events (highPriority: %v)", highPriority)
