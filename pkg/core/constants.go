@@ -15,7 +15,8 @@ const (
 	AmbossService
 	RebalanceService
 	SlackService
-	TelegramService
+	TelegramHighService
+	TelegramLowService
 	NotifierService
 	LndServiceChannelEventStream
 	LndServiceGraphEventStream

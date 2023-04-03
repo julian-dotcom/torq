@@ -134,9 +134,12 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 		commons.SetDesiredTorqServiceState(commons.SlackService, commons.ServiceActive)
 		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
 	}
-	if (setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "") ||
-		(setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "") {
-		commons.SetDesiredTorqServiceState(commons.TelegramService, commons.ServiceActive)
+	if setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "" {
+		commons.SetDesiredTorqServiceState(commons.TelegramHighService, commons.ServiceActive)
+		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
+	}
+	if setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "" {
+		commons.SetDesiredTorqServiceState(commons.TelegramLowService, commons.ServiceActive)
 		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
 	}
 	c.JSON(http.StatusOK, setts)
