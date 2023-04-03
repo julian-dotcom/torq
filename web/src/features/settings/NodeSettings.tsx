@@ -202,6 +202,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       addNodeConfiguration(form)
         .unwrap()
         .then((_) => {
+          setFormErrorState({} as FormErrors)
           setSaveEnabledState(true);
           setEnableEnableButtonState(true);
           toastRef?.current?.addToast("Local node added", toastCategory.success);
@@ -221,6 +222,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       updateNodeConfiguration(form)
         .unwrap()
         .then((_) => {
+          setFormErrorState({} as FormErrors)
           setSaveEnabledState(true);
           toastRef?.current?.addToast("Local node info saved", toastCategory.success);
         })
@@ -240,6 +242,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       pingSystems: nodeConfigurationState.pingSystem })
       .unwrap()
       .then((_) => {
+        setToggleErrorState({} as FormErrors)
         setCustomSettingsSaveEnabledState(true);
         setEnableEnableButtonState(true);
         toastRef?.current?.addToast("Custom Settings Saved", toastCategory.success);

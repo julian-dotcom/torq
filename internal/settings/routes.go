@@ -587,6 +587,13 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 	}
 	ps := commons.PingSystem(pingSystems)
 
+	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	if (ps.HasPingSystem(commons.Vector) || ps.HasPingSystem(commons.Amboss)) &&
+		(nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
+		server_errors.SendBadRequest(c, "Ping Services are only allowed on Bitcoin Mainnet.")
+		return
+	}
+
 	services := make(map[bool][]commons.ServiceType)
 	appendPingSystemServiceType(ps, services, commons.Vector)
 	appendPingSystemServiceType(ps, services, commons.Amboss)
