@@ -618,23 +618,28 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 			return
 		}
 	case commons.TelegramService:
-		if commons.GetSettings().TelegramHighPriorityCredentials == "" &&
-			commons.GetSettings().TelegramLowPriorityCredentials == "" {
-			commons.SetDesiredTorqServiceState(commons.TelegramService, commons.ServiceInactive)
+		if commons.GetSettings().GetTelegramCredential(true) == "" &&
+			commons.GetSettings().GetTelegramCredential(false) == "" {
+			commons.SetInactiveTorqServiceState(serviceType)
+			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
 			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
 			return
 		}
 	case commons.SlackService:
-		if commons.GetSettings().SlackOAuthToken == "" && commons.GetSettings().SlackBotAppToken == "" {
-			commons.SetDesiredTorqServiceState(commons.SlackService, commons.ServiceInactive)
+		oauth, botToken := commons.GetSettings().GetSlackCredential()
+		if oauth == "" || botToken == "" {
+			commons.SetInactiveTorqServiceState(serviceType)
+			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
 			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
 			return
 		}
 	case commons.NotifierService:
-		if commons.GetSettings().TelegramHighPriorityCredentials == "" &&
-			commons.GetSettings().TelegramLowPriorityCredentials == "" &&
-			commons.GetSettings().SlackOAuthToken == "" && commons.GetSettings().SlackBotAppToken == "" {
-			commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceInactive)
+		oauth, botToken := commons.GetSettings().GetSlackCredential()
+		if (oauth == "" || botToken == "") &&
+			commons.GetSettings().GetTelegramCredential(true) == "" &&
+			commons.GetSettings().GetTelegramCredential(false) == "" {
+			commons.SetInactiveTorqServiceState(serviceType)
+			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
 			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
 			return
 		}

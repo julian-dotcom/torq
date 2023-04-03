@@ -43,10 +43,8 @@ func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 }
 
 func getSlackClient() *slack.Client {
-	return slack.New(
-		commons.GetSettings().SlackOAuthToken,
-		slack.OptionDebug(log.Debug().Enabled()),
-		slack.OptionAppLevelToken(commons.GetSettings().SlackBotAppToken))
+	oauth, botToken := commons.GetSettings().GetSlackCredential()
+	return slack.New(oauth, slack.OptionDebug(log.Debug().Enabled()), slack.OptionAppLevelToken(botToken))
 }
 
 func processEvents(ctx context.Context, socketClient *socketmode.Client, db *sqlx.DB) {
