@@ -808,8 +808,7 @@ func ActivateLndService(ctx context.Context,
 			LndServiceHtlcEventStream,
 			LndServiceForwardStream,
 			LndServiceInvoiceStream,
-			LndServicePaymentStream,
-			LndServicePeerEventStream:
+			LndServicePaymentStream:
 			active := false
 			for _, cs := range lndServiceType.GetNodeConnectionDetailCustomSettings() {
 				if customSettings&cs != 0 {

@@ -123,7 +123,13 @@
   "tagNode": "Tag Node",
   "tagChannel": "Tag Channel",
   "import": "Import",
-  "ImportFailedPayments": "Import failed payments",
+  "importFailedPayments": "Import Failed Payments",
+  "importHtlcEvents": "Import Htlc events",
+  "importTransactions": "Import Transactions",
+  "importPayments": "Import Payments",
+  "importInvoices": "Import Invoices",
+  "importForwards": "Import Forwards",
+  "importForwardsHistory": "Import Forwards History",
   "forwardEvent": "Forward",
   "invoiceEvent": "Invoice",
   "paymentEvent": "Payment",
@@ -155,8 +161,7 @@
       "balanced": "Balanced"
     }
   },
-  "importFailedPayments": "When this is enabled Torq will import failed payments. (Please be cautious with this as this could cause performance problems for LND. This is not advised for nodes with aggressive rebalancing and/or lightweight hardware.)",
-  "advancedSettings": "Advanced import settings",
+  "advancedSettings": "Advanced settings",
   "implementation": "Implementation",
   "nodeName": "Node Name",
   "grpcAddress": "GRPC Address (IP or Tor)",
@@ -326,7 +331,8 @@
   },
   "info": {
     "peerTag": "Tag assigned to the peer.\nIncluding all it&apos;s current and future channels.",
-    "channelTag": "Tag assigned to this channel.\nOnly on this channel.\nNot to other current or future channels from the same peer."
+    "channelTag": "Tag assigned to this channel.\nOnly on this channel.\nNot to other current or future channels from the same peer.",
+    "importFailedPayments": "Beware that importing failed payments could cause performance problems for LND. This is not advised for nodes with an aggressive rebalance strategy and/or lightweight hardware."
   },
   "modal": {
     "title": {

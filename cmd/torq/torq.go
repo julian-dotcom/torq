@@ -501,8 +501,7 @@ func proccessTorqInitialBoot(db *sqlx.DB) {
 				commons.LndServiceHtlcEventStream,
 				commons.LndServiceForwardStream,
 				commons.LndServiceInvoiceStream,
-				commons.LndServicePaymentStream,
-				commons.LndServicePeerEventStream:
+				commons.LndServicePaymentStream:
 				active := false
 				for _, cs := range lndServiceType.GetNodeConnectionDetailCustomSettings() {
 					if customSettings&cs != 0 {

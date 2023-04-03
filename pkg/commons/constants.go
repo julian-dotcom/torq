@@ -121,7 +121,7 @@ type NodeConnectionDetailCustomSettings uint32
 const (
 	ImportFailedPayments NodeConnectionDetailCustomSettings = 1 << iota
 	ImportHtlcEvents
-	ImportPeerEvents
+	ImportPeerEventsDeleted
 	ImportTransactions
 	ImportPayments
 	ImportInvoices

@@ -370,16 +370,23 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	customSettings commons.NodeConnectionDetailCustomSettings,
 	status commons.Status) (int64, error) {
 
+	connectionDetails := commons.GetLndNodeConnectionDetails(nodeId)
 	var err error
 	var res sql.Result
 	if status == commons.Active {
 		res, err = db.Exec(`
-		UPDATE node_connection_details SET custom_settings = custom_settings+$1, updated_on = $2 WHERE node_id = $3 AND custom_settings%$4 < $5;`,
+			UPDATE node_connection_details
+			SET custom_settings = custom_settings+$1, updated_on = $2
+			WHERE node_id = $3 AND custom_settings%$4 < $5;`,
 			customSettings, time.Now().UTC(), nodeId, customSettings*2, customSettings)
+		connectionDetails.CustomSettings = connectionDetails.CustomSettings.AddNodeConnectionDetailCustomSettings(customSettings)
 	} else {
 		res, err = db.Exec(`
-		UPDATE node_connection_details SET custom_settings = custom_settings-$1, updated_on = $2 WHERE node_id = $3 AND custom_settings%$4 >= $5;`,
+			UPDATE node_connection_details
+			SET custom_settings = custom_settings-$1, updated_on = $2
+			WHERE node_id = $3 AND custom_settings%$4 >= $5;`,
 			customSettings, time.Now().UTC(), nodeId, customSettings*2, customSettings)
+		connectionDetails.CustomSettings = connectionDetails.CustomSettings.RemoveNodeConnectionDetailCustomSettings(customSettings)
 	}
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
@@ -388,6 +395,7 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
+	commons.SetLndNodeConnectionDetails(nodeId, connectionDetails)
 	return rowsAffected, nil
 }
 
@@ -406,6 +414,9 @@ func setCustomSettings(db *sqlx.DB,
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
+	connectionDetails := commons.GetLndNodeConnectionDetails(nodeId)
+	connectionDetails.CustomSettings = customSettings
+	commons.SetLndNodeConnectionDetails(nodeId, connectionDetails)
 	return rowsAffected, nil
 }
 
@@ -424,6 +435,9 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
+	connectionDetails := commons.GetLndNodeConnectionDetails(ncd.NodeId)
+	connectionDetails.CustomSettings = ncd.CustomSettings
+	commons.SetLndNodeConnectionDetails(ncd.NodeId, connectionDetails)
 	return ncd, nil
 }
 

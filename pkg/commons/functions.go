@@ -198,9 +198,6 @@ func (cs NodeConnectionDetailCustomSettings) GetServiceType() *ServiceType {
 	case cs.HasNodeConnectionDetailCustomSettings(ImportHtlcEvents):
 		lndServiceHtlcEventStream := LndServiceHtlcEventStream
 		return &lndServiceHtlcEventStream
-	case cs.HasNodeConnectionDetailCustomSettings(ImportPeerEvents):
-		lndServicePeerEventStream := LndServicePeerEventStream
-		return &lndServicePeerEventStream
 	case cs.HasNodeConnectionDetailCustomSettings(ImportTransactions):
 		lndServiceTransactionStream := LndServiceTransactionStream
 		return &lndServiceTransactionStream
@@ -258,7 +255,6 @@ func GetNodeConnectionDetailCustomSettings() []NodeConnectionDetailCustomSetting
 	return []NodeConnectionDetailCustomSettings{
 		ImportFailedPayments,
 		ImportHtlcEvents,
-		ImportPeerEvents,
 		ImportTransactions,
 		ImportPayments,
 		ImportInvoices,
@@ -316,8 +312,7 @@ func (st *ServiceType) IsChannelBalanceCache() bool {
 		*st == LndServicePaymentStream ||
 		*st == LndServicePeerEventStream ||
 		*st == LndServiceChannelEventStream ||
-		*st == LndServiceGraphEventStream ||
-		*st == LndServiceHtlcEventStream) {
+		*st == LndServiceGraphEventStream) {
 		return true
 	}
 	return false
@@ -332,8 +327,6 @@ func (st *ServiceType) GetNodeConnectionDetailCustomSettings() []NodeConnectionD
 		return []NodeConnectionDetailCustomSettings{ImportFailedPayments, ImportPayments}
 	case LndServiceHtlcEventStream:
 		return []NodeConnectionDetailCustomSettings{ImportHtlcEvents}
-	case LndServicePeerEventStream:
-		return []NodeConnectionDetailCustomSettings{ImportPeerEvents}
 	case LndServiceTransactionStream:
 		return []NodeConnectionDetailCustomSettings{ImportTransactions}
 	case LndServiceInvoiceStream:

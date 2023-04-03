@@ -65,8 +65,7 @@ const importFailedPayments = "importFailedPayments";
 const importFailedPaymentsValue = 1;
 const importHtlcEvents = "importHtlcEvents";
 const importHtlcEventsValue = 2;
-const importPeerEvents = "importPeerEvents";
-const importPeerEventsValue = 4;
+// PeerEvents has been removed as an option
 const importTransactions = "importTransactions";
 const importTransactionsValue = 8;
 const importPayments = "importPayments";
@@ -81,7 +80,6 @@ const importForwardsHistoryValue = 128;
 const customSettingsDefault = {
   importFailedPayments: true,
   importHtlcEvents: true,
-  importPeerEvents: true,
   importTransactions: true,
   importPayments: true,
   importInvoices: true,
@@ -93,17 +91,6 @@ interface importProps {
   value: number;
   label?: string;
 }
-
-const customSettingsSidebarData = new Map<string, importProps>([
-  [importFailedPayments, { value: importFailedPaymentsValue, label: undefined }],
-  [importHtlcEvents, { value: importHtlcEventsValue, label: "Htlc events" }],
-  [importPeerEvents, { value: importPeerEventsValue, label: "Peer events" }],
-  [importTransactions, { value: importTransactionsValue, label: "Transactions" }],
-  [importPayments, { value: importPaymentsValue, label: "Payments" }],
-  [importInvoices, { value: importInvoicesValue, label: "Invoices" }],
-  [importForwards, { value: importForwardsValue, label: "Forwards" }],
-  [importForwardsHistory, { value: importForwardsHistoryValue, label: "Forwards History" }],
-]);
 
 const NodeSettings = React.forwardRef(function NodeSettings(
   { nodeId, collapsed, addMode, onAddSuccess }: nodeProps,
@@ -133,6 +120,16 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [customSettingsState, setCustomSettingsState] = React.useState(customSettingsDefault);
   const [formErrorState, setFormErrorState] = React.useState({} as FormErrors);
   const [toggleErrorState, setToggleErrorState] = React.useState({} as FormErrors);
+
+  const customSettingsSidebarData = new Map<string, importProps>([
+    [importTransactions, { value: importTransactionsValue, label: t.importTransactions }],
+    [importPayments, { value: importPaymentsValue, label: t.importPayments }],
+    [importInvoices, { value: importInvoicesValue, label: t.importInvoices }],
+    [importForwards, { value: importForwardsValue, label: t.importForwards }],
+    [importForwardsHistory, { value: importForwardsHistoryValue, label: t.importForwardsHistory }],
+    [importHtlcEvents, { value: importHtlcEventsValue, label: t.importHtlcEvents }],
+    [importFailedPayments, { value: importFailedPaymentsValue, label: undefined }],
+  ]);
 
   React.useImperativeHandle(ref, () => ({
     clear() {
@@ -266,7 +263,6 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         importFailedPayments:
           nodeConfigurationData.customSettings % (importFailedPaymentsValue * 2) >= importFailedPaymentsValue,
         importHtlcEvents: nodeConfigurationData.customSettings % (importHtlcEventsValue * 2) >= importHtlcEventsValue,
-        importPeerEvents: nodeConfigurationData.customSettings % (importPeerEventsValue * 2) >= importPeerEventsValue,
         importTransactions:
           nodeConfigurationData.customSettings % (importTransactionsValue * 2) >= importTransactionsValue,
         importPayments: nodeConfigurationData.customSettings % (importPaymentsValue * 2) >= importPaymentsValue,
@@ -536,7 +532,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                           }
                         })}
                       <Switch
-                        label={t.ImportFailedPayments}
+                        label={t.importFailedPayments}
                         checked={
                           nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
                           importFailedPaymentsValue
@@ -547,7 +543,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       />
                       <div className={styles.importFailedPayments}>
                         <Note title={"Failed Payments"} noteType={NoteType.warning}>
-                          {t.importFailedPayments}
+                          {t.info.importFailedPayments}
                         </Note>
                       </div>
                     </div>
@@ -572,94 +568,82 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   : "Saving..."}
               </Button>
               {!addMode && (
-                <>
-                  <div className={styles.customImportSettings}>
+                <div className={styles.toggleSettings}>
+                  <div
+                    className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
+                    onClick={handleCustomSettingsCollapseClick}
+                  >
+                    <div className={styles.title}>{t.advancedSettings}</div>
                     <div
-                      className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
-                      onClick={handleCustomSettingsCollapseClick}
+                      className={classNames(styles.collapseIcon, { [styles.collapsed]: customSettingsCollapsedState })}
                     >
-                      <div className={styles.title}>{t.advancedSettings}</div>
-                      <div
-                        className={classNames(styles.collapseIcon, { [styles.collapsed]: customSettingsCollapsedState })}
-                      >
-                        {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
-                      </div>
+                      {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
                     </div>
-                    <Collapse collapsed={customSettingsCollapsedState} animate={true}>
-                      <div className={styles.customImportSettingsBody}>
-                        {Object.keys(customSettingsState).map((key) => {
-                            const k = key as keyof typeof customSettingsState;
-                            const data = customSettingsSidebarData.get(key);
-                            if (data !== undefined && data.label !== undefined) {
-                              return (
-                                <div className={styles.import} key={key}>
-                                  <Switch
-                                    label={data.label || ""}
-                                    checked={customSettingsState[k]}
-                                    onChange={() => {
-                                      setCustomSettingsState({
-                                        ...customSettingsState,
-                                        [key]: !customSettingsState[k],
-                                      });
-                                      toggleCustomSettingsStateNow(key);
-                                    }}
-                                  />
-                                </div>
-                              );
-                            }
-                          })}
-                        <Switch
-                          label={t.ImportFailedPayments}
-                          checked={
-                            nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
-                            importFailedPaymentsValue
-                          }
-                          onChange={() => {
-                            toggleCustomSettingsStateNow(importFailedPayments);
-                          }}
-                        />
-                        <div className={styles.importFailedPayments}>
-                          <Note title={"Failed Payments"} noteType={NoteType.warning}>
-                            {t.importFailedPayments}
-                          </Note>
-                        </div>
-                      </div>
-                    </Collapse>
                   </div>
-                  <div className={styles.pingSystems}>
-                    <div className={styles.vectorPingSystem}>
+                  <Collapse collapsed={customSettingsCollapsedState} animate={true}>
+                    <div className={styles.customImportSettingsBody}>
+                      {Object.keys(customSettingsState).map((key) => {
+                          const k = key as keyof typeof customSettingsState;
+                          const data = customSettingsSidebarData.get(key);
+                          if (data !== undefined && data.label !== undefined) {
+                            return (
+                              <div className={styles.import} key={key}>
+                                <Switch
+                                  label={data.label || ""}
+                                  checked={customSettingsState[k]}
+                                  onChange={() => {
+                                    setCustomSettingsState({
+                                      ...customSettingsState,
+                                      [key]: !customSettingsState[k],
+                                    });
+                                    toggleCustomSettingsStateNow(key);
+                                  }}
+                                />
+                              </div>
+                            );
+                          }
+                        })}
+                      <Switch
+                        label={t.importFailedPayments}
+                        checked={
+                          nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
+                          importFailedPaymentsValue
+                        }
+                        onChange={() => {
+                          toggleCustomSettingsStateNow(importFailedPayments);
+                        }}
+                      />
                       <Switch
                         label="Vector Ping"
                         checked={nodeConfigurationState.pingSystem % 4 >= 2}
                         onChange={handleVectorPingClick}
                       />
-                    </div>
-                    <div className={styles.ambossPingSystem}>
                       <Switch
                         label="Amboss Ping"
                         checked={nodeConfigurationState.pingSystem % 2 >= 1}
                         onChange={handleAmbossPingClick}
                       />
+                      <Note title={t.note} noteType={NoteType.info}>
+                        <p>{t.info.importFailedPayments}</p>
+                        <p>{t.pingNote}</p>
+                        <p>{t.header.pingSystem}</p>
+                        <p>{t.header.vectorPingSystem}</p>
+                        <p>{t.header.ambossPingSystem}</p>
+                      </Note>
                     </div>
-                    <Note title={t.header.pingNoteHeader} noteType={NoteType.info}>
-                      <p>{t.pingNote}</p>
-                      <p>{t.header.pingSystem}</p>
-                      <p>{t.header.vectorPingSystem}</p>
-                      <p>{t.header.ambossPingSystem}</p>
-                    </Note>
-                  </div>
-                  <ErrorSummary errors={toggleErrorState} />
-                  <Button
-                    id={"customSettings-save-node"}
-                    buttonColor={ColorVariant.success}
-                    icon={<SaveIcon />}
-                    onClick={submitCustomSettings}
-                    buttonPosition={ButtonPosition.fullWidth}
-                    disabled={!customSettingsSaveEnabledState}
-                  >
-                    Save toggles
-                  </Button>
-                </>
+                    <ErrorSummary errors={toggleErrorState} />
+                    <Button
+                      id={"customSettings-save-node"}
+                      buttonColor={ColorVariant.success}
+                      icon={<SaveIcon />}
+                      onClick={submitCustomSettings}
+                      buttonPosition={ButtonPosition.fullWidth}
+                      disabled={!customSettingsSaveEnabledState}
+                    >
+                      Save toggles
+                    </Button>
+                  </Collapse>
+                </div>
               )}
             </Form>
           </div>
