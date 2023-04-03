@@ -638,8 +638,14 @@ func processServiceBoot(db *sqlx.DB, serviceType commons.ServiceType, nodeId int
 	log.Info().Msgf("%v Service booted for nodeId: %v", serviceType.String(), nodeId)
 	switch serviceType {
 	// NOT NODE ID SPECIFIC
-	case commons.AutomationService:
-		go services.Start(ctx, db)
+	case commons.AutomationChannelBalanceEventTriggerService:
+		go services.StartChannelBalanceEventService(ctx, db)
+	case commons.AutomationChannelEventTriggerService:
+		go services.StartChannelEventService(ctx, db)
+	case commons.AutomationIntervalTriggerService:
+		go services.StartIntervalService(ctx, db)
+	case commons.AutomationScheduledTriggerService:
+		go services.StartScheduledService(ctx, db)
 	case commons.MaintenanceService:
 		go services.StartMaintenanceService(ctx, db)
 	case commons.CronService:

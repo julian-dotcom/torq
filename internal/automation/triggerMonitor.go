@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -162,27 +161,6 @@ bootstrappingLoop:
 	<-ctx.Done()
 }
 
-func EventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Info().Msgf("EventTriggerMonitor terminated")
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		channelBalanceEventTriggerMonitor(ctx, db)
-	})()
-
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		channelEventTriggerMonitor(ctx, db)
-	})()
-
-	wg.Wait()
-}
-
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
@@ -197,12 +175,12 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		scheduledTrigger := commons.GetScheduledTrigger()
@@ -354,7 +332,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	}
 }
 
-func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
+func ChannelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Debug().Msgf("ChannelBalanceEventTriggerMonitor terminated")
 
@@ -371,7 +349,7 @@ func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	}
 }
 
-func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
+func ChannelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	defer log.Debug().Msgf("ChannelEventTriggerMonitor terminated")
 
@@ -381,7 +359,7 @@ func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			return
 		case channelEvent := <-lnd.ChannelChanges:
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
-				return
+				continue
 			}
 			switch channelEvent.Type {
 			case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:

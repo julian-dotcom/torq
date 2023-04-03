@@ -228,7 +228,10 @@ func GetTorqServiceTypes() []ServiceType {
 	return []ServiceType{
 		TorqService,
 		MaintenanceService,
-		AutomationService,
+		AutomationIntervalTriggerService,
+		AutomationChannelBalanceEventTriggerService,
+		AutomationChannelEventTriggerService,
+		AutomationScheduledTriggerService,
 		CronService,
 	}
 }
@@ -274,8 +277,14 @@ func (st *ServiceType) String() string {
 		return "AmbossService"
 	case TorqService:
 		return "TorqService"
-	case AutomationService:
-		return "AutomationService"
+	case AutomationChannelBalanceEventTriggerService:
+		return "AutomationChannelBalanceEventTriggerService"
+	case AutomationChannelEventTriggerService:
+		return "AutomationChannelEventTriggerService"
+	case AutomationIntervalTriggerService:
+		return "AutomationIntervalTriggerService"
+	case AutomationScheduledTriggerService:
+		return "AutomationScheduledTriggerService"
 	case RebalanceService:
 		return "RebalanceService"
 	case MaintenanceService:

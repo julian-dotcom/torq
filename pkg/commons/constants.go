@@ -6,7 +6,10 @@ type ServiceType int
 const (
 	TorqService = ServiceType(iota)
 	MaintenanceService
-	AutomationService
+	AutomationIntervalTriggerService
+	AutomationChannelEventTriggerService
+	AutomationChannelBalanceEventTriggerService
+	AutomationScheduledTriggerService
 	CronService
 	VectorService
 	AmbossService
