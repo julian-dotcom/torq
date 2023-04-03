@@ -30,10 +30,10 @@ type settings struct {
 	WeekStartsOn                    string     `json:"weekStartsOn" db:"week_starts_on"`
 	TorqUuid                        string     `json:"torqUuid" db:"torq_uuid"`
 	MixpanelOptOut                  bool       `json:"mixpanelOptOut" db:"mixpanel_opt_out"`
-	SlackOAuthToken                 string     `json:"slackOAuthToken" db:"slack_oauth_token"`
-	SlackBotAppToken                string     `json:"slackBotAppToken" db:"slack_bot_app_token"`
-	TelegramHighPriorityCredentials string     `json:"telegramHighPriorityCredentials" db:"telegram_high_priority_credentials"`
-	TelegramLowPriorityCredentials  string     `json:"telegramLowPriorityCredentials" db:"telegram_low_priority_credentials"`
+	SlackOAuthToken                 *string    `json:"slackOAuthToken" db:"slack_oauth_token"`
+	SlackBotAppToken                *string    `json:"slackBotAppToken" db:"slack_bot_app_token"`
+	TelegramHighPriorityCredentials *string    `json:"telegramHighPriorityCredentials" db:"telegram_high_priority_credentials"`
+	TelegramLowPriorityCredentials  *string    `json:"telegramLowPriorityCredentials" db:"telegram_low_priority_credentials"`
 	CreatedOn                       time.Time  `json:"createdOn" db:"created_on"`
 	UpdateOn                        *time.Time `json:"updatedOn" db:"updated_on"`
 }
@@ -129,11 +129,13 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
-	if setts.SlackBotAppToken != "" && setts.SlackOAuthToken != "" {
+	if setts.SlackBotAppToken != nil && *setts.SlackBotAppToken != "" &&
+		setts.SlackOAuthToken != nil && *setts.SlackOAuthToken != "" {
 		commons.SetDesiredTorqServiceState(commons.SlackService, commons.ServiceActive)
 		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
 	}
-	if setts.TelegramLowPriorityCredentials != "" || setts.TelegramHighPriorityCredentials != "" {
+	if (setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "") ||
+		(setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "") {
 		commons.SetDesiredTorqServiceState(commons.TelegramService, commons.ServiceActive)
 		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
 	}

@@ -49,13 +49,38 @@ type ManagedSettings struct {
 	WeekStartsOn                    string
 	TorqUuid                        string
 	MixpanelOptOut                  bool
-	SlackOAuthToken                 string
-	SlackBotAppToken                string
-	TelegramHighPriorityCredentials string
-	TelegramLowPriorityCredentials  string
+	SlackOAuthToken                 *string
+	SlackBotAppToken                *string
+	TelegramHighPriorityCredentials *string
+	TelegramLowPriorityCredentials  *string
 	BlockHeight                     uint32
 	VectorUrl                       string
 	Out                             chan<- ManagedSettings
+}
+
+func (s ManagedSettings) GetTelegramCredential(highPriority bool) string {
+	if highPriority {
+		if s.TelegramHighPriorityCredentials == nil {
+			return ""
+		}
+		return *s.TelegramHighPriorityCredentials
+	}
+	if s.TelegramLowPriorityCredentials == nil {
+		return ""
+	}
+	return *s.TelegramLowPriorityCredentials
+}
+
+func (s ManagedSettings) GetSlackCredential() (string, string) {
+	oauth := ""
+	if s.SlackOAuthToken != nil {
+		oauth = *s.SlackOAuthToken
+	}
+	appToken := ""
+	if s.SlackBotAppToken != nil {
+		oauth = *s.SlackBotAppToken
+	}
+	return oauth, appToken
 }
 
 type ManagedSettingsData struct {
@@ -65,10 +90,10 @@ type ManagedSettingsData struct {
 	WeekStartsOn                    string
 	TorqUuid                        string
 	MixpanelOptOut                  bool
-	SlackOAuthToken                 string
-	SlackBotAppToken                string
-	TelegramHighPriorityCredentials string
-	TelegramLowPriorityCredentials  string
+	SlackOAuthToken                 *string
+	SlackBotAppToken                *string
+	TelegramHighPriorityCredentials *string
+	TelegramLowPriorityCredentials  *string
 	BlockHeight                     uint32
 	VectorUrl                       string
 >>>>>>> Add Slack and Telegram support.:pkg/commons/managedSettings.go
@@ -160,8 +185,8 @@ func GetSettings() SettingsCache {
 
 func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn string, preferredTimeZone string,
 	torqUuid string, mixpanelOptOut bool,
-	slackOAuthToken string, slackBotAppToken string,
-	telegramHighPriorityCredentials string, telegramLowPriorityCredentials string) {
+	slackOAuthToken *string, slackBotAppToken *string,
+	telegramHighPriorityCredentials *string, telegramLowPriorityCredentials *string) {
 
 <<<<<<< serviceRefactoring:pkg/cache/settings.go
 	settingsCache := SettingsCache{

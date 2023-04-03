@@ -191,7 +191,7 @@ type Telegram struct {
 func getTelegramHighPriority() (*Telegram, error) {
 	telegramHighPriorityOnce.Do(func() {
 		log.Debug().Msg("Loading TelegramHighPriority client.")
-		bot, err := tgbotapi.NewBotAPI(commons.GetSettings().TelegramHighPriorityCredentials)
+		bot, err := tgbotapi.NewBotAPI(commons.GetSettings().GetTelegramCredential(true))
 		telegramHighPriorityObject = &Telegram{
 			bot: bot,
 		}
@@ -205,7 +205,7 @@ func getTelegramHighPriority() (*Telegram, error) {
 func getTelegramLowPriority() (*Telegram, error) {
 	telegramLowPriorityOnce.Do(func() {
 		log.Debug().Msg("Loading TelegramLowPriority client.")
-		bot, err := tgbotapi.NewBotAPI(commons.GetSettings().TelegramLowPriorityCredentials)
+		bot, err := tgbotapi.NewBotAPI(commons.GetSettings().GetTelegramCredential(false))
 		bot.Debug = log.Debug().Enabled()
 		telegramLowPriorityObject = &Telegram{
 			bot: bot,
