@@ -617,6 +617,27 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 			cache.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
+	case commons.TelegramService:
+		if commons.GetSettings().TelegramHighPriorityCredentials == "" &&
+			commons.GetSettings().TelegramLowPriorityCredentials == "" {
+			commons.SetDesiredTorqServiceState(commons.TelegramService, commons.ServiceInactive)
+			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
+			return
+		}
+	case commons.SlackService:
+		if commons.GetSettings().SlackOAuthToken == "" && commons.GetSettings().SlackBotAppToken == "" {
+			commons.SetDesiredTorqServiceState(commons.SlackService, commons.ServiceInactive)
+			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
+			return
+		}
+	case commons.NotifierService:
+		if commons.GetSettings().TelegramHighPriorityCredentials == "" &&
+			commons.GetSettings().TelegramLowPriorityCredentials == "" &&
+			commons.GetSettings().SlackOAuthToken == "" && commons.GetSettings().SlackBotAppToken == "" {
+			commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceInactive)
+			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
+			return
+		}
 	}
 
 	log.Info().Msgf("%v Service booted for nodeId: %v", serviceType.String(), nodeId)
