@@ -78,7 +78,7 @@ func (s ManagedSettings) GetSlackCredential() (string, string) {
 	}
 	appToken := ""
 	if s.SlackBotAppToken != nil {
-		oauth = *s.SlackBotAppToken
+		appToken = *s.SlackBotAppToken
 	}
 	return oauth, appToken
 }

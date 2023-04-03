@@ -186,6 +186,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 						continue
 					}
 					err = errors.New("LndService is offline")
+					delete(informationResponses, torqNodeSettings.NodeId)
 				}
 				if err != nil {
 					log.Error().Err(err).Msgf(
