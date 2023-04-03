@@ -56,22 +56,20 @@ func setAllLndServices(nodeId int,
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	success := commons.InactivateLndService(ctxWithTimeout, nodeId)
-	if success && lndActive {
-		success = commons.ActivateLndService(ctxWithTimeout, nodeId, customSettings, pingSystem)
+	if lndActive {
+		return commons.ActivateLndService(ctxWithTimeout, nodeId, customSettings, pingSystem)
 	}
-	return success
+	return commons.InactivateLndService(ctxWithTimeout, nodeId)
 }
 
 func setService(serviceType commons.ServiceType, nodeId int, active bool) bool {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	success := commons.InactivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
-	if success && active {
-		success = commons.ActivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
+	if active {
+		return commons.ActivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
 	}
-	return success
+	return commons.InactivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
 }
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -258,8 +256,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
-		success := commons.ActivateLndService(ctxWithTimeout, nodeId, ncd.CustomSettings, ncd.PingSystem)
-		if !success {
+		if !commons.ActivateLndService(ctxWithTimeout, nodeId, ncd.CustomSettings, ncd.PingSystem) {
 			server_errors.WrapLogAndSendServerError(c, err, "Service activation failed.")
 			return
 		}

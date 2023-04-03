@@ -764,9 +764,40 @@ func ActivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 		case <-ticker:
 			state := GetCurrentTorqServiceState(serviceType)
 			if state.Status != ServiceInactive {
-				continue
+				return true
 			}
-			return true
+		}
+	}
+}
+
+func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
+	SetDesiredLndServiceState(serviceType, nodeId, ServiceInactive)
+	ticker := clock.New().Tick(1 * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			return false
+		case <-ticker:
+			state := GetCurrentLndServiceState(serviceType, nodeId)
+			if state.Status == ServiceInactive {
+				return true
+			}
+		}
+	}
+}
+
+func ActivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
+	SetDesiredLndServiceState(serviceType, nodeId, ServiceActive)
+	ticker := clock.New().Tick(1 * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			return false
+		case <-ticker:
+			state := GetCurrentLndServiceState(serviceType, nodeId)
+			if state.Status != ServiceInactive {
+				return true
+			}
 		}
 	}
 }
@@ -776,6 +807,7 @@ func InactivateLndService(ctx context.Context, nodeId int) bool {
 		SetDesiredLndServiceState(lndServiceType, nodeId, ServiceInactive)
 	}
 	ticker := clock.New().Tick(1 * time.Second)
+recheck:
 	for {
 		select {
 		case <-ctx.Done():
@@ -784,7 +816,7 @@ func InactivateLndService(ctx context.Context, nodeId int) bool {
 			for _, lndServiceType := range GetLndServiceTypes() {
 				state := GetCurrentLndServiceState(lndServiceType, nodeId)
 				if state.Status != ServiceInactive {
-					continue
+					continue recheck
 				}
 			}
 			return true
@@ -827,6 +859,7 @@ func ActivateLndService(ctx context.Context,
 		SetDesiredLndServiceState(lndServiceType, nodeId, ServiceActive)
 	}
 	ticker := clock.New().Tick(1 * time.Second)
+recheck:
 	for {
 		select {
 		case <-ctx.Done():
@@ -834,43 +867,9 @@ func ActivateLndService(ctx context.Context,
 		case <-ticker:
 			for _, lndServiceType := range relavantServiceTypes {
 				state := GetCurrentLndServiceState(lndServiceType, nodeId)
-				if state.Status != ServiceInactive {
-					continue
+				if state.Status == ServiceInactive {
+					continue recheck
 				}
-			}
-			return true
-		}
-	}
-}
-
-func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
-	SetDesiredLndServiceState(serviceType, nodeId, ServiceInactive)
-	ticker := clock.New().Tick(1 * time.Second)
-	for {
-		select {
-		case <-ctx.Done():
-			return false
-		case <-ticker:
-			state := GetCurrentLndServiceState(serviceType, nodeId)
-			if state.Status != ServiceInactive {
-				continue
-			}
-			return true
-		}
-	}
-}
-
-func ActivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
-	SetDesiredLndServiceState(serviceType, nodeId, ServiceActive)
-	ticker := clock.New().Tick(1 * time.Second)
-	for {
-		select {
-		case <-ctx.Done():
-			return false
-		case <-ticker:
-			state := GetCurrentLndServiceState(serviceType, nodeId)
-			if state.Status != ServiceInactive {
-				continue
 			}
 			return true
 		}
