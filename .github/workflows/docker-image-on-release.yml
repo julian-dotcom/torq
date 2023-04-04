@@ -6,6 +6,7 @@ on:
 
 jobs:
   amd64:
+    if: ${{ false }}
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Push AMD64 Docker image to Docker Hub
     steps:
@@ -36,6 +37,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   arm:
+    if: ${{ false }}
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
     steps:
@@ -67,6 +69,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   combine-manifests:
+    if: ${{ false }}
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest
     needs:
@@ -87,7 +90,7 @@ jobs:
       - name: Docker push manifest
         run: docker manifest push lncapital/torq:latest
 
-  releases-matrix:
+  binary-release-matrix:
     name: Release Go Binary
     runs-on: ubuntu-latest
     strategy:
@@ -115,12 +118,12 @@ jobs:
         run: TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true CI=false npm run build
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.19'
+          go-version: "1.19"
       - name: generate
         run: go generate build/version.go
       - uses: wangyoucao577/go-release-action@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.BINARY_RELEASE_PAT }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           pre_command: export CGO_ENABLED=0
