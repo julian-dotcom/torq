@@ -435,9 +435,14 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
-	connectionDetails := commons.GetLndNodeConnectionDetails(ncd.NodeId)
-	connectionDetails.CustomSettings = ncd.CustomSettings
-	commons.SetLndNodeConnectionDetails(ncd.NodeId, connectionDetails)
+	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
+		commons.SetLndNodeConnectionDetails(ncd.NodeId, commons.LndNodeConnectionDetails{
+			GRPCAddress:       *ncd.GRPCAddress,
+			TLSFileBytes:      ncd.TLSDataBytes,
+			MacaroonFileBytes: ncd.MacaroonDataBytes,
+			CustomSettings:    ncd.CustomSettings,
+		})
+	}
 	return ncd, nil
 }
 
@@ -476,6 +481,14 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 		ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
+	}
+	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
+		commons.SetLndNodeConnectionDetails(ncd.NodeId, commons.LndNodeConnectionDetails{
+			GRPCAddress:       *ncd.GRPCAddress,
+			TLSFileBytes:      ncd.TLSDataBytes,
+			MacaroonFileBytes: ncd.MacaroonDataBytes,
+			CustomSettings:    ncd.CustomSettings,
+		})
 	}
 	return ncd, nil
 }
