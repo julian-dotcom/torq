@@ -740,13 +740,21 @@ func GetLndNodeIds() []int {
 
 func InactivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 	SetDesiredTorqServiceState(serviceType, ServiceInactive)
+
+	// Fast check in case the state is already what we wanted
+	state := GetCurrentTorqServiceState(serviceType)
+	if state.Status == ServiceInactive {
+		return true
+	}
+
+	// Slow check
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			return false
 		case <-ticker:
-			state := GetCurrentTorqServiceState(serviceType)
+			state = GetCurrentTorqServiceState(serviceType)
 			if state.Status == ServiceInactive {
 				return true
 			}
@@ -756,13 +764,21 @@ func InactivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 
 func ActivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 	SetDesiredTorqServiceState(serviceType, ServiceActive)
+
+	// Fast check in case the state is already what we wanted
+	state := GetCurrentTorqServiceState(serviceType)
+	if state.Status != ServiceInactive {
+		return true
+	}
+
+	// Slow check
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			return false
 		case <-ticker:
-			state := GetCurrentTorqServiceState(serviceType)
+			state = GetCurrentTorqServiceState(serviceType)
 			if state.Status != ServiceInactive {
 				return true
 			}
@@ -772,13 +788,21 @@ func ActivateTorqService(ctx context.Context, serviceType ServiceType) bool {
 
 func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
 	SetDesiredLndServiceState(serviceType, nodeId, ServiceInactive)
+
+	// Fast check in case the state is already what we wanted
+	state := GetCurrentLndServiceState(serviceType, nodeId)
+	if state.Status == ServiceInactive {
+		return true
+	}
+
+	// Slow check
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			return false
 		case <-ticker:
-			state := GetCurrentLndServiceState(serviceType, nodeId)
+			state = GetCurrentLndServiceState(serviceType, nodeId)
 			if state.Status == ServiceInactive {
 				return true
 			}
@@ -788,13 +812,21 @@ func InactivateLndServiceState(ctx context.Context, serviceType ServiceType, nod
 
 func ActivateLndServiceState(ctx context.Context, serviceType ServiceType, nodeId int) bool {
 	SetDesiredLndServiceState(serviceType, nodeId, ServiceActive)
+
+	// Fast check in case the state is already what we wanted
+	state := GetCurrentLndServiceState(serviceType, nodeId)
+	if state.Status != ServiceInactive {
+		return true
+	}
+
+	// Slow check
 	ticker := clock.New().Tick(1 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			return false
 		case <-ticker:
-			state := GetCurrentLndServiceState(serviceType, nodeId)
+			state = GetCurrentLndServiceState(serviceType, nodeId)
 			if state.Status != ServiceInactive {
 				return true
 			}
@@ -806,6 +838,20 @@ func InactivateLndService(ctx context.Context, nodeId int) bool {
 	for _, lndServiceType := range GetLndServiceTypes() {
 		SetDesiredLndServiceState(lndServiceType, nodeId, ServiceInactive)
 	}
+
+	// Fast check in case the state is already what we wanted
+	allGood := true
+	for _, lndServiceType := range GetLndServiceTypes() {
+		state := GetCurrentLndServiceState(lndServiceType, nodeId)
+		if state.Status != ServiceInactive {
+			allGood = false
+		}
+	}
+	if allGood {
+		return true
+	}
+
+	// Slow check
 	ticker := clock.New().Tick(1 * time.Second)
 recheck:
 	for {
@@ -858,6 +904,20 @@ func ActivateLndService(ctx context.Context,
 	for _, lndServiceType := range relavantServiceTypes {
 		SetDesiredLndServiceState(lndServiceType, nodeId, ServiceActive)
 	}
+
+	// Fast check in case the state is already what we wanted
+	allGood := true
+	for _, lndServiceType := range relavantServiceTypes {
+		state := GetCurrentLndServiceState(lndServiceType, nodeId)
+		if state.Status == ServiceInactive {
+			allGood = false
+		}
+	}
+	if allGood {
+		return true
+	}
+
+	// Slow check
 	ticker := clock.New().Tick(1 * time.Second)
 recheck:
 	for {
