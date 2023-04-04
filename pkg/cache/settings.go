@@ -17,32 +17,8 @@ const (
 	writeVectorUrl
 )
 
-<<<<<<< serviceRefactoring:pkg/cache/settings.go
 type SettingsCache struct {
-	Type              SettingsCacheOperationType
-	DefaultLanguage   string
-	PreferredTimeZone string
-	DefaultDateRange  string
-	WeekStartsOn      string
-	TorqUuid          string
-	MixpanelOptOut    bool
-	BlockHeight       uint32
-	VectorUrl         string
-	Out               chan<- SettingsCache
-}
-
-type SettingsDataCache struct {
-	DefaultLanguage   string
-	PreferredTimeZone string
-	DefaultDateRange  string
-	WeekStartsOn      string
-	TorqUuid          string
-	MixpanelOptOut    bool
-	BlockHeight       uint32
-	VectorUrl         string
-=======
-type ManagedSettings struct {
-	Type                            ManagedSettingsCacheOperationType
+	Type                            SettingsCacheOperationType
 	DefaultLanguage                 string
 	PreferredTimeZone               string
 	DefaultDateRange                string
@@ -55,10 +31,25 @@ type ManagedSettings struct {
 	TelegramLowPriorityCredentials  *string
 	BlockHeight                     uint32
 	VectorUrl                       string
-	Out                             chan<- ManagedSettings
+	Out                             chan<- SettingsCache
 }
 
-func (s ManagedSettings) GetTelegramCredential(highPriority bool) string {
+type SettingsDataCache struct {
+	DefaultLanguage                 string
+	PreferredTimeZone               string
+	DefaultDateRange                string
+	WeekStartsOn                    string
+	TorqUuid                        string
+	MixpanelOptOut                  bool
+	SlackOAuthToken                 *string
+	SlackBotAppToken                *string
+	TelegramHighPriorityCredentials *string
+	TelegramLowPriorityCredentials  *string
+	BlockHeight                     uint32
+	VectorUrl                       string
+}
+
+func (s SettingsCache) GetTelegramCredential(highPriority bool) string {
 	if highPriority {
 		if s.TelegramHighPriorityCredentials == nil {
 			return ""
@@ -71,7 +62,7 @@ func (s ManagedSettings) GetTelegramCredential(highPriority bool) string {
 	return *s.TelegramLowPriorityCredentials
 }
 
-func (s ManagedSettings) GetSlackCredential() (string, string) {
+func (s SettingsCache) GetSlackCredential() (string, string) {
 	oauth := ""
 	if s.SlackOAuthToken != nil {
 		oauth = *s.SlackOAuthToken
@@ -81,22 +72,6 @@ func (s ManagedSettings) GetSlackCredential() (string, string) {
 		appToken = *s.SlackBotAppToken
 	}
 	return oauth, appToken
-}
-
-type ManagedSettingsData struct {
-	DefaultLanguage                 string
-	PreferredTimeZone               string
-	DefaultDateRange                string
-	WeekStartsOn                    string
-	TorqUuid                        string
-	MixpanelOptOut                  bool
-	SlackOAuthToken                 *string
-	SlackBotAppToken                *string
-	TelegramHighPriorityCredentials *string
-	TelegramLowPriorityCredentials  *string
-	BlockHeight                     uint32
-	VectorUrl                       string
->>>>>>> Add Slack and Telegram support.:pkg/commons/managedSettings.go
 }
 
 func SettingsCacheHandle(ch <-chan SettingsCache, ctx context.Context) {
@@ -130,7 +105,6 @@ func handleSettingsOperation(settingsCache SettingsCache, data SettingsDataCache
 		if data.WeekStartsOn == "" {
 			settingsCache.WeekStartsOn = "monday"
 		}
-<<<<<<< serviceRefactoring:pkg/cache/settings.go
 		settingsCache.TorqUuid = data.TorqUuid
 		settingsCache.MixpanelOptOut = data.MixpanelOptOut
 		settingsCache.BlockHeight = data.BlockHeight
@@ -143,28 +117,10 @@ func handleSettingsOperation(settingsCache SettingsCache, data SettingsDataCache
 		data.WeekStartsOn = settingsCache.WeekStartsOn
 		data.TorqUuid = settingsCache.TorqUuid
 		data.MixpanelOptOut = settingsCache.MixpanelOptOut
-=======
-		managedSettings.TorqUuid = data.TorqUuid
-		managedSettings.MixpanelOptOut = data.MixpanelOptOut
-		managedSettings.SlackOAuthToken = data.SlackOAuthToken
-		managedSettings.SlackBotAppToken = data.SlackBotAppToken
-		managedSettings.TelegramHighPriorityCredentials = data.TelegramHighPriorityCredentials
-		managedSettings.TelegramLowPriorityCredentials = data.TelegramLowPriorityCredentials
-		managedSettings.BlockHeight = data.BlockHeight
-		managedSettings.VectorUrl = data.VectorUrl
-		SendToManagedSettingsChannel(managedSettings.Out, managedSettings)
-	case writeSettings:
-		data.DefaultLanguage = managedSettings.DefaultLanguage
-		data.PreferredTimeZone = managedSettings.PreferredTimeZone
-		data.DefaultDateRange = managedSettings.DefaultDateRange
-		data.WeekStartsOn = managedSettings.WeekStartsOn
-		data.TorqUuid = managedSettings.TorqUuid
-		data.MixpanelOptOut = managedSettings.MixpanelOptOut
-		data.SlackOAuthToken = managedSettings.SlackOAuthToken
-		data.SlackBotAppToken = managedSettings.SlackBotAppToken
-		data.TelegramHighPriorityCredentials = managedSettings.TelegramHighPriorityCredentials
-		data.TelegramLowPriorityCredentials = managedSettings.TelegramLowPriorityCredentials
->>>>>>> Add Slack and Telegram support.:pkg/commons/managedSettings.go
+		data.SlackOAuthToken = settingsCache.SlackOAuthToken
+		data.SlackBotAppToken = settingsCache.SlackBotAppToken
+		data.TelegramHighPriorityCredentials = settingsCache.TelegramHighPriorityCredentials
+		data.TelegramLowPriorityCredentials = settingsCache.TelegramLowPriorityCredentials
 	case writeVectorUrl:
 		data.VectorUrl = settingsCache.VectorUrl
 	case writeBlockHeight:
@@ -188,17 +144,7 @@ func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn s
 	slackOAuthToken *string, slackBotAppToken *string,
 	telegramHighPriorityCredentials *string, telegramLowPriorityCredentials *string) {
 
-<<<<<<< serviceRefactoring:pkg/cache/settings.go
 	settingsCache := SettingsCache{
-		DefaultDateRange:  defaultDateRange,
-		DefaultLanguage:   defaultLanguage,
-		WeekStartsOn:      weekStartsOn,
-		PreferredTimeZone: preferredTimeZone,
-		TorqUuid:          torqUuid,
-		MixpanelOptOut:    mixpanelOptOut,
-		Type:              writeSettings,
-=======
-	managedSettings := ManagedSettings{
 		DefaultDateRange:                defaultDateRange,
 		DefaultLanguage:                 defaultLanguage,
 		WeekStartsOn:                    weekStartsOn,
@@ -210,7 +156,6 @@ func SetSettings(defaultDateRange string, defaultLanguage string, weekStartsOn s
 		TelegramHighPriorityCredentials: telegramHighPriorityCredentials,
 		TelegramLowPriorityCredentials:  telegramLowPriorityCredentials,
 		Type:                            writeSettings,
->>>>>>> Add Slack and Telegram support.:pkg/commons/managedSettings.go
 	}
 	SettingsCacheChannel <- settingsCache
 }
