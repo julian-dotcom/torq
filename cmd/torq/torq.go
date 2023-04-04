@@ -297,7 +297,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Error().Err(err).Msg("Torq could not migrate the database.")
 		commons.CancelTorqService(commons.TorqService)
-		commons.SetInactiveTorqServiceState(commons.TorqService)
+		commons.SetFailedTorqServiceState(commons.TorqService)
 		return
 	}
 
@@ -349,7 +349,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 				if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
 					log.Error().Err(err).Msg("Problem updating node files")
 					commons.CancelTorqService(commons.TorqService)
-					commons.SetInactiveTorqServiceState(commons.TorqService)
+					commons.SetFailedTorqServiceState(commons.TorqService)
 				}
 			}
 		}

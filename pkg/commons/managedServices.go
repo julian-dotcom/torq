@@ -107,7 +107,7 @@ func (ss *ServiceState) Activate() ServiceState {
 
 func (ss *ServiceState) Cancel() ServiceState {
 	if ss.CancelFunc != nil {
-		log.Info().Msgf("Cancel function called.")
+		log.Debug().Msgf("Cancel function called.")
 		(*ss.CancelFunc)()
 		ss.CancelFunc = nil
 	}
