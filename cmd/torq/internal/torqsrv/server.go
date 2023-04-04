@@ -37,6 +37,7 @@ import (
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/views"
 	"github.com/lncapital/torq/internal/workflows"
+	"github.com/lncapital/torq/web"
 )
 
 func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, autoLogin bool) error {
@@ -243,6 +244,8 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 			})
 		})
 	}
+
+	web.AddRoutes(r)
 }
 
 func registerStaticRoutes(r *gin.Engine) {

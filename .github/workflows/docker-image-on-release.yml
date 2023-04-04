@@ -86,3 +86,43 @@ jobs:
           --amend lncapital/torq:arm-latest
       - name: Docker push manifest
         run: docker manifest push lncapital/torq:latest
+
+  binary-release-matrix:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
+        goos: [linux, windows, darwin]
+        goarch: ["386", amd64, arm64]
+        node-version: [16.x]
+        exclude:
+          - goarch: "386"
+            goos: darwin
+          - goarch: arm64
+            goos: windows
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: NPM Install
+        working-directory: ./web
+        run: npm install --legacy-peer-deps
+      - name: NPM Build
+        working-directory: ./web
+        run: TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true CI=false npm run build
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.19"
+      - name: generate
+        run: go generate build/version.go
+      - uses: wangyoucao577/go-release-action@v1
+        with:
+          github_token: ${{ secrets.BINARY_RELEASE_PAT }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          pre_command: export CGO_ENABLED=0
+          project_path: ./cmd/torq/
+          extra_files: LICENSE.md README.md SECURITY.md CONTRIBUTING.md
