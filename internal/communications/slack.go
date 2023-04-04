@@ -18,8 +18,6 @@ func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 
 	serviceType := commons.SlackService
 
-	commons.SetActiveTorqServiceState(serviceType)
-
 	for {
 		select {
 		case <-ctx.Done():
