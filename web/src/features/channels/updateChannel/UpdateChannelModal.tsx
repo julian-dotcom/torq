@@ -221,7 +221,7 @@ function UpdateChannelModal() {
           </div>
           {response.isLoading && (
             <Note title={t.Processing} icon={<ProcessingIcon />} noteType={NoteType.warning}>
-              {t.openCloseChannel.processingClose}
+              {t.openCloseChannel.processingUpdate}
             </Note>
           )}
           <ErrorSummary errors={formErrorState} />
