@@ -10,6 +10,7 @@ import (
 
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/workflows"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -22,16 +23,16 @@ func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	automation.IntervalTriggerMonitor(ctx, db)
 
-	commons.SetInactiveTorqServiceState(serviceType)
+	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
@@ -43,16 +44,16 @@ func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	automation.ChannelBalanceEventTriggerMonitor(ctx, db)
 
-	commons.SetInactiveTorqServiceState(serviceType)
+	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
@@ -64,16 +65,16 @@ func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	automation.ChannelEventTriggerMonitor(ctx, db)
 
-	commons.SetInactiveTorqServiceState(serviceType)
+	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func StartScheduledService(ctx context.Context, db *sqlx.DB) {
@@ -85,16 +86,16 @@ func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	automation.ScheduledTriggerMonitor(ctx, db)
 
-	commons.SetInactiveTorqServiceState(serviceType)
+	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
@@ -106,16 +107,16 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			commons.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	commons.SetActiveLndServiceState(serviceType, nodeId)
+	cache.SetActiveLndServiceState(serviceType, nodeId)
 
 	workflows.RebalanceServiceStart(ctx, conn, db, nodeId)
 
-	commons.SetInactiveLndServiceState(serviceType, nodeId)
+	cache.SetInactiveLndServiceState(serviceType, nodeId)
 }
 
 func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
@@ -127,16 +128,16 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	commons.MaintenanceServiceStart(ctx, db)
 
-	commons.SetInactiveTorqServiceState(serviceType)
+	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func StartCronService(ctx context.Context, db *sqlx.DB) {
@@ -148,12 +149,12 @@ func StartCronService(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	automation.CronTriggerMonitor(ctx, db)
 }

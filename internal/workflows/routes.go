@@ -17,6 +17,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -192,9 +193,9 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		if slices.Contains(workflowIds, req.WorkflowId) {
 			ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 			defer cancel()
-			success := commons.InactivateTorqService(ctxWithTimeout, commons.CronService)
+			success := cache.InactivateCoreService(ctxWithTimeout, commons.CronService)
 			if success {
-				success = commons.ActivateTorqService(ctxWithTimeout, commons.CronService)
+				success = cache.ActivateCoreService(ctxWithTimeout, commons.CronService)
 			}
 			if !success {
 				server_errors.WrapLogAndSendServerError(c, err, "Could not restart CronService.")

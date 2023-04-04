@@ -54,9 +54,16 @@ type ChannelBalanceEventData struct {
 type ServiceStatus int
 
 const (
-	ServiceInactive     = ServiceStatus(Inactive)
-	ServiceActive       = ServiceStatus(Active)
-	ServicePending      = ServiceStatus(Pending)
+	// ServiceInactive is the initial state of a service
+	ServiceInactive = ServiceStatus(Inactive)
+	// ServiceActive is the state when the service is fully operational
+	// (so not bootstrapping but working with live data)
+	ServiceActive = ServiceStatus(Active)
+	// ServicePending is when the service is booted but waiting for some connection to become active
+	// (not all services have this state)
+	ServicePending = ServiceStatus(Pending)
+	// ServiceInitializing is when a service is operational but it's performing an initialization task
+	// (an example here would be importing historic data before starting to process live data)
 	ServiceInitializing = ServiceStatus(Initializing)
 )
 

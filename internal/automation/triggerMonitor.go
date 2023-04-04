@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/workflows"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
 )
@@ -104,7 +105,7 @@ bootstrappingLoop:
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveTorqServiceState(serviceType)
+			cache.SetInactiveCoreServiceState(serviceType)
 			return
 		case <-ticker:
 			torqNodeIds := commons.GetAllTorqNodeIds()
@@ -121,7 +122,7 @@ bootstrappingLoop:
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to obtain root nodes (cron trigger nodes)")
 		log.Error().Msg("Cron trigger monitor failed to start")
-		commons.SetFailedTorqServiceState(serviceType)
+		cache.SetFailedCoreServiceState(serviceType)
 		return
 	}
 

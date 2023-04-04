@@ -15,6 +15,7 @@ import (
 
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
@@ -48,7 +49,7 @@ func getConnection(nodeId int) (*grpc.ClientConn, error) {
 
 	_, exists := connectionWrapper.connections[nodeId]
 	if !exists {
-		ncd := commons.GetLndNodeConnectionDetails(nodeId)
+		ncd := cache.GetLndNodeConnectionDetails(nodeId)
 		conn, err := lnd_connect.Connect(ncd.GRPCAddress, ncd.TLSFileBytes, ncd.MacaroonFileBytes)
 		if err != nil {
 			log.Error().Err(err).Msgf("GRPC connection Failed for node id: %v", nodeId)
@@ -342,9 +343,9 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 	}
 	// TODO FIXME For now there is no concurrency enabled for lightning communication
 	// When concurrency is enabled this need to be revisited
-	successTimes := commons.GetSuccessTimes(request.NodeId)
+	successTimes := cache.GetSuccessTimes(request.NodeId)
 	if !request.Force {
-		successTime, exists := commons.GetSuccessTimes(request.NodeId)[request.ImportType]
+		successTime, exists := cache.GetSuccessTimes(request.NodeId)[request.ImportType]
 		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
 			switch request.ImportType {
 			case commons.ImportAllChannels:
@@ -445,7 +446,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 	}
 	successTimes[request.ImportType] = time.Now()
-	commons.SetSuccessTimes(request.NodeId, successTimes)
+	cache.SetSuccessTimes(request.NodeId, successTimes)
 	response.Status = Active
 	return response
 }

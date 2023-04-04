@@ -8,6 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -20,25 +21,25 @@ func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	result := Services{}
 	var bitcoinNetworks []commons.Network
-	for _, torqServiceType := range commons.GetTorqServiceTypes() {
-		torqService := commons.GetCurrentTorqServiceState(torqServiceType)
-		desiredState := commons.GetDesiredTorqServiceState(torqServiceType)
+	for _, coreServiceType := range commons.GetCoreServiceTypes() {
+		torqService := cache.GetCurrentCoreServiceState(coreServiceType)
+		desiredState := cache.GetDesiredCoreServiceState(coreServiceType)
 		if desiredState.Status != torqService.Status {
 			result.ServiceMismatches = append(result.ServiceMismatches, ServiceMismatch{
-				ServiceType:         torqServiceType,
-				ServiceTypeString:   torqServiceType.String(),
+				ServiceType:         coreServiceType,
+				ServiceTypeString:   coreServiceType.String(),
 				Status:              torqService.Status,
 				StatusString:        torqService.Status.String(),
 				DesiredStatus:       desiredState.Status,
 				DesiredStatusString: desiredState.Status.String(),
-				FailureTime:         commons.GetTorqFailedAttemptTime(torqServiceType),
+				FailureTime:         cache.GetCoreFailedAttemptTime(coreServiceType),
 			})
 		}
-		if torqServiceType == commons.TorqService {
-			result.MainService = TorqService{
+		if coreServiceType == commons.RootService {
+			result.MainService = CoreService{
 				CommonService: CommonService{
-					ServiceType:       torqServiceType,
-					ServiceTypeString: torqServiceType.String(),
+					ServiceType:       coreServiceType,
+					ServiceTypeString: coreServiceType.String(),
 					Status:            torqService.Status,
 					BootTime:          torqService.ActiveTime,
 					StatusString:      torqService.Status.String(),
@@ -46,22 +47,22 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 			}
 			continue
 		}
-		result.TorqServices = append(result.TorqServices, TorqService{
+		result.TorqServices = append(result.TorqServices, CoreService{
 			CommonService: CommonService{
-				ServiceType:       torqServiceType,
-				ServiceTypeString: torqServiceType.String(),
+				ServiceType:       coreServiceType,
+				ServiceTypeString: coreServiceType.String(),
 				Status:            torqService.Status,
 				BootTime:          torqService.ActiveTime,
 				StatusString:      torqService.Status.String(),
 			},
 		})
 	}
-	for _, lndNodeId := range commons.GetLndNodeIds() {
+	for _, lndNodeId := range cache.GetLndNodeIds() {
 		nodeId := lndNodeId
 		bitcoinNetwork := commons.GetNodeSettingsByNodeId(nodeId).Network
 		for _, lndServiceType := range commons.GetLndServiceTypes() {
-			lndService := commons.GetCurrentLndServiceState(lndServiceType, nodeId)
-			desiredState := commons.GetDesiredLndServiceState(lndServiceType, nodeId)
+			lndService := cache.GetCurrentLndServiceState(lndServiceType, nodeId)
+			desiredState := cache.GetDesiredLndServiceState(lndServiceType, nodeId)
 			if desiredState.Status != lndService.Status {
 				result.ServiceMismatches = append(result.ServiceMismatches, ServiceMismatch{
 					ServiceType:         lndServiceType,
@@ -72,7 +73,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 					DesiredStatusString: desiredState.Status.String(),
 					NodeId:              &nodeId,
 					BitcoinNetwork:      &bitcoinNetwork,
-					FailureTime:         commons.GetLndFailedAttemptTime(lndServiceType, nodeId),
+					FailureTime:         cache.GetLndFailedAttemptTime(lndServiceType, nodeId),
 				})
 			}
 			result.LndServices = append(result.LndServices, LndService{
@@ -102,8 +103,8 @@ func getLndServicesHandler(c *gin.Context, db *sqlx.DB) {
 
 	var lndServices []LndService
 	bitcoinNetwork := commons.GetNodeSettingsByNodeId(nodeId).Network
-	for _, lndServiceType := range commons.GetTorqServiceTypes() {
-		lndService := commons.GetCurrentLndServiceState(lndServiceType, nodeId)
+	for _, lndServiceType := range commons.GetCoreServiceTypes() {
+		lndService := cache.GetCurrentLndServiceState(lndServiceType, nodeId)
 		lndServices = append(lndServices, LndService{
 			CommonService: CommonService{
 				ServiceType:       lndServiceType,

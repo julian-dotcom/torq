@@ -13,6 +13,7 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -142,10 +143,10 @@ func SubscribeForwardingEvents(ctx context.Context,
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	var enforcedReferenceDate *time.Time
-	importHistoricForwards := commons.HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
+	importHistoricForwards := cache.HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
 	if !importHistoricForwards {
 		log.Info().Msgf("Import of historic forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 		enforcedReferenceDateO := time.Now()
 		enforcedReferenceDate = &enforcedReferenceDateO
 		bootStrapping = false
@@ -157,7 +158,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-ticker:
 			importCounter := 0
@@ -169,7 +170,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 				lastNs, err := fetchLastForwardTime(db, nodeSettings.NodeId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to obtain last know forward for nodeId: %v", nodeSettings.NodeId)
-					commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 					return
 				}
 				if enforcedReferenceDate != nil && lastNs == 0 {
@@ -191,16 +192,16 @@ func SubscribeForwardingEvents(ctx context.Context,
 				fwh, err := client.ForwardingHistory(ctx, fwhReq)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
-						commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
 					log.Error().Err(err).Msgf("Failed to obtain forwards for nodeId: %v", nodeSettings.NodeId)
-					commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 					return
 				}
 
 				if bootStrapping {
-					commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 				}
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, bootStrapping)
@@ -214,7 +215,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 				if len(fwh.ForwardingEvents) < maxEvents {
 					if bootStrapping {
 						log.Info().Msgf("Bulk import of forward done (%v)", importCounter)
-						commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 					}
 					bootStrapping = false
 					break

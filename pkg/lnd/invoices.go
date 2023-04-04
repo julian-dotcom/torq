@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -208,7 +209,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -217,7 +218,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		addIndex, _, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to obtain last know invoice for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 
@@ -227,11 +228,11 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		})
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf("Failed to obtain list invoice for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 
@@ -240,7 +241,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if len(listInvoiceResponse.Invoices) >= streamLndMaxInvoices {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
-			commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, bootStrapping)
@@ -248,7 +249,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if bootStrapping && len(listInvoiceResponse.Invoices) < streamLndMaxInvoices {
 			bootStrapping = false
 			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
-			commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 			break
 		}
 	}
@@ -256,7 +257,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -265,7 +266,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to obtain last invoice index for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 
@@ -277,11 +278,11 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
-				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf("Failed to obtain Invoices stream for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 
@@ -289,12 +290,12 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
-				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf(
 				"Failed to obtain receive Invoices from the stream for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		processInvoice(invoice, nodeSettings, db, bootStrapping)

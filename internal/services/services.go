@@ -13,7 +13,7 @@ type CommonService struct {
 	StatusString      string                `json:"statusString"`
 	BootTime          *time.Time            `json:"bootTime,omitempty"`
 }
-type TorqService struct {
+type CoreService struct {
 	CommonService
 }
 
@@ -38,8 +38,8 @@ type ServiceMismatch struct {
 type Services struct {
 	Version           string            `json:"version"`
 	BitcoinNetworks   []commons.Network `json:"bitcoinNetworks"`
-	MainService       TorqService       `json:"mainService"`
-	TorqServices      []TorqService     `json:"torqServices"`
+	MainService       CoreService       `json:"mainService"`
+	TorqServices      []CoreService     `json:"torqServices"`
 	LndServices       []LndService      `json:"lndServices,omitempty"`
 	ServiceMismatches []ServiceMismatch `json:"serviceMismatches,omitempty"`
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -370,7 +371,7 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	customSettings commons.NodeConnectionDetailCustomSettings,
 	status commons.Status) (int64, error) {
 
-	connectionDetails := commons.GetLndNodeConnectionDetails(nodeId)
+	connectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
 	var err error
 	var res sql.Result
 	if status == commons.Active {
@@ -395,7 +396,7 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
-	commons.SetLndNodeConnectionDetails(nodeId, connectionDetails)
+	cache.SetLndNodeConnectionDetails(nodeId, connectionDetails)
 	return rowsAffected, nil
 }
 
@@ -414,9 +415,9 @@ func setCustomSettings(db *sqlx.DB,
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
-	connectionDetails := commons.GetLndNodeConnectionDetails(nodeId)
+	connectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
 	connectionDetails.CustomSettings = customSettings
-	commons.SetLndNodeConnectionDetails(nodeId, connectionDetails)
+	cache.SetLndNodeConnectionDetails(nodeId, connectionDetails)
 	return rowsAffected, nil
 }
 
@@ -436,7 +437,7 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
 	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
-		commons.SetLndNodeConnectionDetails(ncd.NodeId, commons.LndNodeConnectionDetails{
+		cache.SetLndNodeConnectionDetails(ncd.NodeId, cache.LndNodeConnectionDetails{
 			GRPCAddress:       *ncd.GRPCAddress,
 			TLSFileBytes:      ncd.TLSDataBytes,
 			MacaroonFileBytes: ncd.MacaroonDataBytes,
@@ -483,7 +484,7 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
 	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
-		commons.SetLndNodeConnectionDetails(ncd.NodeId, commons.LndNodeConnectionDetails{
+		cache.SetLndNodeConnectionDetails(ncd.NodeId, cache.LndNodeConnectionDetails{
 			GRPCAddress:       *ncd.GRPCAddress,
 			TLSFileBytes:      ncd.TLSDataBytes,
 			MacaroonFileBytes: ncd.MacaroonDataBytes,

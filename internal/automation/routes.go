@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/workflows"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -27,7 +28,7 @@ func rebalanceHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
-	if !commons.IsChannelBalanceCacheStreamActive(rr.NodeId) {
+	if !cache.IsChannelBalanceCacheStreamActive(rr.NodeId) {
 		server_errors.SendBadRequest(c, "The node for the provided nodeId is not active (yet?).")
 		return
 	}

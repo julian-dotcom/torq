@@ -224,9 +224,9 @@ func (cf ChannelFlags) RemoveChannelFlag(channelFlags ChannelFlags) ChannelFlags
 	return cf & ^channelFlags
 }
 
-func GetTorqServiceTypes() []ServiceType {
+func GetCoreServiceTypes() []ServiceType {
 	return []ServiceType{
-		TorqService,
+		RootService,
 		MaintenanceService,
 		AutomationIntervalTriggerService,
 		AutomationChannelBalanceEventTriggerService,
@@ -275,8 +275,8 @@ func (st *ServiceType) String() string {
 		return "VectorService"
 	case AmbossService:
 		return "AmbossService"
-	case TorqService:
-		return "TorqService"
+	case RootService:
+		return "RootService"
 	case AutomationChannelBalanceEventTriggerService:
 		return "AutomationChannelBalanceEventTriggerService"
 	case AutomationChannelEventTriggerService:
@@ -322,6 +322,25 @@ func (st *ServiceType) IsChannelBalanceCache() bool {
 		*st == LndServicePeerEventStream ||
 		*st == LndServiceChannelEventStream ||
 		*st == LndServiceGraphEventStream) {
+		return true
+	}
+	return false
+}
+
+func (st *ServiceType) IsLndService() bool {
+	if st != nil && (*st == VectorService ||
+		*st == AmbossService ||
+		*st == RebalanceService ||
+		*st == LndServiceChannelEventStream ||
+		*st == LndServiceGraphEventStream ||
+		*st == LndServiceTransactionStream ||
+		*st == LndServiceHtlcEventStream ||
+		*st == LndServiceForwardStream ||
+		*st == LndServiceInvoiceStream ||
+		*st == LndServicePaymentStream ||
+		*st == LndServicePeerEventStream ||
+		*st == LndServiceInFlightPaymentStream ||
+		*st == LndServiceChannelBalanceCacheStream) {
 		return true
 	}
 	return false

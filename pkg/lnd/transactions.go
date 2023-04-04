@@ -11,6 +11,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -60,16 +61,16 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 	var blockEpoch *chainrpc.BlockEpoch
 	bootStrapping := true
 
-	commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+	cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 
 	transactionHeight, err = fetchLastTxHeight(db, nodeSettings.NodeId)
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		log.Error().Err(err).Msgf("Failed to obtain last know transaction for nodeId: %v", nodeSettings.NodeId)
-		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
@@ -77,16 +78,16 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 	stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
 	if err != nil {
 		log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed for nodeId: %v", nodeSettings.NodeId)
-		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+	cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -94,11 +95,11 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 		blockEpoch, err = stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf("Receiving block epoch from the stream failed for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		commons.SetBlockHeight(blockEpoch.Height)
@@ -116,11 +117,11 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 		})
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf("Failed to obtain last transaction details for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 
@@ -154,7 +155,7 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 		}
 		if bootStrapping {
 			bootStrapping = false
-			commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 		}
 	}
 }

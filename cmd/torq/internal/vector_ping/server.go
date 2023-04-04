@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -67,12 +68,12 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			commons.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	commons.SetActiveLndServiceState(serviceType, nodeId)
+	cache.SetActiveLndServiceState(serviceType, nodeId)
 
 	client := lnrpc.NewLightningClient(conn)
 
@@ -81,14 +82,14 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeId)
 			return
 		case <-ticker:
 			getInfoRequest := lnrpc.GetInfoRequest{}
 			info, err := client.GetInfo(ctx, &getInfoRequest)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Obtaining LND info for nodeId: %v", nodeId)
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 
@@ -124,7 +125,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			pingInfoJsonByteArray, err := json.Marshal(pingInfo)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", info)
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			signMsgReq := lnrpc.SignMessageRequest{
@@ -133,20 +134,20 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Signing message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signMsgResp.Signature})
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 
 			req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Creating new request for message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			req.Header.Set("Content-Type", "application/json")
@@ -156,13 +157,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			resp, err := httpClient.Do(req)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Posting message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			err = resp.Body.Close()
 			if err != nil {
 				log.Error().Err(err).Msg("VectorService: Closing response body.")
-				commons.SetFailedLndServiceState(serviceType, nodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)

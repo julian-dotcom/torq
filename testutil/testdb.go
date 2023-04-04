@@ -14,6 +14,7 @@ import (
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -231,12 +232,12 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	go tags.ManagedTagCache(tags.ManagedTagChannel, ctx)
 	// TODO FIXME cyclic dependency so if you need this in tests then initialise it in the test
 	//go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctx)
-	go commons.ManagedServiceCache(commons.ManagedServiceChannel, ctx)
+	go cache.ServiceCacheHandler(cache.ServicesCacheChannel, ctx)
 
-	commons.InitStates(true)
+	cache.InitStates(true)
 	_, cancelTorq := context.WithCancel(ctx)
-	commons.InitTorqService(cancelTorq)
-	commons.SetActiveTorqServiceState(commons.TorqService)
+	cache.InitRootService(cancelTorq)
+	cache.SetActiveCoreServiceState(commons.RootService)
 
 	return db, cancel, nil
 }

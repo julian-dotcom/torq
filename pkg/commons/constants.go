@@ -4,7 +4,7 @@ type ServiceType int
 
 // When adding here also add to GetServiceTypes
 const (
-	TorqService = ServiceType(iota)
+	RootService = ServiceType(iota)
 	MaintenanceService
 	AutomationIntervalTriggerService
 	AutomationChannelEventTriggerService

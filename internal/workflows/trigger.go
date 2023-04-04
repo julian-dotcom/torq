@@ -15,6 +15,7 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lightning"
 )
@@ -1113,7 +1114,7 @@ func processRebalanceRun(
 	var activeChannelIds []int
 	var responses []commons.RebalanceResponse
 	for nodeId := range requestsMap {
-		if commons.GetCurrentLndServiceState(commons.RebalanceService, nodeId).Status != commons.ServiceActive {
+		if cache.GetCurrentLndServiceState(commons.RebalanceService, nodeId).Status != commons.ServiceActive {
 			return nil, errors.New(fmt.Sprintf("Rebalance service is not active for nodeId: %v", nodeId))
 		}
 		responseChannel := make(chan []commons.RebalanceResponse)

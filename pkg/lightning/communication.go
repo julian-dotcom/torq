@@ -6,6 +6,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lnd"
 )
@@ -21,7 +22,7 @@ func SetRoutingPolicy(db *sqlx.DB,
 	minHtlcMsat *uint64,
 	timeLockDelta *uint32) (commons.Status, string, error) {
 
-	if !commons.IsLndServiceActive(nodeId) {
+	if !cache.IsLndServiceActive(nodeId) {
 		return commons.Inactive, "",
 			errors.New(fmt.Sprintf("LND service is not active for nodeId: %v", nodeId))
 	}
@@ -47,7 +48,7 @@ func SetRoutingPolicy(db *sqlx.DB,
 }
 
 func SignMessage(nodeId int, message string, singleHash *bool) (string, error) {
-	if !commons.IsLndServiceActive(nodeId) {
+	if !cache.IsLndServiceActive(nodeId) {
 		return "", errors.New(fmt.Sprintf("LND service is not active for nodeId: %v", nodeId))
 	}
 

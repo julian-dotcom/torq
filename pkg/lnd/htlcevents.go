@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 
 	"github.com/rs/zerolog/log"
@@ -160,21 +161,21 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 	stream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		log.Error().Err(err).Msgf(
 			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+	cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -182,12 +183,12 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 		htlcEvent, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf(
 				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
-			commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 

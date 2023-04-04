@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -38,17 +39,17 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			bootStrapping, err = synchronizeDataFromLnd(nodeSettings, bootStrapping, serviceType, lndClient, db, mutex)
 			if err != nil {
 				log.Error().Err(err).Msgf("Channel balance synchronization failed for nodeId: %v", nodeSettings.NodeId)
-				commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			initiateSync = false
 		}
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-fastTicker:
-			if commons.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
+			if cache.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
 				if !channelBalanceStreamActive {
 					initiateSync = true
 					commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Active)
@@ -59,7 +60,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			}
 			// channel balance streams are not all active here
 			if bootStrapping {
-				commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 			}
 			if channelBalanceStreamActive {
 				commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Inactive)
@@ -69,7 +70,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			bootStrapping, err = synchronizeDataFromLnd(nodeSettings, bootStrapping, serviceType, lndClient, db, mutex)
 			if err != nil {
 				log.Error().Err(err).Msgf("Channel balance synchronization failed for nodeId: %v", nodeSettings.NodeId)
-				commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 		}
@@ -83,25 +84,25 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings,
 	db *sqlx.DB,
 	mutex *sync.RWMutex) (bool, error) {
 
-	if !commons.IsLndServiceActive(nodeSettings.NodeId) {
+	if !cache.IsLndServiceActive(nodeSettings.NodeId) {
 		if !bootStrapping {
 			bootStrapping = true
 			log.Error().Msgf("Channel balance cache got out-of-sync because of a non-active LND stream. (nodeId: %v)", nodeSettings.NodeId)
 		}
 	}
 	if bootStrapping {
-		commons.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 	}
 	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
-		commons.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return bootStrapping, err
 	}
-	if commons.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
+	if cache.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
 		if bootStrapping {
 			bootStrapping = false
-			commons.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 		}
 	}
 	return bootStrapping, nil
