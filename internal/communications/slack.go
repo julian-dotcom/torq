@@ -11,6 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -21,7 +22,7 @@ func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveTorqServiceState(serviceType)
+			cache.SetInactiveCoreServiceState(serviceType)
 			return
 		default:
 		}
@@ -34,7 +35,7 @@ func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 		err := socketClient.RunContext(ctx)
 		if err != nil {
 			log.Error().Err(err).Msgf("Disconnected from Slack")
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}

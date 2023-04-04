@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -228,7 +229,7 @@ func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveTorqServiceState(serviceType)
+			cache.SetInactiveCoreServiceState(serviceType)
 			return
 		default:
 		}
@@ -236,7 +237,7 @@ func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
 		telegram, err := getTelegramBot(communicationTargetType)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to obtain telegram bot")
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 
@@ -248,7 +249,7 @@ func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
 			select {
 			case <-ctx.Done():
 				log.Info().Msgf("Telegram Subscription cancelled (SubscribeTelegram highPriority: %v)", highPriority)
-				commons.SetInactiveTorqServiceState(serviceType)
+				cache.SetInactiveCoreServiceState(serviceType)
 				return
 			// receive update from channel and then handle it
 			case update := <-updates:
