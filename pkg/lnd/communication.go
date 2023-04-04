@@ -16,7 +16,7 @@ import (
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -206,8 +206,8 @@ func process(ctx context.Context, timeoutInSeconds int, req any, responseChan ch
 type ResponseStatus int
 
 const (
-	Inactive = ResponseStatus(commons.Inactive)
-	Active   = ResponseStatus(commons.Active)
+	Inactive = ResponseStatus(core.Inactive)
+	Active   = ResponseStatus(core.Active)
 )
 
 type CommunicationRequest struct {
@@ -224,7 +224,7 @@ type ChannelStatusUpdateRequest struct {
 	CommunicationRequest
 	Db            *sqlx.DB
 	ChannelId     int
-	ChannelStatus commons.Status
+	ChannelStatus core.Status
 }
 
 type ChannelStatusUpdateResponse struct {
@@ -323,7 +323,7 @@ type ImportRequest struct {
 	CommunicationRequest
 	Db         *sqlx.DB
 	Force      bool
-	ImportType commons.ImportType
+	ImportType core.ImportType
 }
 
 type ImportResponse struct {
@@ -333,7 +333,7 @@ type ImportResponse struct {
 }
 
 func processImportRequest(ctx context.Context, request ImportRequest) ImportResponse {
-	nodeSettings := commons.GetNodeSettingsByNodeId(request.NodeId)
+	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
 	response := ImportResponse{
 		CommunicationResponse: CommunicationResponse{
@@ -348,13 +348,13 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		successTime, exists := cache.GetSuccessTimes(request.NodeId)[request.ImportType]
 		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
 			switch request.ImportType {
-			case commons.ImportAllChannels:
+			case core.ImportAllChannels:
 				log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case commons.ImportPendingChannelsOnly:
+			case core.ImportPendingChannelsOnly:
 				log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case commons.ImportChannelRoutingPolicies:
+			case core.ImportChannelRoutingPolicies:
 				log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
-			case commons.ImportNodeInformation:
+			case core.ImportNodeInformation:
 				log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
 			}
 			return response
@@ -362,13 +362,13 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 	}
 	if request.Force {
 		switch request.ImportType {
-		case commons.ImportAllChannels:
+		case core.ImportAllChannels:
 			log.Info().Msgf("Forced import of All Channels for nodeId: %v.", request.NodeId)
-		case commons.ImportPendingChannelsOnly:
+		case core.ImportPendingChannelsOnly:
 			log.Info().Msgf("Forced import of Pending Channels for nodeId: %v.", request.NodeId)
-		case commons.ImportChannelRoutingPolicies:
+		case core.ImportChannelRoutingPolicies:
 			log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
-		case commons.ImportNodeInformation:
+		case core.ImportNodeInformation:
 			log.Info().Msgf("Forced import of NodeInformation for nodeId: %v.", request.NodeId)
 		}
 	}
@@ -381,7 +381,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 	}
 
 	switch request.ImportType {
-	case commons.ImportAllChannels:
+	case core.ImportAllChannels:
 		//Import Pending channels
 		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
 		if err != nil {
@@ -406,14 +406,14 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 
-		err = settings.InitializeManagedChannelCache(request.Db)
+		err = settings.InitializeChannelsCache(request.Db)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
+			log.Error().Err(err).Msgf("Failed to Initialize ChannelsCacheHandler.")
 			response.Error = err
 			return response
 		}
 		log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case commons.ImportPendingChannelsOnly:
+	case core.ImportPendingChannelsOnly:
 		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to import pending channels.")
@@ -421,14 +421,14 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 
-		err = settings.InitializeManagedChannelCache(request.Db)
+		err = settings.InitializeChannelsCache(request.Db)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to Initialize ManagedChannelCache.")
+			log.Error().Err(err).Msgf("Failed to Initialize ChannelsCacheHandler.")
 			response.Error = err
 			return response
 		}
 		log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case commons.ImportChannelRoutingPolicies:
+	case core.ImportChannelRoutingPolicies:
 		err = ImportRoutingPolicies(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to import routing policies.")
@@ -436,7 +436,7 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 		log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case commons.ImportNodeInformation:
+	case core.ImportNodeInformation:
 		err := ImportNodeInfo(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to import node information.")
@@ -636,10 +636,10 @@ func processChannelStatusUpdateRequest(ctx context.Context,
 
 func constructUpdateChanStatusRequest(request ChannelStatusUpdateRequest) *routerrpc.UpdateChanStatusRequest {
 	action := routerrpc.ChanStatusAction_DISABLE
-	if request.ChannelStatus == commons.Active {
+	if request.ChannelStatus == core.Active {
 		action = routerrpc.ChanStatusAction_ENABLE
 	}
-	channelSettings := commons.GetChannelSettingByChannelId(request.ChannelId)
+	channelSettings := cache.GetChannelSettingByChannelId(request.ChannelId)
 	return &routerrpc.UpdateChanStatusRequest{
 		ChanPoint: &lnrpc.ChannelPoint{
 			FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: channelSettings.FundingTransactionHash},
@@ -683,11 +683,11 @@ func channelStatusUpdateRequestIsRepeated(request ChannelStatusUpdateRequest) *C
 }
 
 func channelStatusUpdateRequestContainsUpdates(request ChannelStatusUpdateRequest) bool {
-	channelState := commons.GetChannelState(request.NodeId, request.ChannelId, true)
-	if request.ChannelStatus == commons.Active && channelState.LocalDisabled {
+	channelState := cache.GetChannelState(request.NodeId, request.ChannelId, true)
+	if request.ChannelStatus == core.Active && channelState.LocalDisabled {
 		return true
 	}
-	if request.ChannelStatus == commons.Inactive && !channelState.LocalDisabled {
+	if request.ChannelStatus == core.Inactive && !channelState.LocalDisabled {
 		return true
 	}
 	return false
@@ -703,8 +703,8 @@ func validateChannelStatusUpdateRequest(request ChannelStatusUpdateRequest) *Cha
 			Request: request,
 		}
 	}
-	if request.ChannelStatus != commons.Active &&
-		request.ChannelStatus != commons.Inactive {
+	if request.ChannelStatus != core.Active &&
+		request.ChannelStatus != core.Inactive {
 		return &ChannelStatusUpdateResponse{
 			CommunicationResponse: CommunicationResponse{
 				Status: Inactive,
@@ -724,7 +724,7 @@ func processRoutingPolicyUpdateRequest(ctx context.Context,
 		return *response
 	}
 
-	channelState := commons.GetChannelState(request.NodeId, request.ChannelId, true)
+	channelState := cache.GetChannelState(request.NodeId, request.ChannelId, true)
 	if channelState == nil {
 		return RoutingPolicyUpdateResponse{
 			CommunicationResponse: CommunicationResponse{
@@ -800,7 +800,7 @@ func processRoutingPolicyUpdateResponse(request RoutingPolicyUpdateRequest, resp
 }
 
 func constructPolicyUpdateRequest(request RoutingPolicyUpdateRequest,
-	channelState *commons.ManagedChannelStateSettings) *lnrpc.PolicyUpdateRequest {
+	channelState *cache.ChannelStateSettingsCache) *lnrpc.PolicyUpdateRequest {
 
 	policyUpdateRequest := &lnrpc.PolicyUpdateRequest{}
 	if request.TimeLockDelta == nil {
@@ -829,7 +829,7 @@ func constructPolicyUpdateRequest(request RoutingPolicyUpdateRequest,
 	} else {
 		policyUpdateRequest.MaxHtlcMsat = *request.MaxHtlcMsat
 	}
-	channelSettings := commons.GetChannelSettingByChannelId(request.ChannelId)
+	channelSettings := cache.GetChannelSettingByChannelId(request.ChannelId)
 	policyUpdateRequest.Scope = &lnrpc.PolicyUpdateRequest_ChanPoint{
 		ChanPoint: &lnrpc.ChannelPoint{
 			FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: channelSettings.FundingTransactionHash},
@@ -873,7 +873,7 @@ func validateRoutingPolicyUpdateRequest(request RoutingPolicyUpdateRequest) *Rou
 }
 
 func routingPolicyUpdateRequestContainsUpdates(request RoutingPolicyUpdateRequest,
-	channelState *commons.ManagedChannelStateSettings) bool {
+	channelState *cache.ChannelStateSettingsCache) bool {
 
 	if request.TimeLockDelta != nil && *request.TimeLockDelta != channelState.LocalTimeLockDelta {
 		return true

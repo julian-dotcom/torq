@@ -6,7 +6,7 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func Test_checkPrepareReq(t *testing.T) {
@@ -22,14 +22,14 @@ func Test_checkPrepareReq(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   commons.BatchOpenRequest
+		input   core.BatchOpenRequest
 		want    *lnrpc.BatchOpenChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID is missing",
-			commons.BatchOpenRequest{
-				Channels: []commons.BatchOpenChannel{
+			core.BatchOpenRequest{
+				Channels: []core.BatchOpenChannel{
 					{NodePubkey: "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d", LocalFundingAmount: 250000},
 					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
 				},
@@ -42,9 +42,9 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"Channels array empty",
-			commons.BatchOpenRequest{
+			core.BatchOpenRequest{
 				NodeId:      1,
-				Channels:    []commons.BatchOpenChannel{},
+				Channels:    []core.BatchOpenChannel{},
 				TargetConf:  nil,
 				SatPerVbyte: nil,
 			},
@@ -53,9 +53,9 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"Both satpervbyte and targetconf set",
-			commons.BatchOpenRequest{
+			core.BatchOpenRequest{
 				NodeId: 1,
-				Channels: []commons.BatchOpenChannel{
+				Channels: []core.BatchOpenChannel{
 					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0"},
 				},
 				TargetConf:  &tgConf,
@@ -66,9 +66,9 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"LocalFundingAmount 0",
-			commons.BatchOpenRequest{
+			core.BatchOpenRequest{
 				NodeId: 1,
-				Channels: []commons.BatchOpenChannel{
+				Channels: []core.BatchOpenChannel{
 					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 0},
 				},
 				TargetConf: &tgConf,
@@ -78,9 +78,9 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"Only mandatory params",
-			commons.BatchOpenRequest{
+			core.BatchOpenRequest{
 				NodeId: 1,
-				Channels: []commons.BatchOpenChannel{
+				Channels: []core.BatchOpenChannel{
 					{NodePubkey: "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d", LocalFundingAmount: 250000},
 					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
 				},
@@ -93,9 +93,9 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"All optional params",
-			commons.BatchOpenRequest{
+			core.BatchOpenRequest{
 				NodeId: 1,
-				Channels: []commons.BatchOpenChannel{
+				Channels: []core.BatchOpenChannel{
 					{
 						NodePubkey:         "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d",
 						LocalFundingAmount: 250000,
@@ -158,12 +158,12 @@ func Test_processBocResponse(t *testing.T) {
 		115, 136, 49, 172, 219, 164, 121, 189, 10, 158, 184, 57, 176, 187, 21, 210, 113, 102}
 	test := struct {
 		name  string
-		req   commons.BatchOpenRequest
+		req   core.BatchOpenRequest
 		input lnrpc.BatchOpenChannelResponse
-		want  commons.BatchOpenResponse
+		want  core.BatchOpenResponse
 	}{
 		"Test response",
-		commons.BatchOpenRequest{},
+		core.BatchOpenRequest{},
 		lnrpc.BatchOpenChannelResponse{
 			PendingChannels: []*lnrpc.PendingUpdate{
 				{
@@ -176,8 +176,8 @@ func Test_processBocResponse(t *testing.T) {
 				},
 			},
 		},
-		commons.BatchOpenResponse{
-			PendingChannels: []commons.PendingChannel{
+		core.BatchOpenResponse{
+			PendingChannels: []core.PendingChannel{
 				{PendingChannelPoint: "6671d215bbb039b89e0abd79a4dbac3188732f74f7bbc9962007c175da701005:0"},
 				{PendingChannelPoint: "6671d215bbb039b89e0abd79a4dbac3188732f74f7bbc9962007c175da701005:1"},
 			},

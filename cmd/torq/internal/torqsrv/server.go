@@ -19,7 +19,6 @@ import (
 	"github.com/lncapital/torq/internal/auth"
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/categories"
-	"github.com/lncapital/torq/internal/channel_groups"
 	"github.com/lncapital/torq/internal/channel_history"
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/corridors"
@@ -159,11 +158,6 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		tagRoutes := api.Group("/tags")
 		{
 			tags.RegisterTagRoutes(tagRoutes, db)
-		}
-
-		channelGroupRoutes := api.Group("/channelGroups")
-		{
-			channel_groups.RegisterChannelGroupRoutes(channelGroupRoutes, db)
 		}
 
 		corridorRoutes := api.Group("/corridors")

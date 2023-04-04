@@ -10,7 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 
 	"github.com/rs/zerolog/log"
 )
@@ -98,8 +98,8 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 
 func getChannelIdByLndShortChannelId(lndShortChannelId uint64) *int {
 	var channelId *int
-	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-	tempChannelId := commons.GetChannelIdByShortChannelId(shortChannelId)
+	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
+	tempChannelId := cache.GetChannelIdByShortChannelId(shortChannelId)
 	if tempChannelId != 0 {
 		channelId = &tempChannelId
 	}
@@ -154,9 +154,9 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 func SubscribeAndStoreHtlcEvents(ctx context.Context,
 	router routerrpc.RouterClient,
 	db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) {
+	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := commons.LndServiceHtlcEventStream
+	serviceType := core.LndServiceHtlcEventStream
 
 	stream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {

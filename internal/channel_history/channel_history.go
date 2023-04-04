@@ -2,13 +2,13 @@ package channel_history
 
 import (
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/cache"
+
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-
-	"github.com/lncapital/torq/pkg/commons"
 )
 
 type ChannelHistoryRecords struct {
@@ -86,7 +86,7 @@ func getChannelHistory(db *sqlx.DB, nodeIds []int, all bool, channelIds []int, f
 		order by date;
 	`
 
-	rows, err := db.Queryx(sql, from, to, all, pq.Array(channelIds), commons.GetSettings().PreferredTimeZone, pq.Array(nodeIds))
+	rows, err := db.Queryx(sql, from, to, all, pq.Array(channelIds), cache.GetSettings().PreferredTimeZone, pq.Array(nodeIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Getting channel history")
 	}

@@ -1,4 +1,4 @@
-package commons
+package core
 
 import (
 	"fmt"
@@ -392,10 +392,6 @@ func GetDeltaPerMille(base uint64, amt uint64) int {
 	} else {
 		return int((amt - base) / amt * 1_000)
 	}
-}
-
-func GetVectorUrl(suffix string) string {
-	return GetVectorUrlBase() + suffix
 }
 
 func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {

@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const ambossSleepSeconds = 25
@@ -25,7 +25,7 @@ const ambossSleepSeconds = 25
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 
-	serviceType := commons.AmbossService
+	serviceType := core.AmbossService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 

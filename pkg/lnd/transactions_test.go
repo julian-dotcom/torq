@@ -10,7 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/testutil"
 )
 
@@ -38,22 +39,22 @@ func TestStoreTransaction(t *testing.T) {
 	}
 	defer db.Close()
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeSettingsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+		log.Fatal().Msgf("Problem initializing SettingsCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedNodeCache(db)
+	err = settings.InitializeNodesCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+		log.Fatal().Msgf("Problem initializing NodeCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedChannelCache(db)
+	err = settings.InitializeChannelsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+		log.Fatal().Err(err).Msgf("Problem initializing ChannelCache cache: %v", err)
 	}
 
 	expected := Transaction{
@@ -97,7 +98,7 @@ func TestStoreTransaction(t *testing.T) {
 		RawTxHex:          "",
 		Label:             expected.Label,
 		PreviousOutpoints: nil,
-	}, commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet))
+	}, cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet))
 	if err != nil {
 		return
 	}

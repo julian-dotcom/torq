@@ -12,7 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/testutil"
 
 	"google.golang.org/grpc"
@@ -62,22 +63,22 @@ func TestSubscribePayments(t *testing.T) {
 	}
 	defer db.Close()
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeSettingsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+		log.Fatal().Msgf("Problem initializing SettingsCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedNodeCache(db)
+	err = settings.InitializeNodesCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+		log.Fatal().Msgf("Problem initializing NodeCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedChannelCache(db)
+	err = settings.InitializeChannelsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+		log.Fatal().Err(err).Msgf("Problem initializing ChannelCache cache: %v", err)
 	}
 
 	mockTickerInterval := 1 * time.Millisecond
@@ -234,8 +235,8 @@ func TestSubscribePayments(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		SubscribeAndStorePayments(ctx, &mclient, db,
-			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
+			cache.GetNodeSettingsByNodeId(
+				cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)), &opt)
 	}()
 	// Simulate passing intervals
 	numbTicks := 4
@@ -363,8 +364,8 @@ func TestSubscribePayments(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		UpdateInFlightPayments(ctx, &mclientUpdate, db,
-			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)), &opt)
+			cache.GetNodeSettingsByNodeId(
+				cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)), &opt)
 	}()
 	// Simulate passing intervals
 	numbTicks = 6

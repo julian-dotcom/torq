@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const streamLndMaxInvoices = 1000
@@ -199,9 +199,9 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) {
+	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := commons.LndServiceInvoiceStream
+	serviceType := core.LndServiceInvoiceStream
 
 	bootStrapping := true
 	importCounter := 0
@@ -303,9 +303,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, bootStrapping bool) {
-	invoiceEvent := commons.InvoiceEvent{
-		EventData: commons.EventData{
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCache, db *sqlx.DB, bootStrapping bool) {
+	invoiceEvent := core.InvoiceEvent{
+		EventData: core.EventData{
 			EventTime: time.Now().UTC(),
 			NodeId:    nodeSettings.NodeId,
 		},
@@ -323,7 +323,7 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 			log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
 		} else {
 			destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
-			destinationNodeIdValue := commons.GetNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
+			destinationNodeIdValue := cache.GetNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
 			destinationNodeId = &destinationNodeIdValue
 			invoiceEvent.DestinationNodeId = destinationNodeId
 		}
@@ -375,7 +375,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
-	invoiceEvent commons.InvoiceEvent, bootStrapping bool) error {
+	invoiceEvent core.InvoiceEvent, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {

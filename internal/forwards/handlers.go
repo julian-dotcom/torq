@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/cache"
 
 	"github.com/lib/pq"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v4"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -39,9 +40,9 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chain := commons.Bitcoin
+	chain := core.Bitcoin
 
-	r, err := getForwardsTableData(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), from, to)
+	r, err := getForwardsTableData(db, cache.GetAllTorqNodeIdsByNetwork(chain, core.Network(network)), from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -200,7 +201,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 		WHERE ( c.first_node_id = ANY($4) OR c.second_node_id = ANY($4) )
 `
 
-	rows, err := db.Queryx(sqlString, fromTime, toTime, commons.GetSettings().PreferredTimeZone, pq.Array(nodeIds))
+	rows, err := db.Queryx(sqlString, fromTime, toTime, cache.GetSettings().PreferredTimeZone, pq.Array(nodeIds))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Running aggregated forwards query")
 	}
@@ -247,7 +248,7 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 
 		c.LocalNodeIds = nodeIds
 		if c.ChannelID != nil {
-			c.Tags = tags.GetTagsByTagIds(commons.GetTagIdsByChannelId(c.SecondNodeId, *c.ChannelID))
+			c.Tags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.SecondNodeId, *c.ChannelID))
 		}
 
 		// Append to the result

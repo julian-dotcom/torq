@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
 )
 
 type RebalancingDetails struct {
@@ -19,11 +19,11 @@ type RebalancingDetails struct {
 }
 
 func getRebalancingCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (RebalancingDetails, error) {
-	settings := commons.GetSettings()
+	settings := cache.GetSettings()
 
 	var publicKeys []string
 	for _, nodeId := range nodeIds {
-		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
+		publicKeys = append(publicKeys, cache.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 
 	// 	Henrik 2022-12-21 on Github wrote:
@@ -73,10 +73,10 @@ func getChannelRebalancing(db *sqlx.DB, nodeIds []int, lndShortChannelIdStrings 
 
 	var publicKeys []string
 	for _, nodeId := range nodeIds {
-		publicKeys = append(publicKeys, commons.GetNodeSettingsByNodeId(nodeId).PublicKey)
+		publicKeys = append(publicKeys, cache.GetNodeSettingsByNodeId(nodeId).PublicKey)
 	}
 
-	settings := commons.GetSettings()
+	settings := cache.GetSettings()
 
 	row := db.QueryRow(`
 		SELECT COALESCE(ROUND(SUM(amount_msat)),0) AS amount_msat,

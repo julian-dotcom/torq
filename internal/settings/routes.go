@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -44,15 +44,15 @@ type ConnectionDetails struct {
 	GRPCAddress       string
 	TLSFileBytes      []byte
 	MacaroonFileBytes []byte
-	Status            commons.Status
-	PingSystem        commons.PingSystem
-	CustomSettings    commons.NodeConnectionDetailCustomSettings
+	Status            core.Status
+	PingSystem        core.PingSystem
+	CustomSettings    core.NodeConnectionDetailCustomSettings
 }
 
 func setAllLndServices(nodeId int,
 	lndActive bool,
-	customSettings commons.NodeConnectionDetailCustomSettings,
-	pingSystem commons.PingSystem) bool {
+	customSettings core.NodeConnectionDetailCustomSettings,
+	pingSystem core.PingSystem) bool {
 
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
@@ -63,7 +63,7 @@ func setAllLndServices(nodeId int,
 	return cache.InactivateLndService(ctxWithTimeout, nodeId)
 }
 
-func setService(serviceType commons.ServiceType, nodeId int, active bool) bool {
+func setService(serviceType core.ServiceType, nodeId int, active bool) bool {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
@@ -199,7 +199,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
+	nodeId := cache.GetNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		nodeId, err = AddNodeWhenNew(db, publicKey, chain, network)
 		if err != nil {
@@ -213,11 +213,11 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting existing node connection details by nodeId")
 		return
 	}
-	if existingNcd.NodeId == ncd.NodeId && existingNcd.Status != commons.Deleted {
+	if existingNcd.NodeId == ncd.NodeId && existingNcd.Status != core.Deleted {
 		server_errors.SendUnprocessableEntity(c, "This node already exists")
 		return
 	}
-	if existingNcd.Status == commons.Deleted {
+	if existingNcd.Status == core.Deleted {
 		ncd.CreateOn = existingNcd.CreateOn
 		if strings.TrimSpace(ncd.Name) == "" {
 			ncd.Name = existingNcd.Name
@@ -237,7 +237,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 	if strings.TrimSpace(ncd.Name) == "" {
 		ncd.Name = fmt.Sprintf("Node_%v", ncd.NodeId)
 	}
-	ncd.Status = commons.Active
+	ncd.Status = core.Active
 	if existingNcd.NodeId == ncd.NodeId {
 		ncd, err = SetNodeConnectionDetails(db, ncd)
 		if err != nil {
@@ -251,9 +251,9 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 			return
 		}
 	}
-	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status, publicKey, chain, network)
+	cache.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status, publicKey, chain, network)
 
-	if ncd.Status == commons.Active {
+	if ncd.Status == core.Active {
 		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
@@ -360,14 +360,14 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		}
 	}
 
-	nodeSettings := commons.GetNodeSettingsByNodeId(ncd.NodeId)
-	if ncd.PingSystem.HasPingSystem(commons.Amboss) &&
-		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
+	nodeSettings := cache.GetNodeSettingsByNodeId(ncd.NodeId)
+	if ncd.PingSystem.HasPingSystem(core.Amboss) &&
+		(nodeSettings.Chain != core.Bitcoin && nodeSettings.Network != core.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Amboss Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
-	if ncd.PingSystem.HasPingSystem(commons.Vector) &&
-		(nodeSettings.Chain != commons.Bitcoin && nodeSettings.Network != commons.MainNet) {
+	if ncd.PingSystem.HasPingSystem(core.Vector) &&
+		(nodeSettings.Chain != core.Bitcoin && nodeSettings.Network != core.MainNet) {
 		server_errors.LogAndSendServerError(c, errors.New("Vector Ping Service is only allowed on Bitcoin Mainnet."))
 		return
 	}
@@ -377,10 +377,10 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Updating connection details")
 		return
 	}
-	commons.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
+	cache.SetTorqNode(ncd.NodeId, ncd.Name, ncd.Status,
 		nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 
-	success := setAllLndServices(ncd.NodeId, ncd.Status == commons.Active, ncd.CustomSettings, ncd.PingSystem)
+	success := setAllLndServices(ncd.NodeId, ncd.Status == core.Active, ncd.CustomSettings, ncd.PingSystem)
 	if !success {
 		server_errors.LogAndSendServerError(c, errors.New("Some services did not start correctly"))
 		return
@@ -395,30 +395,30 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 	if err != nil {
 		return NodeConnectionDetails{}, errors.New("Failed to find/parse status in the request.")
 	}
-	if statusId > int(commons.Archived) {
+	if statusId > int(core.Archived) {
 		return NodeConnectionDetails{}, errors.New("Failed to parse status in the request.")
 	}
-	ncd.Status = commons.Status(statusId)
+	ncd.Status = core.Status(statusId)
 
 	// TODO c.Bind cannot process pingSystem?
 	pingSystem, err := strconv.Atoi(c.Request.Form.Get("pingSystem"))
 	if err != nil {
 		return NodeConnectionDetails{}, errors.New("Failed to find/parse pingSystem in the request.")
 	}
-	if pingSystem > commons.PingSystemMax {
+	if pingSystem > core.PingSystemMax {
 		return NodeConnectionDetails{}, errors.New("Failed to parse pingSystem in the request.")
 	}
-	ncd.PingSystem = commons.PingSystem(pingSystem)
+	ncd.PingSystem = core.PingSystem(pingSystem)
 
 	// TODO c.Bind cannot process customSettings?
 	customSettings, err := strconv.Atoi(c.Request.Form.Get("customSettings"))
 	if err != nil {
 		return NodeConnectionDetails{}, errors.New("Failed to find/parse customSettings in the request.")
 	}
-	if customSettings > commons.NodeConnectionDetailCustomSettingsMax {
+	if customSettings > core.NodeConnectionDetailCustomSettingsMax {
 		return NodeConnectionDetails{}, errors.New("Failed to parse customSettings in the request.")
 	}
-	ncd.CustomSettings = commons.NodeConnectionDetailCustomSettings(customSettings)
+	ncd.CustomSettings = core.NodeConnectionDetailCustomSettings(customSettings)
 	return ncd, nil
 }
 
@@ -434,28 +434,28 @@ func setNodeConnectionDetailsStatusHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	_, err = setNodeConnectionDetailsStatus(db, nodeId, commons.Status(statusId))
+	_, err = setNodeConnectionDetailsStatus(db, nodeId, core.Status(statusId))
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
 	}
 
-	switch commons.Status(statusId) {
-	case commons.Deleted:
-		node := commons.GetNodeSettingsByNodeId(nodeId)
-		commons.RemoveManagedNodeFromCache(node)
-		commons.RemoveManagedChannelStatesFromCache(node.NodeId)
+	switch core.Status(statusId) {
+	case core.Deleted:
+		node := cache.GetNodeSettingsByNodeId(nodeId)
+		cache.RemoveNodeFromCache(node)
+		cache.RemoveChannelStatesFromCache(node.NodeId)
 	default:
-		nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+		nodeSettings := cache.GetNodeSettingsByNodeId(nodeId)
 		var name string
 		if nodeSettings.Name != nil {
 			name = *nodeSettings.Name
 		}
-		commons.SetTorqNode(nodeId, name, commons.Status(statusId),
+		cache.SetTorqNode(nodeId, name, core.Status(statusId),
 			nodeSettings.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 	}
 
-	if commons.Status(statusId) != commons.Active {
+	if core.Status(statusId) != core.Active {
 		success := setAllLndServices(nodeId, false, 0, 0)
 		if !success {
 			server_errors.LogAndSendServerError(c, errors.New("Some services did not start correctly"))
@@ -489,23 +489,23 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse pingSystem in the request.")
 		return
 	}
-	if pingSystem > commons.PingSystemMax {
+	if pingSystem > core.PingSystemMax {
 		server_errors.SendBadRequest(c, "Failed to parse pingSystem in the request.")
 		return
 	}
-	ps := commons.PingSystem(pingSystem)
+	ps := core.PingSystem(pingSystem)
 	statusId, err := strconv.Atoi(c.Param("statusId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
 		return
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-	if commons.Status(statusId) == commons.Active &&
-		(nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
+	nodeSettings := cache.GetNodeSettingsByNodeId(nodeId)
+	if core.Status(statusId) == core.Active &&
+		(nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
 		server_errors.SendBadRequest(c, "Ping Services are only allowed on Bitcoin Mainnet.")
 		return
 	}
-	s := commons.Status(statusId)
+	s := core.Status(statusId)
 
 	_, err = setNodeConnectionDetailsPingSystemStatus(db, nodeId, ps, s)
 	if err != nil {
@@ -513,7 +513,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	done := setService(*ps.GetServiceType(), nodeId, s == commons.Active)
+	done := setService(*ps.GetServiceType(), nodeId, s == core.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -533,17 +533,17 @@ func setNodeConnectionDetailsCustomSettingHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse customSetting in the request.")
 		return
 	}
-	if customSetting > commons.NodeConnectionDetailCustomSettingsMax {
+	if customSetting > core.NodeConnectionDetailCustomSettingsMax {
 		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
 		return
 	}
-	cs := commons.NodeConnectionDetailCustomSettings(customSetting)
+	cs := core.NodeConnectionDetailCustomSettings(customSetting)
 	statusId, err := strconv.Atoi(c.Param("statusId"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
 		return
 	}
-	s := commons.Status(statusId)
+	s := core.Status(statusId)
 
 	_, err = setNodeConnectionDetailsCustomSettingStatus(db, nodeId, cs, s)
 	if err != nil {
@@ -551,7 +551,7 @@ func setNodeConnectionDetailsCustomSettingHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	done := setService(*cs.GetServiceType(), nodeId, s == commons.Active)
+	done := setService(*cs.GetServiceType(), nodeId, s == core.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -571,38 +571,38 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 		server_errors.SendBadRequest(c, "Failed to find/parse customSetting in the request.")
 		return
 	}
-	if customSettings > commons.NodeConnectionDetailCustomSettingsMax {
+	if customSettings > core.NodeConnectionDetailCustomSettingsMax {
 		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
 		return
 	}
-	cs := commons.NodeConnectionDetailCustomSettings(customSettings)
+	cs := core.NodeConnectionDetailCustomSettings(customSettings)
 
 	pingSystems, err := strconv.Atoi(c.Param("pingSystems"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Failed to find/parse statusId in the request.")
 		return
 	}
-	if pingSystems > commons.PingSystemMax {
+	if pingSystems > core.PingSystemMax {
 		server_errors.SendBadRequest(c, "Failed to parse customSetting in the request.")
 		return
 	}
-	ps := commons.PingSystem(pingSystems)
+	ps := core.PingSystem(pingSystems)
 
-	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
-	if (ps.HasPingSystem(commons.Vector) || ps.HasPingSystem(commons.Amboss)) &&
-		(nodeSettings.Chain != commons.Bitcoin || nodeSettings.Network != commons.MainNet) {
+	nodeSettings := cache.GetNodeSettingsByNodeId(nodeId)
+	if (ps.HasPingSystem(core.Vector) || ps.HasPingSystem(core.Amboss)) &&
+		(nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
 		server_errors.SendBadRequest(c, "Ping Services are only allowed on Bitcoin Mainnet.")
 		return
 	}
 
-	services := make(map[bool][]commons.ServiceType)
-	appendPingSystemServiceType(ps, services, commons.Vector)
-	appendPingSystemServiceType(ps, services, commons.Amboss)
-	appendCustomSettingServiceType(cs, services, commons.ImportFailedPayments, commons.ImportPayments)
-	appendCustomSettingServiceType(cs, services, commons.ImportHtlcEvents)
-	appendCustomSettingServiceType(cs, services, commons.ImportTransactions)
-	appendCustomSettingServiceType(cs, services, commons.ImportInvoices)
-	appendCustomSettingServiceType(cs, services, commons.ImportForwards, commons.ImportHistoricForwards)
+	services := make(map[bool][]core.ServiceType)
+	appendPingSystemServiceType(ps, services, core.Vector)
+	appendPingSystemServiceType(ps, services, core.Amboss)
+	appendCustomSettingServiceType(cs, services, core.ImportFailedPayments, core.ImportPayments)
+	appendCustomSettingServiceType(cs, services, core.ImportHtlcEvents)
+	appendCustomSettingServiceType(cs, services, core.ImportTransactions)
+	appendCustomSettingServiceType(cs, services, core.ImportInvoices)
+	appendCustomSettingServiceType(cs, services, core.ImportForwards, core.ImportHistoricForwards)
 
 	_, err = setCustomSettings(db, nodeId, cs, ps)
 	if err != nil {
@@ -627,9 +627,9 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 	c.Status(http.StatusOK)
 }
 
-func appendPingSystemServiceType(ps commons.PingSystem,
-	services map[bool][]commons.ServiceType,
-	referencePingSystem commons.PingSystem) {
+func appendPingSystemServiceType(ps core.PingSystem,
+	services map[bool][]core.ServiceType,
+	referencePingSystem core.PingSystem) {
 
 	if ps.HasPingSystem(referencePingSystem) {
 		services[true] = append(services[true], *referencePingSystem.GetServiceType())
@@ -638,12 +638,12 @@ func appendPingSystemServiceType(ps commons.PingSystem,
 	}
 }
 
-func appendCustomSettingServiceType(cs commons.NodeConnectionDetailCustomSettings,
-	services map[bool][]commons.ServiceType,
-	referenceCustomSettings ...commons.NodeConnectionDetailCustomSettings) {
+func appendCustomSettingServiceType(cs core.NodeConnectionDetailCustomSettings,
+	services map[bool][]core.ServiceType,
+	referenceCustomSettings ...core.NodeConnectionDetailCustomSettings) {
 
 	active := false
-	var serviceType *commons.ServiceType
+	var serviceType *core.ServiceType
 	for ix, referenceCustomSetting := range referenceCustomSettings {
 		st := referenceCustomSettings[ix].GetServiceType()
 		if serviceType == nil {
@@ -685,7 +685,7 @@ func GetConnectionDetailsById(db *sqlx.DB, nodeId int) (ConnectionDetails, error
 }
 
 func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile []byte) (
-	string, commons.Chain, commons.Network, error) {
+	string, core.Chain, core.Network, error) {
 	conn, err := lnd_connect.Connect(grpcAddress, tlsCert, macaroonFile)
 	if err != nil {
 		return "", 0, 0, errors.Wrap(err,
@@ -708,28 +708,28 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 		return "", 0, 0, errors.Wrapf(err, "Obtaining chains from LND %v", info.Chains)
 	}
 
-	var chain commons.Chain
+	var chain core.Chain
 	switch info.Chains[0].Chain {
 	case "bitcoin":
-		chain = commons.Bitcoin
+		chain = core.Bitcoin
 	case "litecoin":
-		chain = commons.Litecoin
+		chain = core.Litecoin
 	default:
 		return "", 0, 0, errors.Wrapf(err, "Obtaining chain from LND %v", info.Chains[0].Chain)
 	}
 
-	var network commons.Network
+	var network core.Network
 	switch info.Chains[0].Network {
 	case "mainnet":
-		network = commons.MainNet
+		network = core.MainNet
 	case "testnet":
-		network = commons.TestNet
+		network = core.TestNet
 	case "signet":
-		network = commons.SigNet
+		network = core.SigNet
 	case "simnet":
-		network = commons.SimNet
+		network = core.SimNet
 	case "regtest":
-		network = commons.RegTest
+		network = core.RegTest
 	default:
 		return "", 0, 0, errors.Wrapf(err, "Obtaining network from LND %v", info.Chains[0].Network)
 	}

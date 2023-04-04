@@ -12,7 +12,8 @@ import (
 
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func GetNodeByPublicKey(db *sqlx.DB, publicKey string) (Node, error) {
@@ -27,7 +28,7 @@ func GetNodeByPublicKey(db *sqlx.DB, publicKey string) (Node, error) {
 	return n, nil
 }
 
-func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]NodeInformation, error) {
+func getAllNodeInformationByNetwork(db *sqlx.DB, network core.Network) ([]NodeInformation, error) {
 	nds, err := getNodesByNetwork(db, false, network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -63,7 +64,7 @@ func getAllNodeInformationByNetwork(db *sqlx.DB, network commons.Network) ([]Nod
 	return ps, nil
 }
 
-func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network commons.Network) ([]NodeSummary, error) {
+func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network core.Network) ([]NodeSummary, error) {
 	var nds []NodeSummary
 
 	query := `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
@@ -115,7 +116,7 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 }
 
 func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
-	nodeId := commons.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
+	nodeId := cache.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		node.CreatedOn = time.Now().UTC()
 		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)

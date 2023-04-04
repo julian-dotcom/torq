@@ -12,7 +12,8 @@ import (
 	"github.com/lib/pq"
 	"gopkg.in/guregu/null.v4"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -67,9 +68,9 @@ func getFlowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chain := commons.Bitcoin
+	chain := core.Bitcoin
 
-	r, err := getFlow(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), chanIds, from, to)
+	r, err := getFlow(db, cache.GetAllTorqNodeIdsByNetwork(chain, core.Network(network)), chanIds, from, to)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return

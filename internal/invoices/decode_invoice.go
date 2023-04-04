@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -66,7 +66,7 @@ func constructRouteHints(routeHints []*lnrpc.RouteHint) []routeHint {
 		for _, hh := range rh.HopHints {
 			hopHints = append(hopHints, hopHint{
 				LNDShortChannelId: hh.ChanId,
-				ShortChannelId:    commons.ConvertLNDShortChannelID(hh.ChanId),
+				ShortChannelId:    core.ConvertLNDShortChannelID(hh.ChanId),
 				NodeId:            hh.NodeId,
 				FeeBase:           hh.FeeBaseMsat,
 				CltvExpiryDelta:   hh.CltvExpiryDelta,

@@ -9,11 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
-func PayOnChain(db *sqlx.DB, req commons.PayOnChainRequest) (r string, err error) {
+func PayOnChain(db *sqlx.DB, req core.PayOnChainRequest) (r string, err error) {
 
 	sendCoinsReq, err := processSendRequest(req)
 	if err != nil {
@@ -47,7 +47,7 @@ func PayOnChain(db *sqlx.DB, req commons.PayOnChainRequest) (r string, err error
 
 }
 
-func processSendRequest(req commons.PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
+func processSendRequest(req core.PayOnChainRequest) (r *lnrpc.SendCoinsRequest, err error) {
 	r = &lnrpc.SendCoinsRequest{}
 
 	if req.NodeId == 0 {

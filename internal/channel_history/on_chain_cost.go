@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
 )
 
 func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (*uint64, error) {
@@ -21,7 +21,7 @@ func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Tim
 			and timestamp::timestamp AT TIME ZONE ($4) <= $2::timestamp
 			AND node_id = ANY ($3)`
 
-	row := db.QueryRowx(q, from, to, pq.Array(nodeIds), commons.GetSettings().PreferredTimeZone)
+	row := db.QueryRowx(q, from, to, pq.Array(nodeIds), cache.GetSettings().PreferredTimeZone)
 	err := row.Scan(&Cost)
 
 	if err != nil {

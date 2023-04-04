@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 //func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {
@@ -83,7 +83,7 @@ func GetWorkflows(db *sqlx.DB) ([]WorkflowTableRow, error) {
 				ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY workflow_version_id DESC) as rank
 				from workflow_version where status = 1 order by rank) as wv where rank = 1) as awv on w.workflow_id = awv.workflow_id
 		WHERE w.status != $1
-		ORDER BY w.name;`, commons.Archived)
+		ORDER BY w.name;`, core.Archived)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowTableRow{}, nil
@@ -386,7 +386,7 @@ func removeWorkflowVersion(db *sqlx.DB, workflowVersionId int) (int64, error) {
 	return rowsAffected, nil
 }
 
-func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([]int, error) {
+func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType core.WorkflowNodeType) ([]int, error) {
 	var workflowIds []int
 	err := db.Select(&workflowIds, `
 		SELECT DISTINCT wfv.workflow_id
@@ -402,7 +402,7 @@ func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([
 	return workflowIds, nil
 }
 
-func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) ([]WorkflowNode, error) {
+func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType core.WorkflowNodeType) ([]WorkflowNode, error) {
 	var workflowVersionRootNodeIds []int
 	err := db.Select(&workflowVersionRootNodeIds, `
 		SELECT wfvn.workflow_version_node_id
@@ -419,7 +419,7 @@ func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType commons.WorkflowNodeType) 
 			) ranked
 			WHERE ranked.version_rank = 1
 		)
-		ORDER BY wf.name;`, commons.Active, nodeType)
+		ORDER BY wf.name;`, core.Active, nodeType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowNode{}, nil
@@ -446,7 +446,7 @@ func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVe
 		JOIN workflow wf ON wf.workflow_id = wfv.workflow_id AND wfv.status=$1
 		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = wfvn.workflow_version_node_id
 		WHERE wfvn.status=$1 AND wfvn.type=$2 AND wfv.workflow_version_id=$3 AND parentLink.child_workflow_version_node_id IS NULL
-		ORDER BY wfvn.stage;`, commons.Active, commons.WorkflowNodeStageTrigger, workflowVersionId)
+		ORDER BY wfvn.stage;`, core.Active, core.WorkflowNodeStageTrigger, workflowVersionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowNode{}, nil
@@ -749,7 +749,7 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
-	if wfvn.Type == commons.WorkflowTrigger {
+	if wfvn.Type == core.WorkflowTrigger {
 		return wfvn.WorkflowVersionNodeId, nil
 	}
 	var workflowVersionGroupNodeId int
@@ -763,7 +763,7 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
               wfv.status = ANY ($2) AND
 			  wfv.workflow_version_id = $3 AND
               n.stage = $4;`,
-		commons.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}), wfvn.WorkflowVersionId, wfvn.Stage)
+		core.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}), wfvn.WorkflowVersionId, wfvn.Stage)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
@@ -780,17 +780,17 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var name string
 		var status WorkflowStatus
 		var stage int
-		var nodeType commons.WorkflowNodeType
+		var nodeType core.WorkflowNodeType
 		var parameters []byte
 		var visibilitySettings WorkflowNodeVisibilitySettings
 		var workflowVersionId int
 		var updatedOn time.Time
 		var linkUpdatedOn time.Time
 		var versionNodeLinkId int
-		var parentOutput commons.WorkflowParameterLabel
+		var parentOutput core.WorkflowParameterLabel
 		var linkName string
 		var linkVisibilitySettings WorkflowVersionNodeLinkVisibilitySettings
-		var childInput commons.WorkflowParameterLabel
+		var childInput core.WorkflowParameterLabel
 		err := rows.Scan(&versionNodeId, &name, &status, &stage, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
 			&versionNodeLinkId, &parentVersionNodeId, &parentOutput, &linkName, &linkVisibilitySettings,
 			&childVersionNodeId, &childInput, &linkUpdatedOn)

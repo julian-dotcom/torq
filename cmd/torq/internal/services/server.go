@@ -11,12 +11,12 @@ import (
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.AutomationIntervalTriggerService
+	serviceType := core.AutomationIntervalTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -37,7 +37,7 @@ func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 
 func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.AutomationChannelBalanceEventTriggerService
+	serviceType := core.AutomationChannelBalanceEventTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -58,7 +58,7 @@ func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 
 func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.AutomationChannelEventTriggerService
+	serviceType := core.AutomationChannelEventTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -79,7 +79,7 @@ func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 
 func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.AutomationScheduledTriggerService
+	serviceType := core.AutomationScheduledTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -100,7 +100,7 @@ func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := commons.RebalanceService
+	serviceType := core.RebalanceService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -121,7 +121,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.MaintenanceService
+	serviceType := core.MaintenanceService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -135,14 +135,14 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
 	cache.SetActiveCoreServiceState(serviceType)
 
-	commons.MaintenanceServiceStart(ctx, db)
+	automation.MaintenanceServiceStart(ctx, db)
 
 	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func StartCronService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.CronService
+	serviceType := core.CronService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 

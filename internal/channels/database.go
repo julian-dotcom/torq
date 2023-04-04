@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/cache"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {
@@ -39,7 +40,7 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 		if err != nil {
 			return nil, errors.Wrapf(err, "Running getChannels query StructScan all: %v, channelIds: %v", all, channelIds)
 		}
-		c.Tags = tags.GetTagsByTagIds(commons.GetTagIdsByChannelId(c.SecondNodeId, c.ChannelID))
+		c.Tags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.SecondNodeId, c.ChannelID))
 		r = append(r, c)
 	}
 	return r, nil
@@ -122,7 +123,7 @@ func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err 
 		SELECT *
 		FROM channel
 		WHERE status_id IN ($1,$2,$3) AND ( first_node_id=$4 OR second_node_id=$4 );`,
-		commons.Opening, commons.Open, commons.Closing, nodeId)
+		core.Opening, core.Open, core.Closing, nodeId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return channels, nil
@@ -146,7 +147,7 @@ func GetChannelsForTag(db *sqlx.DB) ([]ChannelForTag, error) {
 	}
 	var response []ChannelForTag
 	for _, channel := range channels {
-		alias := commons.GetNodeAlias(channel.NodeId)
+		alias := cache.GetNodeAlias(channel.NodeId)
 		channel.Alias = &alias
 		response = append(response, channel)
 	}
@@ -159,7 +160,7 @@ func GetNodesForTag(db *sqlx.DB) ([]NodeForTag, error) {
 	var nodes []NodeForTag
 	err := db.Select(&nodes, `
 		SELECT second_node_id AS node_id, 'node' AS type
-		FROM channel WHERE status_id=$1;`, commons.Active)
+		FROM channel WHERE status_id=$1;`, core.Active)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []NodeForTag{}, nil
@@ -168,7 +169,7 @@ func GetNodesForTag(db *sqlx.DB) ([]NodeForTag, error) {
 	}
 	var response []NodeForTag
 	for _, node := range nodes {
-		node.Alias = commons.GetNodeAlias(node.NodeId)
+		node.Alias = cache.GetNodeAlias(node.NodeId)
 		response = append(response, node)
 	}
 	return response, nil
@@ -235,7 +236,7 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	if err != nil {
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
-	commons.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
+	cache.SetChannel(channel.ChannelID, channel.ShortChannelID, channel.LNDShortChannelID, channel.Status,
 		channel.FundingTransactionHash, channel.FundingOutputIndex, channel.FundingBlockHeight, channel.FundedOn,
 		channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId, channel.InitiatingNodeId, channel.AcceptingNodeId,
 		channel.ClosingTransactionHash, channel.ClosingNodeId, channel.ClosingBlockHeight, channel.ClosedOn,
@@ -243,14 +244,14 @@ func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	return channel, nil
 }
 
-func getChannelsWithStatus(db *sqlx.DB, network commons.Network, status []commons.ChannelStatus) ([]Channel, error) {
+func getChannelsWithStatus(db *sqlx.DB, network core.Network, status []core.ChannelStatus) ([]Channel, error) {
 	var channels []Channel
-	bitcoin := commons.Bitcoin
+	bitcoin := core.Bitcoin
 	err := db.Select(&channels, `
 		SELECT *
 		FROM channel
 		WHERE (first_node_id = ANY($1) OR second_node_id = ANY($1)) AND status_id = ANY($2)
-		`, pq.Array(commons.GetAllActiveTorqNodeIds(&bitcoin, &network)),
+		`, pq.Array(cache.GetAllActiveTorqNodeIds(&bitcoin, &network)),
 		pq.Array(status))
 	if err != nil {
 		if errors.As(err, &sql.ErrNoRows) {
@@ -263,16 +264,16 @@ func getChannelsWithStatus(db *sqlx.DB, network commons.Network, status []common
 }
 
 func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
-	currentSettings := commons.GetChannelSettingByChannelId(channelId)
+	currentSettings := cache.GetChannelSettingByChannelId(channelId)
 	_, err := db.Exec(`
 		UPDATE channel
 		SET status_id=$1, closing_transaction_hash=$2, updated_on=$3
 		WHERE channel_id=$4;`,
-		commons.Closing, closingTransactionHash, time.Now().UTC(), channelId)
+		core.Closing, closingTransactionHash, time.Now().UTC(), channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	commons.SetChannel(channelId, &currentSettings.ShortChannelId, &currentSettings.LndShortChannelId, commons.Closing,
+	cache.SetChannel(channelId, &currentSettings.ShortChannelId, &currentSettings.LndShortChannelId, core.Closing,
 		currentSettings.FundingTransactionHash, currentSettings.FundingOutputIndex,
 		currentSettings.FundingBlockHeight, currentSettings.FundedOn,
 		currentSettings.Capacity, currentSettings.Private, currentSettings.FirstNodeId, currentSettings.SecondNodeId,
@@ -280,6 +281,6 @@ func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransa
 		&closingTransactionHash, currentSettings.ClosingNodeId,
 		currentSettings.ClosingBlockHeight, currentSettings.ClosedOn,
 		currentSettings.Flags)
-	commons.RemoveManagedChannelStateFromCache(channelId)
+	cache.RemoveChannelStateFromCache(channelId)
 	return nil
 }

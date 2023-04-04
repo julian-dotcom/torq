@@ -9,7 +9,7 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -20,8 +20,8 @@ func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	result := Services{}
-	var bitcoinNetworks []commons.Network
-	for _, coreServiceType := range commons.GetCoreServiceTypes() {
+	var bitcoinNetworks []core.Network
+	for _, coreServiceType := range core.GetCoreServiceTypes() {
 		torqService := cache.GetCurrentCoreServiceState(coreServiceType)
 		desiredState := cache.GetDesiredCoreServiceState(coreServiceType)
 		if desiredState.Status != torqService.Status {
@@ -35,7 +35,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 				FailureTime:         cache.GetCoreFailedAttemptTime(coreServiceType),
 			})
 		}
-		if coreServiceType == commons.RootService {
+		if coreServiceType == core.RootService {
 			result.MainService = CoreService{
 				CommonService: CommonService{
 					ServiceType:       coreServiceType,
@@ -59,8 +59,8 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	for _, lndNodeId := range cache.GetLndNodeIds() {
 		nodeId := lndNodeId
-		bitcoinNetwork := commons.GetNodeSettingsByNodeId(nodeId).Network
-		for _, lndServiceType := range commons.GetLndServiceTypes() {
+		bitcoinNetwork := cache.GetNodeSettingsByNodeId(nodeId).Network
+		for _, lndServiceType := range core.GetLndServiceTypes() {
 			lndService := cache.GetCurrentLndServiceState(lndServiceType, nodeId)
 			desiredState := cache.GetDesiredLndServiceState(lndServiceType, nodeId)
 			if desiredState.Status != lndService.Status {
@@ -102,8 +102,8 @@ func getLndServicesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	var lndServices []LndService
-	bitcoinNetwork := commons.GetNodeSettingsByNodeId(nodeId).Network
-	for _, lndServiceType := range commons.GetCoreServiceTypes() {
+	bitcoinNetwork := cache.GetNodeSettingsByNodeId(nodeId).Network
+	for _, lndServiceType := range core.GetCoreServiceTypes() {
 		lndService := cache.GetCurrentLndServiceState(lndServiceType, nodeId)
 		lndServices = append(lndServices, LndService{
 			CommonService: CommonService{

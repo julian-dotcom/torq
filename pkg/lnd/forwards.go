@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const streamForwardsTickerSeconds = 10
@@ -24,7 +24,7 @@ const streamLndMaxForwards = 50000
 func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId int, bootStrapping bool) error {
 
 	if len(fwh) > 0 {
-		var forwardEvents []commons.ForwardEvent
+		var forwardEvents []core.ForwardEvent
 		tx := db.MustBegin()
 		stmt, err := tx.Prepare(`INSERT INTO forward(time, time_ns, fee_msat,
 				incoming_amount_msat, outgoing_amount_msat, incoming_channel_id, outgoing_channel_id, node_id)
@@ -34,16 +34,16 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 			return errors.Wrap(err, "SQL Statement prepare")
 		}
 		for _, event := range fwh {
-			incomingShortChannelId := commons.ConvertLNDShortChannelID(event.ChanIdIn)
-			incomingChannelId := commons.GetChannelIdByShortChannelId(incomingShortChannelId)
+			incomingShortChannelId := core.ConvertLNDShortChannelID(event.ChanIdIn)
+			incomingChannelId := cache.GetChannelIdByShortChannelId(incomingShortChannelId)
 			incomingChannelIdP := &incomingChannelId
 			if incomingChannelId == 0 {
 				log.Error().Msgf("Forward received for a non existing channel (incomingChannelIdP: %v)",
 					incomingShortChannelId)
 				incomingChannelIdP = nil
 			}
-			outgoingShortChannelId := commons.ConvertLNDShortChannelID(event.ChanIdOut)
-			outgoingChannelId := commons.GetChannelIdByShortChannelId(outgoingShortChannelId)
+			outgoingShortChannelId := core.ConvertLNDShortChannelID(event.ChanIdOut)
+			outgoingChannelId := cache.GetChannelIdByShortChannelId(outgoingShortChannelId)
 			outgoingChannelIdP := &outgoingChannelId
 			if outgoingChannelId == 0 {
 				log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
@@ -55,8 +55,8 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 			if err != nil {
 				return errors.Wrapf(err, "storeForwardingHistory->tx.Exec(%v)", event)
 			}
-			forwardEvents = append(forwardEvents, commons.ForwardEvent{
-				EventData: commons.EventData{
+			forwardEvents = append(forwardEvents, core.ForwardEvent{
+				EventData: core.EventData{
 					EventTime: time.Now().UTC(),
 					NodeId:    nodeId,
 				},
@@ -120,10 +120,10 @@ type FwhOptions struct {
 func SubscribeForwardingEvents(ctx context.Context,
 	client lightningClientForwardingHistory,
 	db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings,
+	nodeSettings cache.NodeSettingsCache,
 	opt *FwhOptions) {
 
-	serviceType := commons.LndServiceForwardStream
+	serviceType := core.LndServiceForwardStream
 
 	maxEvents := streamLndMaxForwards
 	bootStrapping := true
@@ -143,7 +143,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
 
 	var enforcedReferenceDate *time.Time
-	importHistoricForwards := cache.HasCustomSetting(nodeSettings.NodeId, commons.ImportHistoricForwards)
+	importHistoricForwards := cache.HasCustomSetting(nodeSettings.NodeId, core.ImportHistoricForwards)
 	if !importHistoricForwards {
 		log.Info().Msgf("Import of historic forwards is disabled for nodeId: %v", nodeSettings.NodeId)
 		cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)

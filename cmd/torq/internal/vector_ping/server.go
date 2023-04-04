@@ -15,7 +15,7 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const vectorSleepSeconds = 20
@@ -61,7 +61,7 @@ type VectorPingChain struct {
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 
-	serviceType := commons.VectorService
+	serviceType := core.VectorService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -144,7 +144,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 				return
 			}
 
-			req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
+			req, err := http.NewRequest("POST", cache.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Creating new request for message: %v", string(pingInfoJsonByteArray))
 				cache.SetFailedLndServiceState(serviceType, nodeId)
@@ -152,7 +152,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			}
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Torq-Version", build.ExtendedVersion())
-			req.Header.Set("Torq-UUID", commons.GetSettings().TorqUuid)
+			req.Header.Set("Torq-UUID", cache.GetSettings().TorqUuid)
 			httpClient := &http.Client{}
 			resp, err := httpClient.Do(req)
 			if err != nil {

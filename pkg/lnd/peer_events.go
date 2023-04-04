@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type peerEventsClient interface {
@@ -20,9 +20,9 @@ type peerEventsClient interface {
 
 func SubscribePeerEvents(ctx context.Context,
 	client peerEventsClient,
-	nodeSettings commons.ManagedNodeSettings) {
+	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := commons.LndServicePeerEventStream
+	serviceType := core.LndServicePeerEventStream
 
 	stream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 	if err != nil {
@@ -58,10 +58,10 @@ func SubscribePeerEvents(ctx context.Context,
 			return
 		}
 
-		eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
-			ProcessPeerEvent(commons.PeerEvent{
-				EventData: commons.EventData{
+			ProcessPeerEvent(core.PeerEvent{
+				EventData: core.EventData{
 					EventTime: time.Now().UTC(),
 					NodeId:    nodeSettings.NodeId,
 				},

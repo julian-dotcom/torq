@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type Tx struct {
@@ -49,9 +49,9 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 	client lnrpc.LightningClient,
 	chain chainrpc.ChainNotifierClient,
 	db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) {
+	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := commons.LndServiceTransactionStream
+	serviceType := core.LndServiceTransactionStream
 
 	var transactionHeight uint32
 	var err error
@@ -74,7 +74,7 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 		return
 	}
 
-	commons.SetBlockHeight(uint32(transactionHeight))
+	cache.SetBlockHeight(uint32(transactionHeight))
 	stream, err = chain.RegisterBlockEpochNtfn(ctx, &chainrpc.BlockEpoch{Height: uint32(transactionHeight + 1)})
 	if err != nil {
 		log.Error().Err(err).Msgf("Obtaining stream (RegisterBlockEpochNtfn) from LND failed for nodeId: %v", nodeSettings.NodeId)
@@ -102,7 +102,7 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
-		commons.SetBlockHeight(blockEpoch.Height)
+		cache.SetBlockHeight(blockEpoch.Height)
 		//commons.BlockEvent{
 		//	EventData: commons.EventData{
 		//		EventTime: time.Now().UTC(),

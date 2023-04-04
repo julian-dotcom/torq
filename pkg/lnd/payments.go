@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const streamPaymentsTickerSeconds = 10
@@ -34,13 +34,13 @@ type PayOptions struct {
 }
 
 func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListPayments, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings,
+	nodeSettings cache.NodeSettingsCache,
 	opt *PayOptions) {
 
-	serviceType := commons.LndServicePaymentStream
+	serviceType := core.LndServicePaymentStream
 
 	bootStrapping := true
-	includeIncomplete := cache.HasCustomSetting(nodeSettings.NodeId, commons.ImportFailedPayments)
+	includeIncomplete := cache.HasCustomSetting(nodeSettings.NodeId, core.ImportFailedPayments)
 
 	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
 	// If a custom ticker is set in the options, override the default ticker.
@@ -144,7 +144,7 @@ func fetchPayments(ctx context.Context, client lightningClient_ListPayments, las
 	return r, nil
 }
 
-func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.ManagedNodeSettings, bootStrapping bool) error {
+func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings cache.NodeSettingsCache, bootStrapping bool) error {
 	const q = `INSERT INTO payment(
 				  payment_hash,
 				  creation_timestamp,
@@ -165,7 +165,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 			  VALUES ($1, $2, $3, $4, $5,$6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 			  ON CONFLICT (creation_timestamp, payment_index) DO NOTHING;`
 
-	var paymentEvents []commons.PaymentEvent
+	var paymentEvents []core.PaymentEvent
 	if len(p) > 0 {
 		tx := db.MustBegin()
 
@@ -191,7 +191,7 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 					}
 				}
 				if incomingChannelId != nil && *incomingChannelId != 0 {
-					channelSettings := commons.GetChannelSettingByChannelId(*incomingChannelId)
+					channelSettings := cache.GetChannelSettingByChannelId(*incomingChannelId)
 					if channelSettings.FirstNodeId == nodeSettings.NodeId ||
 						channelSettings.SecondNodeId == nodeSettings.NodeId {
 						rebalanceAmountMsatV := uint64(payment.Htlcs[0].Route.Hops[0].AmtToForwardMsat)
@@ -219,8 +219,8 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 			); err != nil {
 				return errors.Wrap(err, "store payments: db exec")
 			}
-			paymentEvent := commons.PaymentEvent{
-				EventData: commons.EventData{
+			paymentEvent := core.PaymentEvent{
+				EventData: core.EventData{
 					EventTime: time.Now(),
 					NodeId:    nodeSettings.NodeId,
 				},
@@ -252,10 +252,10 @@ func storePayments(db *sqlx.DB, p []*lnrpc.Payment, nodeSettings commons.Managed
 func UpdateInFlightPayments(ctx context.Context,
 	client lightningClient_ListPayments,
 	db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings,
+	nodeSettings cache.NodeSettingsCache,
 	opt *PayOptions) {
 
-	serviceType := commons.LndServiceInFlightPaymentStream
+	serviceType := core.LndServiceInFlightPaymentStream
 
 	bootStrapping := true
 

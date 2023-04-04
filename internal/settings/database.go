@@ -11,7 +11,7 @@ import (
 
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func getSettings(db *sqlx.DB) (settings, error) {
@@ -26,14 +26,14 @@ func getSettings(db *sqlx.DB) (settings, error) {
 	return settingsData, nil
 }
 
-func InitializeManagedSettingsCache(db *sqlx.DB) error {
+func InitializeSettingsCache(db *sqlx.DB) error {
 	settingsData, err := getSettings(db)
 	if err == nil {
-		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
-		commons.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
+		log.Debug().Msg("Pushing settings to SettingsCache cache.")
+		cache.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
 			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut)
 	} else {
-		log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
+		log.Error().Err(err).Msg("Failed to obtain settings for SettingsCache cache.")
 	}
 	return nil
 }
@@ -63,7 +63,7 @@ func updateSettings(db *sqlx.DB, settings settings) (err error) {
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	commons.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn,
+	cache.SetSettings(settings.DefaultDateRange, settings.DefaultLanguage, settings.WeekStartsOn,
 		settings.PreferredTimezone, settings.TorqUuid, settings.MixpanelOptOut)
 	return nil
 }
@@ -80,13 +80,13 @@ func getNodeConnectionDetails(db *sqlx.DB, nodeId int) (NodeConnectionDetails, e
 	return nodeConnectionDetailsData, nil
 }
 
-func GetPingSystemNodeIds(db *sqlx.DB, pingSystem commons.PingSystem) ([]int, error) {
+func GetPingSystemNodeIds(db *sqlx.DB, pingSystem core.PingSystem) ([]int, error) {
 	var nodeIds []int
 	err := db.Select(&nodeIds, `
 		SELECT node_id
 		FROM node_connection_details
 		WHERE status_id = $1 AND ping_system%$2>=$3
-		ORDER BY node_id;`, commons.Active, pingSystem*2, pingSystem)
+		ORDER BY node_id;`, core.Active, pingSystem*2, pingSystem)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []int{}, nil
@@ -106,7 +106,7 @@ func GetAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnec
 			SELECT *
 			FROM node_connection_details
 			WHERE status_id != $1
-			ORDER BY node_id;`, commons.Deleted)
+			ORDER BY node_id;`, core.Deleted)
 	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -117,23 +117,23 @@ func GetAllNodeConnectionDetails(db *sqlx.DB, includeDeleted bool) ([]NodeConnec
 	return nodeConnectionDetailsArray, nil
 }
 
-func GetNodeDetailsById(db *sqlx.DB, nodeId int) (string, commons.Chain, commons.Network, error) {
+func GetNodeDetailsById(db *sqlx.DB, nodeId int) (string, core.Chain, core.Network, error) {
 	var publicKey string
-	var chain commons.Chain
-	var network commons.Network
+	var chain core.Chain
+	var network core.Network
 	err := db.QueryRowx(`SELECT public_key, chain, network FROM node WHERE node_id=$1;`, nodeId).
 		Scan(&publicKey, &chain, &network)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", commons.Bitcoin, commons.MainNet, nil
+			return "", core.Bitcoin, core.MainNet, nil
 		}
-		return "", commons.Bitcoin, commons.MainNet, errors.Wrap(err, database.SqlExecutionError)
+		return "", core.Bitcoin, core.MainNet, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return publicKey, chain, network, nil
 }
 
-func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain commons.Chain, network commons.Network) (int, error) {
-	nodeId := commons.GetNodeIdByPublicKey(publicKey, chain, network)
+func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain core.Chain, network core.Network) (int, error) {
+	nodeId := cache.GetNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		createdOn := time.Now().UTC()
 		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
@@ -156,23 +156,23 @@ func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain commons.Chain, network 
 	return nodeId, nil
 }
 
-func InitializeManagedNodeCache(db *sqlx.DB) error {
+func InitializeNodesCache(db *sqlx.DB) error {
 	nodeConnectionDetailsArray, err := GetAllNodeConnectionDetails(db, true)
 	if err == nil {
-		log.Debug().Msg("Pushing torq nodes to ManagedNodes cache.")
+		log.Debug().Msg("Pushing torq nodes to NodesCache.")
 		for _, torqNode := range nodeConnectionDetailsArray {
 			publicKey, chain, network, err := GetNodeDetailsById(db, torqNode.NodeId)
 			if err == nil {
-				commons.SetTorqNode(torqNode.NodeId, torqNode.Name, torqNode.Status, publicKey, chain, network)
+				cache.SetTorqNode(torqNode.NodeId, torqNode.Name, torqNode.Status, publicKey, chain, network)
 			} else {
-				log.Error().Err(err).Msg("Failed to obtain torq node for ManagedNodes cache.")
+				log.Error().Err(err).Msg("Failed to obtain torq node for NodesCache.")
 			}
 		}
 	} else {
-		log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNodes cache.")
+		log.Error().Err(err).Msg("Failed to obtain torq nodes for NodesCache.")
 	}
 
-	log.Debug().Msg("Pushing channel nodes to ManagedNodes cache.")
+	log.Debug().Msg("Pushing channel nodes to NodesCache.")
 	rows, err := db.Query(`
 		SELECT DISTINCT n.public_key, n.chain, n.network, n.node_id, c.status_id
 		FROM node n
@@ -185,43 +185,43 @@ func InitializeManagedNodeCache(db *sqlx.DB) error {
 	for rows.Next() {
 		var publicKey string
 		var nodeId int
-		var chain commons.Chain
-		var network commons.Network
-		var channelStatus commons.ChannelStatus
+		var chain core.Chain
+		var network core.Network
+		var channelStatus core.ChannelStatus
 		err = rows.Scan(&publicKey, &chain, &network, &nodeId, &channelStatus)
 		if err != nil {
 			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
 		}
-		commons.SetChannelNode(nodeId, publicKey, chain, network, channelStatus)
+		cache.SetChannelNode(nodeId, publicKey, chain, network, channelStatus)
 	}
 	return nil
 }
 
-func InitializeManagedNodeAliasCache(db *sqlx.DB) {
-	log.Debug().Msg("Pushing node aliases to ManagedNodeAlias cache.")
+func InitializeNodeAliasesCache(db *sqlx.DB) {
+	log.Debug().Msg("Pushing node aliases to NodeAliasesCache.")
 
-	torqNodeIds := commons.GetAllTorqNodeIds()
+	torqNodeIds := cache.GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		torqNodeAlias := getNodeAlias(db, torqNodeId)
 		if torqNodeAlias != "" {
-			commons.SetNodeAlias(torqNodeId, torqNodeAlias)
+			cache.SetNodeAlias(torqNodeId, torqNodeAlias)
 		}
-		for _, channelId := range commons.GetChannelIdsByNodeId(torqNodeId) {
-			channelSettings := commons.GetChannelSettingByChannelId(channelId)
+		for _, channelId := range cache.GetChannelIdsByNodeId(torqNodeId) {
+			channelSettings := cache.GetChannelSettingByChannelId(channelId)
 			remoteNodeId := channelSettings.FirstNodeId
 			if remoteNodeId == torqNodeId {
 				remoteNodeId = channelSettings.SecondNodeId
 			}
 			remoteNodeAlias := getNodeAlias(db, remoteNodeId)
 			if remoteNodeAlias != "" {
-				commons.SetNodeAlias(remoteNodeId, remoteNodeAlias)
+				cache.SetNodeAlias(remoteNodeId, remoteNodeAlias)
 			}
 		}
 	}
 }
 
-func InitializeManagedTaggedCache(db *sqlx.DB) error {
-	log.Debug().Msg("Pushing tags to ManagedTagged cache.")
+func InitializeTaggedCache(db *sqlx.DB) error {
+	log.Debug().Msg("Pushing tags to TaggedCache.")
 	rows, err := db.Queryx(`SELECT tag_id, node_id, channel_id FROM tagged_entity;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -250,16 +250,16 @@ func InitializeManagedTaggedCache(db *sqlx.DB) error {
 		}
 	}
 	for nodeId, tagIds := range nodeTags {
-		commons.SetTagIdsByNodeId(nodeId, tagIds)
+		cache.SetTagIdsByNodeId(nodeId, tagIds)
 	}
 	for channelId, tagIds := range channelTags {
-		commons.SetTagIdsByChannelId(channelId, tagIds)
+		cache.SetTagIdsByChannelId(channelId, tagIds)
 	}
 	return nil
 }
 
-func InitializeManagedChannelCache(db *sqlx.DB) error {
-	log.Debug().Msg("Pushing channels to ManagedChannel cache.")
+func InitializeChannelsCache(db *sqlx.DB) error {
+	log.Debug().Msg("Pushing channels to ChannelsCache.")
 	rows, err := db.Query(`
 		SELECT channel_id, short_channel_id, lnd_short_channel_id,
 		       funding_transaction_hash, funding_output_index,
@@ -288,12 +288,12 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		var secondNodeId int
 		var initiatingNodeId *int
 		var acceptingNodeId *int
-		var status commons.ChannelStatus
+		var status core.ChannelStatus
 		var closingTransactionHash *string
 		var closingNodeId *int
 		var closingBlockHeight *uint32
 		var closedOn *time.Time
-		var flags commons.ChannelFlags
+		var flags core.ChannelFlags
 		err = rows.Scan(&channelId, &shortChannelId, &lndShortChannelId,
 			&fundingTransactionHash, &fundingOutputIndex,
 			&fundingBlockHeight, &fundedOn,
@@ -304,7 +304,7 @@ func InitializeManagedChannelCache(db *sqlx.DB) error {
 		if err != nil {
 			return errors.Wrap(err, "Obtaining channelId and shortChannelId from the resultSet")
 		}
-		commons.SetChannel(channelId, shortChannelId, lndShortChannelId, status,
+		cache.SetChannel(channelId, shortChannelId, lndShortChannelId, status,
 			fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundedOn,
 			capacity, private, firstNodeId, secondNodeId, initiatingNodeId, acceptingNodeId,
 			closingTransactionHash, closingNodeId, closingBlockHeight, closedOn,
@@ -321,12 +321,12 @@ func getNodeAlias(db *sqlx.DB, nodeId int) string {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ""
 		}
-		log.Info().Msgf("Tried to obtain node alias for ManagedNodeAlias cache with nodeId: %v.", nodeId)
+		log.Info().Msgf("Tried to obtain node alias for NodeAliasCache cache with nodeId: %v.", nodeId)
 	}
 	return alias
 }
 
-func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Status) (int64, error) {
+func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status core.Status) (int64, error) {
 	res, err := db.Exec(`
 		UPDATE node_connection_details SET status_id = $1, updated_on = $2 WHERE node_id = $3 AND status_id != $1;`,
 		status, time.Now().UTC(), nodeId)
@@ -342,12 +342,12 @@ func setNodeConnectionDetailsStatus(db *sqlx.DB, nodeId int, status commons.Stat
 
 func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
 	nodeId int,
-	pingSystem commons.PingSystem,
-	status commons.Status) (int64, error) {
+	pingSystem core.PingSystem,
+	status core.Status) (int64, error) {
 
 	var err error
 	var res sql.Result
-	if status == commons.Active {
+	if status == core.Active {
 		res, err = db.Exec(`
 		UPDATE node_connection_details SET ping_system = ping_system+$1, updated_on = $2 WHERE node_id = $3 AND ping_system%$4 < $5;`,
 			pingSystem, time.Now().UTC(), nodeId, pingSystem*2, pingSystem)
@@ -368,13 +368,13 @@ func setNodeConnectionDetailsPingSystemStatus(db *sqlx.DB,
 
 func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	nodeId int,
-	customSettings commons.NodeConnectionDetailCustomSettings,
-	status commons.Status) (int64, error) {
+	customSettings core.NodeConnectionDetailCustomSettings,
+	status core.Status) (int64, error) {
 
 	connectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
 	var err error
 	var res sql.Result
-	if status == commons.Active {
+	if status == core.Active {
 		res, err = db.Exec(`
 			UPDATE node_connection_details
 			SET custom_settings = custom_settings+$1, updated_on = $2
@@ -402,8 +402,8 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 
 func setCustomSettings(db *sqlx.DB,
 	nodeId int,
-	customSettings commons.NodeConnectionDetailCustomSettings,
-	pingSystems commons.PingSystem) (int64, error) {
+	customSettings core.NodeConnectionDetailCustomSettings,
+	pingSystems core.PingSystem) (int64, error) {
 
 	res, err := db.Exec(`
 		UPDATE node_connection_details SET custom_settings=$1, ping_system=$2, updated_on=$3 WHERE node_id=$4;`,
@@ -450,7 +450,7 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 func SetNodeConnectionDetailsByConnectionDetails(
 	db *sqlx.DB,
 	nodeId int,
-	status commons.Status,
+	status core.Status,
 	grpcAddress string,
 	tlsDataBytes []byte,
 	macaroonDataBytes []byte) error {

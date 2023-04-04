@@ -32,7 +32,7 @@ import (
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -76,7 +76,7 @@ func main() {
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.vector.url",
-			Value: commons.VectorUrl,
+			Value: cache.VectorUrl,
 			Usage: "Enable test mode",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
@@ -181,19 +181,18 @@ func main() {
 			ctxGlobal, cancelGlobal := context.WithCancel(context.Background())
 			defer cancelGlobal()
 
-			go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctxGlobal)
-			go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctxGlobal)
-			go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctxGlobal)
-			go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctxGlobal)
-			go commons.ManagedNodeAliasCache(commons.ManagedNodeAliasChannel, ctxGlobal)
-			go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctxGlobal)
-			go commons.ManagedTaggedCache(commons.ManagedTaggedChannel, ctxGlobal)
-			go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctxGlobal)
-			go tags.ManagedTagCache(tags.ManagedTagChannel, ctxGlobal)
-			go workflows.ManagedRebalanceCache(workflows.ManagedRebalanceChannel, ctxGlobal)
+			go cache.ChannelStatesCacheHandler(cache.ChannelStatesCacheChannel, ctxGlobal)
+			go cache.SettingsCacheHandle(cache.SettingsCacheChannel, ctxGlobal)
+			go cache.NodesCacheHandler(cache.NodesCacheChannel, ctxGlobal)
+			go cache.NodeAliasesCacheHandler(cache.NodeAliasesCacheChannel, ctxGlobal)
+			go cache.ChannelsCacheHandler(cache.ChannelsCacheChannel, ctxGlobal)
+			go cache.TaggedCacheHandler(cache.TaggedCacheChannel, ctxGlobal)
+			go cache.TriggersCacheHandler(cache.TriggersCacheChannel, ctxGlobal)
+			go tags.TagsCacheHandler(tags.TagsCacheChannel, ctxGlobal)
+			go workflows.RebalanceCacheHandler(workflows.RebalancesCacheChannel, ctxGlobal)
 			go cache.ServiceCacheHandler(cache.ServicesCacheChannel, ctxGlobal)
 
-			commons.SetVectorUrlBase(c.String("torq.vector.url"))
+			cache.SetVectorUrlBase(c.String("torq.vector.url"))
 
 			cache.InitStates(c.Bool("torq.no-sub"))
 
@@ -297,8 +296,8 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 	err := database.MigrateUp(db)
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Error().Err(err).Msg("Torq could not migrate the database.")
-		cache.CancelCoreService(commons.RootService)
-		cache.SetFailedCoreServiceState(commons.RootService)
+		cache.CancelCoreService(core.RootService)
+		cache.SetFailedCoreServiceState(core.RootService)
 		return
 	}
 
@@ -331,7 +330,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 				log.Info().Msgf("Node specified in config is not in DB, obtaining public key from GRPC: %v", grpcAddress)
 				var nodeConnectionDetails settings.NodeConnectionDetails
 				for {
-					nodeConnectionDetails, err = settings.AddNodeToDB(db, commons.LND, grpcAddress, tlsFile, macaroonFile)
+					nodeConnectionDetails, err = settings.AddNodeToDB(db, core.LND, grpcAddress, tlsFile, macaroonFile)
 					if err == nil && nodeConnectionDetails.NodeId != 0 {
 						break
 					} else {
@@ -340,24 +339,24 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 					}
 				}
 				nodeConnectionDetails.Name = "Auto configured node"
-				nodeConnectionDetails.CustomSettings = commons.NodeConnectionDetailCustomSettings(commons.NodeConnectionDetailCustomSettingsMax - int(commons.ImportFailedPayments))
+				nodeConnectionDetails.CustomSettings = core.NodeConnectionDetailCustomSettings(core.NodeConnectionDetailCustomSettingsMax - int(core.ImportFailedPayments))
 				_, err = settings.SetNodeConnectionDetails(db, nodeConnectionDetails)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to update the node name (cosmetics problem).")
 				}
 			} else {
 				log.Info().Msg("Node specified in config is present, updating Macaroon and TLS files")
-				if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, commons.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
+				if err = settings.SetNodeConnectionDetailsByConnectionDetails(db, nodeId, core.Active, grpcAddress, tlsFile, macaroonFile); err != nil {
 					log.Error().Err(err).Msg("Problem updating node files")
-					cache.CancelCoreService(commons.RootService)
-					cache.SetFailedCoreServiceState(commons.RootService)
+					cache.CancelCoreService(core.RootService)
+					cache.SetFailedCoreServiceState(core.RootService)
 				}
 			}
 		}
 		break
 	}
 
-	cache.SetPendingCoreServiceState(commons.RootService)
+	cache.SetPendingCoreServiceState(core.RootService)
 }
 
 const hangingTimeoutInSeconds = 120
@@ -369,40 +368,40 @@ func servicesMonitor(db *sqlx.DB) {
 		<-ticker
 
 		// Root service ended up in a failed state
-		if cache.GetCoreFailedAttemptTime(commons.RootService) != nil {
+		if cache.GetCoreFailedAttemptTime(core.RootService) != nil {
 			log.Info().Msg("Torq is dead.")
 			panic("RootService cannot be bootstrapped")
 		}
 
-		switch cache.GetCurrentCoreServiceState(commons.RootService).Status {
-		case commons.ServicePending:
+		switch cache.GetCurrentCoreServiceState(core.RootService).Status {
+		case core.ServicePending:
 			log.Info().Msg("Torq is setting up caches.")
 
-			err := settings.InitializeManagedSettingsCache(db)
+			err := settings.InitializeSettingsCache(db)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain settings for ManagedSettings cache.")
+				log.Error().Err(err).Msg("Failed to obtain settings for SettingsCache cache.")
 			}
 
-			err = settings.InitializeManagedNodeCache(db)
+			err = settings.InitializeNodesCache(db)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain torq nodes for ManagedNode cache.")
+				log.Error().Err(err).Msg("Failed to obtain torq nodes for NodeCache cache.")
 			}
 
-			err = settings.InitializeManagedChannelCache(db)
+			err = settings.InitializeChannelsCache(db)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain channels for ManagedChannel cache.")
+				log.Error().Err(err).Msg("Failed to obtain channels for ChannelCache cache.")
 			}
 
-			settings.InitializeManagedNodeAliasCache(db)
+			settings.InitializeNodeAliasesCache(db)
 
-			err = settings.InitializeManagedTaggedCache(db)
+			err = settings.InitializeTaggedCache(db)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain tags for ManagedTagged cache.")
+				log.Error().Err(err).Msg("Failed to obtain tags for TaggedCache cache.")
 			}
 
-			err = tags.InitializeManagedTagCache(db)
+			err = tags.InitializeTagsCache(db)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to obtain tags for ManagedTag cache.")
+				log.Error().Err(err).Msg("Failed to obtain tags for TagCache cache.")
 			}
 
 			log.Info().Msg("Loading caches in memory.")
@@ -410,12 +409,12 @@ func servicesMonitor(db *sqlx.DB) {
 			if err != nil {
 				log.Error().Err(err).Msg("Torq cannot be initialized (Loading caches in memory).")
 			}
-			cache.SetInitializingCoreServiceState(commons.RootService)
+			cache.SetInitializingCoreServiceState(core.RootService)
 			continue
-		case commons.ServiceInitializing:
+		case core.ServiceInitializing:
 			allGood := true
-			for _, coreServiceType := range commons.GetCoreServiceTypes() {
-				if coreServiceType != commons.RootService {
+			for _, coreServiceType := range core.GetCoreServiceTypes() {
+				if coreServiceType != core.RootService {
 					success := handleCoreServiceStateDelta(db, coreServiceType)
 					if !success {
 						allGood = false
@@ -427,8 +426,8 @@ func servicesMonitor(db *sqlx.DB) {
 				continue
 			}
 			log.Info().Msg("Torq initialization is done.")
-		case commons.ServiceActive:
-			for _, coreServiceType := range commons.GetCoreServiceTypes() {
+		case core.ServiceActive:
+			for _, coreServiceType := range core.GetCoreServiceTypes() {
 				handleCoreServiceStateDelta(db, coreServiceType)
 			}
 		default:
@@ -443,24 +442,24 @@ func servicesMonitor(db *sqlx.DB) {
 		for _, nodeId := range cache.GetLndNodeIds() {
 			// check channel events first only if that one works we start the others
 			// because channel events downloads our channels and routing policies from LND
-			channelEventStream := cache.GetCurrentLndServiceState(commons.LndServiceChannelEventStream, nodeId)
-			for _, lndServiceType := range commons.GetLndServiceTypes() {
-				handleLndServiceDelta(db, lndServiceType, nodeId, channelEventStream.Status == commons.ServiceActive)
+			channelEventStream := cache.GetCurrentLndServiceState(core.LndServiceChannelEventStream, nodeId)
+			for _, lndServiceType := range core.GetLndServiceTypes() {
+				handleLndServiceDelta(db, lndServiceType, nodeId, channelEventStream.Status == core.ServiceActive)
 			}
 		}
 	}
 }
 
 func processTorqInitialBoot(db *sqlx.DB) {
-	if cache.GetCurrentCoreServiceState(commons.RootService).Status != commons.ServiceInitializing {
+	if cache.GetCurrentCoreServiceState(core.RootService).Status != core.ServiceInitializing {
 		return
 	}
-	for _, torqNode := range commons.GetActiveTorqNodeSettings() {
+	for _, torqNode := range cache.GetActiveTorqNodeSettings() {
 		var grpcAddress string
 		var tls []byte
 		var macaroon []byte
-		var pingSystem commons.PingSystem
-		var customSettings commons.NodeConnectionDetailCustomSettings
+		var pingSystem core.PingSystem
+		var customSettings core.NodeConnectionDetailCustomSettings
 		err := db.QueryRow(`
 					SELECT grpc_address, tls_data, macaroon_data, ping_system, custom_settings
 					FROM node_connection_details
@@ -472,18 +471,18 @@ func processTorqInitialBoot(db *sqlx.DB) {
 
 		log.Info().Msgf("Torq is setting up the desired states for nodeId: %v.", torqNode.NodeId)
 
-		for _, lndServiceType := range commons.GetLndServiceTypes() {
-			serviceStatus := commons.ServiceActive
+		for _, lndServiceType := range core.GetLndServiceTypes() {
+			serviceStatus := core.ServiceActive
 			switch lndServiceType {
-			case commons.VectorService, commons.AmbossService:
+			case core.VectorService, core.AmbossService:
 				if pingSystem&(*lndServiceType.GetPingSystem()) == 0 {
-					serviceStatus = commons.ServiceInactive
+					serviceStatus = core.ServiceInactive
 				}
-			case commons.LndServiceTransactionStream,
-				commons.LndServiceHtlcEventStream,
-				commons.LndServiceForwardStream,
-				commons.LndServiceInvoiceStream,
-				commons.LndServicePaymentStream:
+			case core.LndServiceTransactionStream,
+				core.LndServiceHtlcEventStream,
+				core.LndServiceForwardStream,
+				core.LndServiceInvoiceStream,
+				core.LndServicePaymentStream:
 				active := false
 				for _, cs := range lndServiceType.GetNodeConnectionDetailCustomSettings() {
 					if customSettings&cs != 0 {
@@ -492,7 +491,7 @@ func processTorqInitialBoot(db *sqlx.DB) {
 					}
 				}
 				if !active {
-					serviceStatus = commons.ServiceInactive
+					serviceStatus = core.ServiceInactive
 				}
 			}
 			cache.SetDesiredLndServiceState(lndServiceType, torqNode.NodeId, serviceStatus)
@@ -504,43 +503,43 @@ func processTorqInitialBoot(db *sqlx.DB) {
 			})
 		}
 	}
-	cache.SetActiveCoreServiceState(commons.RootService)
+	cache.SetActiveCoreServiceState(core.RootService)
 }
 
-func handleLndServiceDelta(db *sqlx.DB, serviceType commons.ServiceType, nodeId int, channelEventActive bool) {
+func handleLndServiceDelta(db *sqlx.DB, serviceType core.ServiceType, nodeId int, channelEventActive bool) {
 	currentState := cache.GetCurrentLndServiceState(serviceType, nodeId)
 	desiredState := cache.GetDesiredLndServiceState(serviceType, nodeId)
 	if currentState.Status == desiredState.Status {
 		return
 	}
 	switch currentState.Status {
-	case commons.ServiceActive:
-		if desiredState.Status == commons.ServiceInactive || !channelEventActive {
+	case core.ServiceActive:
+		if desiredState.Status == core.ServiceInactive || !channelEventActive {
 			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
 			cache.CancelLndService(serviceType, nodeId)
 		}
-	case commons.ServiceInactive:
-		if channelEventActive || serviceType == commons.LndServiceChannelEventStream {
+	case core.ServiceInactive:
+		if channelEventActive || serviceType == core.LndServiceChannelEventStream {
 			bootService(db, serviceType, nodeId)
 		}
-	case commons.ServicePending:
-		if !channelEventActive && serviceType != commons.LndServiceChannelEventStream {
+	case core.ServicePending:
+		if !channelEventActive && serviceType != core.LndServiceChannelEventStream {
 			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
 			cache.CancelLndService(serviceType, nodeId)
 			return
 		}
-		pendingTime := cache.GetLndServiceTime(serviceType, nodeId, commons.ServicePending)
+		pendingTime := cache.GetLndServiceTime(serviceType, nodeId, core.ServicePending)
 		if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
 			// hanging idle on pending
 			cache.CancelLndService(serviceType, nodeId)
 		}
-	case commons.ServiceInitializing:
-		if !channelEventActive && serviceType != commons.LndServiceChannelEventStream {
+	case core.ServiceInitializing:
+		if !channelEventActive && serviceType != core.LndServiceChannelEventStream {
 			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
 			cache.CancelLndService(serviceType, nodeId)
 			return
 		}
-		initializationTime := cache.GetLndServiceTime(serviceType, nodeId, commons.ServiceInitializing)
+		initializationTime := cache.GetLndServiceTime(serviceType, nodeId, core.ServiceInitializing)
 		if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
 			// hanging idle on initialization
 			cache.CancelLndService(serviceType, nodeId)
@@ -548,28 +547,28 @@ func handleLndServiceDelta(db *sqlx.DB, serviceType commons.ServiceType, nodeId 
 	}
 }
 
-func handleCoreServiceStateDelta(db *sqlx.DB, serviceType commons.ServiceType) bool {
+func handleCoreServiceStateDelta(db *sqlx.DB, serviceType core.ServiceType) bool {
 	currentState := cache.GetCurrentCoreServiceState(serviceType)
 	desiredState := cache.GetDesiredCoreServiceState(serviceType)
 	if currentState.Status == desiredState.Status {
 		return true
 	}
 	switch currentState.Status {
-	case commons.ServiceActive:
-		if desiredState.Status == commons.ServiceInactive {
+	case core.ServiceActive:
+		if desiredState.Status == core.ServiceInactive {
 			log.Info().Msgf("%v Inactivation.", serviceType.String())
 			cache.CancelCoreService(serviceType)
 		}
-	case commons.ServiceInactive:
+	case core.ServiceInactive:
 		bootService(db, serviceType, 0)
-	case commons.ServicePending:
-		pendingTime := cache.GetCoreServiceTime(serviceType, commons.ServicePending)
+	case core.ServicePending:
+		pendingTime := cache.GetCoreServiceTime(serviceType, core.ServicePending)
 		if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
 			// hanging idle on pending
 			cache.CancelCoreService(serviceType)
 		}
-	case commons.ServiceInitializing:
-		initializationTime := cache.GetCoreServiceTime(serviceType, commons.ServiceInitializing)
+	case core.ServiceInitializing:
+		initializationTime := cache.GetCoreServiceTime(serviceType, core.ServiceInitializing)
 		if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
 			// hanging idle on initialization
 			cache.CancelCoreService(serviceType)
@@ -578,7 +577,7 @@ func handleCoreServiceStateDelta(db *sqlx.DB, serviceType commons.ServiceType) b
 	return false
 }
 
-func bootService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int) {
+func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 	var failedAttemptTime *time.Time
 	if nodeId == 0 {
 		failedAttemptTime = cache.GetCoreFailedAttemptTime(serviceType)
@@ -621,61 +620,61 @@ func bootService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int) {
 	log.Info().Msgf("%v Service booted for nodeId: %v", serviceType.String(), nodeId)
 	switch serviceType {
 	// NOT NODE ID SPECIFIC
-	case commons.AutomationChannelBalanceEventTriggerService:
+	case core.AutomationChannelBalanceEventTriggerService:
 		go services.StartChannelBalanceEventService(ctx, db)
-	case commons.AutomationChannelEventTriggerService:
+	case core.AutomationChannelEventTriggerService:
 		go services.StartChannelEventService(ctx, db)
-	case commons.AutomationIntervalTriggerService:
+	case core.AutomationIntervalTriggerService:
 		go services.StartIntervalService(ctx, db)
-	case commons.AutomationScheduledTriggerService:
+	case core.AutomationScheduledTriggerService:
 		go services.StartScheduledService(ctx, db)
-	case commons.MaintenanceService:
+	case core.MaintenanceService:
 		go services.StartMaintenanceService(ctx, db)
-	case commons.CronService:
+	case core.CronService:
 		go services.StartCronService(ctx, db)
 	// NODE SPECIFIC
-	case commons.VectorService:
+	case core.VectorService:
 		go vector_ping.Start(ctx, conn, nodeId)
-	case commons.AmbossService:
+	case core.AmbossService:
 		go amboss_ping.Start(ctx, conn, nodeId)
-	case commons.RebalanceService:
+	case core.RebalanceService:
 		go services.StartRebalanceService(ctx, conn, db, nodeId)
-	case commons.LndServiceChannelEventStream:
+	case core.LndServiceChannelEventStream:
 		go subscribe.StartChannelEventStream(ctx, conn, db, nodeId)
-	case commons.LndServiceGraphEventStream:
+	case core.LndServiceGraphEventStream:
 		go subscribe.StartGraphEventStream(ctx, conn, db, nodeId)
-	case commons.LndServiceTransactionStream:
+	case core.LndServiceTransactionStream:
 		go subscribe.StartTransactionStream(ctx, conn, db, nodeId)
-	case commons.LndServiceHtlcEventStream:
+	case core.LndServiceHtlcEventStream:
 		go subscribe.StartHtlcEvents(ctx, conn, db, nodeId)
-	case commons.LndServiceForwardStream:
+	case core.LndServiceForwardStream:
 		go subscribe.StartForwardStream(ctx, conn, db, nodeId)
-	case commons.LndServiceInvoiceStream:
+	case core.LndServiceInvoiceStream:
 		go subscribe.StartInvoiceStream(ctx, conn, db, nodeId)
-	case commons.LndServicePaymentStream:
+	case core.LndServicePaymentStream:
 		go subscribe.StartPaymentStream(ctx, conn, db, nodeId)
-	case commons.LndServicePeerEventStream:
+	case core.LndServicePeerEventStream:
 		go subscribe.StartPeerEvents(ctx, conn, db, nodeId)
-	case commons.LndServiceInFlightPaymentStream:
+	case core.LndServiceInFlightPaymentStream:
 		go subscribe.StartInFlightPaymentStream(ctx, conn, db, nodeId)
-	case commons.LndServiceChannelBalanceCacheStream:
+	case core.LndServiceChannelBalanceCacheStream:
 		go subscribe.StartChannelBalanceCacheMaintenance(ctx, conn, db, nodeId)
 	}
 }
 
-func isBootable(serviceType commons.ServiceType, nodeId int) bool {
+func isBootable(serviceType core.ServiceType, nodeId int) bool {
 	switch serviceType {
-	case commons.VectorService, commons.AmbossService, commons.RebalanceService,
-		commons.LndServiceChannelEventStream,
-		commons.LndServiceGraphEventStream,
-		commons.LndServiceTransactionStream,
-		commons.LndServiceHtlcEventStream,
-		commons.LndServiceForwardStream,
-		commons.LndServiceInvoiceStream,
-		commons.LndServicePaymentStream,
-		commons.LndServicePeerEventStream,
-		commons.LndServiceInFlightPaymentStream,
-		commons.LndServiceChannelBalanceCacheStream:
+	case core.VectorService, core.AmbossService, core.RebalanceService,
+		core.LndServiceChannelEventStream,
+		core.LndServiceGraphEventStream,
+		core.LndServiceTransactionStream,
+		core.LndServiceHtlcEventStream,
+		core.LndServiceForwardStream,
+		core.LndServiceInvoiceStream,
+		core.LndServicePaymentStream,
+		core.LndServicePeerEventStream,
+		core.LndServiceInFlightPaymentStream,
+		core.LndServiceChannelBalanceCacheStream:
 		nodeConnectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
 		if nodeConnectionDetails.GRPCAddress == "" ||
 			nodeConnectionDetails.MacaroonFileBytes == nil ||

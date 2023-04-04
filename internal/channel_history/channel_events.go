@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
 )
 
 type ChannelEvent struct {
@@ -150,7 +150,7 @@ from (SELECT ts as ts,
 where prev != min_htlc
 order by datetime desc) as events where prev is not null and value is not null`
 
-	preferredTimeZone := commons.GetSettings().PreferredTimeZone
+	preferredTimeZone := cache.GetSettings().PreferredTimeZone
 	rows, err := db.Queryx(sql, preferredTimeZone, from, to, pq.Array(channelIds), pq.Array(nodeIds))
 	if err != nil {
 		return r, errors.Wrapf(err, "sqlx.In(%s, %v, %v, %v, %v, %v)",

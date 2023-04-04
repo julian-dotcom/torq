@@ -15,7 +15,7 @@ import (
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const superuserName = "postgres"
@@ -190,54 +190,49 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	}
 
 	lndShortChannelId := uint64(1111)
-	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash1, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	lndShortChannelId = 2222
-	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId = core.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash2, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	lndShortChannelId = 3333
-	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId = core.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash3, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
 	lndShortChannelId = 4444
-	shortChannelId = commons.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId = core.ConvertLNDShortChannelID(lndShortChannelId)
 	err = AddChannel(db, shortChannelId, lndShortChannelId, TestFundingTransactionHash4, TestFundingOutputIndex, testNodeId1, testNodeId2, cancel)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)
 	}
 
-	//var serviceChannelGlobal = make(chan commons.ServiceChannelMessage)
-	//var lightningRequestChannelGlobal = make(chan interface{})
-	//var rebalanceRequestChannelGlobal = make(chan commons.RebalanceRequest)
-
-	go commons.ManagedChannelGroupCache(commons.ManagedChannelGroupChannel, ctx)
-	go commons.ManagedChannelStateCache(commons.ManagedChannelStateChannel, ctx)
-	go commons.ManagedSettingsCache(commons.ManagedSettingsChannel, ctx)
-	go commons.ManagedNodeCache(commons.ManagedNodeChannel, ctx)
-	go commons.ManagedNodeAliasCache(commons.ManagedNodeAliasChannel, ctx)
-	go commons.ManagedChannelCache(commons.ManagedChannelChannel, ctx)
-	go commons.ManagedTaggedCache(commons.ManagedTaggedChannel, ctx)
-	go commons.ManagedTriggerCache(commons.ManagedTriggerChannel, ctx)
-	go tags.ManagedTagCache(tags.ManagedTagChannel, ctx)
+	go cache.ChannelStatesCacheHandler(cache.ChannelStatesCacheChannel, ctx)
+	go cache.SettingsCacheHandle(cache.SettingsCacheChannel, ctx)
+	go cache.NodesCacheHandler(cache.NodesCacheChannel, ctx)
+	go cache.NodeAliasesCacheHandler(cache.NodeAliasesCacheChannel, ctx)
+	go cache.ChannelsCacheHandler(cache.ChannelsCacheChannel, ctx)
+	go cache.TaggedCacheHandler(cache.TaggedCacheChannel, ctx)
+	go cache.TriggersCacheHandler(cache.TriggersCacheChannel, ctx)
+	go tags.TagsCacheHandler(tags.TagsCacheChannel, ctx)
 	// TODO FIXME cyclic dependency so if you need this in tests then initialise it in the test
-	//go automation.ManagedRebalanceCache(automation.ManagedRebalanceChannel, ctx)
+	//go automation.RebalanceCache(automation.ManagedRebalanceChannel, ctx)
 	go cache.ServiceCacheHandler(cache.ServicesCacheChannel, ctx)
 
 	cache.InitStates(true)
 	_, cancelTorq := context.WithCancel(ctx)
 	cache.InitRootService(cancelTorq)
-	cache.SetActiveCoreServiceState(commons.RootService)
+	cache.SetActiveCoreServiceState(core.RootService)
 
 	return db, cancel, nil
 }
@@ -245,7 +240,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 func addNode(db *sqlx.DB, testPublicKey string, cancel context.CancelFunc) (int, error) {
 	var testNodeId int
 	err := db.QueryRowx("INSERT INTO node (public_key, chain, network, created_on) VALUES ($1, $2, $3, $4) RETURNING node_id;",
-		testPublicKey, commons.Bitcoin, commons.SigNet, time.Now().UTC()).Scan(&testNodeId)
+		testPublicKey, core.Bitcoin, core.SigNet, time.Now().UTC()).Scan(&testNodeId)
 	if err != nil {
 		cancel()
 		return 0, errors.Wrapf(err, "Inserting default node for testing with publicKey: %v", TestPublicKey1)
@@ -258,7 +253,7 @@ func addNodeConnectionDetails(db *sqlx.DB, testNodeId int, cancel context.Cancel
 	_, err := db.Exec(`INSERT INTO node_connection_details
 			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
-		testNodeId, fmt.Sprintf("Node_%v", testNodeId), commons.LND, commons.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
+		testNodeId, fmt.Sprintf("Node_%v", testNodeId), core.LND, core.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
 	if err != nil {
 		cancel()
 		return errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId)
@@ -281,7 +276,7 @@ func AddChannel(db *sqlx.DB, shortChannelId string, lndShortChannelId uint64,
 			);`,
 		shortChannelId, fundingTransactionHash, fundingOutputIndex, nil, nil,
 		lndShortChannelId, testNodeId1, testNodeId2, nil, nil, 1_000_000,
-		false, commons.Open, time.Now().UTC(), time.Now().UTC(), 10, time.Now().UTC(), 1)
+		false, core.Open, time.Now().UTC(), time.Now().UTC(), 10, time.Now().UTC(), 1)
 	if err != nil {
 		cancel()
 		return errors.Wrapf(err, "Inserting default channel for testing with shortChannelId: %v", shortChannelId)

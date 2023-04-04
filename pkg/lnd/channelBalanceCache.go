@@ -14,7 +14,7 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const channelbalanceTickerSeconds = 150
@@ -22,9 +22,9 @@ const channelbalanceTickerSeconds = 150
 func ChannelBalanceCacheMaintenance(ctx context.Context,
 	lndClient lnrpc.LightningClient,
 	db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) {
+	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := commons.LndServiceChannelBalanceCacheStream
+	serviceType := core.LndServiceChannelBalanceCacheStream
 
 	bootStrapping := true
 	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
@@ -52,7 +52,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			if cache.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
 				if !channelBalanceStreamActive {
 					initiateSync = true
-					commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Active)
+					cache.SetChannelStateNodeStatus(nodeSettings.NodeId, core.Active)
 					channelBalanceStreamActive = true
 				}
 				// code stops here when all channel balance streams are active
@@ -63,7 +63,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 				cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 			}
 			if channelBalanceStreamActive {
-				commons.SetChannelStateNodeStatus(nodeSettings.NodeId, commons.Inactive)
+				cache.SetChannelStateNodeStatus(nodeSettings.NodeId, core.Inactive)
 				channelBalanceStreamActive = false
 			}
 		case <-lndSyncTicker:
@@ -77,9 +77,9 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 	}
 }
 
-func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings,
+func synchronizeDataFromLnd(nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool,
-	serviceType commons.ServiceType,
+	serviceType core.ServiceType,
 	lndClient lnrpc.LightningClient,
 	db *sqlx.DB,
 	mutex *sync.RWMutex) (bool, error) {
@@ -109,27 +109,27 @@ func synchronizeDataFromLnd(nodeSettings commons.ManagedNodeSettings,
 }
 
 func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int, db *sqlx.DB, mutex *sync.RWMutex) error {
-	if commons.RWMutexWriteLocked(mutex) {
+	if core.RWMutexWriteLocked(mutex) {
 		log.Error().Msgf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId)
 		return errors.New(fmt.Sprintf("The lock initializeChannelBalanceFromLnd is already locked? This is a critical issue! (nodeId: %v)", nodeId))
 	}
-	nodeSettings := commons.GetNodeSettingsByNodeId(nodeId)
+	nodeSettings := cache.GetNodeSettingsByNodeId(nodeId)
 	mutex.Lock()
 	defer func() {
 		mutex.Unlock()
 	}()
-	var channelStateSettingsList []commons.ManagedChannelStateSettings
+	var channelStateSettingsList []cache.ChannelStateSettingsCache
 	r, err := lndClient.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
 	if err != nil {
 		return errors.Wrapf(err, "Obtaining channels from LND for nodeId: %v", nodeId)
 	}
 	for _, lndChannel := range r.Channels {
-		channelId := commons.GetChannelIdByChannelPoint(lndChannel.ChannelPoint)
-		remoteNodeId := commons.GetNodeIdByPublicKey(lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
+		channelId := cache.GetChannelIdByChannelPoint(lndChannel.ChannelPoint)
+		remoteNodeId := cache.GetNodeIdByPublicKey(lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
 		if channelId == 0 {
 			return errors.Wrapf(err, "Obtaining channelId from channelPoint: %v", lndChannel.ChannelPoint)
 		}
-		channelStateSettings := commons.ManagedChannelStateSettings{
+		channelStateSettings := cache.ChannelStateSettingsCache{
 			NodeId:        nodeId,
 			RemoteNodeId:  remoteNodeId,
 			ChannelId:     channelId,
@@ -179,7 +179,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 				} else {
 					channelStateSettings.LocalBalance += pendingHtlc.Amount
 				}
-				htlc := commons.Htlc{
+				htlc := cache.Htlc{
 					Incoming:            pendingHtlc.Incoming,
 					Amount:              pendingHtlc.Amount,
 					HashLock:            pendingHtlc.HashLock,
@@ -197,7 +197,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 					pendingOutgoingHtlcAmount += htlc.Amount
 				}
 			}
-			channelSettings := commons.GetChannelSettingByChannelId(channelId)
+			channelSettings := cache.GetChannelSettingByChannelId(channelId)
 			if channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance > channelSettings.Capacity {
 				log.Error().Msgf("ChannelBalanceCacheMaintenance: RemoteBalance (%v) + LocalBalance (%v) > Capacity (%v) for channelId: %v",
 					channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance, channelSettings.Capacity,
@@ -220,27 +220,27 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.PendingOutgoingHtlcAmount = pendingOutgoingHtlcAmount
 		channelStateSettingsList = append(channelStateSettingsList, channelStateSettings)
 	}
-	commons.SetChannelStates(nodeId, channelStateSettingsList)
+	cache.SetChannelStates(nodeId, channelStateSettingsList)
 	return nil
 }
 
-func ProcessChannelEvent(channelEvent commons.ChannelEvent) {
+func ProcessChannelEvent(channelEvent core.ChannelEvent) {
 	if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
 		return
 	}
-	var status commons.Status
+	var status core.Status
 	switch channelEvent.Type {
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
-		status = commons.Active
+		status = core.Active
 	case lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL:
-		status = commons.Inactive
+		status = core.Inactive
 	case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
-		status = commons.Deleted
+		status = core.Deleted
 	}
-	commons.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, status)
+	cache.SetChannelStateChannelStatus(channelEvent.NodeId, channelEvent.ChannelId, status)
 }
 
-func ProcessChannelGraphEvent(channelGraphEvent commons.ChannelGraphEvent) {
+func ProcessChannelGraphEvent(channelGraphEvent core.ChannelGraphEvent) {
 	if channelGraphEvent.NodeId == 0 ||
 		channelGraphEvent.ChannelId == nil || *channelGraphEvent.ChannelId == 0 ||
 		channelGraphEvent.AnnouncingNodeId == nil || *channelGraphEvent.AnnouncingNodeId == 0 ||
@@ -248,56 +248,56 @@ func ProcessChannelGraphEvent(channelGraphEvent commons.ChannelGraphEvent) {
 		return
 	}
 	local := *channelGraphEvent.AnnouncingNodeId == channelGraphEvent.NodeId
-	commons.SetChannelStateRoutingPolicy(channelGraphEvent.NodeId, *channelGraphEvent.ChannelId, local,
+	cache.SetChannelStateRoutingPolicy(channelGraphEvent.NodeId, *channelGraphEvent.ChannelId, local,
 		channelGraphEvent.Disabled, channelGraphEvent.TimeLockDelta, channelGraphEvent.MinHtlcMsat,
 		channelGraphEvent.MaxHtlcMsat, channelGraphEvent.FeeBaseMsat, channelGraphEvent.FeeRateMilliMsat)
 }
 
-func ProcessForwardEvent(forwardEvent commons.ForwardEvent) {
+func ProcessForwardEvent(forwardEvent core.ForwardEvent) {
 	if forwardEvent.NodeId == 0 {
 		return
 	}
 	if forwardEvent.IncomingChannelId != nil {
-		commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.IncomingChannelId, true,
-			forwardEvent.AmountInMsat, commons.BalanceUpdateForwardEvent)
+		cache.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.IncomingChannelId, true,
+			forwardEvent.AmountInMsat, core.BalanceUpdateForwardEvent)
 	}
 	if forwardEvent.OutgoingChannelId != nil {
-		commons.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.OutgoingChannelId, false,
-			forwardEvent.AmountOutMsat, commons.BalanceUpdateForwardEvent)
+		cache.SetChannelStateBalanceUpdateMsat(forwardEvent.NodeId, *forwardEvent.OutgoingChannelId, false,
+			forwardEvent.AmountOutMsat, core.BalanceUpdateForwardEvent)
 	}
 }
 
-func ProcessInvoiceEvent(invoiceEvent commons.InvoiceEvent) {
+func ProcessInvoiceEvent(invoiceEvent core.InvoiceEvent) {
 	if invoiceEvent.NodeId == 0 || invoiceEvent.State != lnrpc.Invoice_SETTLED {
 		return
 	}
-	commons.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true,
-		invoiceEvent.AmountPaidMsat, commons.BalanceUpdateInvoiceEvent)
+	cache.SetChannelStateBalanceUpdateMsat(invoiceEvent.NodeId, invoiceEvent.ChannelId, true,
+		invoiceEvent.AmountPaidMsat, core.BalanceUpdateInvoiceEvent)
 }
 
-func ProcessPaymentEvent(paymentEvent commons.PaymentEvent) {
+func ProcessPaymentEvent(paymentEvent core.PaymentEvent) {
 	if paymentEvent.NodeId == 0 ||
 		paymentEvent.OutgoingChannelId == nil || *paymentEvent.OutgoingChannelId == 0 ||
 		paymentEvent.PaymentStatus != lnrpc.Payment_SUCCEEDED {
 		return
 	}
-	commons.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false,
-		paymentEvent.AmountPaid, commons.BalanceUpdatePaymentEvent)
+	cache.SetChannelStateBalanceUpdate(paymentEvent.NodeId, *paymentEvent.OutgoingChannelId, false,
+		paymentEvent.AmountPaid, core.BalanceUpdatePaymentEvent)
 }
 
-func ProcessPeerEvent(peerEvent commons.PeerEvent) {
+func ProcessPeerEvent(peerEvent core.PeerEvent) {
 	if peerEvent.NodeId == 0 || peerEvent.EventNodeId == 0 {
 		return
 	}
-	var status commons.Status
+	var status core.Status
 	switch peerEvent.Type {
 	case lnrpc.PeerEvent_PEER_ONLINE:
-		status = commons.Active
+		status = core.Active
 	case lnrpc.PeerEvent_PEER_OFFLINE:
-		status = commons.Inactive
+		status = core.Inactive
 	}
-	channelIds := commons.GetChannelIdsByNodeId(peerEvent.EventNodeId)
+	channelIds := cache.GetChannelIdsByNodeId(peerEvent.EventNodeId)
 	for _, channelId := range channelIds {
-		commons.SetChannelStateChannelStatus(peerEvent.NodeId, channelId, status)
+		cache.SetChannelStateChannelStatus(peerEvent.NodeId, channelId, status)
 	}
 }
