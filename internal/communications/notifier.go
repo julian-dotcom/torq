@@ -148,8 +148,6 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 
 	serviceType := commons.NotifierService
 
-	commons.SetActiveTorqServiceState(serviceType)
-
 	informationResponses := make(map[int]commons.InformationResponse)
 	graphInSyncTime := make(map[int]time.Time)
 	chainInSyncTime := make(map[int]time.Time)

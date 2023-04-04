@@ -25,7 +25,7 @@ func StartNotifier(ctx context.Context, db *sqlx.DB) {
 		}
 	}()
 
-	commons.SetPendingTorqServiceState(serviceType)
+	commons.SetActiveTorqServiceState(serviceType)
 
 	communications.Notify(ctx, db)
 }
@@ -44,12 +44,13 @@ func StartSlackListener(ctx context.Context, db *sqlx.DB) {
 		}
 	}()
 
-	commons.SetPendingTorqServiceState(serviceType)
+	commons.SetActiveTorqServiceState(serviceType)
 
 	communications.SubscribeSlack(ctx, db)
 }
 
 func StartTelegramListeners(ctx context.Context, db *sqlx.DB, highPriority bool) {
+
 	serviceType := commons.TelegramHighService
 	if !highPriority {
 		serviceType = commons.TelegramLowService
