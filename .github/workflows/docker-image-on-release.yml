@@ -6,7 +6,6 @@ on:
 
 jobs:
   amd64:
-    if: ${{ false }}
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Push AMD64 Docker image to Docker Hub
     steps:
@@ -37,7 +36,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   arm:
-    if: ${{ false }}
     runs-on: buildjet-4vcpu-ubuntu-2204-arm
     name: Push ARM Docker image to Docker Hub
     steps:
@@ -69,7 +67,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   combine-manifests:
-    if: ${{ false }}
     runs-on: buildjet-4vcpu-ubuntu-2204
     name: Combine architectures into one manifest
     needs:
