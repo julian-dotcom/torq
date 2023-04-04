@@ -202,6 +202,11 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 				previousInformation, exists := informationResponses[torqNodeSettings.NodeId]
 				if !exists {
 					informationResponses[torqNodeSettings.NodeId] = newInformation
+					message := fmt.Sprintf("Connected to LND (%v)", torqNodeSettings.PublicKey)
+					if torqNodeSettings.Name != nil && *torqNodeSettings.Name != "" {
+						message = fmt.Sprintf("Connected to LND (%v)", *torqNodeSettings.Name)
+					}
+					sendBotMessages(message, communications)
 					continue
 				}
 				var message string
