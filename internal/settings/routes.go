@@ -131,16 +131,16 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	if setts.SlackBotAppToken != nil && *setts.SlackBotAppToken != "" &&
 		setts.SlackOAuthToken != nil && *setts.SlackOAuthToken != "" {
-		commons.SetDesiredTorqServiceState(commons.SlackService, commons.ServiceActive)
-		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.SlackService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
 	}
 	if setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "" {
-		commons.SetDesiredTorqServiceState(commons.TelegramHighService, commons.ServiceActive)
-		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.TelegramHighService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
 	}
 	if setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "" {
-		commons.SetDesiredTorqServiceState(commons.TelegramLowService, commons.ServiceActive)
-		commons.SetDesiredTorqServiceState(commons.NotifierService, commons.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.TelegramLowService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
 	}
 	c.JSON(http.StatusOK, setts)
 }

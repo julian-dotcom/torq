@@ -107,6 +107,10 @@ func handleSettingsOperation(settingsCache SettingsCache, data SettingsDataCache
 		}
 		settingsCache.TorqUuid = data.TorqUuid
 		settingsCache.MixpanelOptOut = data.MixpanelOptOut
+		settingsCache.SlackOAuthToken = data.SlackOAuthToken
+		settingsCache.SlackBotAppToken = data.SlackBotAppToken
+		settingsCache.TelegramHighPriorityCredentials = data.TelegramHighPriorityCredentials
+		settingsCache.TelegramLowPriorityCredentials = data.TelegramLowPriorityCredentials
 		settingsCache.BlockHeight = data.BlockHeight
 		settingsCache.VectorUrl = data.VectorUrl
 		settingsCache.Out <- settingsCache
