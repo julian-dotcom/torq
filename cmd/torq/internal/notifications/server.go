@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/communications"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 )
 
@@ -20,12 +21,12 @@ func StartNotifier(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	communications.Notify(ctx, db)
 }
@@ -39,12 +40,12 @@ func StartSlackListener(ctx context.Context, db *sqlx.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	communications.SubscribeSlack(ctx, db)
 }
@@ -61,12 +62,12 @@ func StartTelegramListeners(ctx context.Context, db *sqlx.DB, highPriority bool)
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
-			commons.SetFailedTorqServiceState(serviceType)
+			cache.SetFailedCoreServiceState(serviceType)
 			return
 		}
 	}()
 
-	commons.SetActiveTorqServiceState(serviceType)
+	cache.SetActiveCoreServiceState(serviceType)
 
 	communications.SubscribeTelegram(ctx, db, highPriority)
 }

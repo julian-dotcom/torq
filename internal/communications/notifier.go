@@ -15,6 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/commons"
 	"github.com/lncapital/torq/pkg/lightning"
 )
@@ -157,7 +158,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveTorqServiceState(serviceType)
+			cache.SetInactiveCoreServiceState(serviceType)
 			return
 		case <-ticker:
 			for _, torqNodeSettings := range commons.GetActiveTorqNodeSettings() {
@@ -167,7 +168,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 				if err != nil {
 					log.Error().Err(err).Msgf("Getting communications failed for nodeId: %v",
 						torqNodeSettings.NodeId)
-					commons.SetFailedTorqServiceState(serviceType)
+					cache.SetFailedCoreServiceState(serviceType)
 					return
 				}
 				if len(communications) == 0 {
@@ -176,7 +177,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 					continue
 				}
 				var newInformation commons.InformationResponse
-				if commons.IsLndServiceActive(torqNodeSettings.NodeId) {
+				if cache.IsLndServiceActive(torqNodeSettings.NodeId) {
 					newInformation, err = lightning.GetInformationRequest(torqNodeSettings.NodeId)
 				} else {
 					_, exists := informationResponses[torqNodeSettings.NodeId]

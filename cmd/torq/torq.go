@@ -617,38 +617,6 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 			cache.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
-	case commons.TelegramHighService:
-		if commons.GetSettings().GetTelegramCredential(true) == "" {
-			commons.SetInactiveTorqServiceState(serviceType)
-			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
-			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
-			return
-		}
-	case commons.TelegramLowService:
-		if commons.GetSettings().GetTelegramCredential(false) == "" {
-			commons.SetInactiveTorqServiceState(serviceType)
-			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
-			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
-			return
-		}
-	case commons.SlackService:
-		oauth, botToken := commons.GetSettings().GetSlackCredential()
-		if oauth == "" || botToken == "" {
-			commons.SetInactiveTorqServiceState(serviceType)
-			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
-			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
-			return
-		}
-	case commons.NotifierService:
-		oauth, botToken := commons.GetSettings().GetSlackCredential()
-		if (oauth == "" || botToken == "") &&
-			commons.GetSettings().GetTelegramCredential(true) == "" &&
-			commons.GetSettings().GetTelegramCredential(false) == "" {
-			commons.SetInactiveTorqServiceState(serviceType)
-			commons.SetDesiredTorqServiceState(serviceType, commons.ServiceInactive)
-			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
-			return
-		}
 	}
 
 	log.Info().Msgf("%v Service booted for nodeId: %v", serviceType.String(), nodeId)
@@ -704,19 +672,19 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 	}
 }
 
-func isBootable(serviceType core.ServiceType, nodeId int) bool {
+func isBootable(serviceType commons.ServiceType, nodeId int) bool {
 	switch serviceType {
-	case core.VectorService, core.AmbossService, core.RebalanceService,
-		core.LndServiceChannelEventStream,
-		core.LndServiceGraphEventStream,
-		core.LndServiceTransactionStream,
-		core.LndServiceHtlcEventStream,
-		core.LndServiceForwardStream,
-		core.LndServiceInvoiceStream,
-		core.LndServicePaymentStream,
-		core.LndServicePeerEventStream,
-		core.LndServiceInFlightPaymentStream,
-		core.LndServiceChannelBalanceCacheStream:
+	case commons.VectorService, commons.AmbossService, commons.RebalanceService,
+		commons.LndServiceChannelEventStream,
+		commons.LndServiceGraphEventStream,
+		commons.LndServiceTransactionStream,
+		commons.LndServiceHtlcEventStream,
+		commons.LndServiceForwardStream,
+		commons.LndServiceInvoiceStream,
+		commons.LndServicePaymentStream,
+		commons.LndServicePeerEventStream,
+		commons.LndServiceInFlightPaymentStream,
+		commons.LndServiceChannelBalanceCacheStream:
 		nodeConnectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
 		if nodeConnectionDetails.GRPCAddress == "" ||
 			nodeConnectionDetails.MacaroonFileBytes == nil ||
@@ -725,6 +693,38 @@ func isBootable(serviceType core.ServiceType, nodeId int) bool {
 			len(nodeConnectionDetails.TLSFileBytes) == 0 {
 			log.Error().Msgf("%v failed to get connection details for node id: %v", serviceType.String(), nodeId)
 			cache.SetFailedLndServiceState(serviceType, nodeId)
+			return false
+		}
+	case commons.TelegramHighService:
+		if commons.GetSettings().GetTelegramCredential(true) == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, commons.ServiceInactive)
+			log.Info().Msgf("%v service deactivated since there are no credentials", serviceType.String())
+			return false
+		}
+	case commons.TelegramLowService:
+		if commons.GetSettings().GetTelegramCredential(false) == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, commons.ServiceInactive)
+			log.Info().Msgf("%v service deactivated since there are no credentials", serviceType.String())
+			return false
+		}
+	case commons.SlackService:
+		oauth, botToken := commons.GetSettings().GetSlackCredential()
+		if oauth == "" || botToken == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, commons.ServiceInactive)
+			log.Info().Msgf("%v service deactivated since there are no credentials", serviceType.String())
+			return false
+		}
+	case commons.NotifierService:
+		oauth, botToken := commons.GetSettings().GetSlackCredential()
+		if (oauth == "" || botToken == "") &&
+			commons.GetSettings().GetTelegramCredential(true) == "" &&
+			commons.GetSettings().GetTelegramCredential(false) == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, commons.ServiceInactive)
+			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
 			return false
 		}
 	}
