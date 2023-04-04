@@ -17,8 +17,6 @@ const maintenanceVectorDelayMilliseconds = 500
 
 func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("MaintenanceService terminated")
-
 	ticker := clock.New().Tick(maintenanceQueueTickerSeconds * time.Second)
 
 	for {

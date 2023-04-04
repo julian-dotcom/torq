@@ -440,31 +440,12 @@ func manageServices(db *sqlx.DB) {
 
 		// We end up here when the main Torq service AND all non node specific services have the desired states
 		for _, nodeId := range commons.GetLndNodeIds() {
-			serviceType := commons.LndServiceChannelEventStream
 			// check channel events first only if that one works we start the others
 			// because channel events downloads our channels and routing policies from LND
-			channelEventStream := commons.GetCurrentLndServiceState(serviceType, nodeId)
-			switch channelEventStream.Status {
-			case commons.ServiceActive:
-				for _, lndServiceType := range commons.GetLndServiceTypes() {
-					processLndService(db, lndServiceType, nodeId)
-				}
-			case commons.ServiceInactive:
-				processLndService(db, serviceType, nodeId)
-			case commons.ServicePending:
-				pendingTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServicePending)
-				if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
-					// hanging idle on pending
-					commons.CancelLndService(serviceType, nodeId)
-				}
-			case commons.ServiceInitializing:
-				initializationTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServiceInitializing)
-				if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
-					// hanging idle on initialization
-					commons.CancelLndService(serviceType, nodeId)
-				}
+			channelEventStream := commons.GetCurrentLndServiceState(commons.LndServiceChannelEventStream, nodeId)
+			for _, lndServiceType := range commons.GetLndServiceTypes() {
+				processLndService(db, lndServiceType, nodeId, channelEventStream.Status == commons.ServiceActive)
 			}
-
 		}
 	}
 }
@@ -525,7 +506,7 @@ func proccessTorqInitialBoot(db *sqlx.DB) {
 	commons.SetActiveTorqServiceState(commons.TorqService)
 }
 
-func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int) {
+func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int, channelEventActive bool) {
 	currentState := commons.GetCurrentLndServiceState(serviceType, nodeId)
 	desiredState := commons.GetDesiredLndServiceState(serviceType, nodeId)
 	if currentState.Status == desiredState.Status {
@@ -533,19 +514,31 @@ func processLndService(db *sqlx.DB, serviceType commons.ServiceType, nodeId int)
 	}
 	switch currentState.Status {
 	case commons.ServiceActive:
-		if desiredState.Status == commons.ServiceInactive {
+		if desiredState.Status == commons.ServiceInactive || !channelEventActive {
 			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
 			commons.CancelLndService(serviceType, nodeId)
 		}
 	case commons.ServiceInactive:
-		processServiceBoot(db, serviceType, nodeId)
+		if channelEventActive || serviceType == commons.LndServiceChannelEventStream {
+			processServiceBoot(db, serviceType, nodeId)
+		}
 	case commons.ServicePending:
+		if !channelEventActive && serviceType != commons.LndServiceChannelEventStream {
+			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
+			commons.CancelLndService(serviceType, nodeId)
+			return
+		}
 		pendingTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServicePending)
 		if pendingTime != nil && time.Since(*pendingTime).Seconds() > hangingTimeoutInSeconds {
 			// hanging idle on pending
 			commons.CancelLndService(serviceType, nodeId)
 		}
 	case commons.ServiceInitializing:
+		if !channelEventActive && serviceType != commons.LndServiceChannelEventStream {
+			log.Info().Msgf("%v Inactivation for nodeId: %v.", serviceType.String(), nodeId)
+			commons.CancelLndService(serviceType, nodeId)
+			return
+		}
 		initializationTime := commons.GetLndServiceTime(serviceType, nodeId, commons.ServiceInitializing)
 		if initializationTime != nil && time.Since(*initializationTime).Seconds() > hangingTimeoutInSeconds {
 			// hanging idle on initialization

@@ -21,8 +21,6 @@ const workflowTickerSeconds = 10
 
 func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("IntervalTriggerMonitor terminated")
-
 	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 	bootstrapping := true
 
@@ -98,7 +96,7 @@ type CronTriggerParams struct {
 
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("Cron trigger monitor terminated")
+	serviceType := commons.CronService
 
 	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 
@@ -106,6 +104,7 @@ bootstrappingLoop:
 	for {
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveTorqServiceState(serviceType)
 			return
 		case <-ticker:
 			torqNodeIds := commons.GetAllTorqNodeIds()
@@ -122,6 +121,7 @@ bootstrappingLoop:
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to obtain root nodes (cron trigger nodes)")
 		log.Error().Msg("Cron trigger monitor failed to start")
+		commons.SetFailedTorqServiceState(serviceType)
 		return
 	}
 
@@ -162,8 +162,6 @@ bootstrappingLoop:
 }
 
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
 	var delay bool
 
@@ -333,9 +331,6 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 }
 
 func ChannelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Debug().Msgf("ChannelBalanceEventTriggerMonitor terminated")
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -350,9 +345,6 @@ func ChannelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 }
 
 func ChannelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Debug().Msgf("ChannelEventTriggerMonitor terminated")
-
 	for {
 		select {
 		case <-ctx.Done():

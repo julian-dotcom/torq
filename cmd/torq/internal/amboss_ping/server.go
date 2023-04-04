@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"runtime/debug"
 	//"net/http"
 	"time"
 
@@ -23,17 +24,19 @@ const ambossSleepSeconds = 25
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 
-	defer log.Info().Msgf("Amboss Ping Service terminated for nodeId: %v", nodeId)
+	serviceType := commons.AmbossService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in AmbossService (nodeId: %v)", nodeId)
-			commons.SetFailedLndServiceState(commons.AmbossService, nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	commons.SetActiveLndServiceState(commons.AmbossService, nodeId)
+	commons.SetActiveLndServiceState(serviceType, nodeId)
 
 	const ambossUrl = "https://api.amboss.space/graphql"
 	client := lnrpc.NewLightningClient(conn)
@@ -43,7 +46,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(commons.AmbossService, nodeId)
+			commons.SetInactiveLndServiceState(serviceType, nodeId)
 			return
 		case <-ticker:
 			now := time.Now().UTC().Format("2006-01-02T15:04:05+0000")
@@ -53,7 +56,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
 			if err != nil {
 				log.Error().Err(err).Msgf("AmbossService: Signing message: %v", now)
-				commons.SetFailedLndServiceState(commons.AmbossService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 
@@ -63,19 +66,19 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			jsonData, err := json.Marshal(values)
 			if err != nil {
 				log.Error().Err(err).Msgf("AmbossService: Marshalling message: %v", values)
-				commons.SetFailedLndServiceState(commons.AmbossService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			resp, err := http.Post(ambossUrl, "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
 				log.Error().Err(err).Msgf("AmbossService: Posting message: %v", values)
-				commons.SetFailedLndServiceState(commons.AmbossService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			err = resp.Body.Close()
 			if err != nil {
 				log.Error().Err(err).Msg("AmbossService: Closing body")
-				commons.SetFailedLndServiceState(commons.AmbossService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			log.Debug().Msgf("Amboss Ping Service %v", values)

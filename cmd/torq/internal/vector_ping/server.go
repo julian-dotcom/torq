@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -59,17 +60,19 @@ type VectorPingChain struct {
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 
-	defer log.Info().Msgf("Vector Ping Service terminated for nodeId: %v", nodeId)
+	serviceType := commons.VectorService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error().Msgf("Panic occurred in VectorService (nodeId: %v)", nodeId)
-			commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			commons.SetFailedLndServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	commons.SetActiveLndServiceState(commons.VectorService, nodeId)
+	commons.SetActiveLndServiceState(serviceType, nodeId)
 
 	client := lnrpc.NewLightningClient(conn)
 
@@ -78,14 +81,14 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 	for {
 		select {
 		case <-ctx.Done():
-			commons.SetInactiveLndServiceState(commons.VectorService, nodeId)
+			commons.SetInactiveLndServiceState(serviceType, nodeId)
 			return
 		case <-ticker:
 			getInfoRequest := lnrpc.GetInfoRequest{}
 			info, err := client.GetInfo(ctx, &getInfoRequest)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Obtaining LND info for nodeId: %v", nodeId)
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 
@@ -121,7 +124,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			pingInfoJsonByteArray, err := json.Marshal(pingInfo)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", info)
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			signMsgReq := lnrpc.SignMessageRequest{
@@ -130,20 +133,20 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Signing message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signMsgResp.Signature})
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 
 			req, err := http.NewRequest("POST", commons.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Creating new request for message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			req.Header.Set("Content-Type", "application/json")
@@ -153,13 +156,13 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			resp, err := httpClient.Do(req)
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Posting message: %v", string(pingInfoJsonByteArray))
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			err = resp.Body.Close()
 			if err != nil {
 				log.Error().Err(err).Msg("VectorService: Closing response body.")
-				commons.SetFailedLndServiceState(commons.VectorService, nodeId)
+				commons.SetFailedLndServiceState(serviceType, nodeId)
 				return
 			}
 			log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)

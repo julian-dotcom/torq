@@ -83,8 +83,6 @@ func (runner *RebalanceRunner) isFailedHop(
 
 func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	defer log.Info().Msgf("RebalanceService terminated for nodeId: %v", nodeId)
-
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
 

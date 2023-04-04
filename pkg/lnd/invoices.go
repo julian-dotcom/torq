@@ -256,6 +256,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	for {
 		select {
 		case <-ctx.Done():
+			commons.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
