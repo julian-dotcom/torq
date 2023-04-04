@@ -24,6 +24,11 @@ import (
 
 const workflowLogCount = 100
 
+type ManualTriggerEvent struct {
+	core.EventData
+	WorkflowVersionNodeId int `json:"workflowVersionNodeId"`
+}
+
 func RegisterWorkflowRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 
 	// Workflows Crud (/api/workflows)
@@ -116,7 +121,7 @@ func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
-	manualTriggerEvent := core.ManualTriggerEvent{
+	manualTriggerEvent := ManualTriggerEvent{
 		EventData: core.EventData{
 			EventTime: time.Now(),
 		},

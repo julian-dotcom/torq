@@ -1,4 +1,4 @@
-package cache
+package vector
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/build"
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/pkg/cache"
 )
 
 const VectorUrl = "https://vector.ln.capital/"
@@ -17,15 +17,44 @@ const VectorUrl = "https://vector.ln.capital/"
 const vectorShortchannelidUrlSuffix = "api/bitcoin/shortChannelId"
 const vectorTransactiondetailsUrlSuffix = "api/bitcoin/transactionDetails"
 
+type ShortChannelIdHttpRequest struct {
+	TransactionHash string `json:"transactionHash"`
+	OutputIndex     int    `json:"outputIndex"`
+	UnixTime        int64  `json:"unixTime"`
+	Signature       string `json:"signature"`
+	PublicKey       string `json:"publicKey"`
+}
+
+type ShortChannelIdHttpResponse struct {
+	Request        ShortChannelIdHttpRequest `json:"request"`
+	ShortChannelId string                    `json:"shortChannelId"`
+}
+
+type TransactionDetailsHttpRequest struct {
+	TransactionHash string `json:"transactionHash"`
+	UnixTime        int64  `json:"unixTime"`
+	Signature       string `json:"signature"`
+	PublicKey       string `json:"publicKey"`
+}
+
+type TransactionDetailsHttpResponse struct {
+	Request          TransactionDetailsHttpRequest `json:"request"`
+	TransactionCount int                           `json:"transactionCount"`
+	TransactionIndex int                           `json:"transactionIndex"`
+	BlockHash        string                        `json:"blockHash"`
+	BlockTimestamp   time.Time                     `json:"blockTimestamp"`
+	BlockHeight      uint32                        `json:"blockHeight"`
+}
+
 func GetVectorUrl(suffix string) string {
-	return GetVectorUrlBase() + suffix
+	return cache.GetVectorUrlBase() + suffix
 }
 
 func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int,
-	nodeSettings NodeSettingsCache) string {
+	nodeSettings cache.NodeSettingsCache) string {
 
 	unixTime := time.Now()
-	requestObject := core.ShortChannelIdHttpRequest{
+	requestObject := ShortChannelIdHttpRequest{
 		TransactionHash: fundingTransactionHash,
 		OutputIndex:     fundingOutputIndex,
 		UnixTime:        unixTime.Unix(),
@@ -45,7 +74,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Torq-Version", build.ExtendedVersion())
-	req.Header.Set("Torq-UUID", GetSettings().TorqUuid)
+	req.Header.Set("Torq-UUID", cache.GetSettings().TorqUuid)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -53,7 +82,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 			fundingTransactionHash, fundingOutputIndex)
 		return ""
 	}
-	var vectorResponse core.ShortChannelIdHttpResponse
+	var vectorResponse ShortChannelIdHttpResponse
 	err = json.NewDecoder(resp.Body).Decode(&vectorResponse)
 	if err != nil {
 		log.Error().Msgf("Failed (Decode) to obtain shortChannelId for closed channel with channel point %v:%v",
@@ -72,10 +101,10 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 }
 
 func GetTransactionDetailsFromVector(transactionHash string,
-	nodeSettings NodeSettingsCache) core.TransactionDetailsHttpResponse {
+	nodeSettings cache.NodeSettingsCache) TransactionDetailsHttpResponse {
 
 	unixTime := time.Now()
-	requestObject := core.TransactionDetailsHttpRequest{
+	requestObject := TransactionDetailsHttpRequest{
 		TransactionHash: transactionHash,
 		UnixTime:        unixTime.Unix(),
 		PublicKey:       nodeSettings.PublicKey,
@@ -83,32 +112,32 @@ func GetTransactionDetailsFromVector(transactionHash string,
 	requestObjectBytes, err := json.Marshal(requestObject)
 	if err != nil {
 		log.Error().Msgf("Failed (Marshal) to obtain transaction details for transaction hash %v", transactionHash)
-		return core.TransactionDetailsHttpResponse{}
+		return TransactionDetailsHttpResponse{}
 	}
 	req, err := http.NewRequest("GET", GetVectorUrl(vectorTransactiondetailsUrlSuffix), bytes.NewBuffer(requestObjectBytes))
 	if err != nil {
 		log.Error().Msgf("Failed (http.NewRequest) to obtain transaction details for transaction hash %v", transactionHash)
-		return core.TransactionDetailsHttpResponse{}
+		return TransactionDetailsHttpResponse{}
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Torq-Version", build.ExtendedVersion())
-	req.Header.Set("Torq-UUID", GetSettings().TorqUuid)
+	req.Header.Set("Torq-UUID", cache.GetSettings().TorqUuid)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error().Msgf("Failed (http.Get) to obtain transaction details for transaction hash %v", transactionHash)
-		return core.TransactionDetailsHttpResponse{}
+		return TransactionDetailsHttpResponse{}
 	}
-	var vectorResponse core.TransactionDetailsHttpResponse
+	var vectorResponse TransactionDetailsHttpResponse
 	err = json.NewDecoder(resp.Body).Decode(&vectorResponse)
 	if err != nil {
 		log.Error().Msgf("Failed (Decode) to obtain transaction details for transaction hash %v", transactionHash)
-		return core.TransactionDetailsHttpResponse{}
+		return TransactionDetailsHttpResponse{}
 	}
 	err = resp.Body.Close()
 	if err != nil {
 		log.Error().Msgf("Failed (Body.Close) to obtain transaction details for transaction hash %v", transactionHash)
-		return core.TransactionDetailsHttpResponse{}
+		return TransactionDetailsHttpResponse{}
 	}
 	log.Debug().Msgf("Obtained block height from vector for transaction hash %v", transactionHash)
 	return vectorResponse

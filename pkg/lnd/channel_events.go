@@ -16,6 +16,7 @@ import (
 	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/pkg/vector"
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -814,12 +815,12 @@ func processEmptyChanId(channelPoint string, nodeSettings cache.NodeSettingsCach
 		}
 	}
 
-	if cache.GetVectorUrlBase() == cache.VectorUrl && (nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
+	if cache.GetVectorUrlBase() == vector.VectorUrl && (nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
 		log.Info().Msgf("Skipping obtaining short channel id from vector for nodeId: %v", nodeSettings.NodeId)
 		return 0
 	}
 
-	shortChannelId := cache.GetShortChannelIdFromVector(fundingTransactionHash, fundingOutputIndex, nodeSettings)
+	shortChannelId := vector.GetShortChannelIdFromVector(fundingTransactionHash, fundingOutputIndex, nodeSettings)
 	if shortChannelId == "" {
 		log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)

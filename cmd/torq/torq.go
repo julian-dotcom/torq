@@ -34,6 +34,7 @@ import (
 	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
+	"github.com/lncapital/torq/pkg/vector"
 )
 
 var debuglevels = map[string]zerolog.Level{ //nolint:gochecknoglobals
@@ -76,7 +77,7 @@ func main() {
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.vector.url",
-			Value: cache.VectorUrl,
+			Value: vector.VectorUrl,
 			Usage: "Enable test mode",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{

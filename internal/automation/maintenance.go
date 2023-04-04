@@ -12,6 +12,7 @@ import (
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/pkg/vector"
 )
 
 const maintenanceQueueTickerSeconds = 60 * 60
@@ -36,14 +37,14 @@ func processMissingChannelData(db *sqlx.DB) {
 	torqNodeIds := cache.GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		nodeSettings := cache.GetNodeSettingsByNodeId(torqNodeId)
-		if cache.GetVectorUrlBase() == cache.VectorUrl && (nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
+		if cache.GetVectorUrlBase() == vector.VectorUrl && (nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
 			log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
 			continue
 		}
 		channelSettings := cache.GetChannelSettingsByNodeId(torqNodeId)
 		for _, channelSetting := range channelSettings {
 			if hasMissingClosingDetails(channelSetting) {
-				transactionDetails := cache.GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings)
+				transactionDetails := vector.GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings)
 				err := updateClosingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
@@ -51,7 +52,7 @@ func processMissingChannelData(db *sqlx.DB) {
 				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
 			if hasMissingFundingDetails(channelSetting) {
-				transactionDetails := cache.GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings)
+				transactionDetails := vector.GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings)
 				err := updateFundingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
@@ -81,7 +82,7 @@ func hasMissingClosingDetails(channelSetting cache.ChannelSettingsCache) bool {
 	return false
 }
 
-func updateClosingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, transactionDetails core.TransactionDetailsHttpResponse) error {
+func updateClosingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, transactionDetails vector.TransactionDetailsHttpResponse) error {
 	if transactionDetails.BlockHeight != 0 {
 		channel.ClosedOn = &transactionDetails.BlockTimestamp
 		channel.ClosingBlockHeight = &transactionDetails.BlockHeight
@@ -121,7 +122,7 @@ func hasMissingFundingDetails(channelSetting cache.ChannelSettingsCache) bool {
 	return false
 }
 
-func updateFundingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, transactionDetails core.TransactionDetailsHttpResponse) error {
+func updateFundingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, transactionDetails vector.TransactionDetailsHttpResponse) error {
 	if transactionDetails.BlockHeight != 0 {
 		channel.FundedOn = &transactionDetails.BlockTimestamp
 		channel.FundingBlockHeight = &transactionDetails.BlockHeight

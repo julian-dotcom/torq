@@ -5,6 +5,7 @@ import (
 
 	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/vector"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -116,7 +117,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 		if err != nil {
 			return 0, errors.Wrapf(err, "Obtaining existing channel for channelId: %v.", existingChannelId)
 		}
-		vectorActive := cache.GetVectorUrlBase() != cache.VectorUrl ||
+		vectorActive := cache.GetVectorUrlBase() != vector.VectorUrl ||
 			(nodeSettings.Chain == core.Bitcoin && nodeSettings.Network == core.MainNet)
 		switch channel.Status {
 		case core.CooperativeClosed, core.LocalForceClosed, core.RemoteForceClosed, core.BreachClosed:
@@ -124,7 +125,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 				!existingChannel.HasChannelFlags(core.ClosedOn) &&
 				vectorActive {
 
-				vectorResponse := cache.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
+				vectorResponse := vector.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
 				if vectorResponse.BlockHeight != 0 {
 					channel.ClosingBlockHeight = &vectorResponse.BlockHeight
 					channel.ClosedOn = &vectorResponse.BlockTimestamp
@@ -147,7 +148,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 				!existingChannel.HasChannelFlags(core.FundedOn) &&
 				vectorActive {
 
-				vectorResponse := cache.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
+				vectorResponse := vector.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
 				if vectorResponse.BlockHeight != 0 {
 					channel.FundingBlockHeight = &vectorResponse.BlockHeight
 					channel.FundedOn = &vectorResponse.BlockTimestamp
@@ -208,7 +209,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 		if channel.LNDShortChannelID != nil {
 			newLndShortChannelId = *channel.LNDShortChannelID
 		}
-		vectorActive := cache.GetVectorUrlBase() != cache.VectorUrl ||
+		vectorActive := cache.GetVectorUrlBase() != vector.VectorUrl ||
 			(nodeSettings.Chain == core.Bitcoin && nodeSettings.Network == core.MainNet)
 		switch channel.Status {
 		case core.CooperativeClosed, core.LocalForceClosed, core.RemoteForceClosed, core.BreachClosed:
@@ -216,7 +217,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 				!existingChannelSettings.HasChannelFlags(core.ClosedOn) &&
 				vectorActive {
 
-				vectorResponse := cache.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
+				vectorResponse := vector.GetTransactionDetailsFromVector(*channel.ClosingTransactionHash, nodeSettings)
 				if vectorResponse.BlockHeight != 0 {
 					channel.ClosingBlockHeight = &vectorResponse.BlockHeight
 					channel.ClosedOn = &vectorResponse.BlockTimestamp
@@ -240,7 +241,7 @@ func AddChannelOrUpdateChannelStatus(db *sqlx.DB,
 				!existingChannelSettings.HasChannelFlags(core.FundedOn) &&
 				vectorActive {
 
-				vectorResponse := cache.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
+				vectorResponse := vector.GetTransactionDetailsFromVector(channel.FundingTransactionHash, nodeSettings)
 				if vectorResponse.BlockHeight != 0 {
 					channel.FundingBlockHeight = &vectorResponse.BlockHeight
 					channel.FundedOn = &vectorResponse.BlockTimestamp

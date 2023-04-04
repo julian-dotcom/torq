@@ -16,6 +16,7 @@ import (
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/pkg/vector"
 )
 
 const vectorSleepSeconds = 20
@@ -144,7 +145,7 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 				return
 			}
 
-			req, err := http.NewRequest("POST", cache.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
+			req, err := http.NewRequest("POST", vector.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
 			if err != nil {
 				log.Error().Err(err).Msgf("VectorService: Creating new request for message: %v", string(pingInfoJsonByteArray))
 				cache.SetFailedLndServiceState(serviceType, nodeId)
