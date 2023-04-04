@@ -12,7 +12,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 // parseMode == ModeHTML
@@ -192,7 +192,7 @@ type Telegram struct {
 func getTelegramHighPriority() (*Telegram, error) {
 	telegramHighPriorityOnce.Do(func() {
 		log.Debug().Msg("Loading TelegramHighPriority client.")
-		bot, err := tgbotapi.NewBotAPI(commons.GetSettings().GetTelegramCredential(true))
+		bot, err := tgbotapi.NewBotAPI(cache.GetSettings().GetTelegramCredential(true))
 		telegramHighPriorityObject = &Telegram{
 			bot: bot,
 		}
@@ -206,7 +206,7 @@ func getTelegramHighPriority() (*Telegram, error) {
 func getTelegramLowPriority() (*Telegram, error) {
 	telegramLowPriorityOnce.Do(func() {
 		log.Debug().Msg("Loading TelegramLowPriority client.")
-		bot, err := tgbotapi.NewBotAPI(commons.GetSettings().GetTelegramCredential(false))
+		bot, err := tgbotapi.NewBotAPI(cache.GetSettings().GetTelegramCredential(false))
 		bot.Debug = log.Debug().Enabled()
 		telegramLowPriorityObject = &Telegram{
 			bot: bot,
@@ -219,10 +219,10 @@ func getTelegramLowPriority() (*Telegram, error) {
 }
 
 func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
-	serviceType := commons.TelegramHighService
+	serviceType := core.TelegramHighService
 	communicationTargetType := CommunicationTelegramHighPriority
 	if !highPriority {
-		serviceType = commons.TelegramLowService
+		serviceType = core.TelegramLowService
 		communicationTargetType = CommunicationTelegramLowPriority
 	}
 
@@ -403,7 +403,7 @@ func SendNodeSettingsMenu(db *sqlx.DB,
 	var communicationId int
 	publicKey := PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()]
 	if publicKey != "" {
-		specifiedNodeId := commons.GetNodeIdByPublicKey(publicKey, commons.Bitcoin, commons.MainNet)
+		specifiedNodeId := cache.GetNodeIdByPublicKey(publicKey, core.Bitcoin, core.MainNet)
 		nodeIds, err := GetNodeIdsByCommunication(db, communicationTargetType)
 		if err != nil {
 			log.Error().Err(err).Msg("Telegram bot failed to obtain existing nodeId")

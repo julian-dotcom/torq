@@ -12,12 +12,12 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.SlackService
+	serviceType := core.SlackService
 
 	for {
 		select {
@@ -42,7 +42,7 @@ func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 }
 
 func getSlackClient() *slack.Client {
-	oauth, botToken := commons.GetSettings().GetSlackCredential()
+	oauth, botToken := cache.GetSettings().GetSlackCredential()
 	return slack.New(oauth, slack.OptionDebug(log.Debug().Enabled()), slack.OptionAppLevelToken(botToken))
 }
 

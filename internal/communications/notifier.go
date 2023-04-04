@@ -16,7 +16,7 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lightning"
 )
 
@@ -147,9 +147,9 @@ func getButtons() [7]string {
 
 func Notify(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := commons.NotifierService
+	serviceType := core.NotifierService
 
-	informationResponses := make(map[int]commons.InformationResponse)
+	informationResponses := make(map[int]core.InformationResponse)
 	graphInSyncTime := make(map[int]time.Time)
 	chainInSyncTime := make(map[int]time.Time)
 
@@ -161,7 +161,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 			cache.SetInactiveCoreServiceState(serviceType)
 			return
 		case <-ticker:
-			for _, torqNodeSettings := range commons.GetActiveTorqNodeSettings() {
+			for _, torqNodeSettings := range cache.GetActiveTorqNodeSettings() {
 				communications, err := GetCommunicationsForNodeDetails(db,
 					torqNodeSettings.NodeId,
 					CommunicationTelegramHighPriority, CommunicationTelegramLowPriority, CommunicationSlack)
@@ -176,7 +176,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 						torqNodeSettings.NodeId)
 					continue
 				}
-				var newInformation commons.InformationResponse
+				var newInformation core.InformationResponse
 				if cache.IsLndServiceActive(torqNodeSettings.NodeId) {
 					newInformation, err = lightning.GetInformationRequest(torqNodeSettings.NodeId)
 				} else {
@@ -225,11 +225,11 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 	}
 }
 
-func HandleNotification(db *sqlx.DB, notifierEvent commons.NotifierEvent) {
+func HandleNotification(db *sqlx.DB, notifierEvent core.NotifierEvent) {
 	var err error
 	var communications []Communication
 	switch notifierEvent.NotificationType {
-	case commons.NodeDetails:
+	case core.NodeDetails:
 		communications, err = GetCommunicationsForNodeDetails(db,
 			notifierEvent.NodeId,
 			CommunicationTelegramHighPriority, CommunicationTelegramLowPriority, CommunicationSlack)
@@ -272,10 +272,10 @@ func HandleNotification(db *sqlx.DB, notifierEvent commons.NotifierEvent) {
 	}
 }
 
-func compareGraphSyncTime(previousInformation commons.InformationResponse,
-	newInformation commons.InformationResponse,
+func compareGraphSyncTime(previousInformation core.InformationResponse,
+	newInformation core.InformationResponse,
 	graphInSyncTime map[int]time.Time,
-	torqNodeSettings commons.ManagedNodeSettings,
+	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.GraphSynced {
@@ -291,10 +291,10 @@ func compareGraphSyncTime(previousInformation commons.InformationResponse,
 	return message
 }
 
-func compareChainSyncTime(previousInformation commons.InformationResponse,
-	newInformation commons.InformationResponse,
+func compareChainSyncTime(previousInformation core.InformationResponse,
+	newInformation core.InformationResponse,
 	chainInSyncTime map[int]time.Time,
-	torqNodeSettings commons.ManagedNodeSettings,
+	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.ChainSynced {
@@ -310,8 +310,8 @@ func compareChainSyncTime(previousInformation commons.InformationResponse,
 	return message
 }
 
-func comparePendingChannelCount(previousInformation commons.InformationResponse,
-	newInformation commons.InformationResponse,
+func comparePendingChannelCount(previousInformation core.InformationResponse,
+	newInformation core.InformationResponse,
 	message string) string {
 
 	if previousInformation.PendingChannelCount != newInformation.PendingChannelCount {
@@ -325,8 +325,8 @@ func comparePendingChannelCount(previousInformation commons.InformationResponse,
 	return message
 }
 
-func compareInactiveChannelCount(previousInformation commons.InformationResponse,
-	newInformation commons.InformationResponse,
+func compareInactiveChannelCount(previousInformation core.InformationResponse,
+	newInformation core.InformationResponse,
 	message string) string {
 
 	if previousInformation.InactiveChannelCount != newInformation.InactiveChannelCount {
@@ -340,8 +340,8 @@ func compareInactiveChannelCount(previousInformation commons.InformationResponse
 	return message
 }
 
-func compareVersion(previousInformation commons.InformationResponse,
-	newInformation commons.InformationResponse,
+func compareVersion(previousInformation core.InformationResponse,
+	newInformation core.InformationResponse,
 	message string) string {
 
 	if previousInformation.Version != newInformation.Version {
@@ -351,8 +351,8 @@ func compareVersion(previousInformation commons.InformationResponse,
 	return message
 }
 
-func compareActiveChannelCount(previousInformation commons.InformationResponse,
-	newInformation commons.InformationResponse,
+func compareActiveChannelCount(previousInformation core.InformationResponse,
+	newInformation core.InformationResponse,
 	message string) string {
 
 	if previousInformation.ActiveChannelCount != newInformation.ActiveChannelCount {
@@ -420,7 +420,7 @@ func HandleMessage(db *sqlx.DB,
 	//case PingButton:
 	//	messageForBot = processPingRequest(db, communicationTargetType, messageFromChannel, messageForBot)
 	case RegisterButton:
-		messageForBot = processRegisterRequest(db, communicationTargetType, commons.GetActiveTorqNodeSettings(),
+		messageForBot = processRegisterRequest(db, communicationTargetType, cache.GetActiveTorqNodeSettings(),
 			messageForBot)
 	case UnregisterButton:
 		messageForBot = processUnregisterRequest(db, communicationTargetType, messageForBot)
@@ -466,7 +466,7 @@ func HandleButton(db *sqlx.DB,
 	//case PingButton:
 	//	messageForBot = processPingRequest(db, communicationTargetType, messageFromChannel, messageForBot)
 	case RegisterButton:
-		messageForBot = processRegisterRequest(db, communicationTargetType, commons.GetActiveTorqNodeSettings(), messageForBot)
+		messageForBot = processRegisterRequest(db, communicationTargetType, cache.GetActiveTorqNodeSettings(), messageForBot)
 	case UnregisterButton:
 		messageForBot = processUnregisterRequest(db, communicationTargetType, messageForBot)
 	default:
@@ -513,7 +513,7 @@ func processSettingsRequest(db *sqlx.DB,
 		nodeIds, err = GetNodeIdsByCommunication(db, communicationTargetType)
 		cachedPublicKey := PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()]
 		if PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()] != "" {
-			nodeId := commons.GetNodeIdByPublicKey(cachedPublicKey, commons.Bitcoin, commons.MainNet)
+			nodeId := cache.GetNodeIdByPublicKey(cachedPublicKey, core.Bitcoin, core.MainNet)
 			nodeIds = []int{nodeId}
 			if nodeId == 0 {
 				nodeIds = []int{}
@@ -595,7 +595,7 @@ func processSettingsRequest(db *sqlx.DB,
 
 func processRegisterRequest(db *sqlx.DB,
 	communicationTargetType CommunicationTargetType,
-	activeTorqNodeSettings []commons.ManagedNodeSettings,
+	activeTorqNodeSettings []cache.NodeSettingsCache,
 	messageForBot MessageForBot) MessageForBot {
 
 	existingNodeIds, err := GetNodeIdsByCommunication(db, communicationTargetType)
@@ -724,7 +724,7 @@ func getNodeIds(db *sqlx.DB,
 
 	nodeIds, err := GetNodeIdsByCommunication(db, communicationTargetType)
 	if publicKey != "" {
-		nodeId := commons.GetNodeIdByPublicKey(publicKey, commons.Bitcoin, commons.MainNet)
+		nodeId := cache.GetNodeIdByPublicKey(publicKey, core.Bitcoin, core.MainNet)
 		if slices.Contains(nodeIds, nodeId) {
 			nodeIds = []int{nodeId}
 		} else {
