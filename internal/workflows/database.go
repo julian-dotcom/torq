@@ -392,7 +392,7 @@ func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType core.WorkflowNodeType) ([]in
 		SELECT DISTINCT wfv.workflow_id
 		FROM workflow_version_node wfvn
 		JOIN workflow_version wfv ON wfv.workflow_version_id = wfvn.workflow_version_id
-		WHERE wfvn.type=$1;`, nodeType)
+		WHERE wfvn.type=$1 AND wfvn.status!=$2;`, nodeType, WorkflowNodeDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []int{}, nil
@@ -469,7 +469,7 @@ func GetWorkflowVersionNodesByStage(db *sqlx.DB, workflowVersionId int, stage in
 	err := db.Select(&wfvnIds, `
 		SELECT workflow_version_node_id
 		FROM workflow_version_node
-		WHERE workflow_version_id=$1 AND stage=$2;`, workflowVersionId, stage)
+		WHERE workflow_version_id=$1 AND stage=$2 AND status!=$3;`, workflowVersionId, stage, WorkflowNodeDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -509,7 +509,7 @@ func getWorkflowVersionNodeIdsByWorkflow(db *sqlx.DB, workflowId int) ([]int, er
 		SELECT wfvn.workflow_version_node_id
 		FROM workflow_version_node wfvn
 		JOIN workflow_version wfv ON wfv.workflow_version_id=wfvn.workflow_version_id
-		WHERE wfv.workflow_id=$1;`, workflowId)
+		WHERE wfv.workflow_id=$1 AND wfvn.status!=$2;`, workflowId, WorkflowNodeDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -522,7 +522,9 @@ func getWorkflowVersionNodeIdsByWorkflow(db *sqlx.DB, workflowId int) ([]int, er
 // GetWorkflowNode is not recursive and only returns direct parent/child relations without further nesting.
 func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, error) {
 	var wfvn WorkflowVersionNode
-	err := db.Get(&wfvn, `SELECT * FROM workflow_version_node WHERE workflow_version_node_id=$1;`, workflowVersionNodeId)
+	err := db.Get(&wfvn, `
+		SELECT * FROM workflow_version_node WHERE workflow_version_node_id=$1 AND status!=$2;`,
+		workflowVersionNodeId, WorkflowNodeDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return WorkflowNode{}, nil
@@ -558,7 +560,11 @@ func GetWorkflowNode(db *sqlx.DB, workflowVersionNodeId int) (WorkflowNode, erro
 func GetWorkflowNodes(db *sqlx.DB, workflowVersionId int, workflowId int, version int) ([]WorkflowVersionNode, error) {
 	// Query all workflow nodes for the given workflow version
 	var workflowVersionNodes []WorkflowVersionNodeResponse
-	err := db.Select(&workflowVersionNodes, `SELECT * FROM workflow_version_node WHERE workflow_version_id=$1  order by created_on desc;`, workflowVersionId)
+	err := db.Select(&workflowVersionNodes, `
+		SELECT *
+		FROM workflow_version_node
+		WHERE workflow_version_id=$1 AND status!=$2
+		ORDER BY created_on DESC;`, workflowVersionId, WorkflowNodeDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowVersionNode{}, nil
@@ -597,8 +603,11 @@ func GetWorkflowForest(db *sqlx.DB, workflowVersionId int) (WorkflowForest, erro
 	err := db.Select(&rootVersionNodeIds, `
 		SELECT n.workflow_version_node_id
 		FROM workflow_version_node n
-		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = n.workflow_version_node_id
-		WHERE n.workflow_version_id=$1 AND parentLink.child_workflow_version_node_id IS NULL AND n.stage IS NULL;`, workflowVersionId)
+		LEFT JOIN workflow_version_node_link parentLink ON
+			parentLink.child_workflow_version_node_id = n.workflow_version_node_id
+		WHERE n.workflow_version_id=$1 AND n.status!=$2 AND
+			parentLink.child_workflow_version_node_id IS NULL AND n.stage IS NULL;`,
+		workflowVersionId, WorkflowNodeDeleted)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -627,9 +636,11 @@ func GetWorkflowForest(db *sqlx.DB, workflowVersionId int) (WorkflowForest, erro
 	err = db.Select(&versionStageNodeIds, `
 		SELECT n.workflow_version_node_id
 		FROM workflow_version_node n
-		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = n.workflow_version_node_id
-		WHERE n.workflow_version_id=$1 AND parentLink.child_workflow_version_node_id IS NULL AND n.stage IS NOT NULL
-		ORDER BY n.stage;`, workflowVersionId)
+		LEFT JOIN workflow_version_node_link parentLink ON
+			parentLink.child_workflow_version_node_id = n.workflow_version_node_id
+		WHERE n.workflow_version_id=$1 AND n.status!=$2 AND
+			parentLink.child_workflow_version_node_id IS NULL AND n.stage IS NOT NULL
+		ORDER BY n.stage;`, workflowVersionId, WorkflowNodeDeleted)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -704,8 +715,8 @@ func getParentNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNo
 		       l.name linkName, l.visibility_settings,
 		       l.child_workflow_version_node_id, l.child_input, l.updated_on
 		FROM workflow_version_node_link l
-		JOIN workflow_version_node n ON n.workflow_version_node_id=l.parent_workflow_version_node_id
-		WHERE l.child_workflow_version_node_id=$1;`, workflowVersionNodeId)
+		JOIN workflow_version_node n ON n.workflow_version_node_id=l.parent_workflow_version_node_id AND n.status!=$2
+		WHERE l.child_workflow_version_node_id=$1;`, workflowVersionNodeId, WorkflowNodeDeleted)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, nil, errors.Wrap(err, database.SqlExecutionError)
@@ -728,8 +739,8 @@ func getChildNodes(db *sqlx.DB, workflowVersionNodeId int) (map[int]*WorkflowNod
 		       l.name linkName, l.visibility_settings,
 		       l.child_workflow_version_node_id, l.child_input, l.updated_on
 		FROM workflow_version_node_link l
-		JOIN workflow_version_node n ON n.workflow_version_node_id=l.child_workflow_version_node_id
-		WHERE l.parent_workflow_version_node_id=$1;`, workflowVersionNodeId)
+		JOIN workflow_version_node n ON n.workflow_version_node_id=l.child_workflow_version_node_id AND n.status!=$2
+		WHERE l.parent_workflow_version_node_id=$1;`, workflowVersionNodeId, WorkflowNodeDeleted)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, nil, errors.Wrap(err, database.SqlExecutionError)
@@ -762,8 +773,10 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
               wf.status = ANY ($2) AND
               wfv.status = ANY ($2) AND
 			  wfv.workflow_version_id = $3 AND
-              n.stage = $4;`,
-		core.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}), wfvn.WorkflowVersionId, wfvn.Stage)
+              n.stage = $4 AND
+			  n.status != $5;`,
+		core.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}),
+		wfvn.WorkflowVersionId, wfvn.Stage, WorkflowNodeDeleted)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
@@ -778,7 +791,7 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var parentVersionNodeId int
 		var childVersionNodeId int
 		var name string
-		var status WorkflowStatus
+		var status WorkflowNodeStatus
 		var stage int
 		var nodeType core.WorkflowNodeType
 		var parameters []byte
@@ -864,7 +877,7 @@ func createNode(db *sqlx.DB, req CreateNodeRequest) (wfvn WorkflowVersionNode, e
 	wfvn.Name = req.Name
 	// TODO: We need to add default parameters for the specific node type
 
-	wfvn.Status = Active
+	wfvn.Status = WorkflowNodeActive
 	wfvn.CreatedOn = time.Now().UTC()
 	wfvn.UpdateOn = wfvn.CreatedOn
 
@@ -948,6 +961,19 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 	}
 
 	return req.WorkflowVersionNodeId, nil
+}
+
+func updateNodeDeleted(db *sqlx.DB, workflowNodeId int) error {
+	_, err := db.Exec(`
+		UPDATE workflow_version_node
+		SET updated_on=$1, name=name||'_DELETED_'||$2, status=$3
+		WHERE workflow_version_node_id=$4`,
+		time.Now().UTC(), time.Now().UnixMilli(), WorkflowNodeDeleted, workflowNodeId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return nil
 }
 
 func updateNodeVisibilitySettings(db *sqlx.DB, workflowVersionNodeId int, visibilitySettings WorkflowNodeVisibilitySettings) error {
