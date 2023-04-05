@@ -20,9 +20,9 @@ const (
 type WorkflowNodeStatus int
 
 const (
-	WorkflowNodeInactive = WorkflowNodeStatus(commons.Inactive)
-	WorkflowNodeActive   = WorkflowNodeStatus(commons.Active)
-	WorkflowNodeDeleted  = WorkflowNodeStatus(commons.Deleted)
+	WorkflowNodeInactive = WorkflowNodeStatus(core.Inactive)
+	WorkflowNodeActive   = WorkflowNodeStatus(core.Active)
+	WorkflowNodeDeleted  = WorkflowNodeStatus(core.Deleted)
 )
 
 type TagAction int

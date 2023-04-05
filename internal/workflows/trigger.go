@@ -41,7 +41,7 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	default:
 	}
 
-	if workflowTriggerNode.Status != Active {
+	if workflowTriggerNode.Status != WorkflowNodeActive {
 		return nil
 	}
 
@@ -263,7 +263,7 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	default:
 	}
 
-	if workflowNode.Status != Active {
+	if workflowNode.Status != WorkflowNodeActive {
 		return core.Deleted, nil
 	}
 

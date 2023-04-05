@@ -963,19 +963,6 @@ func updateNode(db *sqlx.DB, req UpdateNodeRequest) (int, error) {
 	return req.WorkflowVersionNodeId, nil
 }
 
-func updateNodeDeleted(db *sqlx.DB, workflowNodeId int) error {
-	_, err := db.Exec(`
-		UPDATE workflow_version_node
-		SET updated_on=$1, name=name||'_DELETED_'||$2, status=$3
-		WHERE workflow_version_node_id=$4`,
-		time.Now().UTC(), time.Now().UnixMilli(), WorkflowNodeDeleted, workflowNodeId)
-	if err != nil {
-		return errors.Wrap(err, database.SqlExecutionError)
-	}
-
-	return nil
-}
-
 func updateNodeVisibilitySettings(db *sqlx.DB, workflowVersionNodeId int, visibilitySettings WorkflowNodeVisibilitySettings) error {
 	vs, err := json.Marshal(visibilitySettings)
 	if err != nil {
@@ -986,6 +973,19 @@ func updateNodeVisibilitySettings(db *sqlx.DB, workflowVersionNodeId int, visibi
 		SET visibility_settings=$1, updated_on=$2
 		WHERE workflow_version_node_id=$3;`,
 		vs, time.Now(), workflowVersionNodeId)
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	return nil
+}
+
+func updateNodeDeleted(db *sqlx.DB, workflowNodeId int) error {
+	_, err := db.Exec(`
+		UPDATE workflow_version_node
+		SET updated_on=$1, name=name||'_DELETED_'||$2, status=$3
+		WHERE workflow_version_node_id=$4`,
+		time.Now().UTC(), time.Now().UnixMilli(), WorkflowNodeDeleted, workflowNodeId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -1040,6 +1040,40 @@ func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
 	}
 
 	return workflowVersionNodeId, nil
+}
+
+func updateStageDeleted(db *sqlx.DB, workflowVersionId int, stage int) error {
+	tx := db.MustBegin()
+	var workflowVersionNodeIds []int
+	err := tx.Select(&workflowVersionNodeIds, `
+		SELECT workflow_version_node_id
+		FROM workflow_version_node
+		WHERE workflow_version_id = $1 AND stage = $2`, workflowVersionId, stage)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrap(rollbackErr, "obtaining the node id while deleting node (rollback failed too)")
+		}
+		return errors.Wrap(err, "obtaining the node id while deleting node")
+	}
+
+	_, err = tx.Exec(`
+		UPDATE workflow_version_node
+		SET updated_on=$1, name=name||'_DELETED_'||$2, status=$3
+		WHERE workflow_version_node_id=ANY ($4)`,
+		time.Now().UTC(), time.Now().UnixMilli(), WorkflowNodeDeleted, pq.Array(workflowVersionNodeIds))
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrap(rollbackErr, "updating the node as deleted (rollback failed too)")
+		}
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errors.Wrap(err, "committing workflow stage update as deleted failed")
+	}
+
+	return nil
 }
 
 // deleteStage deletes a stage by deleting all nodes and node links in a stage
