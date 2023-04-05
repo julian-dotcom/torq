@@ -14,7 +14,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 // For importing the latest routing policy at startup.
@@ -92,7 +93,7 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 }
 
 // ImportRoutingPolicies imports routing policy information about all channels if they don't already have
-func ImportRoutingPolicies(ctx context.Context, client lndClientChannelEvent, db *sqlx.DB, nodeSettings commons.ManagedNodeSettings) error {
+func ImportRoutingPolicies(ctx context.Context, client lndClientChannelEvent, db *sqlx.DB, nodeSettings cache.NodeSettingsCache) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)
@@ -128,22 +129,22 @@ func ImportRoutingPolicies(ctx context.Context, client lndClientChannelEvent, db
 			if err != nil {
 				return errors.Wrap(err, "Creating channel point from byte")
 			}
-			fundingTransactionHash, fundingOutputIndex := commons.ParseChannelPoint(channelPoint)
-			channelId := commons.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
+			fundingTransactionHash, fundingOutputIndex := core.ParseChannelPoint(channelPoint)
+			channelId := cache.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 			if channelId == 0 {
 				return errors.New(fmt.Sprintf(
 					"Importing routing policy for a channel that doesn't exist in our database? (fundingTransactionHash: %v, fundingOutputIndex: %v)",
 					fundingTransactionHash, fundingOutputIndex))
 			}
-			channelStatus := commons.GetChannelStatusByChannelId(channelId)
-			if channelStatus != commons.Open {
+			channelStatus := cache.GetChannelStatusByChannelId(channelId)
+			if channelStatus != core.Open {
 				_, err := db.Exec(`
 					UPDATE channel SET status_id=$1, updated_on=$2 WHERE channel_id=$3 AND status_id!=$1`,
-					commons.Open, time.Now().UTC(), channelId)
+					core.Open, time.Now().UTC(), channelId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v", channelId)
 				}
-				commons.SetChannelStatus(channelId, commons.Open)
+				cache.SetChannelStatus(channelId, core.Open)
 			}
 			err = insertRoutingPolicy(db, time.Now().UTC(), channelId, nodeSettings, cu)
 			if err != nil {

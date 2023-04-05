@@ -11,7 +11,8 @@ import (
 
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -117,9 +118,9 @@ func getInvoicesHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chain := commons.Bitcoin
+	chain := core.Bitcoin
 
-	r, total, err := getInvoices(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), filter, sort, limit, offset)
+	r, total, err := getInvoices(db, cache.GetAllTorqNodeIdsByNetwork(chain, core.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -142,9 +143,9 @@ func getInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chain := commons.Bitcoin
+	chain := core.Bitcoin
 
-	r, err := getInvoiceDetails(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), c.Param("identifier"))
+	r, err := getInvoiceDetails(db, cache.GetAllTorqNodeIdsByNetwork(chain, core.Network(network)), c.Param("identifier"))
 	switch err.(type) {
 	case nil:
 		break

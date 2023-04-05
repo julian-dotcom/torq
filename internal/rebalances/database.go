@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func AddRebalance(db *sqlx.DB, rebalancer Rebalance) (int, error) {
@@ -56,9 +56,9 @@ func AddRebalanceResult(db *sqlx.DB, rebalanceResult RebalanceResult) error {
 }
 
 func GetLatestResultByOrigin(db *sqlx.DB,
-	origin commons.RebalanceRequestOrigin, originId int,
+	origin core.RebalanceRequestOrigin, originId int,
 	incomingChannelId int, outgoingChannelId int,
-	status commons.Status, timeoutInMinutes int) (RebalanceResult, error) {
+	status core.Status, timeoutInMinutes int) (RebalanceResult, error) {
 	if incomingChannelId == 0 && outgoingChannelId == 0 {
 		return RebalanceResult{}, nil
 	}

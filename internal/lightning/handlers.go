@@ -10,7 +10,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lightning"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -68,7 +69,7 @@ func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Can't process network")
 	}
 
-	activeTorqNodes := commons.GetActiveTorqNodeSettings()
+	activeTorqNodes := cache.GetActiveTorqNodeSettings()
 
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Unable to get nodes")
@@ -76,7 +77,7 @@ func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	walletBalances := make([]nodeWalletBalance, 0)
 	for _, activeTorqNode := range activeTorqNodes {
-		if activeTorqNode.Network != commons.Network(network) {
+		if activeTorqNode.Network != core.Network(network) {
 			continue
 		}
 		totalBalance, confirmedBalance, unconfirmedBalance, lockedBalance, reservedBalanceAnchorChan, err :=

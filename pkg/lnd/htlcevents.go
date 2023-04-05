@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 
 	"github.com/rs/zerolog/log"
 )
@@ -98,8 +98,8 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 
 func getChannelIdByLndShortChannelId(lndShortChannelId uint64) *int {
 	var channelId *int
-	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
-	tempChannelId := commons.GetChannelIdByShortChannelId(shortChannelId)
+	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
+	tempChannelId := cache.GetChannelIdByShortChannelId(shortChannelId)
 	if tempChannelId != 0 {
 		channelId = &tempChannelId
 	}
@@ -151,66 +151,45 @@ func addHtlcEvent(db *sqlx.DB, htlcEvent HtlcEvent) error {
 // SubscribeAndStoreHtlcEvents subscribes to HTLC events from LND and stores them in the database as time series.
 // NB: LND has marked HTLC event streaming as experimental. Delivery is not guaranteed, so dataset might not be complete
 // HTLC events is primarily used to diagnose how good a channel / node is. And if the channel allocation should change.
-func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) {
-	var stream routerrpc.Router_SubscribeHtlcEventsClient
-	var err error
-	var htlcEvent *routerrpc.HtlcEvent
-	serviceStatus := commons.ServiceInactive
-	subscriptionStream := commons.HtlcEventStream
+func SubscribeAndStoreHtlcEvents(ctx context.Context,
+	router routerrpc.RouterClient,
+	db *sqlx.DB,
+	nodeSettings cache.NodeSettingsCache) {
 
-	defer log.Info().Msgf("SubscribeAndStoreHtlcEvents terminated for nodeId: %v", nodeSettings.NodeId)
+	serviceType := core.LndServiceHtlcEventStream
 
-	importHtlcEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportHtlcEvents)
-	if !importHtlcEvents {
-		log.Info().Msgf("Import of HTLC events is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
+	stream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
+	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			return
+		}
+		log.Error().Err(err).Msgf(
+			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	var delay bool
+	cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
 
-		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
-			stream, err = router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
-			if err != nil {
-				if errors.Is(ctx.Err(), context.Canceled) {
-					return
-				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribeTransactions) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-				stream = nil
-				delay = true
-				continue
-			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
-		}
-
-		htlcEvent, err = stream.Recv()
+		htlcEvent, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
-			log.Error().Err(err).Msgf("Receiving htlc events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
-			stream = nil
-			delay = true
-			continue
+			log.Error().Err(err).Msgf(
+				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		switch htlcEvent.Event.(type) {
@@ -218,27 +197,34 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context, router routerrpc.RouterCli
 			_, err = storeForwardEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
-				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardEvent")
+				log.Error().Err(err).Msgf(
+					"Failed to store forward event of type HtlcEvent_ForwardEvent for nodeId: %v",
+					nodeSettings.NodeId)
 			}
 		case *routerrpc.HtlcEvent_ForwardFailEvent:
 			_, err = storeForwardFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
-				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_ForwardFailEvent")
+				log.Error().Err(err).Msgf(
+					"Failed to store forward event of type HtlcEvent_ForwardFailEvent for nodeId: %v",
+					nodeSettings.NodeId)
 			}
 		case *routerrpc.HtlcEvent_LinkFailEvent:
 			_, err = storeLinkFailEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
-				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_LinkFailEvent")
+				log.Error().Err(err).Msgf(
+					"Failed to store forward event of type HtlcEvent_LinkFailEvent for nodeId: %v",
+					nodeSettings.NodeId)
 			}
 		case *routerrpc.HtlcEvent_SettleEvent:
 			_, err = storeSettleEvent(db, htlcEvent, nodeSettings.NodeId)
 			if err != nil {
 				// TODO FIXME STORE THIS SOMEWHERE??? TRANSACTION IS NOW IGNORED???
-				log.Error().Err(err).Msgf("Failed to store forward event of type HtlcEvent_SettleEvent")
+				log.Error().Err(err).Msgf(
+					"Failed to store forward event of type HtlcEvent_SettleEvent for nodeId: %v",
+					nodeSettings.NodeId)
 			}
 		}
-		delay = false
 	}
 }

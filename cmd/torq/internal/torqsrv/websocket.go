@@ -2,9 +2,10 @@ package torqsrv
 
 import (
 	"fmt"
-	"github.com/lncapital/torq/pkg/server_errors"
 	"net/http"
 	"net/url"
+
+	"github.com/lncapital/torq/pkg/server_errors"
 
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -15,14 +16,14 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/payments"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type wsRequest struct {
 	RequestId           string                        `json:"requestId"`
 	Type                string                        `json:"type"`
-	NewPaymentRequest   *commons.NewPaymentRequest    `json:"newPaymentRequest"`
-	PayOnChainRequest   *commons.PayOnChainRequest    `json:"payOnChainRequest"`
+	NewPaymentRequest   *core.NewPaymentRequest       `json:"newPaymentRequest"`
+	PayOnChainRequest   *core.PayOnChainRequest       `json:"payOnChainRequest"`
 	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
 	Password            *string                       `json:"password"`
 }

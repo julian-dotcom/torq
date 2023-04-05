@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lncapital/torq/pkg/commons"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
-	"io"
-	"time"
+
+	"github.com/lncapital/torq/pkg/core"
 
 	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
@@ -42,11 +44,11 @@ type OpenChannelRequest struct {
 }
 
 type OpenChannelResponse struct {
-	Request                OpenChannelRequest    `json:"request"`
-	Status                 commons.ChannelStatus `json:"status"`
-	ChannelPoint           string                `json:"channelPoint"`
-	FundingTransactionHash string                `json:"fundingTransactionHash,omitempty"`
-	FundingOutputIndex     uint32                `json:"fundingOutputIndex,omitempty"`
+	Request                OpenChannelRequest `json:"request"`
+	Status                 core.ChannelStatus `json:"status"`
+	ChannelPoint           string             `json:"channelPoint"`
+	FundingTransactionHash string             `json:"fundingTransactionHash,omitempty"`
+	FundingOutputIndex     uint32             `json:"fundingOutputIndex,omitempty"`
 }
 
 func OpenChannel(db *sqlx.DB, req OpenChannelRequest) (response OpenChannelResponse, err error) {
@@ -237,7 +239,7 @@ func openChannelProcess(client lnrpc.LightningClient, openChannelReq *lnrpc.Open
 
 		switch resp.GetUpdate().(type) {
 		case *lnrpc.OpenStatusUpdate_ChanPending:
-			r.Status = commons.Opening
+			r.Status = core.Opening
 			ch, err := chainhash.NewHash(resp.GetChanPending().Txid)
 			if err != nil {
 				return OpenChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")

@@ -6,15 +6,15 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type WorkflowStatus int
 
 const (
-	Inactive = WorkflowStatus(commons.Inactive)
-	Active   = WorkflowStatus(commons.Active)
-	Archived = WorkflowStatus(commons.Archived)
+	Inactive = WorkflowStatus(core.Inactive)
+	Active   = WorkflowStatus(core.Active)
+	Archived = WorkflowStatus(core.Archived)
 )
 
 type TagAction int
@@ -139,7 +139,7 @@ type WorkflowVersionNode struct {
 	Name                  string                         `json:"name" db:"name"`
 	Stage                 int                            `json:"stage" db:"stage"`
 	Status                WorkflowStatus                 `json:"status" db:"status"`
-	Type                  commons.WorkflowNodeType       `json:"type" db:"type"`
+	Type                  core.WorkflowNodeType          `json:"type" db:"type"`
 	Parameters            interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 	CreatedOn             time.Time                      `json:"createdOn" db:"created_on"`
@@ -149,7 +149,7 @@ type WorkflowVersionNode struct {
 type CreateNodeRequest struct {
 	WorkflowVersionId  int                            `json:"workflowVersionId" db:"workflow_version_id"`
 	Name               string                         `json:"name" db:"name"`
-	Type               commons.WorkflowNodeType       `json:"type" db:"type"`
+	Type               core.WorkflowNodeType          `json:"type" db:"type"`
 	Stage              int                            `json:"stage" db:"stage"`
 	VisibilitySettings WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 	Parameters         *interface{}                   `json:"parameters" db:"parameters"`
@@ -202,9 +202,9 @@ type WorkflowVersionNodeLink struct {
 	WorkflowVersionNodeLinkId   int                                       `json:"workflowVersionNodeLinkId" db:"workflow_version_node_link_id"`
 	Name                        string                                    `json:"name" db:"name"`
 	VisibilitySettings          WorkflowVersionNodeLinkVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
-	ParentOutput                commons.WorkflowParameterLabel            `json:"parentOutput" db:"parent_output"`
+	ParentOutput                core.WorkflowParameterLabel               `json:"parentOutput" db:"parent_output"`
 	ParentWorkflowVersionNodeId int                                       `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
-	ChildInput                  commons.WorkflowParameterLabel            `json:"childInput" db:"child_input"`
+	ChildInput                  core.WorkflowParameterLabel               `json:"childInput" db:"child_input"`
 	ChildWorkflowVersionNodeId  int                                       `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
 	WorkflowVersionId           int                                       `json:"workflowVersionId" db:"workflow_version_id"`
 	CreatedOn                   time.Time                                 `json:"createdOn" db:"created_on"`
@@ -213,11 +213,11 @@ type WorkflowVersionNodeLink struct {
 }
 
 type CreateWorkflowVersionNodeLinkRequest struct {
-	WorkflowVersionId           int                            `json:"workflowVersionId" db:"workflow_version_id"`
-	ParentOutput                commons.WorkflowParameterLabel `json:"parentOutput" db:"parent_output"`
-	ParentWorkflowVersionNodeId int                            `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
-	ChildInput                  commons.WorkflowParameterLabel `json:"childInput" db:"child_input"`
-	ChildWorkflowVersionNodeId  int                            `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
+	WorkflowVersionId           int                         `json:"workflowVersionId" db:"workflow_version_id"`
+	ParentOutput                core.WorkflowParameterLabel `json:"parentOutput" db:"parent_output"`
+	ParentWorkflowVersionNodeId int                         `json:"parentWorkflowVersionNodeId" db:"parent_workflow_version_node_id"`
+	ChildInput                  core.WorkflowParameterLabel `json:"childInput" db:"child_input"`
+	ChildWorkflowVersionNodeId  int                         `json:"childWorkflowVersionNodeId" db:"child_workflow_version_node_id"`
 }
 
 type WorkflowVersionNodeLog struct {
@@ -236,7 +236,7 @@ type WorkflowNode struct {
 	Name                  string                          `json:"name"`
 	Status                WorkflowStatus                  `json:"status"`
 	Stage                 int                             `json:"stage"`
-	Type                  commons.WorkflowNodeType        `json:"type"`
+	Type                  core.WorkflowNodeType           `json:"type"`
 	Parameters            string                          `json:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings  `json:"visibilitySettings"`
 	UpdateOn              time.Time                       `json:"updatedOn"`
@@ -258,9 +258,9 @@ type WorkflowPage struct {
 }
 
 type WorkflowNodeParameter struct {
-	Type        commons.WorkflowParameterType `json:"type"`
-	ValueNumber int                           `json:"valueNumber"`
-	ValueString string                        `json:"valueString"`
+	Type        core.WorkflowParameterType `json:"type"`
+	ValueNumber int                        `json:"valueNumber"`
+	ValueString string                     `json:"valueString"`
 }
 
 func (wp *WorkflowNodeParameter) Scan(val interface{}) (err error) {

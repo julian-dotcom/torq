@@ -14,7 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const Userkey = "user"
@@ -63,8 +64,8 @@ func RefreshCookieFile(cookiePath string) error {
 
 // TorqRequired checks the status of the torq service
 func TorqRequired(c *gin.Context) {
-	torqServiceStatus := commons.RunningServices[commons.TorqService].GetStatus(commons.TorqDummyNodeId)
-	if torqServiceStatus != commons.ServiceActive {
+	torqService := cache.GetCurrentCoreServiceState(core.RootService)
+	if torqService.Status != core.ServiceActive {
 		c.AbortWithStatusJSON(http.StatusFailedDependency, gin.H{"error": "initializing"})
 		return
 	}

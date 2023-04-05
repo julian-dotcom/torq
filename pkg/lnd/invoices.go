@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +15,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 const streamLndMaxInvoices = 1000
@@ -199,36 +199,17 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 }
 
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
-	nodeSettings commons.ManagedNodeSettings) {
+	nodeSettings cache.NodeSettingsCache) {
 
-	defer log.Info().Msgf("SubscribeAndStoreInvoices terminated for nodeId: %v", nodeSettings.NodeId)
+	serviceType := core.LndServiceInvoiceStream
 
-	var serviceStatus commons.ServiceStatus
 	bootStrapping := true
-	subscriptionStream := commons.InvoiceStream
 	importCounter := 0
 
-	importInvoices := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportInvoices)
-	if !importInvoices {
-		log.Info().Msgf("Import of invoices is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
-		return
-	}
-
-	var delay bool
-
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -236,9 +217,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, _, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain last know invoice for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		listInvoiceResponse, err := client.ListInvoices(ctx, &lnrpc.ListInvoiceRequest{
@@ -247,11 +228,12 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		})
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain list invoice for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		if bootStrapping {
@@ -259,9 +241,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 			if len(listInvoiceResponse.Invoices) >= streamLndMaxInvoices {
 				log.Info().Msgf("Still running bulk import of invoices (%v)", importCounter)
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceInitializing)
-		} else {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
+			cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
 		}
 		for _, invoice := range listInvoiceResponse.Invoices {
 			processInvoice(invoice, nodeSettings, db, bootStrapping)
@@ -269,24 +249,15 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if bootStrapping && len(listInvoiceResponse.Invoices) < streamLndMaxInvoices {
 			bootStrapping = false
 			log.Info().Msgf("Bulk import of invoices done (%v)", importCounter)
+			cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 			break
 		}
 	}
 
-	delay = false
-
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -294,9 +265,9 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		// Get the latest settle and add index to prevent duplicate entries.
 		addIndex, settleIndex, err := fetchLastInvoiceIndexes(db, nodeSettings.NodeId)
 		if err != nil {
-			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain last invoice index for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
 		streamCtx, cancel := context.WithCancel(ctx)
@@ -307,33 +278,34 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf("Failed to obtain Invoices stream for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
-		serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
 		invoice, err := stream.Recv()
 		if err != nil {
 			cancel()
 			if errors.Is(ctx.Err(), context.Canceled) {
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = processError(serviceStatus, nodeSettings, subscriptionStream, err)
-			delay = true
-			continue
+			log.Error().Err(err).Msgf(
+				"Failed to obtain receive Invoices from the stream for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 		processInvoice(invoice, nodeSettings, db, bootStrapping)
-		delay = false
 		cancel()
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSettings, db *sqlx.DB, bootStrapping bool) {
-	invoiceEvent := commons.InvoiceEvent{
-		EventData: commons.EventData{
+func processInvoice(invoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCache, db *sqlx.DB, bootStrapping bool) {
+	invoiceEvent := core.InvoiceEvent{
+		EventData: core.EventData{
 			EventTime: time.Now().UTC(),
 			NodeId:    nodeSettings.NodeId,
 		},
@@ -351,7 +323,7 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 			log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
 		} else {
 			destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
-			destinationNodeIdValue := commons.GetNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
+			destinationNodeIdValue := cache.GetNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
 			destinationNodeId = &destinationNodeIdValue
 			invoiceEvent.DestinationNodeId = destinationNodeId
 		}
@@ -361,14 +333,6 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings commons.ManagedNodeSett
 	if err != nil {
 		log.Error().Err(err).Msg("Storing invoice failed")
 	}
-}
-
-func processError(serviceStatus commons.ServiceStatus, nodeSettings commons.ManagedNodeSettings,
-	subscriptionStream commons.SubscriptionStream, err error) commons.ServiceStatus {
-
-	serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
-	log.Error().Err(err).Msgf("Failed to obtain last know invoice, will retry in %v seconds", streamErrorSleepSeconds)
-	return serviceStatus
 }
 
 // getNodeNetwork
@@ -411,7 +375,7 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 }
 
 func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
-	invoiceEvent commons.InvoiceEvent, bootStrapping bool) error {
+	invoiceEvent core.InvoiceEvent, bootStrapping bool) error {
 
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {

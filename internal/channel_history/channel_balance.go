@@ -7,7 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
 )
 
 type Balance struct {
@@ -81,7 +81,7 @@ func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to t
 	where time::timestamp AT TIME ZONE ($4) between $2::timestamp and $3::timestamp
 ;`
 
-	rows, err := db.Queryx(q, channelId, from, to, commons.GetSettings().PreferredTimeZone)
+	rows, err := db.Queryx(q, channelId, from, to, cache.GetSettings().PreferredTimeZone)
 	if err != nil {
 		return cb, errors.Wrap(err, "SQL run query")
 	}

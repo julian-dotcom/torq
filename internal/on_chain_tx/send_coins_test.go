@@ -6,7 +6,7 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func Test_processSendRequest(t *testing.T) {
@@ -20,13 +20,13 @@ func Test_processSendRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   commons.PayOnChainRequest
+		input   core.PayOnChainRequest
 		want    *lnrpc.SendCoinsRequest
 		wantErr bool
 	}{
 		{
 			"Missing node ID",
-			commons.PayOnChainRequest{
+			core.PayOnChainRequest{
 				Address:   "adadsdas",
 				AmountSat: 12,
 			},
@@ -38,7 +38,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Address not provided",
-			commons.PayOnChainRequest{
+			core.PayOnChainRequest{
 				NodeId:    1,
 				Address:   "",
 				AmountSat: 12,
@@ -51,7 +51,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Invalid amount",
-			commons.PayOnChainRequest{
+			core.PayOnChainRequest{
 				NodeId:    1,
 				Address:   "test",
 				AmountSat: 0,
@@ -64,7 +64,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Both targetconf and satpervbyte provided",
-			commons.PayOnChainRequest{
+			core.PayOnChainRequest{
 				NodeId:      1,
 				Address:     "test",
 				AmountSat:   12,
@@ -81,7 +81,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Only mandatory params",
-			commons.PayOnChainRequest{
+			core.PayOnChainRequest{
 				NodeId:    1,
 				Address:   "test",
 				AmountSat: amount,
@@ -94,7 +94,7 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"All params",
-			commons.PayOnChainRequest{
+			core.PayOnChainRequest{
 				NodeId:           1,
 				Address:          "test",
 				AmountSat:        amount,

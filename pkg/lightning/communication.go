@@ -2,12 +2,12 @@ package lightning
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd"
 )
 
@@ -20,10 +20,10 @@ func SetRoutingPolicy(db *sqlx.DB,
 	feeBaseMsat *int64,
 	maxHtlcMsat *uint64,
 	minHtlcMsat *uint64,
-	timeLockDelta *uint32) (commons.Status, string, error) {
+	timeLockDelta *uint32) (core.Status, string, error) {
 
-	if commons.RunningServices[commons.LndService].GetStatus(nodeId) != commons.ServiceActive {
-		return commons.Inactive, "",
+	if !cache.IsLndServiceActive(nodeId) {
+		return core.Inactive, "",
 			errors.New(fmt.Sprintf("LND service is not active for nodeId: %v", nodeId))
 	}
 	request := lnd.RoutingPolicyUpdateRequest{
@@ -42,13 +42,13 @@ func SetRoutingPolicy(db *sqlx.DB,
 	}
 	response := lnd.RoutingPolicyUpdate(request)
 	if response.Error != "" {
-		return commons.Status(response.Status), response.Message, errors.New(response.Error)
+		return core.Status(response.Status), response.Message, errors.New(response.Error)
 	}
-	return commons.Status(response.Status), response.Message, nil
+	return core.Status(response.Status), response.Message, nil
 }
 
 func SignMessage(nodeId int, message string, singleHash *bool) (string, error) {
-	if commons.RunningServices[commons.LndService].GetStatus(nodeId) != commons.ServiceActive {
+	if !cache.IsLndServiceActive(nodeId) {
 		return "", errors.New(fmt.Sprintf("LND service is not active for nodeId: %v", nodeId))
 	}
 
@@ -97,7 +97,7 @@ func GetWalletBalance(nodeId int) (totalBalance int64, confirmedBalance int64, u
 		response.ReservedBalanceAnchorChan, nil
 }
 
-func GetInformationRequest(nodeId int) (commons.InformationResponse, error) {
+func GetInformationRequest(nodeId int) (core.InformationResponse, error) {
 	request := lnd.InformationRequest{
 		CommunicationRequest: lnd.CommunicationRequest{
 			NodeId: nodeId,
@@ -105,11 +105,11 @@ func GetInformationRequest(nodeId int) (commons.InformationResponse, error) {
 	}
 	response := lnd.Information(request)
 	if response.Error != "" {
-		return commons.InformationResponse{}, errors.New(response.Error)
+		return core.InformationResponse{}, errors.New(response.Error)
 	}
-	return commons.InformationResponse{
+	return core.InformationResponse{
 		NodeId:                  nodeId,
-		Implementation:          commons.LND,
+		Implementation:          core.LND,
 		Version:                 response.Version,
 		PublicKey:               response.PublicKey,
 		Alias:                   response.Alias,
@@ -129,23 +129,21 @@ func GetInformationRequest(nodeId int) (commons.InformationResponse, error) {
 }
 
 func Import(db *sqlx.DB,
-	importType lnd.ImportType,
+	importType core.ImportType,
 	force bool,
-	nodeId int,
-	successTimes map[lnd.ImportType]time.Time) (map[lnd.ImportType]time.Time, error) {
+	nodeId int) error {
 
 	request := lnd.ImportRequest{
 		CommunicationRequest: lnd.CommunicationRequest{
 			NodeId: nodeId,
 		},
-		SuccessTimes: successTimes,
-		ImportType:   importType,
-		Db:           db,
-		Force:        force,
+		ImportType: importType,
+		Db:         db,
+		Force:      force,
 	}
 	response := lnd.Import(request)
 	if response.Error != nil {
-		return successTimes, response.Error
+		return response.Error
 	}
-	return response.SuccessTimes, nil
+	return nil
 }

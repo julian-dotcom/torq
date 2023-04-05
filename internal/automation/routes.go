@@ -9,7 +9,8 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -18,7 +19,7 @@ func RegisterAutomationRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 }
 
 func rebalanceHandler(c *gin.Context, db *sqlx.DB) {
-	var rr commons.RebalanceRequests
+	var rr core.RebalanceRequests
 	if err := c.BindJSON(&rr); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -27,12 +28,12 @@ func rebalanceHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
-	if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(rr.NodeId) != commons.ServiceActive {
+	if !cache.IsChannelBalanceCacheStreamActive(rr.NodeId) {
 		server_errors.SendBadRequest(c, "The node for the provided nodeId is not active (yet?).")
 		return
 	}
 
-	responseChannel := make(chan []commons.RebalanceResponse)
+	responseChannel := make(chan []core.RebalanceResponse)
 	rr.ResponseChannel = responseChannel
 	workflows.RebalanceRequests(context.Background(), db, rr, rr.NodeId)
 	response := <-responseChannel

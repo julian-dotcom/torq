@@ -8,53 +8,26 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
-
-type PingSystem uint32
-
-const (
-	Amboss PingSystem = 1 << iota
-	Vector
-)
-const PingSystemMax = int(Vector)*2 - 1
 
 type NodeConnectionDetails struct {
-	NodeId            int                                        `json:"nodeId" form:"nodeId" db:"node_id"`
-	Name              string                                     `json:"name" form:"name" db:"name"`
-	Implementation    commons.Implementation                     `json:"implementation" form:"implementation" db:"implementation"`
-	GRPCAddress       *string                                    `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
-	TLSFileName       *string                                    `json:"tlsFileName" db:"tls_file_name"`
-	TLSDataBytes      []byte                                     `db:"tls_data"`
-	TLSFile           *multipart.FileHeader                      `form:"tlsFile"`
-	MacaroonFileName  *string                                    `json:"macaroonFileName" db:"macaroon_file_name"`
-	MacaroonDataBytes []byte                                     `db:"macaroon_data"`
-	MacaroonFile      *multipart.FileHeader                      `form:"macaroonFile"`
-	Status            commons.Status                             `json:"status" db:"status_id"`
-	PingSystem        PingSystem                                 `json:"pingSystem" db:"ping_system"`
-	CustomSettings    commons.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
-	CreateOn          time.Time                                  `json:"createdOn" db:"created_on"`
-	UpdatedOn         *time.Time                                 `json:"updatedOn"  db:"updated_on"`
-}
-
-func (ncd *NodeConnectionDetails) AddNotificationType(pingSystem PingSystem) {
-	ncd.PingSystem |= pingSystem
-}
-func (ncd *NodeConnectionDetails) HasNotificationType(pingSystem PingSystem) bool {
-	return ncd.PingSystem&pingSystem != 0
-}
-func (ncd *NodeConnectionDetails) RemoveNotificationType(pingSystem PingSystem) {
-	ncd.PingSystem &= ^pingSystem
-}
-
-func (ncd *NodeConnectionDetails) AddNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
-	ncd.CustomSettings |= customSettings
-}
-func (ncd *NodeConnectionDetails) HasNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) bool {
-	return ncd.CustomSettings&customSettings != 0
-}
-func (ncd *NodeConnectionDetails) RemoveNodeConnectionDetailCustomSettings(customSettings commons.NodeConnectionDetailCustomSettings) {
-	ncd.CustomSettings &= ^customSettings
+	NodeId            int                                     `json:"nodeId" form:"nodeId" db:"node_id"`
+	Name              string                                  `json:"name" form:"name" db:"name"`
+	Implementation    core.Implementation                     `json:"implementation" form:"implementation" db:"implementation"`
+	GRPCAddress       *string                                 `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
+	TLSFileName       *string                                 `json:"tlsFileName" db:"tls_file_name"`
+	TLSDataBytes      []byte                                  `db:"tls_data"`
+	TLSFile           *multipart.FileHeader                   `form:"tlsFile"`
+	MacaroonFileName  *string                                 `json:"macaroonFileName" db:"macaroon_file_name"`
+	MacaroonDataBytes []byte                                  `db:"macaroon_data"`
+	MacaroonFile      *multipart.FileHeader                   `form:"macaroonFile"`
+	Status            core.Status                             `json:"status" db:"status_id"`
+	PingSystem        core.PingSystem                         `json:"pingSystem" db:"ping_system"`
+	CustomSettings    core.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
+	CreateOn          time.Time                               `json:"createdOn" db:"created_on"`
+	UpdatedOn         *time.Time                              `json:"updatedOn"  db:"updated_on"`
 }
 
 func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
@@ -71,7 +44,7 @@ func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 	return 0, nil
 }
 
-func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
+func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 	grpcAddress string, tlsDataBytes []byte, macaroonDataBytes []byte) (NodeConnectionDetails, error) {
 	publicKey, chain, network, err := getInformationFromLndNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
 	if err != nil {
@@ -102,7 +75,7 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 		Name:              fmt.Sprintf("Node_%v", nodeId),
 		Implementation:    implementation,
 		GRPCAddress:       &grpcAddress,
-		Status:            commons.Active,
+		Status:            core.Active,
 		TLSDataBytes:      tlsDataBytes,
 		MacaroonDataBytes: macaroonDataBytes,
 		CreateOn:          time.Now().UTC(),
@@ -111,6 +84,6 @@ func AddNodeToDB(db *sqlx.DB, implementation commons.Implementation,
 	if err != nil {
 		return NodeConnectionDetails{}, errors.Wrap(err, "Inserting node connection details in the database")
 	}
-	commons.SetTorqNode(nodeId, nodeConnectionDetailsData.Name, nodeConnectionDetailsData.Status, publicKey, chain, network)
+	cache.SetTorqNode(nodeId, nodeConnectionDetailsData.Name, nodeConnectionDetailsData.Status, publicKey, chain, network)
 	return ncd, nil
 }

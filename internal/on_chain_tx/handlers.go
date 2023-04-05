@@ -11,7 +11,8 @@ import (
 
 	qp "github.com/lncapital/torq/internal/query_parser"
 	ah "github.com/lncapital/torq/pkg/api_helpers"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -94,9 +95,9 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	chain := commons.Bitcoin
+	chain := core.Bitcoin
 
-	r, total, err := getOnChainTxs(db, commons.GetAllTorqNodeIdsByNetwork(chain, commons.Network(network)), filter, sort, limit, offset)
+	r, total, err := getOnChainTxs(db, cache.GetAllTorqNodeIdsByNetwork(chain, core.Network(network)), filter, sort, limit, offset)
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
@@ -111,7 +112,7 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody commons.PayOnChainRequest
+	var requestBody core.PayOnChainRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -124,7 +125,7 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	sendCoinsResp := commons.PayOnChainResponse{Request: requestBody, TxId: resp}
+	sendCoinsResp := core.PayOnChainResponse{Request: requestBody, TxId: resp}
 
 	c.JSON(http.StatusOK, sendCoinsResp)
 }

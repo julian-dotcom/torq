@@ -10,9 +10,9 @@ const RequireTorq = () => {
   React.useEffect(() => {
     if (servicesData) {
       if (
-        servicesData.torqService === undefined ||
-        servicesData.torqService.bootTime === undefined ||
-        servicesData.torqService.bootTime == ""
+        servicesData.mainService === undefined ||
+        servicesData.mainService.bootTime === undefined ||
+        servicesData.mainService.bootTime == ""
       ) {
         navigate("/services", { replace: true, state: location });
       }

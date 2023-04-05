@@ -113,7 +113,7 @@ function Settings() {
 
   // We only fetch the Version once when intial rendering.
   const { data: servicesData } = useGetServicesQuery();
-  const [version = "Unknown", commit = "Unknown"] = servicesData?.torqService?.version?.split(" | ") ?? [];
+  const [version = "Unknown", commit = "Unknown"] = servicesData?.version?.split(" | ") ?? [];
 
   return (
     <Page>

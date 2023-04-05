@@ -18,8 +18,9 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/pkg/cache"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -184,7 +185,7 @@ type PendingChannel struct {
 }
 
 func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
-	var batchOpnReq commons.BatchOpenRequest
+	var batchOpnReq core.BatchOpenRequest
 	if err := c.BindJSON(&batchOpnReq); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -199,13 +200,13 @@ func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, response)
 }
 
-func GetChannelsByNetwork(network commons.Network) ([]ChannelBody, error) {
+func GetChannelsByNetwork(network core.Network) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
-	chain := commons.Bitcoin
-	nodeIds := commons.GetAllTorqNodeIdsByNetwork(chain, network)
+	chain := core.Bitcoin
+	nodeIds := cache.GetAllTorqNodeIdsByNetwork(chain, network)
 	for _, nodeId := range nodeIds {
 		// Force Response because we don't care about balance accuracy
-		channelIds := commons.GetChannelStateChannelIds(nodeId, true)
+		channelIds := cache.GetChannelStateChannelIds(nodeId, true)
 		channelsBodyByNode, err := GetChannelsByIds(nodeId, channelIds)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Obtain channels for nodeId: %v", nodeId)
@@ -219,8 +220,8 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 	var channelsBody []ChannelBody
 	for _, channelId := range channelIds {
 		// Force Response because we don't care about balance accuracy
-		channel := commons.GetChannelState(nodeId, channelId, true)
-		channelSettings := commons.GetChannelSettingByChannelId(channel.ChannelId)
+		channel := cache.GetChannelState(nodeId, channelId, true)
+		channelSettings := cache.GetChannelSettingByChannelId(channel.ChannelId)
 		lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
 
 		pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
@@ -228,18 +229,18 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 		chanBody := ChannelBody{
 			NodeId:                       nodeId,
 			PeerNodeId:                   channel.RemoteNodeId,
-			Tags:                         tags.GetTagsByTagIds(commons.GetTagIdsByChannelId(channel.RemoteNodeId, channelSettings.ChannelId)),
+			Tags:                         tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(channel.RemoteNodeId, channelSettings.ChannelId)),
 			ChannelId:                    channelSettings.ChannelId,
-			NodeName:                     *commons.GetNodeSettingsByNodeId(nodeId).Name,
+			NodeName:                     *cache.GetNodeSettingsByNodeId(nodeId).Name,
 			Active:                       !channel.LocalDisabled,
 			RemoteActive:                 !channel.RemoteDisabled,
-			ChannelPoint:                 commons.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
+			ChannelPoint:                 core.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
 			Gauge:                        (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100,
-			RemotePubkey:                 commons.GetNodeSettingsByNodeId(channel.RemoteNodeId).PublicKey,
-			PeerAlias:                    commons.GetNodeAlias(channel.RemoteNodeId),
+			RemotePubkey:                 cache.GetNodeSettingsByNodeId(channel.RemoteNodeId).PublicKey,
+			PeerAlias:                    cache.GetNodeAlias(channel.RemoteNodeId),
 			FundingTransactionHash:       channelSettings.FundingTransactionHash,
 			FundingOutputIndex:           channelSettings.FundingOutputIndex,
-			CurrentBlockHeight:           commons.GetBlockHeight(),
+			CurrentBlockHeight:           cache.GetBlockHeight(),
 			FundingBlockHeight:           channelSettings.FundingBlockHeight,
 			FundedOn:                     channelSettings.FundedOn,
 			ClosingBlockHeight:           channelSettings.ClosingBlockHeight,
@@ -280,13 +281,13 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 			ChanStatusFlags:              channel.ChanStatusFlags,
 			CommitmentType:               channel.CommitmentType,
 			Lifetime:                     channel.Lifetime,
-			MempoolSpace:                 commons.MEMPOOL + lndShortChannelIdString,
-			AmbossSpace:                  commons.AMBOSS + channelSettings.ShortChannelId,
-			OneMl:                        commons.ONEML + lndShortChannelIdString,
+			MempoolSpace:                 core.MEMPOOL + lndShortChannelIdString,
+			AmbossSpace:                  core.AMBOSS + channelSettings.ShortChannelId,
+			OneMl:                        core.ONEML + lndShortChannelIdString,
 		}
 
 		if channelSettings.FundingBlockHeight != nil {
-			delta := commons.GetBlockHeight() - *channelSettings.FundingBlockHeight
+			delta := cache.GetBlockHeight() - *channelSettings.FundingBlockHeight
 			chanBody.FundingBlockHeightDelta = &delta
 		}
 		if channelSettings.FundedOn != nil {
@@ -294,7 +295,7 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 			chanBody.FundedOnSecondsDelta = &deltaSeconds
 		}
 		if channelSettings.ClosingBlockHeight != nil {
-			delta := commons.GetBlockHeight() - *channelSettings.ClosingBlockHeight
+			delta := cache.GetBlockHeight() - *channelSettings.ClosingBlockHeight
 			chanBody.ClosingBlockHeightDelta = &delta
 		}
 		if channelSettings.ClosedOn != nil {
@@ -313,7 +314,7 @@ func getChannelListHandler(c *gin.Context) {
 		return
 	}
 
-	channelsBody, err := GetChannelsByNetwork(commons.Network(network))
+	channelsBody, err := GetChannelsByNetwork(core.Network(network))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Get channel tags for channel")
 		return
@@ -328,9 +329,9 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getChannelsWithStatus(db, commons.Network(network),
-		[]commons.ChannelStatus{commons.CooperativeClosed, commons.LocalForceClosed, commons.RemoteForceClosed,
-			commons.BreachClosed, commons.FundingCancelledClosed, commons.AbandonedClosed})
+	channels, err := getChannelsWithStatus(db, core.Network(network),
+		[]core.ChannelStatus{core.CooperativeClosed, core.LocalForceClosed, core.RemoteForceClosed,
+			core.BreachClosed, core.FundingCancelledClosed, core.AbandonedClosed})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
 		err = errors.Wrap(err, "Problem getting closed channels from db")
@@ -339,7 +340,7 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	closedChannels := make([]ClosedChannel, len(channels))
-	torqNodeIds := commons.GetAllTorqNodeIds()
+	torqNodeIds := cache.GetAllTorqNodeIds()
 
 	for i, channel := range channels {
 
@@ -367,16 +368,16 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 			ClosingBlockHeight:     channel.ClosingBlockHeight,
 			ClosedOn:               channel.ClosedOn,
 			FundedOn:               channel.FundedOn,
-			NodeName:               commons.GetNodeAlias(torqNodeId),
-			PublicKey:              commons.GetNodeSettingsByNodeId(torqNodeId).PublicKey,
-			PeerAlias:              commons.GetNodeAlias(peerNodeId),
+			NodeName:               cache.GetNodeAlias(torqNodeId),
+			PublicKey:              cache.GetNodeSettingsByNodeId(torqNodeId).PublicKey,
+			PeerAlias:              cache.GetNodeAlias(peerNodeId),
 		}
 
 		if channel.ClosingNodeId != nil {
-			closedChannels[i].ClosingNodeName = commons.GetNodeAlias(*channel.ClosingNodeId)
+			closedChannels[i].ClosingNodeName = cache.GetNodeAlias(*channel.ClosingNodeId)
 		}
 		if channel.FundingBlockHeight != nil {
-			delta := commons.GetBlockHeight() - *channel.FundingBlockHeight
+			delta := cache.GetBlockHeight() - *channel.FundingBlockHeight
 			closedChannels[i].FundingBlockHeightDelta = &delta
 		}
 		if channel.FundedOn != nil {
@@ -384,7 +385,7 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 			closedChannels[i].FundedOnSecondsDelta = &deltaSeconds
 		}
 		if channel.ClosingBlockHeight != nil {
-			delta := commons.GetBlockHeight() - *channel.ClosingBlockHeight
+			delta := cache.GetBlockHeight() - *channel.ClosingBlockHeight
 			closedChannels[i].ClosingBlockHeightDelta = &delta
 		}
 		if channel.ClosedOn != nil {
@@ -404,8 +405,8 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	channels, err := getChannelsWithStatus(db, commons.Network(network),
-		[]commons.ChannelStatus{commons.Opening, commons.Closing})
+	channels, err := getChannelsWithStatus(db, core.Network(network),
+		[]core.ChannelStatus{core.Opening, core.Closing})
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
@@ -415,7 +416,7 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	closedChannels := make([]PendingChannel, len(channels))
-	torqNodeIds := commons.GetAllTorqNodeIds()
+	torqNodeIds := cache.GetAllTorqNodeIds()
 
 	for i, channel := range channels {
 
@@ -443,16 +444,16 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 			ClosingBlockHeight:     channel.ClosingBlockHeight,
 			ClosedOn:               channel.ClosedOn,
 			FundedOn:               channel.FundedOn,
-			NodeName:               commons.GetNodeAlias(torqNodeId),
-			PublicKey:              commons.GetNodeSettingsByNodeId(torqNodeId).PublicKey,
-			PeerAlias:              commons.GetNodeAlias(peerNodeId),
+			NodeName:               cache.GetNodeAlias(torqNodeId),
+			PublicKey:              cache.GetNodeSettingsByNodeId(torqNodeId).PublicKey,
+			PeerAlias:              cache.GetNodeAlias(peerNodeId),
 		}
 
 		if channel.ClosingNodeId != nil {
-			closedChannels[i].ClosingNodeName = commons.GetNodeAlias(*channel.ClosingNodeId)
+			closedChannels[i].ClosingNodeName = cache.GetNodeAlias(*channel.ClosingNodeId)
 		}
 		if channel.FundingBlockHeight != nil {
-			delta := commons.GetBlockHeight() - *channel.FundingBlockHeight
+			delta := cache.GetBlockHeight() - *channel.FundingBlockHeight
 			closedChannels[i].FundingBlockHeightDelta = &delta
 		}
 		if channel.FundedOn != nil {
@@ -460,7 +461,7 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 			closedChannels[i].FundedOnSecondsDelta = &deltaSeconds
 		}
 		if channel.ClosingBlockHeight != nil {
-			delta := commons.GetBlockHeight() - *channel.ClosingBlockHeight
+			delta := cache.GetBlockHeight() - *channel.ClosingBlockHeight
 			closedChannels[i].ClosingBlockHeightDelta = &delta
 		}
 		if channel.ClosedOn != nil {
@@ -473,7 +474,7 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, closedChannels)
 }
 
-func calculateHTLCs(htlcs []commons.Htlc) PendingHtlcs {
+func calculateHTLCs(htlcs []cache.Htlc) PendingHtlcs {
 	var pendingHTLCs PendingHtlcs
 	if len(htlcs) < 1 {
 		return pendingHTLCs

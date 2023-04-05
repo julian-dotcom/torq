@@ -8,7 +8,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/testutil"
 )
 
@@ -28,27 +29,27 @@ func Test_prepareCloseRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeSettingsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+		log.Fatal().Msgf("Problem initializing SettingsCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedNodeCache(db)
+	err = settings.InitializeNodesCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+		log.Fatal().Msgf("Problem initializing NodeCache cache: %v", err)
 	}
 
 	lndShortChannelId := uint64(9999)
-	shortChannelId := commons.ConvertLNDShortChannelID(lndShortChannelId)
+	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
 	channel, err := addChannel(db, Channel{
 		ShortChannelID:         &shortChannelId,
-		Status:                 commons.Open,
+		Status:                 core.Open,
 		Private:                false,
 		Capacity:               10_000_000,
-		FirstNodeId:            commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
-		SecondNodeId:           commons.GetNodeIdByPublicKey(testutil.TestPublicKey2, commons.Bitcoin, commons.SigNet),
+		FirstNodeId:            cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
+		SecondNodeId:           cache.GetNodeIdByPublicKey(testutil.TestPublicKey2, core.Bitcoin, core.SigNet),
 		LNDShortChannelID:      &lndShortChannelId,
 		FundingOutputIndex:     FundingOutputIndex,
 		FundingTransactionHash: FundingTransactionHash,
@@ -58,10 +59,10 @@ func Test_prepareCloseRequest(t *testing.T) {
 	}
 	log.Info().Msgf("Created OPEN channel to be closed with channelId: %v", channel.ChannelID)
 
-	err = settings.InitializeManagedChannelCache(db)
+	err = settings.InitializeChannelsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+		log.Fatal().Err(err).Msgf("Problem initializing ChannelCache cache: %v", err)
 	}
 
 	fundingTxid := &lnrpc.ChannelPoint_FundingTxidStr{FundingTxidStr: FundingTransactionHash}
@@ -90,7 +91,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		{
 			"Both targetConf & satPerVbyte provided",
 			CloseChannelRequest{
-				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+				NodeId:          cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           nil,
 				TargetConf:      &targetConf,
@@ -109,7 +110,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		{
 			"Just mandatory params",
 			CloseChannelRequest{
-				NodeId:    commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+				NodeId:    cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
@@ -120,7 +121,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		{
 			"All params provide",
 			CloseChannelRequest{
-				NodeId:          commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet),
+				NodeId:          cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           &force,
 				TargetConf:      &targetConf,

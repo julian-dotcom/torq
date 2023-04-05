@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/andres-erbsen/clock"
@@ -14,15 +13,14 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd"
 )
 
 const workflowTickerSeconds = 10
 
 func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Info().Msgf("IntervalTriggerMonitor terminated")
 
 	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 	bootstrapping := true
@@ -34,10 +32,10 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 		case <-ticker:
 			if bootstrapping {
 				var allChannelIds []int
-				torqNodeIds := commons.GetAllTorqNodeIds()
+				torqNodeIds := cache.GetAllTorqNodeIds()
 				for _, torqNodeId := range torqNodeIds {
 					// Force Response because we don't care about balance accuracy
-					channelIdsByNode := commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)
+					channelIdsByNode := cache.GetChannelStateNotSharedChannelIds(torqNodeId, true)
 					allChannelIds = append(allChannelIds, channelIdsByNode...)
 				}
 				if len(allChannelIds) == 0 {
@@ -45,14 +43,14 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				}
 			}
 			var bootedWorkflowVersionIds []int
-			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeIntervalTrigger)
+			workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, core.WorkflowNodeIntervalTrigger)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to obtain root nodes (interval trigger nodes)")
 				continue
 			}
 			for _, workflowTriggerNode := range workflowTriggerNodes {
 				reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-				triggerSettings := commons.GetTimeTriggerSettingsByWorkflowVersionId(workflowTriggerNode.WorkflowVersionId)
+				triggerSettings := cache.GetTimeTriggerSettingsByWorkflowVersionId(workflowTriggerNode.WorkflowVersionId)
 				var param workflows.IntervalTriggerParameters
 				err := json.Unmarshal([]byte(workflowTriggerNode.Parameters), &param)
 				if err != nil {
@@ -65,12 +63,12 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				if bootstrapping {
 					bootedWorkflowVersionIds = append(bootedWorkflowVersionIds, workflowTriggerNode.WorkflowVersionId)
 				}
-				commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId,
+				cache.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId,
 					workflowTriggerNode.Type, workflowTriggerNode.WorkflowVersionNodeId, workflowTriggerNode)
 			}
 			// When bootstrapping the automations run ALL workflows because we might have missed some events.
 			if bootstrapping {
-				workflowTriggerNodes, err = workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeChannelBalanceEventTrigger)
+				workflowTriggerNodes, err = workflows.GetActiveEventTriggerNodes(db, core.WorkflowNodeChannelBalanceEventTrigger)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to obtain root nodes (channel balance trigger nodes)")
 					continue
@@ -83,7 +81,7 @@ func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 						}
 					}
 					reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-					commons.ScheduleTrigger(reference,
+					cache.ScheduleTrigger(reference,
 						workflowTriggerNode.WorkflowVersionId,
 						workflowTriggerNode.Type, workflowTriggerNode.WorkflowVersionNodeId, workflowTriggerNode)
 				}
@@ -99,7 +97,7 @@ type CronTriggerParams struct {
 
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	defer log.Info().Msgf("Cron trigger monitor terminated")
+	serviceType := core.CronService
 
 	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
 
@@ -107,22 +105,24 @@ bootstrappingLoop:
 	for {
 		select {
 		case <-ctx.Done():
+			cache.SetInactiveCoreServiceState(serviceType)
 			return
 		case <-ticker:
-			torqNodeIds := commons.GetAllTorqNodeIds()
+			torqNodeIds := cache.GetAllTorqNodeIds()
 			for _, torqNodeId := range torqNodeIds {
 				// Force Response because we don't care about balance accuracy
-				if len(commons.GetChannelStateNotSharedChannelIds(torqNodeId, true)) != 0 {
+				if len(cache.GetChannelStateNotSharedChannelIds(torqNodeId, true)) != 0 {
 					break bootstrappingLoop
 				}
 			}
 		}
 	}
 
-	workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, commons.WorkflowNodeCronTrigger)
+	workflowTriggerNodes, err := workflows.GetActiveEventTriggerNodes(db, core.WorkflowNodeCronTrigger)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to obtain root nodes (cron trigger nodes)")
 		log.Error().Msg("Cron trigger monitor failed to start")
+		cache.SetFailedCoreServiceState(serviceType)
 		return
 	}
 
@@ -141,7 +141,7 @@ bootstrappingLoop:
 		_, err = c.AddFunc(params.CronValue, func() {
 			log.Debug().Msgf("Scheduling for immediate execution cron trigger for workflow version node id %v", workflowVersionNodeId)
 			reference := fmt.Sprintf("%v_%v", workflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-			commons.ScheduleTrigger(reference, workflowVersionId, commons.WorkflowNodeCronTrigger, workflowVersionNodeId, triggeringEvent)
+			cache.ScheduleTrigger(reference, workflowVersionId, core.WorkflowNodeCronTrigger, workflowVersionNodeId, triggeringEvent)
 		})
 		if err != nil {
 			log.Error().Msgf("Unable to add cron func for workflow version node id: %v", trigger.WorkflowVersionNodeId)
@@ -162,30 +162,7 @@ bootstrappingLoop:
 	<-ctx.Done()
 }
 
-func EventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Info().Msgf("EventTriggerMonitor terminated")
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		channelBalanceEventTriggerMonitor(ctx, db)
-	})()
-
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		channelEventTriggerMonitor(ctx, db)
-	})()
-
-	wg.Wait()
-}
-
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Info().Msgf("ScheduledTriggerMonitor terminated")
 
 	var delay bool
 
@@ -197,15 +174,15 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 				return
 			case <-ticker:
 			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
 		}
 
-		scheduledTrigger := commons.GetScheduledTrigger()
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		scheduledTrigger := cache.GetScheduledTrigger()
 		if scheduledTrigger.SchedulingTime == nil {
 			delay = true
 			continue
@@ -236,8 +213,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			workflowTriggerNode.LinkDetails = groupWorkflowVersionNode.LinkDetails
 
 			// Override the default WorkflowTrigger since you should never directly run the group node
-			if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeManualTrigger && workflowTriggerNode.Type == commons.WorkflowTrigger {
-				workflowTriggerNode.Type = commons.WorkflowNodeManualTrigger
+			if scheduledTrigger.TriggeringNodeType == core.WorkflowNodeManualTrigger && workflowTriggerNode.Type == core.WorkflowTrigger {
+				workflowTriggerNode.Type = core.WorkflowNodeManualTrigger
 			}
 
 			//if scheduledTrigger.TriggeringNodeType == commons.WorkflowNodeChannelBalanceEventTrigger {
@@ -330,11 +307,11 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			triggerCtx, triggerCancel := context.WithCancel(ctx)
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeIntervalTrigger, commons.WorkflowNodeCronTrigger, commons.WorkflowNodeManualTrigger:
-				commons.ActivateWorkflowTrigger(scheduledTrigger.Reference,
+			case core.WorkflowNodeIntervalTrigger, core.WorkflowNodeCronTrigger, core.WorkflowNodeManualTrigger:
+				cache.ActivateWorkflowTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, triggerCancel)
 			default:
-				commons.ActivateEventTrigger(scheduledTrigger.Reference,
+				cache.ActivateEventTrigger(scheduledTrigger.Reference,
 					workflowTriggerNode.WorkflowVersionId, workflowTriggerNode.WorkflowVersionNodeId,
 					scheduledTrigger.TriggeringNodeType, firstEvent, triggerCancel)
 			}
@@ -344,56 +321,50 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			triggerCancel()
 
 			switch workflowTriggerNode.Type {
-			case commons.WorkflowNodeIntervalTrigger, commons.WorkflowNodeCronTrigger, commons.WorkflowNodeManualTrigger:
-				commons.DeactivateWorkflowTrigger(workflowTriggerNode.WorkflowVersionId)
+			case core.WorkflowNodeIntervalTrigger, core.WorkflowNodeCronTrigger, core.WorkflowNodeManualTrigger:
+				cache.DeactivateWorkflowTrigger(workflowTriggerNode.WorkflowVersionId)
 			default:
-				commons.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
+				cache.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
 					workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, firstEvent)
 			}
 		}
 	}
 }
 
-func channelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Debug().Msgf("ChannelBalanceEventTriggerMonitor terminated")
-
+func ChannelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case channelBalanceEvent := <-commons.ChannelBalanceChanges:
+		case channelBalanceEvent := <-cache.ChannelBalanceChanges:
 			if channelBalanceEvent.NodeId == 0 || channelBalanceEvent.ChannelId == 0 {
 				continue
 			}
-			processEventTrigger(db, channelBalanceEvent, commons.WorkflowNodeChannelBalanceEventTrigger)
+			processEventTrigger(db, channelBalanceEvent, core.WorkflowNodeChannelBalanceEventTrigger)
 		}
 	}
 }
 
-func channelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
-
-	defer log.Debug().Msgf("ChannelEventTriggerMonitor terminated")
-
+func ChannelEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case channelEvent := <-lnd.ChannelChanges:
 			if channelEvent.NodeId == 0 || channelEvent.ChannelId == 0 {
-				return
+				continue
 			}
 			switch channelEvent.Type {
 			case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
-				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelOpenEventTrigger)
+				processEventTrigger(db, channelEvent, core.WorkflowNodeChannelOpenEventTrigger)
 			case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
-				processEventTrigger(db, channelEvent, commons.WorkflowNodeChannelCloseEventTrigger)
+				processEventTrigger(db, channelEvent, core.WorkflowNodeChannelCloseEventTrigger)
 			}
 		}
 	}
 }
 
-func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType commons.WorkflowNodeType) {
+func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType core.WorkflowNodeType) {
 
 	//if commons.RunningServices[commons.LndService].GetChannelBalanceCacheStreamStatus(nodeSettings.NodeId) != commons.Active {
 	// TODO FIXME CHECK HOW LONG IT'S BEEN DOWN FOR AND POTENTIALLY KILL AUTOMATIONS
@@ -406,7 +377,7 @@ func processEventTrigger(db *sqlx.DB, triggeringEvent any, workflowNodeType comm
 	}
 	for _, workflowTriggerNode := range workflowTriggerNodes {
 		reference := fmt.Sprintf("%v_%v", workflowTriggerNode.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-		commons.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId, workflowNodeType, workflowTriggerNode.WorkflowVersionNodeId, triggeringEvent)
+		cache.ScheduleTrigger(reference, workflowTriggerNode.WorkflowVersionId, workflowNodeType, workflowTriggerNode.WorkflowVersionNodeId, triggeringEvent)
 	}
 }
 

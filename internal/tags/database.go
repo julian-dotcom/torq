@@ -10,7 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type Tag struct {
@@ -96,7 +97,7 @@ func GetTags(db *sqlx.DB) ([]TagResponse, error) {
 	return tags, nil
 }
 
-func InitializeManagedTagCache(db *sqlx.DB) error {
+func InitializeTagsCache(db *sqlx.DB) error {
 	var tags []Tag
 	err := db.Select(&tags, `
 			SELECT tag.*, category.name as category_name, category.style as category_style FROM tag
@@ -205,7 +206,7 @@ func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 			`INSERT INTO tagged_entity (tag_id, channel_id, created_by_workflow_version_node_id, created_on)
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT ON CONSTRAINT unique_tagged_channel DO NOTHING;`, req.TagId, *req.ChannelId, req.CreatedByWorkflowVersionNodeId, createdOn)
-		commons.AddTagIdByChannelId(*req.ChannelId, req.TagId)
+		cache.AddTagIdByChannelId(*req.ChannelId, req.TagId)
 	}
 
 	if req.NodeId != nil {
@@ -213,7 +214,7 @@ func TagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 			`INSERT INTO tagged_entity (tag_id, node_id, created_by_workflow_version_node_id, created_on)
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT ON CONSTRAINT unique_tagged_node DO NOTHING;`, req.TagId, *req.NodeId, req.CreatedByWorkflowVersionNodeId, createdOn)
-		commons.AddTagIdByNodeId(*req.NodeId, req.TagId)
+		cache.AddTagIdByNodeId(*req.NodeId, req.TagId)
 	}
 
 	if err != nil {
@@ -239,12 +240,12 @@ func UntagEntity(db *sqlx.DB, req TagEntityRequest) (err error) {
 
 	if req.ChannelId != nil {
 		_, err = db.Exec(`DELETE FROM tagged_entity WHERE tag_id=$1 AND channel_id=$2;`, req.TagId, *req.ChannelId)
-		commons.RemoveTagIdByChannelId(*req.ChannelId, req.TagId)
+		cache.RemoveTagIdByChannelId(*req.ChannelId, req.TagId)
 	}
 
 	if req.NodeId != nil {
 		_, err = db.Exec(`DELETE FROM tagged_entity WHERE tag_id=$1 AND node_id=$2;`, req.TagId, *req.NodeId)
-		commons.RemoveTagIdByNodeId(*req.NodeId, req.TagId)
+		cache.RemoveTagIdByNodeId(*req.NodeId, req.TagId)
 	}
 
 	if err != nil {
@@ -266,10 +267,10 @@ type ChannelTagsRequest struct {
 // Get all the channels belonging to a tag and inclide the node name based on the "second node id"
 func getTagChannels(tagId int) ([]TaggedChannels, error) {
 	var channels []TaggedChannels
-	channelIds := commons.GetChannelIdsByTagId(tagId)
+	channelIds := cache.GetChannelIdsByTagId(tagId)
 	for _, channelId := range channelIds {
-		channelSettings := commons.GetChannelSettingByChannelId(channelId)
-		nodeAlias := commons.GetNodeAlias(channelSettings.SecondNodeId)
+		channelSettings := cache.GetChannelSettingByChannelId(channelId)
+		nodeAlias := cache.GetNodeAlias(channelSettings.SecondNodeId)
 		taggedChannel := TaggedChannels{
 			ShortChannelId: channelSettings.ShortChannelId,
 			ChannelId:      channelId,
@@ -286,9 +287,9 @@ func getTagChannels(tagId int) ([]TaggedChannels, error) {
 // Get all the Nodes belonging to a tag, include the number of channels belonging to each node
 func getTagNodes(db *sqlx.DB, tagId int) ([]TaggedNodes, error) {
 	var nodes []TaggedNodes
-	nodeIds := commons.GetNodeIdsByTagId(tagId)
+	nodeIds := cache.GetNodeIdsByTagId(tagId)
 	for _, nodeId := range nodeIds {
-		nodeAlias := commons.GetNodeAlias(nodeId)
+		nodeAlias := cache.GetNodeAlias(nodeId)
 		taggedNode := TaggedNodes{
 			NodeId: nodeId,
 		}
@@ -302,7 +303,7 @@ func getTagNodes(db *sqlx.DB, tagId int) ([]TaggedNodes, error) {
 			FROM node n
 			JOIN channel oc ON oc.second_node_id = n.node_id AND oc.status_id = $2
 			WHERE n.node_id=$1
-			GROUP BY n.node_id;`, nodeId, commons.Open)
+			GROUP BY n.node_id;`, nodeId, core.Open)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				log.Error().Err(err).Msgf("Could not obtain open channel count for tagId: %v and nodeId: %v", tagId, nodeId)
@@ -316,7 +317,7 @@ func getTagNodes(db *sqlx.DB, tagId int) ([]TaggedNodes, error) {
 			FROM node n
 			JOIN channel noc ON noc.second_node_id = n.node_id AND noc.status_id != $2
 			WHERE n.node_id=$1
-			GROUP BY n.node_id;`, nodeId, commons.Open)
+			GROUP BY n.node_id;`, nodeId, core.Open)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				log.Error().Err(err).Msgf("Could not obtain closed channel count for tagId: %v and nodeId: %v", tagId, nodeId)

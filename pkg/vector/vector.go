@@ -1,4 +1,4 @@
-package commons
+package vector
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/build"
+	"github.com/lncapital/torq/pkg/cache"
 )
 
 const VectorUrl = "https://vector.ln.capital/"
@@ -16,8 +17,41 @@ const VectorUrl = "https://vector.ln.capital/"
 const vectorShortchannelidUrlSuffix = "api/bitcoin/shortChannelId"
 const vectorTransactiondetailsUrlSuffix = "api/bitcoin/transactionDetails"
 
+type ShortChannelIdHttpRequest struct {
+	TransactionHash string `json:"transactionHash"`
+	OutputIndex     int    `json:"outputIndex"`
+	UnixTime        int64  `json:"unixTime"`
+	Signature       string `json:"signature"`
+	PublicKey       string `json:"publicKey"`
+}
+
+type ShortChannelIdHttpResponse struct {
+	Request        ShortChannelIdHttpRequest `json:"request"`
+	ShortChannelId string                    `json:"shortChannelId"`
+}
+
+type TransactionDetailsHttpRequest struct {
+	TransactionHash string `json:"transactionHash"`
+	UnixTime        int64  `json:"unixTime"`
+	Signature       string `json:"signature"`
+	PublicKey       string `json:"publicKey"`
+}
+
+type TransactionDetailsHttpResponse struct {
+	Request          TransactionDetailsHttpRequest `json:"request"`
+	TransactionCount int                           `json:"transactionCount"`
+	TransactionIndex int                           `json:"transactionIndex"`
+	BlockHash        string                        `json:"blockHash"`
+	BlockTimestamp   time.Time                     `json:"blockTimestamp"`
+	BlockHeight      uint32                        `json:"blockHeight"`
+}
+
+func GetVectorUrl(suffix string) string {
+	return cache.GetVectorUrlBase() + suffix
+}
+
 func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputIndex int,
-	nodeSettings ManagedNodeSettings) string {
+	nodeSettings cache.NodeSettingsCache) string {
 
 	unixTime := time.Now()
 	requestObject := ShortChannelIdHttpRequest{
@@ -40,7 +74,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Torq-Version", build.ExtendedVersion())
-	req.Header.Set("Torq-UUID", GetSettings().TorqUuid)
+	req.Header.Set("Torq-UUID", cache.GetSettings().TorqUuid)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -67,7 +101,7 @@ func GetShortChannelIdFromVector(fundingTransactionHash string, fundingOutputInd
 }
 
 func GetTransactionDetailsFromVector(transactionHash string,
-	nodeSettings ManagedNodeSettings) TransactionDetailsHttpResponse {
+	nodeSettings cache.NodeSettingsCache) TransactionDetailsHttpResponse {
 
 	unixTime := time.Now()
 	requestObject := TransactionDetailsHttpRequest{
@@ -87,7 +121,7 @@ func GetTransactionDetailsFromVector(transactionHash string,
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Torq-Version", build.ExtendedVersion())
-	req.Header.Set("Torq-UUID", GetSettings().TorqUuid)
+	req.Header.Set("Torq-UUID", cache.GetSettings().TorqUuid)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {

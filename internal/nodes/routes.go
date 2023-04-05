@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -32,7 +32,7 @@ type NodeInformation struct {
 	TorqAlias string         `json:"torqAlias"`
 	Color     string         `json:"color"`
 	Addresses *[]NodeAddress `json:"addresses"`
-	Status    commons.Status `json:"status"`
+	Status    core.Status    `json:"status"`
 }
 
 func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -45,7 +45,7 @@ func getNodesByNetworkHandler(c *gin.Context, db *sqlx.DB) {
 	if err != nil {
 		server_errors.SendBadRequest(c, "Can't process network")
 	}
-	nds, err := getAllNodeInformationByNetwork(db, commons.Network(network))
+	nds, err := getAllNodeInformationByNetwork(db, core.Network(network))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting nodes by network.")
 		return

@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type peerEventsClient interface {
@@ -18,73 +18,50 @@ type peerEventsClient interface {
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribePeerEventsClient, error)
 }
 
-func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
-	nodeSettings commons.ManagedNodeSettings) {
+func SubscribePeerEvents(ctx context.Context,
+	client peerEventsClient,
+	nodeSettings cache.NodeSettingsCache) {
 
-	defer log.Info().Msgf("SubscribePeerEvents terminated for nodeId: %v", nodeSettings.NodeId)
+	serviceType := core.LndServicePeerEventStream
 
-	var stream lnrpc.Lightning_SubscribePeerEventsClient
-	var err error
-	var peerEvent *lnrpc.PeerEvent
-	serviceStatus := commons.ServiceInactive
-	subscriptionStream := commons.PeerEventStream
-
-	importPeerEvents := commons.RunningServices[commons.LndService].HasCustomSetting(nodeSettings.NodeId, commons.ImportPeerEvents)
-	if !importPeerEvents {
-		log.Info().Msgf("Import of peer events is disabled for nodeId: %v", nodeSettings.NodeId)
-		SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceDeleted)
+	stream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
+	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			return
+		}
+		log.Error().Err(err).Msgf(
+			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	var delay bool
+	cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
-		if delay {
-			ticker := clock.New().Tick(streamErrorSleepSeconds * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
-		}
-
 		select {
 		case <-ctx.Done():
+			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
 
-		if stream == nil {
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
-			stream, err = client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
-			if err != nil {
-				if errors.Is(ctx.Err(), context.Canceled) {
-					return
-				}
-				log.Error().Err(err).Msgf("Obtaining stream (SubscribePeerEvents) from LND failed, will retry in %v seconds", streamErrorSleepSeconds)
-				stream = nil
-				delay = true
-				continue
-			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServiceActive)
-		}
-
-		peerEvent, err = stream.Recv()
+		peerEvent, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
+				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
-			serviceStatus = SetStreamStatus(nodeSettings.NodeId, subscriptionStream, serviceStatus, commons.ServicePending)
-			log.Error().Err(err).Msgf("Receiving peer events from the stream failed, will retry in %v seconds", streamErrorSleepSeconds)
-			stream = nil
-			delay = true
-			continue
+			log.Error().Err(err).Msgf(
+				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
+			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			return
 		}
 
-		eventNodeId := commons.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
-			ProcessPeerEvent(commons.PeerEvent{
-				EventData: commons.EventData{
+			ProcessPeerEvent(core.PeerEvent{
+				EventData: core.EventData{
 					EventTime: time.Now().UTC(),
 					NodeId:    nodeSettings.NodeId,
 				},
@@ -92,6 +69,5 @@ func SubscribePeerEvents(ctx context.Context, client peerEventsClient,
 				EventNodeId: eventNodeId,
 			})
 		}
-		delay = false
 	}
 }

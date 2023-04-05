@@ -2,12 +2,14 @@ package channels
 
 import (
 	"context"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/rs/zerolog/log"
 	"io"
 	"time"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -29,9 +31,9 @@ type CloseChannelRequest struct {
 }
 
 type CloseChannelResponse struct {
-	Request                CloseChannelRequest   `json:"request"`
-	Status                 commons.ChannelStatus `json:"status"`
-	ClosingTransactionHash string                `json:"closingTransactionHash"`
+	Request                CloseChannelRequest `json:"request"`
+	Status                 core.ChannelStatus  `json:"status"`
+	ClosingTransactionHash string              `json:"closingTransactionHash"`
 }
 
 func CloseChannel(db *sqlx.DB, req CloseChannelRequest) (response CloseChannelResponse, err error) {
@@ -72,7 +74,7 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 		return &lnrpc.CloseChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
 
-	channelSettings := commons.GetChannelSettingByChannelId(ccReq.ChannelId)
+	channelSettings := cache.GetChannelSettingByChannelId(ccReq.ChannelId)
 
 	//Make the close channel request
 	closeChanReq := &lnrpc.CloseChannelRequest{
@@ -149,7 +151,7 @@ func closeChannelResp(db *sqlx.DB,
 
 		switch resp.GetUpdate().(type) {
 		case *lnrpc.CloseStatusUpdate_ClosePending:
-			r.Status = commons.Closing
+			r.Status = core.Closing
 			ch, err := chainhash.NewHash(resp.GetClosePending().Txid)
 			if err != nil {
 				return CloseChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")

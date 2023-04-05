@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -15,7 +14,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/testutil"
 )
 
@@ -122,22 +122,22 @@ func TestSubscribeChannelEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = settings.InitializeManagedSettingsCache(db)
+	err = settings.InitializeSettingsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedSettings cache: %v", err)
+		log.Fatal().Msgf("Problem initializing SettingsCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedNodeCache(db)
+	err = settings.InitializeNodesCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Msgf("Problem initializing ManagedNode cache: %v", err)
+		log.Fatal().Msgf("Problem initializing NodeCache cache: %v", err)
 	}
 
-	err = settings.InitializeManagedChannelCache(db)
+	err = settings.InitializeChannelsCache(db)
 	if err != nil {
 		cancel()
-		log.Fatal().Err(err).Msgf("Problem initializing ManagedChannel cache: %v", err)
+		log.Fatal().Err(err).Msgf("Problem initializing ChannelCache cache: %v", err)
 	}
 
 	t.Run("Open Channel Event", func(t *testing.T) {
@@ -254,8 +254,7 @@ type channelEventData struct {
 }
 
 func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, expected channelEventData) {
-	ctx := context.WithValue(context.Background(), commons.ContextKeyTest, true)
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	startAllDummyListener()
 
@@ -265,9 +264,8 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 	go func() {
 		defer wg.Done()
 		SubscribeAndStoreChannelEvents(ctx, client, db,
-			commons.GetNodeSettingsByNodeId(
-				commons.GetNodeIdByPublicKey(testutil.TestPublicKey1, commons.Bitcoin, commons.SigNet)),
-			make(map[ImportType]time.Time))
+			cache.GetNodeSettingsByNodeId(
+				cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)))
 	}()
 	wg.Wait()
 
@@ -340,7 +338,7 @@ func startDummyChannelChangesListener() {
 
 func startDummyChannelBalanceChangesListener() {
 	for {
-		channelEvent := <-commons.ChannelBalanceChanges
+		channelEvent := <-cache.ChannelBalanceChanges
 		log.Debug().Msgf("Not processing %v in a test case.", channelEvent)
 	}
 }

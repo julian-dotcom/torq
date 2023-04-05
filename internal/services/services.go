@@ -3,55 +3,43 @@ package services
 import (
 	"time"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 type CommonService struct {
-	Status       commons.ServiceStatus `json:"status"`
-	StatusString string                `json:"statusString"`
-	BootTime     *time.Time            `json:"bootTime,omitempty"`
+	ServiceType       core.ServiceType   `json:"type"`
+	ServiceTypeString string             `json:"typeString"`
+	Status            core.ServiceStatus `json:"status"`
+	StatusString      string             `json:"statusString"`
+	BootTime          *time.Time         `json:"bootTime,omitempty"`
 }
-type TorqService struct {
+type CoreService struct {
 	CommonService
-	Version string `json:"version"`
-}
-
-type Service struct {
-	CommonService
-	NodeId     *int                `json:"nodeId,omitempty"`
-	Type       commons.ServiceType `json:"type"`
-	TypeString string              `json:"typeString"`
-}
-
-type Stream struct {
-	CommonService
-	NodeId     int                        `json:"nodeId,omitempty"`
-	Type       commons.SubscriptionStream `json:"type"`
-	TypeString string                     `json:"typeString"`
 }
 
 type LndService struct {
 	CommonService
-	NodeId         int             `json:"nodeId"`
-	BitcoinNetwork commons.Network `json:"bitcoinNetwork"`
-	StreamStatus   []Stream        `json:"streamStatus,omitempty"`
+	NodeId         int          `json:"nodeId"`
+	BitcoinNetwork core.Network `json:"bitcoinNetwork"`
 }
 
-type VectorService struct {
-	CommonService
-	NodeId int `json:"nodeId"`
-}
-
-type AmbossService struct {
-	CommonService
-	NodeId int `json:"nodeId"`
+type ServiceMismatch struct {
+	ServiceType         core.ServiceType   `json:"type"`
+	ServiceTypeString   string             `json:"typeString"`
+	Status              core.ServiceStatus `json:"status"`
+	StatusString        string             `json:"statusString"`
+	DesiredStatus       core.ServiceStatus `json:"desiredStatus"`
+	DesiredStatusString string             `json:"desiredStatusString"`
+	NodeId              *int               `json:"nodeId,omitempty"`
+	BitcoinNetwork      *core.Network      `json:"bitcoinNetwork,omitempty"`
+	FailureTime         *time.Time         `json:"failureTime,omitempty"`
 }
 
 type Services struct {
-	BitcoinNetworks []commons.Network `json:"bitcoinNetworks"`
-	TorqService     TorqService       `json:"torqService"`
-	LndServices     []LndService      `json:"lndServices,omitempty"`
-	Services        []Service         `json:"services,omitempty"`
-	VectorServices  []VectorService   `json:"vectorServices,omitempty"`
-	AmbossServices  []AmbossService   `json:"ambossServices,omitempty"`
+	Version           string            `json:"version"`
+	BitcoinNetworks   []core.Network    `json:"bitcoinNetworks"`
+	MainService       CoreService       `json:"mainService"`
+	TorqServices      []CoreService     `json:"torqServices"`
+	LndServices       []LndService      `json:"lndServices,omitempty"`
+	ServiceMismatches []ServiceMismatch `json:"serviceMismatches,omitempty"`
 }

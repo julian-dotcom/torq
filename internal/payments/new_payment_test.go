@@ -8,16 +8,16 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 )
 
 func Test_processResponse(t *testing.T) {
 	tests := []struct {
 		name      string
 		requestId string
-		req       commons.NewPaymentRequest
+		req       core.NewPaymentRequest
 		input     *lnrpc.Payment
-		want      commons.NewPaymentResponse
+		want      core.NewPaymentResponse
 		wantErr   bool
 	}{{
 		name:      "Successful payment",
@@ -63,7 +63,7 @@ func Test_processResponse(t *testing.T) {
 			PaymentIndex:  234,
 			FailureReason: lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 		},
-		want: commons.NewPaymentResponse{
+		want: core.NewPaymentResponse{
 			RequestId:      "Unique ID here",
 			Status:         "SUCCEEDED",
 			FailureReason:  "FAILURE_REASON_NONE",
@@ -73,18 +73,18 @@ func Test_processResponse(t *testing.T) {
 			AmountMsat:     12000,
 			CreationDate:   time.Unix(1661252258, 0),
 			FeePaidMsat:    100,
-			Attempt: commons.Attempt{
+			Attempt: core.Attempt{
 				AttemptId: 1234,
 				Status:    "SUCCEEDED",
-				Route: commons.Route{
+				Route: core.Route{
 					TotalTimeLock: 10,
-					Hops: []commons.Hops{
+					Hops: []core.Hops{
 						{
 							ChanId:           "708152x2971x1",
 							Expiry:           0,
 							AmtToForwardMsat: 0,
 							PubKey:           "",
-							MppRecord: commons.MppRecord{
+							MppRecord: core.MppRecord{
 								PaymentAddr:  "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
 								TotalAmtMsat: 1200,
 							},
@@ -95,7 +95,7 @@ func Test_processResponse(t *testing.T) {
 				AttemptTimeNs: time.Unix(1661252259, 0),
 				ResolveTimeNs: time.Unix(1661252260, 0),
 				Preimage:      "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
-				Failure:       commons.FailureDetails{},
+				Failure:       core.FailureDetails{},
 			},
 		},
 	},
@@ -147,7 +147,7 @@ func Test_processResponse(t *testing.T) {
 				PaymentIndex:  234,
 				FailureReason: 0,
 			},
-			want: commons.NewPaymentResponse{
+			want: core.NewPaymentResponse{
 				RequestId:      "Unique ID here",
 				Status:         "FAILED",
 				FailureReason:  "FAILURE_REASON_NONE",
@@ -157,18 +157,18 @@ func Test_processResponse(t *testing.T) {
 				AmountMsat:     12000,
 				CreationDate:   time.Unix(1661252258, 0),
 				FeePaidMsat:    100,
-				Attempt: commons.Attempt{
+				Attempt: core.Attempt{
 					AttemptId: 12345,
 					Status:    "FAILED",
-					Route: commons.Route{
+					Route: core.Route{
 						TotalTimeLock: 10,
-						Hops: []commons.Hops{
+						Hops: []core.Hops{
 							{
 								ChanId:           "708152x2971x1",
 								Expiry:           0,
 								AmtToForwardMsat: 0,
 								PubKey:           "",
-								MppRecord: commons.MppRecord{
+								MppRecord: core.MppRecord{
 									PaymentAddr:  "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
 									TotalAmtMsat: 1200,
 								},
@@ -179,7 +179,7 @@ func Test_processResponse(t *testing.T) {
 					AttemptTimeNs: time.Unix(1661252259, 0),
 					ResolveTimeNs: time.Unix(0, 0),
 					Preimage:      "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
-					Failure: commons.FailureDetails{
+					Failure: core.FailureDetails{
 						Reason:             "INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS",
 						FailureSourceIndex: 1,
 						Height:             11,
@@ -208,12 +208,12 @@ func Test_newSendPaymentRequest(t *testing.T) {
 	tests := []struct {
 		name      string
 		requestId string
-		input     commons.NewPaymentRequest
+		input     core.NewPaymentRequest
 		want      *routerrpc.SendPaymentRequest
 	}{
 		{
 			name: "with allow self and fee limit",
-			input: commons.NewPaymentRequest{
+			input: core.NewPaymentRequest{
 				Invoice:          &destination,
 				TimeOutSecs:      3600,
 				Dest:             nil,
@@ -232,7 +232,7 @@ func Test_newSendPaymentRequest(t *testing.T) {
 		},
 		{
 			name: "with out any optional params",
-			input: commons.NewPaymentRequest{
+			input: core.NewPaymentRequest{
 				Invoice:     &destination,
 				TimeOutSecs: 3600,
 			},

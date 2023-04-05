@@ -3,10 +3,11 @@ package payments
 import (
 	"context"
 	"encoding/hex"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"io"
 	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/settings"
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -36,7 +37,7 @@ type rrpcClientSendPayment interface {
 func SendNewPayment(
 	webSocketResponseChannel chan<- interface{},
 	db *sqlx.DB,
-	npReq commons.NewPaymentRequest,
+	npReq core.NewPaymentRequest,
 	requestId string,
 ) (err error) {
 
@@ -60,7 +61,7 @@ func SendNewPayment(
 	return sendPayment(client, npReq, webSocketResponseChannel, requestId)
 }
 
-func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
+func newSendPaymentRequest(npReq core.NewPaymentRequest) (r *routerrpc.SendPaymentRequest, err error) {
 	newPayReq := &routerrpc.SendPaymentRequest{
 		TimeoutSeconds: npReq.TimeOutSecs,
 	}
@@ -96,7 +97,7 @@ func newSendPaymentRequest(npReq commons.NewPaymentRequest) (r *routerrpc.SendPa
 }
 
 func sendPayment(client rrpcClientSendPayment,
-	npReq commons.NewPaymentRequest,
+	npReq core.NewPaymentRequest,
 	webSocketResponseChannel chan<- interface{},
 	requestId string) (err error) {
 
@@ -160,8 +161,8 @@ func sendPayment(client rrpcClientSendPayment,
 	}
 }
 
-func processResponse(p *lnrpc.Payment, req commons.NewPaymentRequest, requestId string) commons.NewPaymentResponse {
-	r := commons.NewPaymentResponse{
+func processResponse(p *lnrpc.Payment, req core.NewPaymentRequest, requestId string) core.NewPaymentResponse {
+	r := core.NewPaymentResponse{
 		RequestId:     requestId,
 		Request:       req,
 		Status:        p.Status.String(),
@@ -186,8 +187,8 @@ func processResponse(p *lnrpc.Payment, req commons.NewPaymentRequest, requestId 
 		}
 
 		for _, hop := range attempt.Route.Hops {
-			h := commons.Hops{
-				ChanId:           commons.ConvertLNDShortChannelID(hop.ChanId),
+			h := core.Hops{
+				ChanId:           core.ConvertLNDShortChannelID(hop.ChanId),
 				AmtToForwardMsat: hop.AmtToForwardMsat,
 				Expiry:           hop.Expiry,
 				PubKey:           hop.PubKey,

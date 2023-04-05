@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/pkg/commons"
+	"github.com/lncapital/torq/pkg/cache"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -167,9 +167,9 @@ func getChannelTagsHandler(c *gin.Context, db *sqlx.DB) {
 
 	var tagIds []int
 	if req.NodeId == nil {
-		tagIds = commons.GetTagIdsByChannelId(0, req.ChannelId)
+		tagIds = cache.GetTagIdsByChannelId(0, req.ChannelId)
 	} else {
-		tagIds = commons.GetTagIdsByChannelId(*req.NodeId, req.ChannelId)
+		tagIds = cache.GetTagIdsByChannelId(*req.NodeId, req.ChannelId)
 	}
 	if len(tagIds) == 0 {
 		c.JSON(http.StatusOK, []Tag{})
@@ -189,7 +189,7 @@ func getNodeTagsHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
 		return
 	}
-	tagIds := commons.GetTagIdsByNodeId(nodeId)
+	tagIds := cache.GetTagIdsByNodeId(nodeId)
 	if len(tagIds) == 0 {
 		c.JSON(http.StatusOK, []Tag{})
 		return

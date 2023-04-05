@@ -39,65 +39,29 @@ export interface stringMap<T> {
 }
 
 export interface services {
-  torqService: {
-    status: number;
-    statusString: string;
-    bootTime: string | null;
-    version: string;
-  };
-  lndServices: {
-    status: number;
-    statusString: string;
-    bootTime: string | null;
-    nodeId: number;
-    type: number;
-    typeString: string;
-    streamStatus: {
-      status: number;
-      statusString: string;
-      bootTime: string | null;
-      nodeId: number;
-      type: number;
-      typeString: string;
-    }[];
-  }[];
-  services: {
-    status: number;
-    statusString: string;
-    bootTime: string | null;
-    nodeId: number | null;
-    type: number;
-    typeString: string;
-  }[];
-  vectorServices: {
-    status: number;
-    statusString: string;
-    bootTime: string | null;
-    nodeId: number;
-  }[];
-  ambossServices: {
-    status: number;
-    statusString: string;
-    bootTime: string | null;
-    nodeId: number;
-  }[];
+  version: string;
+  bitcoinNetworks: string[];
+  mainService: torqService;
+  torqServices: torqService[];
+  lndServices: lndService[];
 }
 
-export interface lndServices {
+export interface torqService {
   status: number;
   statusString: string;
   bootTime: string | null;
   nodeId: number;
   type: number;
   typeString: string;
-  streamStatus: {
-    status: number;
-    statusString: string;
-    bootTime: string | null;
-    nodeId: number;
-    type: number;
-    typeString: string;
-  }[];
+}
+
+export interface lndService {
+  status: number;
+  statusString: string;
+  bootTime: string | null;
+  nodeId: number;
+  type: number;
+  typeString: string;
 }
 
 export interface nodeWalletBalances {
