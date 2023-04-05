@@ -5,6 +5,10 @@ export interface settings {
   weekStartsOn: "saturday" | "sunday" | "monday";
   torqUuid: string;
   mixpanelOptOut: boolean;
+  slackOAuthToken: string;
+  slackBotAppToken: string;
+  telegramHighPriorityCredentials: string;
+  telegramLowPriorityCredentials: string;
 }
 export interface updateSettingsRequest {
   defaultDateRange: string;

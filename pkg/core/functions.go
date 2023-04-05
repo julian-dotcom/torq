@@ -233,6 +233,10 @@ func GetCoreServiceTypes() []ServiceType {
 		AutomationChannelEventTriggerService,
 		AutomationScheduledTriggerService,
 		CronService,
+		NotifierService,
+		SlackService,
+		TelegramHighService,
+		TelegramLowService,
 	}
 }
 
@@ -291,6 +295,14 @@ func (st *ServiceType) String() string {
 		return "MaintenanceService"
 	case CronService:
 		return "CronService"
+	case NotifierService:
+		return "NotifierService"
+	case SlackService:
+		return "SlackService"
+	case TelegramHighService:
+		return "TelegramHighService"
+	case TelegramLowService:
+		return "TelegramLowService"
 	case LndServiceChannelEventStream:
 		return "LndServiceChannelEventStream"
 	case LndServiceGraphEventStream:

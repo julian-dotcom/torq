@@ -12,6 +12,7 @@ require (
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/contrib v0.0.0-20201101042839-6a891bf89f19
 	github.com/gin-gonic/gin v1.7.7
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/gorilla/websocket v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -22,6 +23,7 @@ require (
 	github.com/playwright-community/playwright-go v0.2000.1
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.27.0
+	github.com/slack-go/slack v0.12.1
 	github.com/ulule/limiter/v3 v3.10.0
 	github.com/urfave/cli/v2 v2.8.1
 	go.uber.org/ratelimit v0.2.0

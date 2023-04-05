@@ -23,15 +23,19 @@ import (
 )
 
 type settings struct {
-	SettingsId        int        `json:"settingsId" db:"settings_id"`
-	DefaultDateRange  string     `json:"defaultDateRange" db:"default_date_range"`
-	DefaultLanguage   string     `json:"defaultLanguage" db:"default_language"`
-	PreferredTimezone string     `json:"preferredTimezone" db:"preferred_timezone"`
-	WeekStartsOn      string     `json:"weekStartsOn" db:"week_starts_on"`
-	TorqUuid          string     `json:"torqUuid" db:"torq_uuid"`
-	MixpanelOptOut    bool       `json:"mixpanelOptOut" db:"mixpanel_opt_out"`
-	CreatedOn         time.Time  `json:"createdOn" db:"created_on"`
-	UpdateOn          *time.Time `json:"updatedOn" db:"updated_on"`
+	SettingsId                      int        `json:"settingsId" db:"settings_id"`
+	DefaultDateRange                string     `json:"defaultDateRange" db:"default_date_range"`
+	DefaultLanguage                 string     `json:"defaultLanguage" db:"default_language"`
+	PreferredTimezone               string     `json:"preferredTimezone" db:"preferred_timezone"`
+	WeekStartsOn                    string     `json:"weekStartsOn" db:"week_starts_on"`
+	TorqUuid                        string     `json:"torqUuid" db:"torq_uuid"`
+	MixpanelOptOut                  bool       `json:"mixpanelOptOut" db:"mixpanel_opt_out"`
+	SlackOAuthToken                 *string    `json:"slackOAuthToken" db:"slack_oauth_token"`
+	SlackBotAppToken                *string    `json:"slackBotAppToken" db:"slack_bot_app_token"`
+	TelegramHighPriorityCredentials *string    `json:"telegramHighPriorityCredentials" db:"telegram_high_priority_credentials"`
+	TelegramLowPriorityCredentials  *string    `json:"telegramLowPriorityCredentials" db:"telegram_low_priority_credentials"`
+	CreatedOn                       time.Time  `json:"createdOn" db:"created_on"`
+	UpdateOn                        *time.Time `json:"updatedOn" db:"updated_on"`
 }
 
 type timeZone struct {
@@ -115,7 +119,6 @@ func getSettingsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
-
 	var setts settings
 	if err := c.BindJSON(&setts); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
@@ -125,6 +128,19 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 	if err != nil {
 		server_errors.LogAndSendServerError(c, err)
 		return
+	}
+	if setts.SlackBotAppToken != nil && *setts.SlackBotAppToken != "" &&
+		setts.SlackOAuthToken != nil && *setts.SlackOAuthToken != "" {
+		cache.SetDesiredCoreServiceState(core.SlackService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
+	}
+	if setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "" {
+		cache.SetDesiredCoreServiceState(core.TelegramHighService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
+	}
+	if setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "" {
+		cache.SetDesiredCoreServiceState(core.TelegramLowService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
 	}
 	c.JSON(http.StatusOK, setts)
 }

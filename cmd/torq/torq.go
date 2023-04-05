@@ -22,6 +22,7 @@ import (
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/cmd/torq/internal/amboss_ping"
+	"github.com/lncapital/torq/cmd/torq/internal/notifications"
 	"github.com/lncapital/torq/cmd/torq/internal/services"
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
@@ -618,7 +619,7 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 		}
 	}
 
-	log.Info().Msgf("%v Service booted for nodeId: %v", serviceType.String(), nodeId)
+	log.Info().Msgf("%v service booted for nodeId: %v", serviceType.String(), nodeId)
 	switch serviceType {
 	// NOT NODE ID SPECIFIC
 	case core.AutomationChannelBalanceEventTriggerService:
@@ -633,6 +634,14 @@ func bootService(db *sqlx.DB, serviceType core.ServiceType, nodeId int) {
 		go services.StartMaintenanceService(ctx, db)
 	case core.CronService:
 		go services.StartCronService(ctx, db)
+	case core.NotifierService:
+		go notifications.StartNotifier(ctx, db)
+	case core.SlackService:
+		go notifications.StartSlackListener(ctx, db)
+	case core.TelegramHighService:
+		go notifications.StartTelegramListeners(ctx, db, true)
+	case core.TelegramLowService:
+		go notifications.StartTelegramListeners(ctx, db, false)
 	// NODE SPECIFIC
 	case core.VectorService:
 		go vector_ping.Start(ctx, conn, nodeId)
@@ -684,6 +693,38 @@ func isBootable(serviceType core.ServiceType, nodeId int) bool {
 			len(nodeConnectionDetails.TLSFileBytes) == 0 {
 			log.Error().Msgf("%v failed to get connection details for node id: %v", serviceType.String(), nodeId)
 			cache.SetFailedLndServiceState(serviceType, nodeId)
+			return false
+		}
+	case core.TelegramHighService:
+		if cache.GetSettings().GetTelegramCredential(true) == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, core.ServiceInactive)
+			log.Info().Msgf("%v service deactivated since there are no credentials", serviceType.String())
+			return false
+		}
+	case core.TelegramLowService:
+		if cache.GetSettings().GetTelegramCredential(false) == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, core.ServiceInactive)
+			log.Info().Msgf("%v service deactivated since there are no credentials", serviceType.String())
+			return false
+		}
+	case core.SlackService:
+		oauth, botToken := cache.GetSettings().GetSlackCredential()
+		if oauth == "" || botToken == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, core.ServiceInactive)
+			log.Info().Msgf("%v service deactivated since there are no credentials", serviceType.String())
+			return false
+		}
+	case core.NotifierService:
+		oauth, botToken := cache.GetSettings().GetSlackCredential()
+		if (oauth == "" || botToken == "") &&
+			cache.GetSettings().GetTelegramCredential(true) == "" &&
+			cache.GetSettings().GetTelegramCredential(false) == "" {
+			cache.SetInactiveCoreServiceState(serviceType)
+			cache.SetDesiredCoreServiceState(serviceType, core.ServiceInactive)
+			log.Info().Msgf("%v Service deactivated since there are no credentials", serviceType.String())
 			return false
 		}
 	}

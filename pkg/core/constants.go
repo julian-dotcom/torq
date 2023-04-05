@@ -14,6 +14,10 @@ const (
 	VectorService
 	AmbossService
 	RebalanceService
+	SlackService
+	TelegramHighService
+	TelegramLowService
+	NotifierService
 	LndServiceChannelEventStream
 	LndServiceGraphEventStream
 	LndServiceTransactionStream
@@ -220,4 +224,10 @@ const (
 	BalanceUpdateForwardEvent = BalanceUpdateEventOrigin(iota)
 	BalanceUpdateInvoiceEvent
 	BalanceUpdatePaymentEvent
+)
+
+type NotificationType int
+
+const (
+	NodeDetails NotificationType = iota
 )
