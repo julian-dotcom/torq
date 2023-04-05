@@ -7,8 +7,8 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 func AddRebalance(db *sqlx.DB, rebalancer Rebalance) (int, error) {

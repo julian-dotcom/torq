@@ -1,10 +1,10 @@
 package channel_history
 
 import (
-	"github.com/lncapital/torq/internal/tags"
-	"github.com/lncapital/torq/pkg/cache"
-
 	"time"
+
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"

@@ -27,15 +27,15 @@ import (
 	"github.com/lncapital/torq/cmd/torq/internal/subscribe"
 	"github.com/lncapital/torq/cmd/torq/internal/torqsrv"
 	"github.com/lncapital/torq/cmd/torq/internal/vector_ping"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/corridors"
 	"github.com/lncapital/torq/internal/database"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/internal/tags"
+	"github.com/lncapital/torq/internal/vector"
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/lnd_connect"
-	"github.com/lncapital/torq/pkg/vector"
 )
 
 var debuglevels = map[string]zerolog.Level{ //nolint:gochecknoglobals

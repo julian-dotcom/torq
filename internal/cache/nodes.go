@@ -5,7 +5,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/core"
 )
 
 var NodesCacheChannel = make(chan NodeCache) //nolint:gochecknoglobals

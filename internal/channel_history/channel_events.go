@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
-	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/internal/cache"
 )
 
 type ChannelEvent struct {

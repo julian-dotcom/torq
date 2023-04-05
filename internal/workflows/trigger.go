@@ -13,11 +13,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 
+	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/tags"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/lightning"
 )
 
 type workflowVersionNodeIdInt int

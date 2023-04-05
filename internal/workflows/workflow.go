@@ -6,7 +6,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/core"
 )
 
 type WorkflowStatus int

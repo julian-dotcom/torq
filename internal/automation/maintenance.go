@@ -9,10 +9,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/vector"
+	"github.com/lncapital/torq/internal/vector"
 )
 
 const maintenanceQueueTickerSeconds = 60 * 60

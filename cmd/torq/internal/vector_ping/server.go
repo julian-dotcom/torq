@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/build"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/vector"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/vector"
 )
 
 const vectorSleepSeconds = 20

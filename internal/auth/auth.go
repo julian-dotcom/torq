@@ -14,8 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 )
 
 const Userkey = "user"

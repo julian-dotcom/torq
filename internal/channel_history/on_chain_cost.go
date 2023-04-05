@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
-	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/internal/cache"
 )
 
 func getTotalOnChainCost(db *sqlx.DB, nodeIds []int, from time.Time, to time.Time) (*uint64, error) {

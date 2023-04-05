@@ -10,10 +10,10 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/lightning"
-	"github.com/lncapital/torq/pkg/lnd"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning"
+	"github.com/lncapital/torq/internal/lnd"
 
 	"google.golang.org/grpc"
 )

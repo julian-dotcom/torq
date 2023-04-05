@@ -13,8 +13,8 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 )
 
 const streamForwardsTickerSeconds = 10

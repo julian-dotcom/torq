@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 
 	"github.com/cockroachdb/errors"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/payments"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 type wsRequest struct {

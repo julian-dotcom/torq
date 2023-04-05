@@ -3,7 +3,7 @@ package messages
 import (
 	"github.com/cockroachdb/errors"
 
-	"github.com/lncapital/torq/pkg/lightning"
+	"github.com/lncapital/torq/internal/lightning"
 )
 
 func verifyMessage(req VerifyMessageRequest) (VerifyMessageResponse, error) {

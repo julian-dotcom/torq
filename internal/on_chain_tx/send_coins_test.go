@@ -6,7 +6,7 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/core"
 )
 
 func Test_processSendRequest(t *testing.T) {

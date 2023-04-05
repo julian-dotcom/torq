@@ -18,10 +18,10 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/rebalances"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 const rebalanceQueueTickerSeconds = 10

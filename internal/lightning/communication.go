@@ -6,9 +6,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/lnd"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lnd"
 )
 
 func SetRoutingPolicy(db *sqlx.DB,

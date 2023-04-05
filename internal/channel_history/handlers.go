@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
