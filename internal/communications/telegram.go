@@ -31,8 +31,7 @@ import (
 
 const (
 	// Button texts
-	statusText = "status ✅"
-	//connectText  = "ping 🔗"
+	statusText   = "status ✅"
 	registerText = "register ⚡️"
 	settingsText = "settings ⚙️"
 
@@ -40,103 +39,8 @@ const (
 
 	activateNodeDetailText = "Node details 🟢"
 
-	//deactivateChannelStatusText       = "Channel Status 🛑"
-	//deactivateNodeChannelStatusButton = "nodeStatusDeactivate"
-	//deactivateChannelStatusButton     = "channelStatusDeactivate"
-	//
-	//activateChannelStatusText       = "Channel Status 🟢"
-	//activateNodeChannelStatusButton = "nodeStatusActivate"
-	//activateChannelStatusButton     = "channelStatusActivate"
-	//
-	//deactivateChannelHtlcText       = "Channel HTLC 🛑"
-	//deactivateNodeChannelHtlcButton = "nodeHtlcDeactivate"
-	//deactivateChannelHtlcButton     = "channelHtlcDeactivate"
-	//
-	//activateChannelHtlcText       = "Channel HTLC 🟢"
-	//activateNodeChannelHtlcButton = "nodeHtlcActivate"
-	//activateChannelHtlcButton     = "channelHtlcActivate"
-	//
-	//deactivateChannelTimeLockDeltaText       = "Channel Time lock Delta 🛑"
-	//deactivateNodeChannelTimeLockDeltaButton = "nodeTimeLockDeltaDeactivate"
-	//deactivateChannelTimeLockDeltaButton     = "channelTimeLockDeltaDeactivate"
-	//
-	//activateChannelTimeLockDeltaText       = "Channel Time lock Delta 🟢"
-	//activateNodeChannelTimeLockDeltaButton = "nodeTimeLockDeltaActivate"
-	//activateChannelTimeLockDeltaButton     = "channelTimeLockDeltaActivate"
-	//
-	//deactivateChannelFeeText       = "Channel Fee 🛑"
-	//deactivateNodeChannelFeeButton = "nodeFeeDeactivate"
-	//deactivateChannelFeeButton     = "channelFeeDeactivate"
-	//
-	//activateChannelFeeText       = "Channel Fee 🟢"
-	//activateNodeChannelFeeButton = "nodeFeeActivate"
-	//activateChannelFeeButton     = "channelFeeActivate"
-	//
-	//deactivateChannelFeeMismatchText       = "Channel Fee Mismatch 🛑"
-	//deactivateNodeChannelFeeMismatchButton = "nodeFeeMisMatchDeactivate"
-	//deactivateChannelFeeMismatchButton     = "channelFeeMatchDeactivate"
-	//
-	//activateChannelFeeMismatchText       = "Channel Fee Mismatch 🟢"
-	//activateNodeChannelFeeMismatchButton = "nodeFeeMisMatchActivate"
-	//activateChannelFeeMismatchButton     = "channelFeeMatchActivate"
-
 	SupportLink = "https://t.me/joinchat/V-Dks6zjBK4xZWY0"
 	SupportText = "LN.capital telegram channel"
-	//	help        = `For node specific settings (so all channels):
-	///settings $STATUS $OPTION [$PUBLICKEY]
-	//$PUBLICKEY only required when you have multiple nodes registered.
-	//$STATUS values: activate/deactivate
-	//Possible $OPTION values:
-	//	NodeDetails
-	//	ChannelStatus
-	//	ChannelHtlc
-	//	ChannelFee
-	//	ChannelTimeLockDelta
-	//	ChannelFeeMismatch
-	//
-	//For channel specific settings:
-	///settings $STATUS $OPTION $CHANNELID
-	//$CHANNELID is the identifier of the channel in the format of 505580x1917x1.
-	//$STATUS values: activate/deactivate
-	//Possible $OPTION values:
-	//	ChannelStatus
-	//	ChannelHtlc
-	//	ChannelFee
-	//	ChannelTimeLockDelta
-	//	ChannelFeeMismatch`
-
-	//channelSettingsMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(activateChannelTimeLockDeltaText, activateChannelTimeLockDeltaButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(activateChannelFeeMismatchText, activateChannelFeeMismatchButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(activateChannelFeeText, activateChannelFeeButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(activateChannelStatusText, activateChannelStatusButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(activateChannelHtlcText, activateChannelHtlcButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(deactivateChannelTimeLockDeltaText, deactivateChannelTimeLockDeltaButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(deactivateChannelFeeMismatchText, deactivateChannelFeeMismatchButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(deactivateChannelFeeText, deactivateChannelFeeButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(deactivateChannelStatusText, deactivateChannelStatusButton),
-	//	),
-	//	tgbotapi.NewInlineKeyboardRow(
-	//		tgbotapi.NewInlineKeyboardButtonData(deactivateChannelHtlcText, deactivateChannelHtlcButton),
-	//	),
-	//)
 )
 
 func getMainMenu() tgbotapi.InlineKeyboardMarkup {
@@ -146,7 +50,6 @@ func getMainMenu() tgbotapi.InlineKeyboardMarkup {
 			tgbotapi.NewInlineKeyboardButtonData(registerText, RegisterButton),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			//tgbotapi.NewInlineKeyboardButtonData(connectText, PingButton),
 			tgbotapi.NewInlineKeyboardButtonData(statusText, StatusButton),
 			tgbotapi.NewInlineKeyboardButtonData(settingsText, SettingsButton),
 		),
@@ -449,26 +352,6 @@ func SendNodeSettingsMenu(db *sqlx.DB,
 	SendTelegramBotMessages(messageForBot, communicationTargetType)
 }
 
-//func sendChannelSettingsMenu(ctx context.Context, chatId int64, db *sqlx.DB,
-//	communicationTargetType commons.CommunicationTargetType, highPriority bool, bot *tgbotapi.BotAPI, messageForBot *tgbotapi.Message) {
-//
-//	channelIdMsg := "Channel settings\n🟢 = Activate, 🛑 = Deactivate\nThe channelid in the format `505580x1917x1` should be specified\n" +
-//		"To set up the channel id, use the command /channelid $CHANNELID\n\n"
-//
-//	if channelId != "" {
-//		channelIdMsg = fmt.Sprintf("Current channelId: %s \n🟢 = Activate, 🛑 = Deactivate\nTo set up the channelId use the command /channelid $CHANNELID \n", channelId)
-//	}
-//	msg := tgbotapi.NewMessage(chatId, channelIdMsg)
-//	msg.ParseMode = tgbotapi.ModeHTML
-//	msg.ReplyMarkup = channelSettingsMenuMarkup
-//	_, err := bot.Send(msg)
-//	if err != nil {
-//		if !errors.Is(ctx.Err(), context.Canceled) {
-//			log.Error().Err(err).Msgf("Telegram bot Send failed (sendChannelSettingsMenu): %v", msg.Text)
-//		}
-//	}
-//}
-
 func getNodeSettingsMenuMarkup(nodeDetailsActive bool) tgbotapi.InlineKeyboardMarkup {
 	var rows [][]tgbotapi.InlineKeyboardButton
 	var button tgbotapi.InlineKeyboardButton
@@ -479,34 +362,4 @@ func getNodeSettingsMenuMarkup(nodeDetailsActive bool) tgbotapi.InlineKeyboardMa
 	}
 	rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
 	return tgbotapi.NewInlineKeyboardMarkup(rows...)
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(activateChannelTimeLockDeltaText, activateNodeChannelTimeLockDeltaButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(activateChannelFeeMismatchText, activateNodeChannelFeeMismatchButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(activateChannelFeeText, activateNodeChannelFeeButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(activateChannelStatusText, activateNodeChannelStatusButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(activateChannelHtlcText, activateNodeChannelHtlcButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(deactivateChannelTimeLockDeltaText, deactivateNodeChannelTimeLockDeltaButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(deactivateChannelFeeMismatchText, deactivateNodeChannelFeeMismatchButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(deactivateChannelFeeText, deactivateNodeChannelFeeButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(deactivateChannelStatusText, deactivateNodeChannelStatusButton),
-	//),
-	//tgbotapi.NewInlineKeyboardRow(
-	//	tgbotapi.NewInlineKeyboardButtonData(deactivateChannelHtlcText, deactivateNodeChannelHtlcButton),
-	//),
 }

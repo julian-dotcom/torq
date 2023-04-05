@@ -86,12 +86,6 @@ func SendSlackBotMessages(botMessage MessageForBot) {
 	attachment := slack.Attachment{
 		Text: botMessage.Message,
 	}
-	//if botMsg.Slack.ReplyTo != "" {
-	//	attachment.Fields = append(attachment.Fields, slack.AttachmentField{
-	//		Title: "Initializer",
-	//		Value: botMsg.Slack.ReplyTo,
-	//	})
-	//}
 	if botMessage.Slack.Pretext != "" {
 		attachment.Pretext = botMessage.Slack.Pretext
 	}
