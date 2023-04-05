@@ -29,7 +29,7 @@ func getSettings(db *sqlx.DB) (settings, error) {
 func InitializeSettingsCache(db *sqlx.DB) error {
 	settingsData, err := getSettings(db)
 	if err == nil {
-		log.Debug().Msg("Pushing settings to ManagedSettings cache.")
+		log.Debug().Msg("Pushing settings to SettingsCache cache.")
 		cache.SetSettings(settingsData.DefaultDateRange, settingsData.DefaultLanguage, settingsData.WeekStartsOn,
 			settingsData.PreferredTimezone, settingsData.TorqUuid, settingsData.MixpanelOptOut,
 			settingsData.SlackOAuthToken, settingsData.SlackBotAppToken,
