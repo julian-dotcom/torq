@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -34,6 +35,10 @@ func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 
 		err := socketClient.RunContext(ctx)
 		if err != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				cache.SetInactiveCoreServiceState(serviceType)
+				return
+			}
 			log.Error().Err(err).Msgf("Disconnected from Slack")
 			cache.SetFailedCoreServiceState(serviceType)
 			return
