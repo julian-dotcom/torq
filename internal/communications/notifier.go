@@ -105,6 +105,7 @@ var PublicKeys = map[CommunicationTargetType]map[string]string{ //nolint:gocheck
 }
 
 type Menu string
+type nodeId int
 
 const (
 	MenuMain    Menu = "main"
@@ -132,9 +133,9 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 
 	serviceType := core.NotifierService
 
-	informationResponses := make(map[int]core.InformationResponse)
-	graphInSyncTime := make(map[int]time.Time)
-	chainInSyncTime := make(map[int]time.Time)
+	informationResponses := make(map[nodeId]core.InformationResponse)
+	graphInSyncTime := make(map[nodeId]time.Time)
+	chainInSyncTime := make(map[nodeId]time.Time)
 
 	ticker := clock.New().Tick(30 * time.Second)
 
@@ -162,18 +163,20 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 				var newInformation core.InformationResponse
 				if cache.IsLndServiceActive(torqNodeSettings.NodeId) {
 					newInformation, err = lightning.GetInformationRequest(torqNodeSettings.NodeId)
+					if err != nil {
+						log.Error().Err(err).Msgf(
+							"Failed to obtain node information from: %v or publicKey: %v",
+							torqNodeSettings.NodeId, torqNodeSettings.PublicKey)
+					}
 				} else {
-					_, exists := informationResponses[torqNodeSettings.NodeId]
+					_, exists := informationResponses[nodeId(torqNodeSettings.NodeId)]
 					if !exists {
 						continue
 					}
 					err = errors.New("LndService is offline")
-					delete(informationResponses, torqNodeSettings.NodeId)
+					delete(informationResponses, nodeId(torqNodeSettings.NodeId))
 				}
 				if err != nil {
-					log.Error().Err(err).Msgf(
-						"Failed to obtain node information from: %v or publicKey: %v",
-						torqNodeSettings.NodeId, torqNodeSettings.PublicKey)
 					message := fmt.Sprintf("Could not connect to LND (%v)", torqNodeSettings.PublicKey)
 					if torqNodeSettings.Name != nil && *torqNodeSettings.Name != "" {
 						message = fmt.Sprintf("Could not connect to LND (%v)", *torqNodeSettings.Name)
@@ -181,9 +184,9 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 					sendBotMessages(message, communications)
 					continue
 				}
-				previousInformation, exists := informationResponses[torqNodeSettings.NodeId]
+				previousInformation, exists := informationResponses[nodeId(torqNodeSettings.NodeId)]
 				if !exists {
-					informationResponses[torqNodeSettings.NodeId] = newInformation
+					informationResponses[nodeId(torqNodeSettings.NodeId)] = newInformation
 					message := fmt.Sprintf("Connected to LND (%v)", torqNodeSettings.PublicKey)
 					if torqNodeSettings.Name != nil && *torqNodeSettings.Name != "" {
 						message = fmt.Sprintf("Connected to LND (%v)", *torqNodeSettings.Name)
@@ -199,7 +202,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 				message = compareInactiveChannelCount(previousInformation, newInformation, message)
 				message = compareActiveChannelCount(previousInformation, newInformation, message)
 				message = compareVersion(previousInformation, newInformation, message)
-				informationResponses[torqNodeSettings.NodeId] = newInformation
+				informationResponses[nodeId(torqNodeSettings.NodeId)] = newInformation
 				if message != "" {
 					sendBotMessages(message, communications)
 				}
@@ -251,17 +254,17 @@ func HandleNotification(db *sqlx.DB, notifierEvent core.NotifierEvent) {
 
 func compareGraphSyncTime(previousInformation core.InformationResponse,
 	newInformation core.InformationResponse,
-	graphInSyncTime map[int]time.Time,
+	graphInSyncTime map[nodeId]time.Time,
 	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.GraphSynced {
-		graphInSyncTime[torqNodeSettings.NodeId] = time.Now()
+		graphInSyncTime[nodeId(torqNodeSettings.NodeId)] = time.Now()
 		if !previousInformation.GraphSynced {
 			message = message + "Graph is synced\n"
 		}
 	}
-	lastGraphInSyncTime, lastGraphInSyncTimeExists := graphInSyncTime[torqNodeSettings.NodeId]
+	lastGraphInSyncTime, lastGraphInSyncTimeExists := graphInSyncTime[nodeId(torqNodeSettings.NodeId)]
 	if lastGraphInSyncTimeExists && int(time.Since(lastGraphInSyncTime).Seconds()) > 60 {
 		message = message + "Graph is out of sync\n"
 	}
@@ -270,17 +273,17 @@ func compareGraphSyncTime(previousInformation core.InformationResponse,
 
 func compareChainSyncTime(previousInformation core.InformationResponse,
 	newInformation core.InformationResponse,
-	chainInSyncTime map[int]time.Time,
+	chainInSyncTime map[nodeId]time.Time,
 	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.ChainSynced {
-		chainInSyncTime[torqNodeSettings.NodeId] = time.Now()
+		chainInSyncTime[nodeId(torqNodeSettings.NodeId)] = time.Now()
 		if !previousInformation.ChainSynced {
 			message = message + "Chain is synced\n"
 		}
 	}
-	lastChainInSyncTime, lastChainInSyncTimeExists := chainInSyncTime[torqNodeSettings.NodeId]
+	lastChainInSyncTime, lastChainInSyncTimeExists := chainInSyncTime[nodeId(torqNodeSettings.NodeId)]
 	if lastChainInSyncTimeExists && int(time.Since(lastChainInSyncTime).Seconds()) > 60 {
 		message = message + "Chain is out of sync\n"
 	}
