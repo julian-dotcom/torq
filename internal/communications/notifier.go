@@ -64,11 +64,6 @@ type CommunicationType byte
 // When adding here also add to GetCommunicationTypes
 const (
 	NodeDetailsChanged CommunicationType = 1 << iota
-	//ChannelStatusChanged
-	//ChannelHtlcChanged
-	//ChannelFeeChanged
-	//ChannelTimeLockDeltaChanged
-	//ChannelFeeMismatch
 )
 
 func GetCommunicationType(communicationTypeString string) *CommunicationType {
@@ -76,16 +71,6 @@ func GetCommunicationType(communicationTypeString string) *CommunicationType {
 	switch communicationTypeString {
 	case "nodeDetailsDeactivate", "nodeDetailsActivate":
 		communicationType = NodeDetailsChanged
-	//case "nodeStatusActivate", "nodeStatusDeactivate", "channelStatusDeactivate", "channelStatusActivate":
-	//	communicationType = ChannelStatusChanged
-	//case "nodeHtlcDeactivate", "nodeHtlcActivate", "channelHtlcDeactivate", "channelHtlcActivate":
-	//	communicationType = ChannelHtlcChanged
-	//case "nodeFeeDeactivate", "nodeFeeActivate", "channelFeeDeactivate", "channelFeeActivate":
-	//	communicationType = ChannelFeeChanged
-	//case "nodeTimeLockDeltaDeactivate", "nodeTimeLockDeltaActivate", "channelTimeLockDeltaDeactivate", "channelTimeLockDeltaActivate":
-	//	communicationType = ChannelTimeLockDeltaChanged
-	//case "nodeFeeMisMatchDeactivate", "nodeFeeMisMatchActivate", "channelFeeMatchDeactivate", "channelFeeMatchActivate":
-	//	communicationType = ChannelFeeMismatch
 	default:
 		return nil
 	}
@@ -122,16 +107,14 @@ var PublicKeys = map[CommunicationTargetType]map[string]string{ //nolint:gocheck
 type Menu string
 
 const (
-	MenuMain         Menu = "main"
-	MenuSupport      Menu = "support"
-	MenuNodeSettings Menu = "nodeSettings"
+	MenuMain    Menu = "main"
+	MenuSupport Menu = "support"
 )
 
 const (
-	MenuButton   = "menu"
-	VectorButton = "vector"
-	StatusButton = "status"
-	//PingButton      = "ping"
+	MenuButton       = "menu"
+	VectorButton     = "vector"
+	StatusButton     = "status"
 	RegisterButton   = "register"
 	UnregisterButton = "unregister"
 	SettingsButton   = "settings"
@@ -260,12 +243,6 @@ func HandleNotification(db *sqlx.DB, notifierEvent core.NotifierEvent) {
 			message = message + "Alias changed.\n"
 		}
 		// TODO FIXME fix sorting of the data in Features and Addresses before comparing
-		//if nodeGraphEvent.Features != nodeGraphEvent.PreviousEventData.Features {
-		//	message = message + "Features changed.\n"
-		//}
-		//if nodeGraphEvent.Addresses != nodeGraphEvent.PreviousEventData.Addresses {
-		//	message = message + "Addresses changed.\n"
-		//}
 		if message != "" {
 			sendBotMessages(message, communications)
 		}
@@ -415,10 +392,7 @@ func HandleMessage(db *sqlx.DB,
 	case SettingsButton:
 		if messageForBot.IsTelegram() {
 			SendNodeSettingsMenu(db, communicationTargetType, messageForBot)
-			//telegram.SendChannelSettingsMenu(db, userId, communicationTargetType, messageForBot)
 		}
-	//case PingButton:
-	//	messageForBot = processPingRequest(db, communicationTargetType, messageFromChannel, messageForBot)
 	case RegisterButton:
 		messageForBot = processRegisterRequest(db, communicationTargetType, cache.GetActiveTorqNodeSettings(),
 			messageForBot)
@@ -426,14 +400,6 @@ func HandleMessage(db *sqlx.DB,
 		messageForBot = processUnregisterRequest(db, communicationTargetType, messageForBot)
 	case PublicKeyButton:
 		PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()] = publicKeyFromChannel
-		//messageForBot.Menus = []Menu{MenuNodeSettings}
-		//if messageForBot.IsTelegram() {
-		//telegram.SendChannelSettingsMenu(db, userId, communicationTargetType, messageForBot)
-		//}
-	//case ChannelIdButton:
-	//	ChannelIds[communicationTargetType][messageForBot.GetChannelIdentifier()] = messageFromChannel
-	//	sendNodeSettingsMenu(ctx, messageForBot.Chat.ID, db, communicationTargetType, highPriority, bot, messageForBot)
-	//	sendChannelSettingsMenu(ctx, messageForBot.Chat.ID, db, communicationTargetType, highPriority, bot, messageForBot)
 	case MenuButton:
 		fallthrough
 	default:
@@ -455,22 +421,19 @@ func HandleButton(db *sqlx.DB,
 	messageFromChannel string,
 	communicationTargetType CommunicationTargetType) {
 
-	communicationIds := getCommunicationIds(db, messageForBot)
 	switch commandFromChannel {
 	case VectorButton:
 		fallthrough
 	case StatusButton:
 		messageForBot = processStatusRequest(db, communicationTargetType, messageFromChannel, messageForBot)
 	case SettingsButton:
-		messageForBot = processSettingsRequest(db, communicationIds, communicationTargetType, messageFromChannel, messageForBot)
-	//case PingButton:
-	//	messageForBot = processPingRequest(db, communicationTargetType, messageFromChannel, messageForBot)
+		messageForBot = processSettingsRequest(db, communicationTargetType, messageFromChannel, messageForBot)
 	case RegisterButton:
 		messageForBot = processRegisterRequest(db, communicationTargetType, cache.GetActiveTorqNodeSettings(), messageForBot)
 	case UnregisterButton:
 		messageForBot = processUnregisterRequest(db, communicationTargetType, messageForBot)
 	default:
-		messageForBot = processSettingsRequest(db, communicationIds, communicationTargetType, messageFromChannel, messageForBot)
+		messageForBot = processSettingsRequest(db, communicationTargetType, messageFromChannel, messageForBot)
 	}
 	if messageForBot.HasMessage() || messageForBot.HasMenu() {
 		switch communicationTargetType {
@@ -483,7 +446,6 @@ func HandleButton(db *sqlx.DB,
 }
 
 func processSettingsRequest(db *sqlx.DB,
-	communicationIds []int,
 	communicationTargetType CommunicationTargetType,
 	settings string,
 	messageForBot MessageForBot) MessageForBot {
@@ -491,15 +453,6 @@ func processSettingsRequest(db *sqlx.DB,
 	nodeSettings := map[string]bool{
 		"nodeDetailsDeactivate": true,
 		"nodeDetailsActivate":   true,
-		//"nodeStatusActivate":    true,
-		//"nodeHtlcDeactivate":        true,
-		//"nodeHtlcActivate":          true,
-		//"nodeTimeLockDeltactivate":  true,
-		//"nodeTimeLockDeltaActivate": true,
-		//"nodeFeeDeactivate":         true,
-		//"nodeFeeActivate":           true,
-		//"nodeFeeMisMatchDeactivate": true,
-		//"nodeFeeMisMatchActivate":   true,
 	}
 
 	if settings == "" {
@@ -526,7 +479,6 @@ func processSettingsRequest(db *sqlx.DB,
 			messageForBot.Error = err.Error()
 			return messageForBot
 		}
-		//	channelIds, err = channels.GetChannelIdsByChatId(db, botMessage.Chat.ID, communicationTargetType, channelId)
 	}
 
 	if len(channelIds) != 1 && len(nodeIds) != 1 {
@@ -743,55 +695,4 @@ func getNodeIds(db *sqlx.DB,
 		return nodeIds, messageForBot
 	}
 	return nodeIds, messageForBot
-}
-
-//func processPingRequest(db *sqlx.DB,
-//	communicationTargetType CommunicationTargetType,
-//	publicKey string,
-//	messageForBot MessageForBot) MessageForBot {
-//
-//	var nodeIds []int
-//	nodeIds, messageForBot = getNodeIds(db, communicationTargetType, publicKey, messageForBot)
-//	if len(nodeIds) > 1 {
-//		messageForBot.Message = "Please specify node via $PUBLICKEY parameter"
-//		return messageForBot
-//	}
-//	nodeInformation, connectionDuration, err := lnd.GetNodeInfoAndConnect(nodeIds[0], true)
-//	if err != nil {
-//		log.Error().Err(err).Msgf("Failed to get node information for nodeId: %v", nodeIds[0])
-//		messageForBot.Message = "We could not connect to your node.\nMake sure it is correctly registered and referenced."
-//		messageForBot.Error = err.Error()
-//		return messageForBot
-//	}
-//	p := message.NewPrinter(language.English)
-//	inputText := fmt.Sprintf("%v (%v)\nChannels: %v\nCapacity: %v sats (%v btc)\n",
-//		nodeInformation.Node.Alias, nodeInformation.Node.Color,
-//		p.Sprintf("%d", nodeInformation.NumChannels),
-//		p.Sprintf("%d", nodeInformation.TotalCapacity),
-//		p.Sprintf("%d", nodeInformation.TotalCapacity/100_000_000))
-//	if nodeInformation.Node.Addresses != nil && len(nodeInformation.Node.Addresses) > 0 {
-//		for _, address := range nodeInformation.Node.Addresses {
-//			inputText = inputText + fmt.Sprintf("Address (%v): %v\n", address.Network, address.Addr)
-//		}
-//	}
-//	messageForBot.Message = inputText + fmt.Sprintf("Time to connect: %s", connectionDuration)
-//	return messageForBot
-//}
-
-func getCommunicationIds(db *sqlx.DB, messageForBot MessageForBot) []int {
-	if messageForBot.IsSlack() {
-		communicationIds, err := GetCommunicationIdsByTargetText(db, messageForBot.Slack.Channel)
-		if err != nil {
-			log.Error().Err(err).Msgf("Slack bot Get communicationIds By Channel failed channel: %v (%v)", messageForBot.Slack.Channel, messageForBot.Slack.ReplyTo)
-		}
-		return communicationIds
-	}
-	if messageForBot.IsTelegram() {
-		communicationIds, err := GetCommunicationIdsByTargetNumber(db, messageForBot.Telegram.Id)
-		if err != nil {
-			log.Error().Err(err).Msgf("Telegram bot Get communicationIds By ChatId failed chatId: %v (%v)", messageForBot.Telegram.Id, messageForBot.Telegram.ReplyToMessageId)
-		}
-		return communicationIds
-	}
-	return nil
 }
