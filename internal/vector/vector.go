@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/build"
-	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/internal/cache"
 )
 
 const VectorUrl = "https://vector.ln.capital/"

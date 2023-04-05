@@ -7,9 +7,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/communications"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/core"
 )
 
 func StartNotifier(ctx context.Context, db *sqlx.DB) {

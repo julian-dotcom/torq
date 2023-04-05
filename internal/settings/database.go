@@ -9,9 +9,9 @@ import (
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 func getSettings(db *sqlx.DB) (settings, error) {

@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/lncapital/torq/pkg/core"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 

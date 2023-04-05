@@ -16,8 +16,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 )
 
 const ambossSleepSeconds = 25

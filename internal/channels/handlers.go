@@ -17,10 +17,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/tags"
-	"github.com/lncapital/torq/pkg/cache"
 
-	"github.com/lncapital/torq/pkg/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 

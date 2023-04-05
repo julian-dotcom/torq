@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/automation"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 func StartIntervalService(ctx context.Context, db *sqlx.DB) {

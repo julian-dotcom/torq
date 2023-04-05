@@ -4,15 +4,15 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/tags"
-	"github.com/lncapital/torq/pkg/cache"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 func GetAllChannels(db *sqlx.DB) (channels []Channel, err error) {

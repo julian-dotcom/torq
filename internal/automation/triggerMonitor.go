@@ -12,10 +12,10 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lnd"
 	"github.com/lncapital/torq/internal/workflows"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/lnd"
 )
 
 const workflowTickerSeconds = 10

@@ -10,9 +10,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/lightning"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -47,7 +46,7 @@ func updateRoutingPolicyHandler(c *gin.Context, db *sqlx.DB) {
 	requestBody.RateLimitSeconds = 1
 	requestBody.RateLimitCount = 10
 
-	_, responseMessage, err := lightning.SetRoutingPolicy(db, requestBody.NodeId,
+	_, responseMessage, err := SetRoutingPolicy(db, requestBody.NodeId,
 		requestBody.RateLimitSeconds, requestBody.RateLimitCount,
 		requestBody.ChannelId,
 		requestBody.FeeRateMilliMsat, requestBody.FeeBaseMsat,
@@ -81,7 +80,7 @@ func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB) {
 			continue
 		}
 		totalBalance, confirmedBalance, unconfirmedBalance, lockedBalance, reservedBalanceAnchorChan, err :=
-			lightning.GetWalletBalance(activeTorqNode.NodeId)
+			GetWalletBalance(activeTorqNode.NodeId)
 		if err != nil {
 			errorMsg := fmt.Sprintf("Error retrieving wallet balance for nodeId: %v", activeTorqNode.NodeId)
 			server_errors.WrapLogAndSendServerError(c, err, errorMsg)

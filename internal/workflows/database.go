@@ -11,8 +11,8 @@ import (
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 //func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {

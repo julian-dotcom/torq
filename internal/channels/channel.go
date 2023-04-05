@@ -3,16 +3,16 @@ package channels
 import (
 	"time"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/tags"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/vector"
+	"github.com/lncapital/torq/internal/vector"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/core"
 )
 
 // GetClosureStatus returns Closing when our API is outdated and a new lnrpc.ChannelCloseSummary_ClosureType is added

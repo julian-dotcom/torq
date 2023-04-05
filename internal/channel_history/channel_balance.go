@@ -7,7 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/pkg/cache"
+	"github.com/lncapital/torq/internal/cache"
 )
 
 type Balance struct {

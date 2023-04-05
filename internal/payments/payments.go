@@ -9,8 +9,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 
+	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/pkg/cache"
 )
 
 type Payment struct {

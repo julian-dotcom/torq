@@ -15,9 +15,9 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/build"
-	"github.com/lncapital/torq/pkg/cache"
-	"github.com/lncapital/torq/pkg/core"
-	"github.com/lncapital/torq/pkg/lightning"
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning"
 )
 
 type MessageForBot struct {

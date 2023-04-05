@@ -3,7 +3,7 @@ package nodes
 import (
 	"time"
 
-	"github.com/lncapital/torq/pkg/core"
+	"github.com/lncapital/torq/internal/core"
 )
 
 type Node struct {
