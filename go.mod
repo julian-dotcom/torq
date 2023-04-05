@@ -7,7 +7,7 @@ require (
 	github.com/btcsuite/btcd v0.23.4
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1
 	github.com/cockroachdb/errors v1.9.0
-	github.com/docker/docker v23.0.1+incompatible
+	github.com/docker/docker v23.0.3+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/contrib v0.0.0-20201101042839-6a891bf89f19
