@@ -567,7 +567,7 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing workflow version node for workflowVersionNodeId: %v", workflowVersionNodeId))
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprint("Successfully deleted workflow version node.")})
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted workflow version node."})
 }
 
 func addNodeLinkHandler(c *gin.Context, db *sqlx.DB) {

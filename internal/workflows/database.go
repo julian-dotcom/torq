@@ -993,54 +993,54 @@ func updateNodeDeleted(db *sqlx.DB, workflowNodeId int) error {
 	return nil
 }
 
-func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
-	tx := db.MustBegin()
-
-	// delete all node logs that are connected to this node,
-	_, err := tx.Exec(`
-		DELETE FROM workflow_version_node_log
-		       WHERE workflow_version_node_id=$1 OR triggering_workflow_version_node_id=$1`,
-		workflowVersionNodeId)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
-		}
-		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
-	}
-
-	// delete all node Links that are connected to this node
-	_, err = tx.Exec(`
-		DELETE FROM workflow_version_node_link
-		       WHERE parent_workflow_version_node_id=$1 OR child_workflow_version_node_id=$1`,
-		workflowVersionNodeId)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
-		}
-		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
-	}
-
-	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id=$1;`,
-		workflowVersionNodeId)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return 0, errors.Wrap(rollbackErr, "Deleting the node (rollback failed too)")
-		}
-		return 0, errors.Wrap(err, "Deleting the node")
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return 0, errors.Wrap(err, "Committing the transaction while deleting the node")
-	}
-
-	_, err = res.RowsAffected()
-	if err != nil {
-		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
-	}
-
-	return workflowVersionNodeId, nil
-}
+//func deleteNode(db *sqlx.DB, workflowVersionNodeId int) (int, error) {
+//	tx := db.MustBegin()
+//
+//	// delete all node logs that are connected to this node,
+//	_, err := tx.Exec(`
+//		DELETE FROM workflow_version_node_log
+//		       WHERE workflow_version_node_id=$1 OR triggering_workflow_version_node_id=$1`,
+//		workflowVersionNodeId)
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
+//		}
+//		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
+//	}
+//
+//	// delete all node Links that are connected to this node
+//	_, err = tx.Exec(`
+//		DELETE FROM workflow_version_node_link
+//		       WHERE parent_workflow_version_node_id=$1 OR child_workflow_version_node_id=$1`,
+//		workflowVersionNodeId)
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return 0, errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
+//		}
+//		return 0, errors.Wrap(err, "Deleting the node links while deleting node")
+//	}
+//
+//	res, err := tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id=$1;`,
+//		workflowVersionNodeId)
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return 0, errors.Wrap(rollbackErr, "Deleting the node (rollback failed too)")
+//		}
+//		return 0, errors.Wrap(err, "Deleting the node")
+//	}
+//
+//	err = tx.Commit()
+//	if err != nil {
+//		return 0, errors.Wrap(err, "Committing the transaction while deleting the node")
+//	}
+//
+//	_, err = res.RowsAffected()
+//	if err != nil {
+//		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
+//	}
+//
+//	return workflowVersionNodeId, nil
+//}
 
 func updateStageDeleted(db *sqlx.DB, workflowVersionId int, stage int) error {
 	tx := db.MustBegin()
@@ -1076,61 +1076,61 @@ func updateStageDeleted(db *sqlx.DB, workflowVersionId int, stage int) error {
 	return nil
 }
 
-// deleteStage deletes a stage by deleting all nodes and node links in a stage
-func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
-	tx := db.MustBegin()
-	var workflowVersionNodeIds []int
-	err := tx.Select(&workflowVersionNodeIds, `
-		SELECT workflow_version_node_id
-		FROM workflow_version_node
-		WHERE workflow_version_id = $1 AND stage = $2`, workflowVersionId, stage)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return errors.Wrap(rollbackErr, "Obtaining the node id while deleting node (rollback failed too)")
-		}
-		return errors.Wrap(err, "Obtaining the node id while deleting node")
-	}
-
-	// delete all node logs that are connected to this node,
-	_, err = tx.Exec(`
-		DELETE FROM workflow_version_node_log
-		       WHERE workflow_version_node_id = ANY ($1) OR triggering_workflow_version_node_id = ANY ($1)`,
-		pq.Array(workflowVersionNodeIds))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
-		}
-		return errors.Wrap(err, "Deleting the node links while deleting node")
-	}
-
-	// Delete all workflow_version_node_link where workflow_version_node_id is in the stage
-	_, err = tx.Exec(`
-		DELETE FROM workflow_version_node_link
-		       WHERE parent_workflow_version_node_id = ANY ($1) OR child_workflow_version_node_id = ANY ($1);`,
-		pq.Array(workflowVersionNodeIds))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return errors.Wrap(rollbackErr, "deleting workflow stage node links failed (rollback failed too)")
-		}
-		return errors.Wrap(err, "deleting workflow stage node links failed")
-	}
-
-	_, err = tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = ANY ($1);`,
-		pq.Array(workflowVersionNodeIds))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return errors.Wrap(rollbackErr, "deleting workflow stage nodes failed (rollback failed too)")
-		}
-		return errors.Wrap(err, "deleting workflow stage nodes failed")
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return errors.Wrap(err, "committing workflow stage deletion failed")
-	}
-
-	return nil
-}
+//// deleteStage deletes a stage by deleting all nodes and node links in a stage
+//func deleteStage(db *sqlx.DB, workflowVersionId int, stage int) error {
+//	tx := db.MustBegin()
+//	var workflowVersionNodeIds []int
+//	err := tx.Select(&workflowVersionNodeIds, `
+//		SELECT workflow_version_node_id
+//		FROM workflow_version_node
+//		WHERE workflow_version_id = $1 AND stage = $2`, workflowVersionId, stage)
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return errors.Wrap(rollbackErr, "Obtaining the node id while deleting node (rollback failed too)")
+//		}
+//		return errors.Wrap(err, "Obtaining the node id while deleting node")
+//	}
+//
+//	// delete all node logs that are connected to this node,
+//	_, err = tx.Exec(`
+//		DELETE FROM workflow_version_node_log
+//		       WHERE workflow_version_node_id = ANY ($1) OR triggering_workflow_version_node_id = ANY ($1)`,
+//		pq.Array(workflowVersionNodeIds))
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return errors.Wrap(rollbackErr, "Deleting the node links while deleting node (rollback failed too)")
+//		}
+//		return errors.Wrap(err, "Deleting the node links while deleting node")
+//	}
+//
+//	// Delete all workflow_version_node_link where workflow_version_node_id is in the stage
+//	_, err = tx.Exec(`
+//		DELETE FROM workflow_version_node_link
+//		       WHERE parent_workflow_version_node_id = ANY ($1) OR child_workflow_version_node_id = ANY ($1);`,
+//		pq.Array(workflowVersionNodeIds))
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return errors.Wrap(rollbackErr, "deleting workflow stage node links failed (rollback failed too)")
+//		}
+//		return errors.Wrap(err, "deleting workflow stage node links failed")
+//	}
+//
+//	_, err = tx.Exec(`DELETE FROM workflow_version_node WHERE workflow_version_node_id = ANY ($1);`,
+//		pq.Array(workflowVersionNodeIds))
+//	if err != nil {
+//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+//			return errors.Wrap(rollbackErr, "deleting workflow stage nodes failed (rollback failed too)")
+//		}
+//		return errors.Wrap(err, "deleting workflow stage nodes failed")
+//	}
+//
+//	err = tx.Commit()
+//	if err != nil {
+//		return errors.Wrap(err, "committing workflow stage deletion failed")
+//	}
+//
+//	return nil
+//}
 
 func getWorkflowVersionNodeLink(db *sqlx.DB, workflowVersionNodeLinkId int) (WorkflowVersionNodeLink, error) {
 	var wfvnl WorkflowVersionNodeLink
