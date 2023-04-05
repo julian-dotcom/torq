@@ -1,5 +1,5 @@
 import styles from "./workflow_nodes.module.scss";
-import React, { createRef, MutableRefObject, useContext, useId, useRef, useState } from "react";
+import React, { createRef, MutableRefObject, useContext, useId, useRef, useState, useEffect } from "react";
 import classNames from "classnames";
 import NodeConnector from "./NodeConnector";
 import { CanvasContext } from "components/workflow/canvas/WorkflowCanvas";
@@ -56,7 +56,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   });
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
-  const { canvasRef, blankImgRef } = useContext(CanvasContext);
+  const { canvasRef } = useContext(CanvasContext);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;
@@ -69,9 +69,12 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const [updateNodeVisibilitySettings] = useUpdateNodeVisibilitySettingsMutation();
   const [deleteNode] = useDeleteNodeMutation();
 
-  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+  // Julian test area =====================================================================
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
     setNodeIsSelected(true);
-    // Don't initiate dragging with the user is editing the node name
+    // Don't initiate dragging when the user is editing the node name
     if (nameInputVisible) {
       e.preventDefault();
       return;
@@ -83,14 +86,11 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
       return;
     }
 
-    // Set the drag effect and remove the default drag image set by HTML5
-    if (blankImgRef) {
-      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
-    }
-    e.dataTransfer.effectAllowed = "move";
-
     // Set the dragging state to true to allow for css changes
     setIsDragging(true);
+
+    // Add to document level cause pointerup might happen outside of div
+    document.addEventListener("pointerup", handlePointerUp);
 
     // This sets offsets the starting position of the node to the mouse position,
     // preventing the node from jumping to the mouse position when we drag it.
@@ -107,14 +107,18 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
       workflowStatus: props.status,
       workflowVersion: props.version,
     });
-  }
+  };
 
-  function handleDrag(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (nameInputVisible) {
-      return;
-    }
+  useEffect(() => {
+    // Remove document level event listener when component unmounts
+    return () => {
+      document.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, []);
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    if (nameInputVisible) return;
 
     // Get the position of the canvas
     const bb = canvasRef !== null ? canvasRef.current.getBoundingClientRect() : { x: 0, y: 0 };
@@ -122,23 +126,29 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     if (e.clientX !== 0 && e.clientY !== 0) {
       // Calculate the new position of the node based on the mouse position (e.clientX/Y),
       // the top left position of the canvas (bb.x/y) and the top left position of the node (nodeBB.x/y)
-      const newX = e.clientX - bb.x - nodeBB.left;
-      const newY = e.clientY - bb.y - nodeBB.top;
+      const newX = Math.round(e.clientX - bb.x - nodeBB.left);
+      const newY = Math.round(e.clientY - bb.y - nodeBB.top);
+      console.log("setting");
       setPosition({ x: newX, y: newY });
     }
-  }
+  };
 
-  function handleDragEnd() {
-    if (nameInputVisible) {
-      return;
-    }
+  const handlePointerUp = () => {
     setIsDragging(false);
+    // Remove event listener at doc level, incase pointer is outside of div
+    document.removeEventListener("pointerup", handlePointerUp);
+  };
 
+  useEffect(() => {
+    if (isDragging) return;
+    // Need to extract to useEffect, because coordinates update slower with pointer events than drag events
     updateNodeVisibilitySettings({
       workflowVersionNodeId: props.workflowVersionNodeId,
       visibilitySettings: { xPosition: position.x, yPosition: position.y, collapsed: collapsed },
     });
-  }
+  }, [isDragging]);
+
+  // Julian test area =====================================================================
 
   const connectorId = useId();
 
@@ -191,11 +201,9 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
         <div
           className={classNames(styles.workflowNodeHeader, { [styles.headerCollapsed]: collapsed })}
           draggable="true"
-          onDrag={handleDrag}
           ref={headerRef}
-          onDragEnd={handleDragEnd}
-          onDragStart={handleDragStart}
-          onDragOver={(e) => e.preventDefault()}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
         >
           <div className={styles.icon}>{props.headerIcon}</div>
           <NodeName
