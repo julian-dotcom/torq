@@ -167,13 +167,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	var delay bool
 
 	for {
-		if delay {
-			ticker := clock.New().Tick(1 * time.Second)
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker:
-			}
+		if delay && !sleep(ctx) {
+			return
 		}
 
 		select {
@@ -329,6 +324,16 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			}
 		}
 	}
+}
+
+func sleep(ctx context.Context) bool {
+	ticker := clock.New().Tick(1 * time.Second)
+	select {
+	case <-ctx.Done():
+		return false
+	case <-ticker:
+	}
+	return true
 }
 
 func ChannelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
