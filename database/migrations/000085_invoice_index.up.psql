@@ -1,0 +1,3 @@
+
+--PERFORMANCE BOOSTERS:
+CREATE INDEX invoice_add_index_invoice_id_ix ON invoice(add_index, invoice_id);
