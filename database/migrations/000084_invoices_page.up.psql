@@ -1,0 +1,6 @@
+
+--PERFORMANCE BOOSTERS:
+CREATE INDEX invoice_node_id_r_hash_ix ON invoice(node_id, r_hash);
+CREATE INDEX payment_payment_hash_ix ON payment(payment_hash);
+
+DELETE FROM invoice;

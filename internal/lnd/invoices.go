@@ -2,6 +2,7 @@ package lnd
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -29,6 +30,7 @@ type invoicesClient interface {
 }
 
 type Invoice struct {
+	InvoiceId int `db:"invoice_id" json:"invoiceId"`
 
 	/*
 	   An optional memo to attach along with the invoice. Used for record keeping
@@ -303,7 +305,7 @@ func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *s
 	}
 }
 
-func processInvoice(invoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCache, db *sqlx.DB, bootStrapping bool) {
+func processInvoice(lndInvoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCache, db *sqlx.DB, bootStrapping bool) {
 	invoiceEvent := core.InvoiceEvent{
 		EventData: core.EventData{
 			EventTime: time.Now().UTC(),
@@ -313,12 +315,12 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCache
 
 	var destinationPublicKey = ""
 	var destinationNodeId *int
-	// if empty payment request invoice is likely keysend
-	if invoice.PaymentRequest != "" {
+	// if empty payment request lndInvoice is likely keysend
+	if lndInvoice.PaymentRequest != "" {
 		// Check the running nodes network. Currently we assume we are running on Bitcoin mainnet
-		nodeNetwork := getNodeNetwork(invoice.PaymentRequest)
+		nodeNetwork := getNodeNetwork(lndInvoice.PaymentRequest)
 
-		inva, err := zpay32.Decode(invoice.PaymentRequest, nodeNetwork)
+		inva, err := zpay32.Decode(lndInvoice.PaymentRequest, nodeNetwork)
 		if err != nil {
 			log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
 		} else {
@@ -329,10 +331,58 @@ func processInvoice(invoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCache
 		}
 	}
 
-	err := insertInvoice(db, invoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId, invoiceEvent, bootStrapping)
+	invoiceId, err := getInvoiceIdByAddIndex(db, lndInvoice.AddIndex)
 	if err != nil {
-		log.Error().Err(err).Msg("Storing invoice failed")
+		log.Error().Err(err).Msg("Checking for existing invoice")
+		return
 	}
+	invoice, err := constructInvoice(lndInvoice, destinationPublicKey, destinationNodeId, nodeSettings.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msg("Constructing invoice")
+		return
+	}
+
+	invoiceEvent = completeInvoiceEvent(lndInvoice, invoice, invoiceEvent)
+	defer func() {
+		if !bootStrapping {
+			ProcessInvoiceEvent(invoiceEvent)
+		}
+	}()
+
+	if invoiceId == 0 {
+		err = insertInvoice(db, invoice)
+		if err != nil {
+			log.Error().Err(err).Msg("Inserting invoice")
+		}
+		return
+	}
+	invoice.InvoiceId = invoiceId
+	err = updateInvoice(db, invoice)
+	if err != nil {
+		log.Error().Err(err).Msg("Updating invoice")
+	}
+}
+
+func completeInvoiceEvent(lndInvoice *lnrpc.Invoice,
+	invoice Invoice,
+	invoiceEvent core.InvoiceEvent) core.InvoiceEvent {
+
+	invoiceEvent.State = lndInvoice.State
+	invoiceEvent.AddIndex = lndInvoice.AddIndex
+	invoiceEvent.ValueMSat = uint64(lndInvoice.ValueMsat)
+	// Add other info for settled and accepted states
+	//	Invoice_OPEN     = 0
+	//	Invoice_SETTLED  = 1
+	//	Invoice_CANCELED = 2
+	//	Invoice_ACCEPTED = 3
+	if lndInvoice.State == 1 || lndInvoice.State == 3 {
+		invoiceEvent.AmountPaidMsat = uint64(lndInvoice.AmtPaidMsat)
+		invoiceEvent.SettledDate = time.Unix(lndInvoice.SettleDate, 0)
+	}
+	if invoice.ChannelId != nil {
+		invoiceEvent.ChannelId = *invoice.ChannelId
+	}
+	return invoiceEvent
 }
 
 // getNodeNetwork
@@ -374,38 +424,37 @@ func getNodeNetwork(pmntReq string) *chaincfg.Params {
 	}
 }
 
-func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int,
-	invoiceEvent core.InvoiceEvent, bootStrapping bool) error {
-
+func constructInvoice(invoice *lnrpc.Invoice, destination string, destinationNodeId *int, nodeId int) (Invoice, error) {
 	rhJson, err := json.Marshal(invoice.RouteHints)
 	if err != nil {
-		log.Error().Msgf("insert invoice: json marshal route hints: %v", err)
-		return errors.Wrapf(err, "insert invoice: json marshal route hints")
+		log.Error().Msgf("constructInvoice - json marshal route hints: %v", err)
+		return Invoice{}, errors.Wrapf(err, "constructInvoice - json marshal route hints")
 	}
 
 	htlcJson, err := json.Marshal(invoice.Htlcs)
 	if err != nil {
-		log.Error().Msgf("insert invoice - json marshal htlcs: %v", err)
-		return errors.Wrapf(err, "insert invoice: json marshal htlcs")
-	}
-	var channelId *int
-	if len(invoice.Htlcs) > 0 {
-		channelId = getChannelIdByLndShortChannelId(invoice.Htlcs[len(invoice.Htlcs)-1].ChanId)
+		log.Error().Msgf("constructInvoice - json marshal htlcs: %v", err)
+		return Invoice{}, errors.Wrapf(err, "constructInvoice - json marshal htlcs")
 	}
 
 	featuresJson, err := json.Marshal(invoice.Features)
 	if err != nil {
-		log.Error().Msgf("insert invoice - json marshal features: %v", err)
-		return errors.Wrapf(err, "insert invoice: json marshal features")
+		log.Error().Msgf("constructInvoice - json marshal features: %v", err)
+		return Invoice{}, errors.Wrapf(err, "constructInvoice - json marshal features")
 	}
 
 	aisJson, err := json.Marshal(invoice.AmpInvoiceState)
 	if err != nil {
 		log.Error().Msgf("")
-		return errors.Wrapf(err, "insert invoice: amp invoice state")
+		return Invoice{}, errors.Wrapf(err, "constructInvoice - json marshal amp invoice state")
 	}
 
-	i := Invoice{
+	var channelId *int
+	if len(invoice.Htlcs) > 0 {
+		channelId = getChannelIdByLndShortChannelId(invoice.Htlcs[len(invoice.Htlcs)-1].ChanId)
+	}
+
+	return Invoice{
 		Memo:              invoice.Memo,
 		RPreimage:         hex.EncodeToString(invoice.RPreimage),
 		RHash:             hex.EncodeToString(invoice.RHash),
@@ -436,101 +485,79 @@ func insertInvoice(db *sqlx.DB, invoice *lnrpc.Invoice, destination string, dest
 		ChannelId:         channelId,
 		CreatedOn:         time.Now().UTC(),
 		UpdatedOn:         time.Now().UTC(),
+	}, nil
+}
+
+func getInvoiceIdByAddIndex(db *sqlx.DB, addIndex uint64) (int, error) {
+	var invoiceId int
+	err := db.Get(&invoiceId, `SELECT invoice_id FROM invoice WHERE add_index=$1;`, addIndex)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, errors.Wrapf(err, "Obtaining existing invoice for addIndex: %v", addIndex)
 	}
+	return invoiceId, nil
+}
 
-	var sqlInvoice = `INSERT INTO invoice (
-    memo,
-    r_preimage,
-    r_hash,
-    value_msat,
-    creation_date,
-    settle_date,
-    payment_request,
-    destination_pub_key,
-    description_hash,
-    expiry,
-    fallback_addr,
-    cltv_expiry,
-    route_hints,
-    private,
-    add_index,
-    settle_index,
-    amt_paid_msat,
-    /*
-    The state the invoice is in.
-        OPEN = 0;
-        SETTLED = 1;
-        CANCELED = 2;
-        ACCEPTED = 3;
-    */
-    invoice_state,
-    htlcs,
-    features,
-    is_keysend,
-    payment_addr,
-    is_amp,
-    amp_invoice_state,
-    destination_node_id,
-    node_id,
-    channel_id,
-    created_on,
-    updated_on
-) VALUES(
-	:memo,
-    :r_preimage,
-    :r_hash,
-    :value_msat,
-    :creation_date,
-    :settle_date,
-    :payment_request,
-	:destination_pub_key,
-    :description_hash,
-    :expiry,
-    :fallback_addr,
-    :cltv_expiry,
-    :route_hints,
-    :private,
-    :add_index,
-    :settle_index,
-    :amt_paid_msat,
-    :invoice_state,
-    :htlcs,
-    :features,
-    :is_keysend,
-    :payment_addr,
-    :is_amp,
-    :amp_invoice_state,
-	:destination_node_id,
-	:node_id,
-    :channel_id,
-    :created_on,
-    :updated_on
-);`
+func insertInvoice(db *sqlx.DB, invoice Invoice) error {
+	var sqlInvoice = `
+		INSERT INTO invoice (
+			memo, r_preimage, r_hash, value_msat, creation_date, settle_date, payment_request,
+			destination_pub_key, description_hash, expiry, fallback_addr, cltv_expiry, route_hints, private,
+			add_index, settle_index, amt_paid_msat,
+			/*
+			The state the invoice is in.
+				OPEN = 0;
+				SETTLED = 1;
+				CANCELED = 2;
+				ACCEPTED = 3;
+			*/
+			invoice_state, htlcs, features, is_keysend, payment_addr, is_amp, amp_invoice_state,
+			destination_node_id, node_id, channel_id, created_on, updated_on
+		) VALUES(
+			:memo, :r_preimage, :r_hash, :value_msat, :creation_date, :settle_date, :payment_request,
+		    :destination_pub_key, :description_hash, :expiry, :fallback_addr, :cltv_expiry, :route_hints, :private,
+			:add_index, :settle_index, :amt_paid_msat,
+			:invoice_state, :htlcs, :features, :is_keysend, :payment_addr, :is_amp, :amp_invoice_state,
+			:destination_node_id, :node_id, :channel_id, :created_on, :updated_on
+		);`
 
-	_, err = db.NamedExec(sqlInvoice, i)
+	_, err := db.NamedExec(sqlInvoice, invoice)
 
 	if err != nil {
-		log.Error().Msgf("insert invoice: %v", err)
 		return errors.Wrapf(err, "insert invoice")
 	}
 
-	if !bootStrapping {
-		invoiceEvent.AddIndex = invoice.AddIndex
-		invoiceEvent.ValueMSat = uint64(invoice.ValueMsat)
-		invoiceEvent.State = invoice.GetState()
-		// Add other info for settled and accepted states
-		//	Invoice_OPEN     = 0
-		//	Invoice_SETTLED  = 1
-		//	Invoice_CANCELED = 2
-		//	Invoice_ACCEPTED = 3
-		if invoice.State == 1 || invoice.State == 3 {
-			invoiceEvent.AmountPaidMsat = uint64(invoice.AmtPaidMsat)
-			invoiceEvent.SettledDate = time.Unix(invoice.SettleDate, 0)
-		}
-		if channelId != nil {
-			invoiceEvent.ChannelId = *channelId
-		}
-		ProcessInvoiceEvent(invoiceEvent)
+	return nil
+}
+
+func updateInvoice(db *sqlx.DB, invoice Invoice) error {
+	var sqlInvoice = `
+		UPDATE invoice
+		SET
+			memo=:memo, r_preimage=:r_preimage, r_hash=:r_hash, value_msat=:value_msat, creation_date=:creation_date,
+			settle_date=:settle_date, payment_request=:payment_request, destination_pub_key=:destination_pub_key,
+			description_hash=:description_hash, expiry=:expiry, fallback_addr=:fallback_addr, cltv_expiry=:cltv_expiry,
+			route_hints=:route_hints, private=:private,
+			add_index=:add_index, settle_index=:settle_index, amt_paid_msat=:amt_paid_msat,
+			/*
+			The state the invoice is in.
+				OPEN = 0;
+				SETTLED = 1;
+				CANCELED = 2;
+				ACCEPTED = 3;
+			*/
+			invoice_state=:invoice_state, htlcs=:htlcs, features=:features, is_keysend=:is_keysend,
+			payment_addr=:payment_addr, is_amp=:is_amp, amp_invoice_state=:amp_invoice_state,
+			destination_node_id=:destination_node_id, node_id=:node_id, channel_id=:channel_id, updated_on=:updated_on
+		WHERE invoice_id=:invoice_id;`
+
+	_, err := db.NamedExec(sqlInvoice, invoice)
+
+	if err != nil {
+		return errors.Wrapf(err, "update invoice")
 	}
+
 	return nil
 }
