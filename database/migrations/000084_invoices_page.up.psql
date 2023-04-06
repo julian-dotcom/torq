@@ -1,0 +1,4 @@
+
+--PERFORMANCE BOOSTERS:
+CREATE INDEX invoice_r_hash_index_ix ON invoice(r_hash, node_id);
+CREATE INDEX payment_payment_hash_ix ON payment(payment_hash);
