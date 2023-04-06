@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -28,8 +27,10 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 	serviceType := core.LndServiceChannelBalanceCacheStream
 
 	bootStrapping := true
-	lndSyncTicker := clock.New().Tick(channelbalanceTickerSeconds * time.Second)
-	fastTicker := clock.New().Tick(10 * time.Second)
+	lndSyncTicker := time.NewTicker(channelbalanceTickerSeconds * time.Second)
+	defer lndSyncTicker.Stop()
+	fastTicker := time.NewTicker(10 * time.Second)
+	defer fastTicker.Stop()
 	mutex := &sync.RWMutex{}
 	channelBalanceStreamActive := false
 	initiateSync := true
@@ -49,7 +50,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 		case <-ctx.Done():
 			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
-		case <-fastTicker:
+		case <-fastTicker.C:
 			if cache.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
 				if !channelBalanceStreamActive {
 					initiateSync = true
@@ -67,7 +68,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 				cache.SetChannelStateNodeStatus(nodeSettings.NodeId, core.Inactive)
 				channelBalanceStreamActive = false
 			}
-		case <-lndSyncTicker:
+		case <-lndSyncTicker.C:
 			bootStrapping, err = synchronizeDataFromLnd(nodeSettings, bootStrapping, serviceType, lndClient, db, mutex)
 			if err != nil {
 				log.Error().Err(err).Msgf("Channel balance synchronization failed for nodeId: %v", nodeSettings.NodeId)

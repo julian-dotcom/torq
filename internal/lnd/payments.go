@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
@@ -42,10 +41,12 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	bootStrapping := true
 	includeIncomplete := cache.HasCustomSetting(nodeSettings.NodeId, core.ImportFailedPayments)
 
-	ticker := clock.New().Tick(streamPaymentsTickerSeconds * time.Second)
+	ticker := time.NewTicker(streamPaymentsTickerSeconds * time.Second)
+	defer ticker.Stop()
+	tickerChannel := ticker.C
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
-		ticker = opt.Tick
+		tickerChannel = opt.Tick
 	}
 
 	// Request the Payments at the requested interval.
@@ -57,7 +58,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		case <-ctx.Done():
 			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
-		case <-ticker:
+		case <-tickerChannel:
 			importCounter := 0
 
 			lastPaymentIndex, err := fetchLastPaymentIndex(db, nodeSettings.NodeId)
@@ -259,10 +260,12 @@ func UpdateInFlightPayments(ctx context.Context,
 
 	bootStrapping := true
 
-	ticker := clock.New().Tick(streamInflightPaymentsTickerSeconds * time.Second)
+	ticker := time.NewTicker(streamInflightPaymentsTickerSeconds * time.Second)
+	defer ticker.Stop()
+	tickerChannel := ticker.C
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
-		ticker = opt.Tick
+		tickerChannel = opt.Tick
 	}
 
 	// Request the in flight payments at the requested interval.
@@ -274,7 +277,7 @@ func UpdateInFlightPayments(ctx context.Context,
 		case <-ctx.Done():
 			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
-		case <-ticker:
+		case <-tickerChannel:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes for nodeId: %v", nodeSettings.NodeId)

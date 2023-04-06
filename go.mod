@@ -33,12 +33,13 @@ require (
 	gopkg.in/macaroon.v2 v2.0.0
 )
 
+require github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
+
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aead/siphash v1.0.1 // indirect
-	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/boj/redistore v0.0.0-20180917114910-cd5dcc76aeff // indirect

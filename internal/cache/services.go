@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 
@@ -751,12 +750,14 @@ func InactivateCoreService(ctx context.Context, serviceType core.ServiceType) bo
 	}
 
 	// Slow check
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-ticker:
+		case <-ticker.C:
 			state = GetCurrentCoreServiceState(serviceType)
 			if state.Status == core.ServiceInactive {
 				return true
@@ -775,12 +776,14 @@ func ActivateCoreService(ctx context.Context, serviceType core.ServiceType) bool
 	}
 
 	// Slow check
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-ticker:
+		case <-ticker.C:
 			state = GetCurrentCoreServiceState(serviceType)
 			if state.Status != core.ServiceInactive {
 				return true
@@ -799,12 +802,14 @@ func InactivateLndServiceState(ctx context.Context, serviceType core.ServiceType
 	}
 
 	// Slow check
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-ticker:
+		case <-ticker.C:
 			state = GetCurrentLndServiceState(serviceType, nodeId)
 			if state.Status == core.ServiceInactive {
 				return true
@@ -823,12 +828,14 @@ func ActivateLndServiceState(ctx context.Context, serviceType core.ServiceType, 
 	}
 
 	// Slow check
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-ticker:
+		case <-ticker.C:
 			state = GetCurrentLndServiceState(serviceType, nodeId)
 			if state.Status != core.ServiceInactive {
 				return true
@@ -855,13 +862,14 @@ func InactivateLndService(ctx context.Context, nodeId int) bool {
 	}
 
 	// Slow check
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 recheck:
 	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-ticker:
+		case <-ticker.C:
 			for _, lndServiceType := range core.GetLndServiceTypes() {
 				state := GetCurrentLndServiceState(lndServiceType, nodeId)
 				if state.Status != core.ServiceInactive {
@@ -921,13 +929,14 @@ func ActivateLndService(ctx context.Context,
 	}
 
 	// Slow check
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 recheck:
 	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-ticker:
+		case <-ticker.C:
 			for _, lndServiceType := range relavantServiceTypes {
 				state := GetCurrentLndServiceState(lndServiceType, nodeId)
 				if state.Status == core.ServiceInactive {

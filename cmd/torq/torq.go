@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
@@ -365,9 +364,10 @@ const hangingTimeoutInSeconds = 120
 const failureTimeoutInSeconds = 60
 
 func servicesMonitor(db *sqlx.DB) {
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 	for {
-		<-ticker
+		<-ticker.C
 
 		// Root service ended up in a failed state
 		if cache.GetCoreFailedAttemptTime(core.RootService) != nil {

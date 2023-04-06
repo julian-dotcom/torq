@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jmoiron/sqlx"
@@ -137,14 +136,15 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 	graphInSyncTime := make(map[nodeId]time.Time)
 	chainInSyncTime := make(map[nodeId]time.Time)
 
-	ticker := clock.New().Tick(30 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			cache.SetInactiveCoreServiceState(serviceType)
 			return
-		case <-ticker:
+		case <-ticker.C:
 			for _, torqNodeSettings := range cache.GetActiveTorqNodeSettings() {
 				communications, err := GetCommunicationsForNodeDetails(db,
 					torqNodeSettings.NodeId,

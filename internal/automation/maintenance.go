@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -20,13 +19,14 @@ const maintenanceVectorDelayMilliseconds = 500
 
 func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB) {
 
-	ticker := clock.New().Tick(maintenanceQueueTickerSeconds * time.Second)
+	ticker := time.NewTicker(maintenanceQueueTickerSeconds * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker:
+		case <-ticker.C:
 			// TODO get forwards/invoices/payments without firstNodeId/secondNodeId/nodeId and assign correctly
 			processMissingChannelData(db)
 		}
