@@ -38,7 +38,7 @@ func getInvoices(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string, 
 	total uint64, err error) {
 
 	qb := sq.Select("*").FromSelect(sq.Select(`
-				distinct add_index,
+				add_index,
 				creation_date,
 				settle_date,
 				settle_index,
@@ -119,7 +119,7 @@ func getInvoices(db *sqlx.DB, nodeIds []int, filter sq.Sqlizer, order []string, 
 		PlaceholderFormat(sq.Dollar).
 		FromSelect(
 			sq.Select(`
-				distinct add_index,
+				add_index,
 				creation_date,
 				settle_date,
 				settle_index,
@@ -211,7 +211,7 @@ func getInvoiceDetails(db *sqlx.DB, nodeIds []int, identifier string) (*InvoiceD
 
 	//language=PostgreSQL
 	qb := sq.Select(`
-			distinct add_index,
+			add_index,
 			creation_date,
 			settle_date,
 			settle_index,
