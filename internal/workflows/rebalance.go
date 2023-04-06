@@ -9,7 +9,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -87,7 +86,9 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	client := lnrpc.NewLightningClient(conn)
 	router := routerrpc.NewRouterClient(conn)
 
-	ticker := clock.New().Tick(rebalanceQueueTickerSeconds * time.Second)
+	ticker := time.NewTicker(rebalanceQueueTickerSeconds * time.Second)
+	defer ticker.Stop()
+
 	pending := core.Pending
 	active := core.Active
 
@@ -95,7 +96,7 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker:
+		case <-ticker.C:
 			activeRebalancers := getRebalancers(&active)
 			log.Trace().Msgf("Active rebalancers: %v/%v", len(activeRebalancers), rebalanceMaximumConcurrency)
 			if len(activeRebalancers) >= rebalanceMaximumConcurrency {

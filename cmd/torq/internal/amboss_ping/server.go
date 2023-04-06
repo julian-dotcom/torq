@@ -10,7 +10,6 @@ import (
 	//"net/http"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 
@@ -42,14 +41,15 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 	const ambossUrl = "https://api.amboss.space/graphql"
 	client := lnrpc.NewLightningClient(conn)
 
-	ticker := clock.New().Tick(ambossSleepSeconds * time.Second)
+	ticker := time.NewTicker(ambossSleepSeconds * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			cache.SetInactiveLndServiceState(serviceType, nodeId)
 			return
-		case <-ticker:
+		case <-ticker.C:
 			now := time.Now().UTC().Format("2006-01-02T15:04:05+0000")
 			signMsgReq := lnrpc.SignMessageRequest{
 				Msg: []byte(now),

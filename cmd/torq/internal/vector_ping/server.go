@@ -8,7 +8,6 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -78,14 +77,15 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 
 	client := lnrpc.NewLightningClient(conn)
 
-	ticker := clock.New().Tick(vectorSleepSeconds * time.Second)
+	ticker := time.NewTicker(vectorSleepSeconds * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			cache.SetInactiveLndServiceState(serviceType, nodeId)
 			return
-		case <-ticker:
+		case <-ticker.C:
 			getInfoRequest := lnrpc.GetInfoRequest{}
 			info, err := client.GetInfo(ctx, &getInfoRequest)
 			if err != nil {

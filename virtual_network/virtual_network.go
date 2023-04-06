@@ -882,6 +882,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 // 	log.Println("Opening random channel")
 // 	freq := time.Duration(ochfrq)
 // 	ticker := time.NewTicker(freq * time.Minute)
+// 	defer ticker.Stop()
 
 // 	btcdName := name + "-btcd"
 // 	btcdConf := de.Containers[btcdName]
@@ -930,6 +931,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 // func closeRandomChann(name string, ochfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
 // 	freq := time.Duration(ochfrq)
 // 	ticker := time.NewTicker(freq * time.Minute)
+// 	defer ticker.Stop()
 
 // 	btcdName := name + "-btcd"
 // 	btcdConf := de.Containers[btcdName]
@@ -972,6 +974,7 @@ func NodeFLowLoop(name string, invfrq int, scofrq int, ochfrq int) error {
 func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
 	freq := time.Duration(invfrq)
 	ticker := time.NewTicker(freq * time.Second)
+	defer ticker.Stop()
 
 	btcdName := name + "-btcd"
 	btcdConf := de.Containers[btcdName]
@@ -1026,6 +1029,7 @@ func createPayInvoice(name string, invfrq int, ctx context.Context, de DockerDev
 // func addressSendCoins(name string, scofrq int, ctx context.Context, de DockerDevEnvironment, alicePK string, bobPK string, carolPK string) {
 // 	freq := time.Duration(scofrq)
 // 	ticker := time.NewTicker(freq * time.Second)
+// 	defer ticker.Stop()
 
 // 	btcdName := name + "-btcd"
 // 	btcdConf := de.Containers[btcdName]

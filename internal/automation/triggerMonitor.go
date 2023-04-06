@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/robfig/cron/v3"
@@ -22,14 +21,15 @@ const workflowTickerSeconds = 10
 
 func IntervalTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
+	ticker := time.NewTicker(workflowTickerSeconds * time.Second)
+	defer ticker.Stop()
 	bootstrapping := true
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker:
+		case <-ticker.C:
 			if bootstrapping {
 				var allChannelIds []int
 				torqNodeIds := cache.GetAllTorqNodeIds()
@@ -99,7 +99,8 @@ func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	serviceType := core.CronService
 
-	ticker := clock.New().Tick(workflowTickerSeconds * time.Second)
+	ticker := time.NewTicker(workflowTickerSeconds * time.Second)
+	defer ticker.Stop()
 
 bootstrappingLoop:
 	for {
@@ -107,7 +108,7 @@ bootstrappingLoop:
 		case <-ctx.Done():
 			cache.SetInactiveCoreServiceState(serviceType)
 			return
-		case <-ticker:
+		case <-ticker.C:
 			torqNodeIds := cache.GetAllTorqNodeIds()
 			for _, torqNodeId := range torqNodeIds {
 				// Force Response because we don't care about balance accuracy
@@ -327,11 +328,13 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 }
 
 func sleep(ctx context.Context) bool {
-	ticker := clock.New().Tick(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	select {
 	case <-ctx.Done():
 		return false
-	case <-ticker:
+	case <-ticker.C:
 	}
 	return true
 }

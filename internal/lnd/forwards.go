@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/andres-erbsen/clock"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -134,10 +133,12 @@ func SubscribeForwardingEvents(ctx context.Context,
 		maxEvents = *opt.MaxEvents
 	}
 
-	ticker := clock.New().Tick(streamForwardsTickerSeconds * time.Second)
+	ticker := time.NewTicker(streamForwardsTickerSeconds * time.Second)
+	defer ticker.Stop()
+	tickerChannel := ticker.C
 	// If a custom ticker is set in the options, override the default ticker.
 	if (opt != nil) && (opt.Tick != nil) {
-		ticker = opt.Tick
+		tickerChannel = opt.Tick
 	}
 
 	rl := ratelimit.New(1) // 1 per second maximum rate limit
@@ -160,7 +161,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 		case <-ctx.Done():
 			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
 			return
-		case <-ticker:
+		case <-tickerChannel:
 			importCounter := 0
 			// Keep fetching until LND returns less than the max number of records requested.
 			for {
