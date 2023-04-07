@@ -2,6 +2,7 @@ package communications
 
 import (
 	"context"
+	"runtime/debug"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -52,6 +53,17 @@ func getSlackClient() *slack.Client {
 }
 
 func processEvents(ctx context.Context, socketClient *socketmode.Client, db *sqlx.DB) {
+
+	serviceType := core.SlackService
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking %v", serviceType.String(), string(debug.Stack()))
+			cache.SetFailedCoreServiceState(serviceType)
+			return
+		}
+	}()
+
 	log.Debug().Msgf("Initiating socketClient.Events for Slack events")
 	for {
 		select {
@@ -125,16 +137,18 @@ func handleEventMessage(db *sqlx.DB, socketClient *socketmode.Client, event slac
 		return
 	}
 
+	messageForBot := MessageForBot{
+		Slack: MessageForSlack{
+			Channel: ev.Channel,
+			Color:   "#4af030",
+		},
+	}
 	user, err := socketClient.GetUserInfo(ev.User)
 	if err != nil {
 		log.Error().Err(err).Msgf("Slack bot GetUserInfo failed: %v", ev.User)
 	}
-	messageForBot := MessageForBot{
-		Slack: MessageForSlack{
-			Channel: ev.Channel,
-			ReplyTo: user.Profile.DisplayName,
-			Color:   "#4af030",
-		},
+	if user != nil {
+		messageForBot.Slack.ReplyTo = user.Profile.DisplayName
 	}
 	eventText := strings.TrimSpace(ev.Text)
 	command := extractCommand(eventText)
