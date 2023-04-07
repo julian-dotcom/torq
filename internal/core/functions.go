@@ -11,6 +11,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func (s Network) String() string {
+	switch s {
+	case MainNet:
+		return "MainNet"
+	case TestNet:
+		return "TestNet"
+	case RegTest:
+		return "RegTest"
+	case SigNet:
+		return "SigNet"
+	case SimNet:
+		return "SimNet"
+	}
+	return UnknownEnumString
+}
+
 // GetNetwork defaults to MainNet when no match is found
 func GetNetwork(network string) Network {
 	switch network {
@@ -24,6 +40,16 @@ func GetNetwork(network string) Network {
 		return RegTest
 	}
 	return MainNet
+}
+
+func (s Chain) String() string {
+	switch s {
+	case Bitcoin:
+		return "MainNet"
+	case Litecoin:
+		return "Litecoin"
+	}
+	return UnknownEnumString
 }
 
 // GetChain defaults to Bitcoin when no match is found
@@ -649,69 +675,3 @@ func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
 		},
 	}
 }
-<<<<<<< main:internal/core/functions.go
-=======
-
-func GetNodeWalletBalance(nodeId int, lightningRequestChannel chan<- interface{}) NodeWalletBalanceResponse {
-	unixTime := time.Now()
-	responseChannel := make(chan NodeWalletBalanceResponse)
-	request := NodeWalletBalanceRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		ResponseChannel: responseChannel,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
-}
-
-func ConnectPeer(nodeId int, pubKey string, host string, lightningRequestChannel chan<- interface{}) ConnectPeerResponse {
-	unixTime := time.Now()
-	responseChannel := make(chan ConnectPeerResponse)
-	request := ConnectPeerRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		PubKey:          pubKey,
-		Host:            host,
-		ResponseChannel: responseChannel,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
-}
-
-func DisconnectPeer(nodeId int, pubKey string, lightningRequestChannel chan<- interface{}) DisconnectPeerResponse {
-	unixTime := time.Now()
-	responseChannel := make(chan DisconnectPeerResponse)
-	request := DisconnectPeerRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		PubKey:          pubKey,
-		ResponseChannel: responseChannel,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
-}
-
-func ListPeers(nodeId int, lightningRequestChannel chan<- interface{}) ListPeersResponse {
-	unixTime := time.Now()
-	responseChannel := make(chan ListPeersResponse)
-	request := ListPeersRequest{
-		CommunicationRequest: CommunicationRequest{
-			RequestId:   fmt.Sprintf("%v", unixTime.Unix()),
-			RequestTime: &unixTime,
-			NodeId:      nodeId,
-		},
-		ResponseChannel: responseChannel,
-	}
-	lightningRequestChannel <- request
-	return <-responseChannel
-}
->>>>>>> Peers page - list peers - connect and disconnect peer - add new peer connection:pkg/commons/functions.go

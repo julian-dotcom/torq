@@ -290,20 +290,6 @@ type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
 }
 
-// Request/Response for Vector
-type ShortChannelIdRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- ShortChannelIdResponse `json:"-"`
-	TransactionHash string                        `json:"transactionHash"`
-	OutputIndex     int                           `json:"outputIndex"`
-}
-
-type ShortChannelIdResponse struct {
-	Request ShortChannelIdRequest `json:"request"`
-	CommunicationResponse
-	ShortChannelId string `json:"shortChannelId"`
-}
-
 type InformationResponse struct {
 	NodeId                  int            `json:"nodeId"`
 	Implementation          Implementation `json:"implementation"`
@@ -322,6 +308,29 @@ type InformationResponse struct {
 	GraphSynced             bool           `json:"graphSynced"`
 	Addresses               []string       `json:"addresses"`
 	HtlcInterceptorRequired bool           `json:"htlcInterceptorRequired"`
+}
+
+type Feature struct {
+	Name       string `json:"name"`
+	IsRequired bool   `json:"is_required"`
+	IsKnown    bool   `json:"is_known"`
+}
+
+type Peer struct {
+	PubKey          string       `json:"pub_key"`
+	Address         string       `json:"address"`
+	BytesSent       uint64       `json:"bytes_sent"`
+	BytesRecv       uint64       `json:"bytes_recv"`
+	SatSent         int64        `json:"sat_sent"`
+	SatRecv         int64        `json:"sat_recv"`
+	Inbound         bool         `json:"inbound"`
+	PingTime        int64        `json:"ping_time"`
+	SyncType        PeerSyncType `json:"sync_type"`
+	Features        []Feature    `json:"features"`
+	Errors          []string     `json:"errors"`
+	FlapCount       int          `json:"flap_count"`
+	LastFlapNS      string       `json:"last_flap_ns"`
+	LastPingPayload string       `json:"last_ping_payload"`
 }
 
 type CommunicationRequest struct {
@@ -361,111 +370,3 @@ type RebalanceResponse struct {
 	Request RebalanceRequest `json:"request"`
 	CommunicationResponse
 }
-<<<<<<< main:internal/core/events.go
-=======
-
-type NodeWalletBalanceRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- NodeWalletBalanceResponse `json:"-"`
-}
-
-type NodeWalletBalanceResponse struct {
-	TotalBalance              int64
-	ConfirmedBalance          int64
-	UnconfirmedBalance        int64
-	LockedBalance             int64
-	ReservedBalanceAnchorChan int64
-	CommunicationResponse
-	ResponseChannel chan<- SignatureVerificationResponse `json:"-"`
-}
-type ImportType int
-
-const (
-	ImportChannelRoutingPolicies = ImportType(iota)
-	ImportNodeInformation
-	ImportAllChannels
-	ImportPendingChannelsOnly
-)
-
-type ImportRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- ImportResponse `json:"-"`
-	Force           bool
-	ImportType      ImportType
-}
-
-type ImportResponse struct {
-	Request ImportRequest `json:"request"`
-	CommunicationResponse
-	Error error `json:"error"`
-}
-
-type ConnectPeerRequest struct {
-	CommunicationRequest
-	PubKey          string                     `json:"pubKey"`
-	Host            string                     `json:"host"`
-	ResponseChannel chan<- ConnectPeerResponse `json:"-"`
-}
-
-type ConnectPeerResponse struct {
-	CommunicationResponse
-	RequestFailCurrentlyConnected bool `json:"requestFailCurrentlyConnected"`
-}
-
-type DisconnectPeerRequest struct {
-	CommunicationRequest
-	PubKey          string                        `json:"pubKey"`
-	Host            string                        `json:"host"`
-	ResponseChannel chan<- DisconnectPeerResponse `json:"-"`
-}
-
-type DisconnectPeerResponse struct {
-	CommunicationResponse
-	RequestFailedCurrentlyDisconnected bool `json:"requestFailCurrentlyDisconnected"`
-}
-
-type ListPeersRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- ListPeersResponse `json:"-"`
-}
-
-type Feature struct {
-	Name       string `json:"name"`
-	IsRequired bool   `json:"is_required"`
-	IsKnown    bool   `json:"is_known"`
-}
-
-type PeerSyncType int32
-
-const (
-	// PeerUnknownSync Denotes that we cannot determine the peer's current sync type.
-	PeerUnknownSync PeerSyncType = 0
-	// PeerActiveSync Denotes that we are actively receiving new graph updates from the peer.
-	PeerActiveSync PeerSyncType = 1
-	// PeerPassiveSync Denotes that we are not receiving new graph updates from the peer.
-	PeerPassiveSync PeerSyncType = 2
-	// PeerPinnedSync Denotes that this peer is pinned into an active sync.
-	PeerPinnedSync PeerSyncType = 3
-)
-
-type Peer struct {
-	PubKey          string       `json:"pub_key"`
-	Address         string       `json:"address"`
-	BytesSent       uint64       `json:"bytes_sent"`
-	BytesRecv       uint64       `json:"bytes_recv"`
-	SatSent         int64        `json:"sat_sent"`
-	SatRecv         int64        `json:"sat_recv"`
-	Inbound         bool         `json:"inbound"`
-	PingTime        int64        `json:"ping_time"`
-	SyncType        PeerSyncType `json:"sync_type"`
-	Features        []Feature    `json:"features"`
-	Errors          []string     `json:"errors"`
-	FlapCount       int          `json:"flap_count"`
-	LastFlapNS      string       `json:"last_flap_ns"`
-	LastPingPayload string       `json:"last_ping_payload"`
-}
-type ListPeersResponse struct {
-	Peers map[string]Peer `json:"peers"`
-	CommunicationResponse
-}
->>>>>>> Peers page - list peers - connect and disconnect peer - add new peer connection:pkg/commons/events.go

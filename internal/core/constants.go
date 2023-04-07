@@ -58,16 +58,6 @@ const (
 	Litecoin
 )
 
-func (s Chain) String() string {
-	switch s {
-	case Bitcoin:
-		return "MainNet"
-	case Litecoin:
-		return "Litecoin"
-	}
-	return "unknown"
-}
-
 type Network int
 
 const (
@@ -77,22 +67,6 @@ const (
 	SigNet
 	SimNet
 )
-
-func (s Network) String() string {
-	switch s {
-	case MainNet:
-		return "MainNet"
-	case TestNet:
-		return "TestNet"
-	case RegTest:
-		return "RegTest"
-	case SigNet:
-		return "SigNet"
-	case SimNet:
-		return "SimNet"
-	}
-	return "unknown"
-}
 
 type ChannelStatus int
 
@@ -252,13 +226,24 @@ const (
 	BalanceUpdatePaymentEvent
 )
 
-<<<<<<< main:internal/core/constants.go
 type NotificationType int
 
 const (
 	NodeDetails NotificationType = iota
-=======
-type ChannelStatusRequest int
+)
+
+type PeerSyncType int32
+
+const (
+	// PeerUnknownSync Denotes that we cannot determine the peer's current sync type.
+	PeerUnknownSync PeerSyncType = 0
+	// PeerActiveSync Denotes that we are actively receiving new graph updates from the peer.
+	PeerActiveSync PeerSyncType = 1
+	// PeerPassiveSync Denotes that we are not receiving new graph updates from the peer.
+	PeerPassiveSync PeerSyncType = 2
+	// PeerPinnedSync Denotes that this peer is pinned into an active sync.
+	PeerPinnedSync PeerSyncType = 3
+)
 
 type NodeConnectionSetting int
 
@@ -274,5 +259,4 @@ const (
 	NodeConnectionStatusConnected
 	NodeConnectionStatusArchived
 	NodeConnectionStatusDeleted
->>>>>>> Peers page - list peers - connect and disconnect peer - add new peer connection:pkg/commons/constants.go
 )

@@ -3,6 +3,7 @@ package lnd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -144,6 +145,36 @@ func Import(request ImportRequest) ImportResponse {
 	return ImportResponse{}
 }
 
+func ConnectPeer(request ConnectPeerRequest) ConnectPeerResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(ConnectPeerResponse); ok {
+		return res
+	}
+	return ConnectPeerResponse{}
+}
+
+func DisconnectPeer(request DisconnectPeerRequest) DisconnectPeerResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(DisconnectPeerResponse); ok {
+		return res
+	}
+	return DisconnectPeerResponse{}
+}
+
+func ListPeers(request ListPeersRequest) ListPeersResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(ListPeersResponse); ok {
+		return res
+	}
+	return ListPeersResponse{}
+}
+
 const concurrentWorkLimit = 1
 
 var service = lightningService{limit: make(chan struct{}, concurrentWorkLimit)} //nolint:gochecknoglobals
@@ -183,6 +214,15 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 		return
 	case ImportRequest:
 		responseChan <- processImportRequest(ctx, r)
+		return
+	case ConnectPeerRequest:
+		responseChan <- processConnectPeerRequest(ctx, r)
+		return
+	case DisconnectPeerRequest:
+		responseChan <- processDisconnectPeerRequest(ctx, r)
+		return
+	case ListPeersRequest:
+		responseChan <- processListPeersRequest(ctx, r)
 		return
 	}
 
@@ -330,6 +370,226 @@ type ImportResponse struct {
 	Request ImportRequest
 	CommunicationResponse
 	Error error
+}
+
+type ConnectPeerRequest struct {
+	CommunicationRequest
+	PublicKey string
+	Host      string
+}
+
+type ConnectPeerResponse struct {
+	Request ConnectPeerRequest
+	CommunicationResponse
+	RequestFailCurrentlyConnected bool
+	Error                         error
+}
+
+type DisconnectPeerRequest struct {
+	CommunicationRequest
+	PublicKey string
+}
+
+type DisconnectPeerResponse struct {
+	Request ConnectPeerRequest
+	CommunicationResponse
+	RequestFailedCurrentlyDisconnected bool
+	Error                              error
+}
+
+type ListPeersRequest struct {
+	CommunicationRequest
+	NodeId int
+}
+
+type ListPeersResponse struct {
+	Request ListPeersRequest
+	CommunicationResponse
+	Peers map[string]core.Peer
+	Error error
+}
+
+func processListPeersRequest(ctx context.Context, request ListPeersRequest) ListPeersResponse {
+	response := ListPeersResponse{
+		CommunicationResponse: CommunicationResponse{
+			Status: Inactive,
+		},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err
+		return response
+	}
+
+	listPeersRequest := lnrpc.ListPeersRequest{}
+	client := lnrpc.NewLightningClient(connection)
+	rsp, err := client.ListPeers(ctx, &listPeersRequest)
+
+	if err != nil {
+		response.Error = err
+		return response
+	}
+
+	peers := make(map[string]core.Peer)
+
+	for _, peer := range rsp.Peers {
+		p := core.Peer{
+			PubKey:    peer.PubKey,
+			Address:   peer.Address,
+			BytesSent: peer.BytesSent,
+			BytesRecv: peer.BytesRecv,
+			SatSent:   peer.SatSent,
+			SatRecv:   peer.SatRecv,
+			Inbound:   peer.Inbound,
+			PingTime:  peer.PingTime,
+			SyncType:  core.PeerSyncType(peer.SyncType),
+		}
+
+		features := make([]core.Feature, len(peer.Features))
+		for _, feature := range peer.Features {
+			features = append(features, core.Feature{
+				Name:       feature.Name,
+				IsRequired: feature.IsRequired,
+				IsKnown:    feature.IsKnown,
+			})
+		}
+
+		p.Features = features
+
+		peers[p.PubKey] = p
+	}
+
+	response.Status = Active
+	response.Peers = peers
+
+	return response
+}
+
+func processDisconnectPeerRequest(ctx context.Context, request DisconnectPeerRequest) DisconnectPeerResponse {
+	response := DisconnectPeerResponse{
+		CommunicationResponse: CommunicationResponse{
+			Status: Inactive,
+		},
+		RequestFailedCurrentlyDisconnected: false,
+	}
+
+	disconnectPeerRequest := lnrpc.DisconnectPeerRequest{
+		PubKey: request.PublicKey,
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err
+		return response
+	}
+
+	client := lnrpc.NewLightningClient(connection)
+	_, err = client.DisconnectPeer(ctx, &disconnectPeerRequest)
+	if err != nil {
+		if strings.Contains(err.Error(), "not connected") {
+			response.RequestFailedCurrentlyDisconnected = true
+			return response
+		}
+		response.Error = err
+		return response
+	}
+
+	//ticker is needed to give lnd time to disconnect from the peer
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			peer, err := getPeersByPublicKey(ctx, client, request.PublicKey)
+			if err != nil {
+				response.Error = err
+				return response
+			}
+
+			if peer != nil {
+				response.Error = errors.New("Disconnection unsuccessful")
+				return response
+			}
+			return response
+		}
+	}
+}
+
+func processConnectPeerRequest(ctx context.Context, request ConnectPeerRequest) ConnectPeerResponse {
+	response := ConnectPeerResponse{
+		CommunicationResponse: CommunicationResponse{
+			Status: Inactive,
+		},
+		RequestFailCurrentlyConnected: false,
+	}
+
+	connectPeerRequest := lnrpc.ConnectPeerRequest{
+		Addr: &lnrpc.LightningAddress{Pubkey: request.PublicKey, Host: request.Host},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err
+		return response
+	}
+
+	client := lnrpc.NewLightningClient(connection)
+	_, err = client.ConnectPeer(ctx, &connectPeerRequest)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "already connected to peer") {
+			response.RequestFailCurrentlyConnected = true
+			return response
+		}
+		response.Error = err
+		return response
+	}
+
+	//ticker is needed to give lnd time to connect to the peer
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	select {
+	case <-ctx.Done():
+		response.Error = errors.New("Context ended")
+		return response
+	case <-ticker.C:
+		// call lnd again to see if the peer is still connected
+		peer, err := getPeersByPublicKey(ctx, client, request.PublicKey)
+		if err != nil {
+			response.Error = err
+			return response
+		}
+
+		if peer == nil {
+			response.Error = errors.New("Connection unsuccessful")
+			return response
+		}
+		return response
+	}
+}
+
+// It seems that the errors are not returned in the Connect/Disconnect response, so we need to check the peers list
+func getPeersByPublicKey(ctx context.Context, client lnrpc.LightningClient, publicKey string) (*lnrpc.Peer, error) {
+	listPeersRequest := lnrpc.ListPeersRequest{}
+	peersResponse, err := client.ListPeers(ctx, &listPeersRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	var peer *lnrpc.Peer
+	for _, p := range peersResponse.Peers {
+		if p.PubKey == publicKey {
+			peer = p
+			break
+		}
+	}
+	return peer, nil
 }
 
 func processImportRequest(ctx context.Context, request ImportRequest) ImportResponse {

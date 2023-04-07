@@ -147,3 +147,46 @@ func Import(db *sqlx.DB,
 	}
 	return nil
 }
+
+func ConnectPeer(nodeId int, publicKey string, host string) (bool, error) {
+	request := lnd.ConnectPeerRequest{
+		CommunicationRequest: lnd.CommunicationRequest{
+			NodeId: nodeId,
+		},
+		PublicKey: publicKey,
+		Host:      host,
+	}
+	response := lnd.ConnectPeer(request)
+	if response.Error != nil {
+		return false, response.Error
+	}
+	return response.RequestFailCurrentlyConnected, nil
+}
+
+func DisconnectPeer(nodeId int, publicKey string) (bool, error) {
+	request := lnd.DisconnectPeerRequest{
+		CommunicationRequest: lnd.CommunicationRequest{
+			NodeId: nodeId,
+		},
+		PublicKey: publicKey,
+	}
+	response := lnd.DisconnectPeer(request)
+	if response.Error != nil {
+		return false, response.Error
+	}
+	return response.RequestFailedCurrentlyDisconnected, nil
+}
+
+func ListPeers(nodeId int) (map[string]core.Peer, error) {
+	request := lnd.ListPeersRequest{
+		CommunicationRequest: lnd.CommunicationRequest{
+			NodeId: nodeId,
+		},
+		NodeId: nodeId,
+	}
+	response := lnd.ListPeers(request)
+	if response.Error != nil {
+		return nil, response.Error
+	}
+	return response.Peers, nil
+}

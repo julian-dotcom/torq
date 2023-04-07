@@ -6,10 +6,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -45,21 +48,21 @@ type NodeWalletBalance struct {
 }
 
 type PeerNode struct {
-	NodeId           int                            `json:"nodeId" db:"node_id"`
-	Alias            string                         `json:"peerAlias" db:"alias"`
-	PublicKey        string                         `json:"pubKey" db:"public_key"`
-	TorqNodeId       *int                           `json:"torqNodeId" db:"torq_node_id"`
-	TorqNodeAlias    *string                        `json:"torqNodeAlias" db:"torq_node_alias"`
-	Setting          *commons.NodeConnectionSetting `json:"setting" db:"setting"`
-	ConnectionStatus *commons.Status                `json:"connectionStatus" db:"connection_status"`
-	Address          *string                        `json:"address" db:"address"`
+	NodeId           int                             `json:"nodeId" db:"node_id"`
+	Alias            string                          `json:"peerAlias" db:"alias"`
+	PublicKey        string                          `json:"pubKey" db:"public_key"`
+	TorqNodeId       *int                            `json:"torqNodeId" db:"torq_node_id"`
+	TorqNodeAlias    *string                         `json:"torqNodeAlias" db:"torq_node_alias"`
+	Setting          *cache.LndNodeConnectionDetails `json:"setting" db:"setting"`
+	ConnectionStatus *core.Status                    `json:"connectionStatus" db:"connection_status"`
+	Address          *string                         `json:"address" db:"address"`
 }
 
 type ConnectPeerRequest struct {
-	NodeId           int                           `json:"nodeId"`
-	ConnectionString string                        `json:"connectionString"`
-	Network          commons.Network               `json:"network"`
-	Setting          commons.NodeConnectionSetting `json:"setting"`
+	NodeId           int                            `json:"nodeId"`
+	ConnectionString string                         `json:"connectionString"`
+	Network          core.Network                   `json:"network"`
+	Setting          cache.LndNodeConnectionDetails `json:"setting"`
 }
 
 type DisconnectPeerRequest struct {
@@ -73,19 +76,19 @@ type ReconnectPeerRequest struct {
 }
 
 type UpdatePeerRequest struct {
-	NodeId     int                            `json:"nodeId"`
-	TorqNodeId int                            `json:"torqNodeId"`
-	Setting    *commons.NodeConnectionSetting `json:"setting"`
+	NodeId     int                             `json:"nodeId"`
+	TorqNodeId int                             `json:"torqNodeId"`
+	Setting    *cache.LndNodeConnectionDetails `json:"setting"`
 }
 
-func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
+func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("/:network/peers", func(c *gin.Context) { getAllPeersHandler(c, db) })
-	r.POST("/peers/connect", func(c *gin.Context) { connectNewPeerHandler(c, db, lightningRequestChannel) })
+	r.POST("/peers/connect", func(c *gin.Context) { connectNewPeerHandler(c, db) })
 	r.GET("/:network/nodes", func(c *gin.Context) { getNodesByNetworkHandler(c, db) })
 	r.DELETE(":nodeId", func(c *gin.Context) { removeNodeHandler(c, db) })
-	r.PATCH("/peers/disconnect", func(c *gin.Context) { disconnectPeerHandler(c, db, lightningRequestChannel) })
-	r.PATCH("/peers/reconnect", func(c *gin.Context) { reconnectPeerHandler(c, db, lightningRequestChannel) })
-	r.PATCH("/peers/update", func(c *gin.Context) { updatePeer(c, db, lightningRequestChannel) })
+	r.PATCH("/peers/disconnect", func(c *gin.Context) { disconnectPeerHandler(c, db) })
+	r.PATCH("/peers/reconnect", func(c *gin.Context) { reconnectPeerHandler(c, db) })
+	r.PATCH("/peers/update", func(c *gin.Context) { updatePeer(c, db) })
 }
 
 func getNodesByNetworkHandler(c *gin.Context, db *sqlx.DB) {
@@ -115,47 +118,13 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v node(s).", count)})
 }
 
-func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
-	network, err := strconv.Atoi(c.Param("network"))
-	if err != nil {
-		server_errors.SendBadRequest(c, "Can't process network")
-	}
-
-	nodes, err := getNodesByNetwork(db, false, commons.Network(network))
-
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Unable to get nodes")
-		return
-	}
-	walletBalances := make([]NodeWalletBalance, 0)
-	for _, v := range nodes {
-		r := commons.GetNodeWalletBalance(v.NodeId, lightningRequestChannel)
-		if r.Error != "" {
-			errorMsg := fmt.Sprintf("Error retrieving wallet balance for nodeId: %v", v.NodeId)
-			server_errors.WrapLogAndSendServerError(c, err, errorMsg)
-			log.Error().Msg(errorMsg)
-			return
-		}
-		walletBalances = append(walletBalances, NodeWalletBalance{
-			NodeId:                    v.NodeId,
-			TotalBalance:              r.TotalBalance,
-			ConfirmedBalance:          r.ConfirmedBalance,
-			UnconfirmedBalance:        r.UnconfirmedBalance,
-			LockedBalance:             r.LockedBalance,
-			ReservedBalanceAnchorChan: r.ReservedBalanceAnchorChan,
-		})
-	}
-
-	c.JSON(http.StatusOK, walletBalances)
-}
-
 func getAllPeersHandler(c *gin.Context, db *sqlx.DB) {
 	network, err := strconv.Atoi(c.Param("network"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Can't process network")
 		return
 	}
-	peerNodes, err := GetPeerNodes(db, commons.Network(network))
+	peerNodes, err := GetPeerNodes(db, core.Network(network))
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting all Peer nodes.")
 		return
@@ -164,7 +133,7 @@ func getAllPeersHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, peerNodes)
 }
 
-func connectNewPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
+func connectNewPeerHandler(c *gin.Context, db *sqlx.DB) {
 
 	var req ConnectPeerRequest
 
@@ -182,9 +151,9 @@ func connectNewPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 	pubKey := s[0]
 	host := s[1]
 
-	r := commons.ConnectPeer(req.NodeId, pubKey, host, lightningRequestChannel)
-	if r.CommunicationResponse.Error != "" {
-		server_errors.WrapLogAndSendServerError(c, errors.New(r.CommunicationResponse.Error), "Error connecting to peer.")
+	_, err := lightning.ConnectPeer(req.NodeId, pubKey, host)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Error connecting to peer.")
 		return
 	}
 
@@ -194,10 +163,10 @@ func connectNewPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 		NodeId:           node.NodeId,
 		TorqNodeId:       req.NodeId,
 		Address:          host,
-		ConnectionStatus: commons.NodeConnectionStatusConnected,
+		ConnectionStatus: core.NodeConnectionStatusConnected,
 		Setting:          req.Setting,
 	}
-	_, err := AddNodeWhenNew(db, node, peerConnectionHistory)
+	_, err = AddNodeWhenNew(db, node, peerConnectionHistory)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Saving peer node.")
 		return
@@ -212,7 +181,7 @@ func connectNewPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully connected to peer.")})
 }
 
-func disconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
+func disconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 	var req DisconnectPeerRequest
 	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequest(c, "Cannot process DisconnectPeerRequest")
@@ -226,7 +195,7 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 	}
 
 	if nch.Address == "" {
-		host, err := getHostFromPeer(nch.TorqNodeId, nch.PubKey, lightningRequestChannel)
+		host, err := getHostFromPeer(nch.TorqNodeId, nch.PubKey)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Getting host from peer.")
 			return
@@ -234,23 +203,23 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 		nch.Address = host
 	}
 
-	disconnectResp := commons.DisconnectPeer(req.TorqNodeId, nch.PubKey, lightningRequestChannel)
-	if disconnectResp.CommunicationResponse.Error != "" {
-		if disconnectResp.RequestFailedCurrentlyDisconnected {
+	requestFailedCurrentlyDisconnected, err := lightning.DisconnectPeer(req.TorqNodeId, nch.PubKey)
+	if err != nil {
+		if requestFailedCurrentlyDisconnected {
 			//correct the status of the node
 			err := addNodeConnectionHistory(db, &NodeConnectionHistory{
 				NodeId:           nch.NodeId,
 				TorqNodeId:       nch.TorqNodeId,
 				Address:          nch.Address,
 				Setting:          nch.Setting,
-				ConnectionStatus: commons.NodeConnectionStatusDisconnected,
+				ConnectionStatus: core.NodeConnectionStatusDisconnected,
 			})
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Updating node connection status.")
 				return
 			}
 		}
-		server_errors.WrapLogAndSendServerError(c, errors.New(disconnectResp.CommunicationResponse.Error), "Error disconnecting peer.")
+		server_errors.WrapLogAndSendServerError(c, err, "Error disconnecting peer.")
 		return
 	}
 
@@ -259,7 +228,7 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 		TorqNodeId:       nch.TorqNodeId,
 		Address:          nch.Address,
 		Setting:          nch.Setting,
-		ConnectionStatus: commons.NodeConnectionStatusDisconnected,
+		ConnectionStatus: core.NodeConnectionStatusDisconnected,
 	})
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Saving peer node.")
@@ -269,7 +238,7 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel 
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully disconnected peer.")})
 }
 
-func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
+func reconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 	var req ReconnectPeerRequest
 	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequest(c, "Cannot process DisconnectPeerRequest")
@@ -283,7 +252,7 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel c
 	}
 
 	if nch.Address == "" {
-		host, err := getHostFromPeer(nch.TorqNodeId, nch.PubKey, lightningRequestChannel)
+		host, err := getHostFromPeer(nch.TorqNodeId, nch.PubKey)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Getting host from peer.")
 			return
@@ -291,16 +260,16 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel c
 		nch.Address = host
 	}
 
-	connectResp := commons.ConnectPeer(req.TorqNodeId, nch.PubKey, nch.Address, lightningRequestChannel)
-	if connectResp.CommunicationResponse.Error != "" {
-		if connectResp.RequestFailCurrentlyConnected {
+	requestFailCurrentlyConnected, err := lightning.ConnectPeer(req.TorqNodeId, nch.PubKey, nch.Address)
+	if err != nil {
+		if requestFailCurrentlyConnected {
 			//correct the status of the node
 			err = addNodeConnectionHistory(db, &NodeConnectionHistory{
 				NodeId:           nch.NodeId,
 				TorqNodeId:       nch.TorqNodeId,
 				Address:          nch.Address,
 				Setting:          nch.Setting,
-				ConnectionStatus: commons.NodeConnectionStatusConnected,
+				ConnectionStatus: core.NodeConnectionStatusConnected,
 			})
 
 			if err != nil {
@@ -308,7 +277,7 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel c
 				return
 			}
 		}
-		server_errors.WrapLogAndSendServerError(c, errors.New(connectResp.CommunicationResponse.Error), "Updating Peer, already connected.")
+		server_errors.WrapLogAndSendServerError(c, err, "Updating Peer, already connected.")
 		return
 	}
 
@@ -317,7 +286,7 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel c
 		TorqNodeId:       nch.TorqNodeId,
 		Address:          nch.Address,
 		Setting:          nch.Setting,
-		ConnectionStatus: commons.NodeConnectionStatusConnected,
+		ConnectionStatus: core.NodeConnectionStatusConnected,
 	})
 
 	if err != nil {
@@ -328,7 +297,7 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB, lightningRequestChannel c
 	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully disconnected peer.")})
 }
 
-func updatePeer(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- interface{}) {
+func updatePeer(c *gin.Context, db *sqlx.DB) {
 	var req UpdatePeerRequest
 	if err := c.BindJSON(&req); err != nil {
 		server_errors.SendBadRequest(c, "Cannot process DisconnectPeerRequest")
@@ -357,7 +326,7 @@ func updatePeer(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- inte
 	}
 
 	if nch.Address == "" {
-		host, err := getHostFromPeer(nch.TorqNodeId, nch.PubKey, lightningRequestChannel)
+		host, err := getHostFromPeer(nch.TorqNodeId, nch.PubKey)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Getting host from peer.")
 			return
@@ -380,12 +349,14 @@ func updatePeer(c *gin.Context, db *sqlx.DB, lightningRequestChannel chan<- inte
 
 }
 
-func getHostFromPeer(connectionDetailsNodeId int, pubKey string, lightningRequestChannel chan<- interface{}) (string, error) {
-	peersRsp := commons.ListPeers(connectionDetailsNodeId, lightningRequestChannel)
-	p, ok := peersRsp.Peers[pubKey]
+func getHostFromPeer(connectionDetailsNodeId int, pubKey string) (string, error) {
+	peers, err := lightning.ListPeers(connectionDetailsNodeId)
+	if err != nil {
+		return "", errors.Wrap(err, "Getting list of peers.")
+	}
+	p, ok := peers[pubKey]
 	if ok {
 		return p.Address, nil
 	}
-
 	return "", errors.New("Peer public key not found.")
 }
