@@ -161,6 +161,7 @@ bootstrappingLoop:
 	log.Info().Msgf("Cron trigger monitor started")
 
 	<-ctx.Done()
+	cache.SetInactiveCoreServiceState(serviceType)
 }
 
 func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
@@ -168,8 +169,8 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	var delay bool
 
 	for {
-		if delay && !sleep(ctx) {
-			return
+		if delay {
+			sleep(ctx)
 		}
 
 		select {
@@ -183,6 +184,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			delay = true
 			continue
 		}
+		delay = false
 		events := scheduledTrigger.TriggeringEventQueue
 		if len(events) > 0 {
 			log.Debug().Msgf("ScheduledTriggerMonitor initiated for %v events", len(events))
@@ -327,16 +329,15 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 	}
 }
 
-func sleep(ctx context.Context) bool {
+func sleep(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	select {
 	case <-ctx.Done():
-		return false
+		return
 	case <-ticker.C:
 	}
-	return true
 }
 
 func ChannelBalanceEventTriggerMonitor(ctx context.Context, db *sqlx.DB) {
