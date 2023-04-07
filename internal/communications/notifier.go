@@ -104,7 +104,7 @@ var PublicKeys = map[CommunicationTargetType]map[string]string{ //nolint:gocheck
 }
 
 type Menu string
-type nodeId int
+type nodeIdInt int
 
 const (
 	MenuMain    Menu = "main"
@@ -132,9 +132,11 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 
 	serviceType := core.NotifierService
 
-	informationResponses := make(map[nodeId]core.InformationResponse)
-	graphInSyncTime := make(map[nodeId]time.Time)
-	chainInSyncTime := make(map[nodeId]time.Time)
+	informationResponses := make(map[nodeIdInt]core.InformationResponse)
+	graphInSyncTime := make(map[nodeIdInt]time.Time)
+	graphErrorState := make(map[nodeIdInt]bool)
+	chainInSyncTime := make(map[nodeIdInt]time.Time)
+	chainErrorState := make(map[nodeIdInt]bool)
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -169,12 +171,12 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 							torqNodeSettings.NodeId, torqNodeSettings.PublicKey)
 					}
 				} else {
-					_, exists := informationResponses[nodeId(torqNodeSettings.NodeId)]
+					_, exists := informationResponses[nodeIdInt(torqNodeSettings.NodeId)]
 					if !exists {
 						continue
 					}
 					err = errors.New("LndService is offline")
-					delete(informationResponses, nodeId(torqNodeSettings.NodeId))
+					delete(informationResponses, nodeIdInt(torqNodeSettings.NodeId))
 				}
 				if err != nil {
 					message := fmt.Sprintf("Could not connect to LND (%v)", torqNodeSettings.PublicKey)
@@ -184,9 +186,9 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 					sendBotMessages(message, communications)
 					continue
 				}
-				previousInformation, exists := informationResponses[nodeId(torqNodeSettings.NodeId)]
+				previousInformation, exists := informationResponses[nodeIdInt(torqNodeSettings.NodeId)]
 				if !exists {
-					informationResponses[nodeId(torqNodeSettings.NodeId)] = newInformation
+					informationResponses[nodeIdInt(torqNodeSettings.NodeId)] = newInformation
 					message := fmt.Sprintf("Connected to LND (%v)", torqNodeSettings.PublicKey)
 					if torqNodeSettings.Name != nil && *torqNodeSettings.Name != "" {
 						message = fmt.Sprintf("Connected to LND (%v)", *torqNodeSettings.Name)
@@ -196,13 +198,14 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 				}
 				var message string
 				// TODO FIXME Language from user for translations
-				message = compareGraphSyncTime(previousInformation, newInformation, graphInSyncTime, torqNodeSettings, message)
-				message = compareChainSyncTime(previousInformation, newInformation, chainInSyncTime, torqNodeSettings, message)
+				message = compareGraphSyncTime(previousInformation, newInformation,
+					graphInSyncTime, graphErrorState, torqNodeSettings, message)
+				message = compareChainSyncTime(previousInformation, newInformation,
+					chainInSyncTime, chainErrorState, torqNodeSettings, message)
 				message = comparePendingChannelCount(previousInformation, newInformation, message)
-				message = compareInactiveChannelCount(previousInformation, newInformation, message)
-				message = compareActiveChannelCount(previousInformation, newInformation, message)
+				message = compareChannelCount(previousInformation, newInformation, message)
 				message = compareVersion(previousInformation, newInformation, message)
-				informationResponses[nodeId(torqNodeSettings.NodeId)] = newInformation
+				informationResponses[nodeIdInt(torqNodeSettings.NodeId)] = newInformation
 				if message != "" {
 					sendBotMessages(message, communications)
 				}
@@ -254,38 +257,44 @@ func HandleNotification(db *sqlx.DB, notifierEvent core.NotifierEvent) {
 
 func compareGraphSyncTime(previousInformation core.InformationResponse,
 	newInformation core.InformationResponse,
-	graphInSyncTime map[nodeId]time.Time,
+	graphInSyncTime map[nodeIdInt]time.Time,
+	graphErrorState map[nodeIdInt]bool,
 	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.GraphSynced {
-		graphInSyncTime[nodeId(torqNodeSettings.NodeId)] = time.Now()
-		if !previousInformation.GraphSynced {
+		graphInSyncTime[nodeIdInt(torqNodeSettings.NodeId)] = time.Now()
+		if !previousInformation.GraphSynced && graphErrorState[nodeIdInt(torqNodeSettings.NodeId)] {
 			message = message + "Graph is synced\n"
+			graphErrorState[nodeIdInt(torqNodeSettings.NodeId)] = false
 		}
 	}
-	lastGraphInSyncTime, lastGraphInSyncTimeExists := graphInSyncTime[nodeId(torqNodeSettings.NodeId)]
+	lastGraphInSyncTime, lastGraphInSyncTimeExists := graphInSyncTime[nodeIdInt(torqNodeSettings.NodeId)]
 	if lastGraphInSyncTimeExists && int(time.Since(lastGraphInSyncTime).Seconds()) > 60 {
 		message = message + "Graph is out of sync\n"
+		graphErrorState[nodeIdInt(torqNodeSettings.NodeId)] = true
 	}
 	return message
 }
 
 func compareChainSyncTime(previousInformation core.InformationResponse,
 	newInformation core.InformationResponse,
-	chainInSyncTime map[nodeId]time.Time,
+	chainInSyncTime map[nodeIdInt]time.Time,
+	chainErrorState map[nodeIdInt]bool,
 	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.ChainSynced {
-		chainInSyncTime[nodeId(torqNodeSettings.NodeId)] = time.Now()
-		if !previousInformation.ChainSynced {
+		chainInSyncTime[nodeIdInt(torqNodeSettings.NodeId)] = time.Now()
+		if !previousInformation.ChainSynced && chainErrorState[nodeIdInt(torqNodeSettings.NodeId)] {
 			message = message + "Chain is synced\n"
+			chainErrorState[nodeIdInt(torqNodeSettings.NodeId)] = false
 		}
 	}
-	lastChainInSyncTime, lastChainInSyncTimeExists := chainInSyncTime[nodeId(torqNodeSettings.NodeId)]
+	lastChainInSyncTime, lastChainInSyncTimeExists := chainInSyncTime[nodeIdInt(torqNodeSettings.NodeId)]
 	if lastChainInSyncTimeExists && int(time.Since(lastChainInSyncTime).Seconds()) > 60 {
 		message = message + "Chain is out of sync\n"
+		chainErrorState[nodeIdInt(torqNodeSettings.NodeId)] = true
 	}
 	return message
 }
@@ -305,17 +314,18 @@ func comparePendingChannelCount(previousInformation core.InformationResponse,
 	return message
 }
 
-func compareInactiveChannelCount(previousInformation core.InformationResponse,
+func compareChannelCount(previousInformation core.InformationResponse,
 	newInformation core.InformationResponse,
 	message string) string {
 
-	if previousInformation.InactiveChannelCount != newInformation.InactiveChannelCount {
-		if newInformation.InactiveChannelCount == 0 {
-			message = message + "No inactive channels anymore\n"
-		} else {
-			message = message + fmt.Sprintf("Inactive channels: %v -> %v\n",
-				previousInformation.InactiveChannelCount, newInformation.InactiveChannelCount)
-		}
+	previousNonPendingCount := previousInformation.InactiveChannelCount + previousInformation.ActiveChannelCount
+	currentNonPendingCount := newInformation.InactiveChannelCount + newInformation.ActiveChannelCount
+
+	if previousNonPendingCount != currentNonPendingCount {
+		message = message + fmt.Sprintf("Inactive channels: %v -> %v\n",
+			previousInformation.InactiveChannelCount, newInformation.InactiveChannelCount)
+		message = message + fmt.Sprintf("Active channels: %v -> %v\n",
+			previousInformation.ActiveChannelCount, newInformation.ActiveChannelCount)
 	}
 	return message
 }
@@ -327,21 +337,6 @@ func compareVersion(previousInformation core.InformationResponse,
 	if previousInformation.Version != newInformation.Version {
 		message = message + fmt.Sprintf("Version changed from %v to %v\n",
 			previousInformation.Version, newInformation.Version)
-	}
-	return message
-}
-
-func compareActiveChannelCount(previousInformation core.InformationResponse,
-	newInformation core.InformationResponse,
-	message string) string {
-
-	if previousInformation.ActiveChannelCount != newInformation.ActiveChannelCount {
-		if newInformation.ActiveChannelCount == 0 {
-			message = message + "No active channels anymore\n"
-		} else {
-			message = message + fmt.Sprintf("Active channels: %v -> %v\n",
-				previousInformation.ActiveChannelCount, newInformation.ActiveChannelCount)
-		}
 	}
 	return message
 }
