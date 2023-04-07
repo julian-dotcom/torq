@@ -1118,14 +1118,12 @@ func processRebalanceRun(
 	}
 	var activeChannelIds []int
 	var responses []core.RebalanceResponse
-	for nodeId := range requestsMap {
+	for nodeId, requests := range requestsMap {
 		if cache.GetCurrentLndServiceState(core.RebalanceService, nodeId).Status != core.ServiceActive {
 			return nil, errors.New(fmt.Sprintf("Rebalance service is not active for nodeId: %v", nodeId))
 		}
-		responseChannel := make(chan []core.RebalanceResponse)
-		requestsMap[nodeId].ResponseChannel = responseChannel
-		requests := *requestsMap[nodeId]
-		for _, req := range requests.Requests {
+		reqs := *requests
+		for _, req := range reqs.Requests {
 			if req.IncomingChannelId != 0 {
 				activeChannelIds = append(activeChannelIds, req.IncomingChannelId)
 			}
@@ -1133,8 +1131,8 @@ func processRebalanceRun(
 				activeChannelIds = append(activeChannelIds, req.OutgoingChannelId)
 			}
 		}
-		RebalanceRequests(context.Background(), db, requests, nodeId)
-		responses = append(responses, <-responseChannel...)
+		resp := RebalanceRequests(context.Background(), db, reqs, nodeId)
+		responses = append(responses, resp...)
 	}
 	if len(eventChannelIds) == 0 {
 		CancelRebalancersExcept(core.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,

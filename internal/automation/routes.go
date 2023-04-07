@@ -33,10 +33,7 @@ func rebalanceHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	responseChannel := make(chan []core.RebalanceResponse)
-	rr.ResponseChannel = responseChannel
-	workflows.RebalanceRequests(context.Background(), db, rr, rr.NodeId)
-	response := <-responseChannel
+	response := workflows.RebalanceRequests(context.Background(), db, rr, rr.NodeId)
 	if len(response) > 0 && response[0].Error != "" {
 		server_errors.SendBadRequest(c, response[0].Error)
 		return

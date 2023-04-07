@@ -153,7 +153,11 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 	}
 }
 
-func RebalanceRequests(ctx context.Context, db *sqlx.DB, requests core.RebalanceRequests, nodeId int) {
+func RebalanceRequests(ctx context.Context,
+	db *sqlx.DB,
+	requests core.RebalanceRequests,
+	nodeId int) []core.RebalanceResponse {
+
 	var incoming bool
 	var outgoing bool
 	for _, request := range requests.Requests {
@@ -167,8 +171,11 @@ func RebalanceRequests(ctx context.Context, db *sqlx.DB, requests core.Rebalance
 		err := errors.New(fmt.Sprintf(
 			"Rebalance request's ignored because focus was both incoming and outgoing, "+
 				"which is impossible for nodeId: %v", nodeId))
-		sendError(requests, err)
-		return
+		log.Error().Err(err).Msg("RebalanceRequests failed")
+		return []core.RebalanceResponse{{
+			Request:               core.RebalanceRequest{},
+			CommunicationResponse: core.CommunicationResponse{},
+		}}
 	}
 	responses := make(map[int]core.RebalanceResponse)
 	for _, request := range requests.Requests {
@@ -336,23 +343,11 @@ func RebalanceRequests(ctx context.Context, db *sqlx.DB, requests core.Rebalance
 			}
 		}
 	}
-	if requests.ResponseChannel != nil {
-		var res []core.RebalanceResponse
-		for _, resp := range responses {
-			res = append(res, resp)
-		}
-		requests.ResponseChannel <- res
+	var res []core.RebalanceResponse
+	for _, resp := range responses {
+		res = append(res, resp)
 	}
-}
-
-func sendError(requests core.RebalanceRequests, err error) {
-	log.Error().Err(err).Msg("RebalanceRequests failed")
-	if requests.ResponseChannel != nil {
-		requests.ResponseChannel <- []core.RebalanceResponse{{
-			Request:               core.RebalanceRequest{},
-			CommunicationResponse: core.CommunicationResponse{},
-		}}
-	}
+	return res
 }
 
 func hasPendingIncomingRebalance(pendingRebalancers []*Rebalancer, incomingChannelId int) bool {

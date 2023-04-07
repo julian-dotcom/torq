@@ -336,8 +336,7 @@ type CommunicationResponse struct {
 
 type RebalanceRequests struct {
 	CommunicationRequest
-	Requests        []RebalanceRequest
-	ResponseChannel chan<- []RebalanceResponse `json:"-"`
+	Requests []RebalanceRequest
 }
 
 type RebalanceRequest struct {
