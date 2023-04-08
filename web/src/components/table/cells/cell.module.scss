@@ -262,3 +262,11 @@
   display: flex;
   gap: 4px;
 }
+.actionWrapper {
+  row-gap: 8px;
+}
+.actionButtons {
+  display: flex;
+  column-gap: 8px;
+  font-size: var(--font-size-tiny);
+}

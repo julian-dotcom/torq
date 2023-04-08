@@ -1,30 +1,3 @@
-a.updateLink,
-a.closeChannelLink {
-  &:link,
-  &:visited,
-  &:hover,
-  &:active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0px 8px;
-    column-gap: 4px;
-    color: var(--color-text-success-strong);
-    background-color: var(--color-success-layer-3);
-    font-size: var(--font-size-tiny);
-    height: 24px;
-    border-radius: var(--radius-default);
-  }
-}
-a.closeChannelLink {
-  &:link,
-  &:visited,
-  &:hover,
-  &:active {
-    background-color: var(--color-error-layer-3);
-    color: var(--color-text-error-strong);
-  }
-}
 .channelCellWrapper {
   row-gap: 8px;
 }
@@ -32,15 +5,4 @@ a.closeChannelLink {
   display: flex;
   column-gap: 8px;
   font-size: var(--font-size-tiny);
-}
-.workflowCellWrapper {
-  display: flex;
-  height: 100%;
-  align-items: center;
-  column-gap: 8px;
-  .workflowCellContent,
-  div {
-    display: flex;
-    height: 100%;
-  }
 }

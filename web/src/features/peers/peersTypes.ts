@@ -1,6 +1,6 @@
 import { Tag } from "pages/tags/tagsTypes";
 
-export type Peer = ExpandedPeer & {
+export type Peer = {
   nodeId: number;
   pubKey: string;
   torqNodeId: number;
@@ -9,10 +9,6 @@ export type Peer = ExpandedPeer & {
   setting: NodeConnectionSetting;
   tags: Tag[];
   peerAlias: string;
-};
-
-export type ExpandedPeer = {
-  actions: boolean;
 };
 
 export type ConnectPeerRequest = {
@@ -47,8 +43,6 @@ export type UpdatePeerResponse = {
 export enum ConnectionStatus {
   Disconnected = 0,
   Connected = 1,
-  Archived = 2,
-  Deleted = 3,
 }
 
 export enum NodeConnectionSetting {

@@ -25,30 +25,25 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		type: "AliasCell",
 		key: "torqNodeAlias",
 		valueType: "string",
-		locked: true,
 	},
 	{
-		heading: "Setting",
+		heading: "Reconnect",
 		type: "TextCell",
 		key: "setting",
 		valueType: "enum",
-		locked: true,
 		selectOptions: [
 			{ label: "Always Reconnect", value: "AlwaysReconnect" },
 			{ label: "Disable Reconnect", value: "DisableReconnect" },
 		],
 	},
 	{
-		heading: "Connection Status",
+		heading: "Status",
 		type: "TextCell",
 		key: "connectionStatus",
 		valueType: "enum",
-		locked: true,
 		selectOptions: [
 			{ label: "Disconnected", value: "NodeConnectionStatusDisconnected" },
 			{ label: "Connected", value: "NodeConnectionStatusConnected" },
-			{ label: "Archived", value: "NodeConnectionStatusArchived" },
-			{ label: "Closed", value: "NodeConnectionStatusDeleted" },
 		],
 	},
 ];

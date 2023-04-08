@@ -1134,7 +1134,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageForwards:        16,
 				PageChannelsClosed:  17,
 				PageChannelsPending: 21,
-				PagePeers:           2,
+				PagePeers:           5,
 			},
 		},
 		{
@@ -1594,22 +1594,20 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "torqNodeAlias",
-			locked:     true,
 			sortable:   true,
 			filterable: true,
 			heading:    "Torq Alias",
 			visualType: "AliasCell",
 			valueType:  "string",
 			pages: map[TableViewPage]int{
-				PagePeers: 3,
+				PagePeers: 2,
 			},
 		},
 		{
 			key:        "setting",
-			locked:     true,
 			sortable:   true,
 			filterable: true,
-			heading:    "Setting",
+			heading:    "Reconnect",
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
@@ -1622,20 +1620,17 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 		},
 		{
 			key:        "connectionStatus",
-			locked:     true,
 			sortable:   true,
 			filterable: true,
-			heading:    "Connection Status",
+			heading:    "Status",
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
 				{value: "NodeConnectionStatusDisconnected", label: "Disconnected"},
 				{value: "NodeConnectionStatusConnected", label: "Connected"},
-				{value: "NodeConnectionStatusArchived", label: "Archived"},
-				{value: "NodeConnectionStatusDeleted", label: "Deleted"},
 			},
 			pages: map[TableViewPage]int{
-				PagePeers: 5,
+				PagePeers: 3,
 			},
 		},
 	}
