@@ -179,8 +179,8 @@ func insertRoutingPolicy(
 			}
 			peerConnectionHistory := &nodes.NodeConnectionHistory{
 				TorqNodeId:       nodeSettings.NodeId,
-				ConnectionStatus: commons.NodeConnectionStatusConnected,
-				Setting:          commons.NodeConnectionSettingAlwaysReconnect,
+				ConnectionStatus: core.NodeConnectionStatusConnected,
+				Setting:          core.NodeConnectionSettingAlwaysReconnect,
 			}
 			announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 			if err != nil {
@@ -199,8 +199,8 @@ func insertRoutingPolicy(
 			}
 			peerConnectionHistory := &nodes.NodeConnectionHistory{
 				TorqNodeId:       nodeSettings.NodeId,
-				ConnectionStatus: commons.NodeConnectionStatusConnected,
-				Setting:          commons.NodeConnectionSettingAlwaysReconnect,
+				ConnectionStatus: core.NodeConnectionStatusConnected,
+				Setting:          core.NodeConnectionSettingAlwaysReconnect,
 			}
 			connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 			if err != nil {

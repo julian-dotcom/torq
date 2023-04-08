@@ -163,12 +163,12 @@ func ConnectPeer(nodeId int, publicKey string, host string) (bool, error) {
 	return response.RequestFailCurrentlyConnected, nil
 }
 
-func DisconnectPeer(nodeId int, publicKey string) (bool, error) {
+func DisconnectPeer(nodeId int, peerNodeId int) (bool, error) {
 	request := lnd.DisconnectPeerRequest{
 		CommunicationRequest: lnd.CommunicationRequest{
 			NodeId: nodeId,
 		},
-		PublicKey: publicKey,
+		PeerNodeId: peerNodeId,
 	}
 	response := lnd.DisconnectPeer(request)
 	if response.Error != nil {

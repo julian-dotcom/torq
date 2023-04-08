@@ -326,8 +326,8 @@ func addNodeWhenNew(remotePublicKey string, nodeSettings cache.NodeSettingsCache
 
 		peerConnectionHistory := &nodes.NodeConnectionHistory{
 			TorqNodeId:       nodeSettings.NodeId,
-			ConnectionStatus: commons.NodeConnectionStatusConnected,
-			Setting:          commons.NodeConnectionSettingAlwaysReconnect,
+			ConnectionStatus: core.NodeConnectionStatusConnected,
+			Setting:          core.NodeConnectionSettingAlwaysReconnect,
 		}
 
 		var err error

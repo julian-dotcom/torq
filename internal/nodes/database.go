@@ -83,7 +83,7 @@ func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network core.Network) (
 	return nds, nil
 }
 
-func GetPeerNodes(db *sqlx.DB, network commons.Network) ([]PeerNode, error) {
+func GetPeerNodes(db *sqlx.DB, network core.Network) ([]PeerNode, error) {
 	var nodes []PeerNode
 	err := db.Select(&nodes, `
 	SELECT
@@ -194,24 +194,4 @@ func addNodeConnectionHistory(db *sqlx.DB, nch *NodeConnectionHistory) error {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nil
-}
-
-func getNodeConnectionHistoryWithDetail(db *sqlx.DB, nodeId int) (NodeConnectionHistoryWithDetail, error) {
-	var nch NodeConnectionHistoryWithDetail
-	err := db.Get(&nch,
-		`SELECT n.node_id, n.public_key, nch.torq_node_id, nch.connection_status, nch.address, nch.setting
-				FROM node n
-    			LEFT JOIN (
-					SELECT LAST(node_id, created_on) as node_id, LAST(torq_node_id, created_on) as torq_node_id, LAST(connection_status, created_on) as connection_status, LAST(address, created_on) as address, LAST(setting, created_on) as setting
-			  		FROM node_connection_history
-			  		WHERE node_id = $1
-			  		GROUP BY node_id) nch ON nch.node_id = n.node_id
-				WHERE n.node_id = $1;`, nodeId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return NodeConnectionHistoryWithDetail{}, nil
-		}
-		return NodeConnectionHistoryWithDetail{}, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return nch, nil
 }

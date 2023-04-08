@@ -387,7 +387,7 @@ type ConnectPeerResponse struct {
 
 type DisconnectPeerRequest struct {
 	CommunicationRequest
-	PublicKey string
+	PeerNodeId int
 }
 
 type DisconnectPeerResponse struct {
@@ -475,8 +475,9 @@ func processDisconnectPeerRequest(ctx context.Context, request DisconnectPeerReq
 		RequestFailedCurrentlyDisconnected: false,
 	}
 
+	publicKey := cache.GetNodeSettingsByNodeId(request.PeerNodeId).PublicKey
 	disconnectPeerRequest := lnrpc.DisconnectPeerRequest{
-		PubKey: request.PublicKey,
+		PubKey: publicKey,
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -504,7 +505,7 @@ func processDisconnectPeerRequest(ctx context.Context, request DisconnectPeerReq
 	for {
 		select {
 		case <-ticker.C:
-			peer, err := getPeersByPublicKey(ctx, client, request.PublicKey)
+			peer, err := getPeersByPublicKey(ctx, client, publicKey)
 			if err != nil {
 				response.Error = err
 				return response

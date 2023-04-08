@@ -12,7 +12,7 @@ export const peersApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     connectPeer: builder.mutation<ConnectPeerResponse, ConnectPeerRequest>({
       query: (body) => ({
-        url: `nodes/peers/connect`,
+        url: `lightning/peers/connect`,
         method: "POST",
         body: body,
       }),
@@ -20,7 +20,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     disconnectPeer: builder.mutation<DisconnectPeerResponse, DisconnectPeerRequest>({
       query: (body) => ({
-        url: `nodes/peers/disconnect`,
+        url: `lightning/peers/disconnect`,
         method: "PATCH",
         body: body,
       }),
@@ -28,7 +28,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     reconnectPeer: builder.mutation<DisconnectPeerResponse, DisconnectPeerRequest>({
       query: (body) => ({
-        url: `nodes/peers/reconnect`,
+        url: `lightning/peers/reconnect`,
         method: "PATCH",
         body: body,
       }),
@@ -36,7 +36,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     updatePeer: builder.mutation<UpdatePeerResponse, UpdatePeerRequest>({
       query: (body) => ({
-        url: `nodes/peers/update`,
+        url: `lightning/peers/update`,
         method: "PATCH",
         body: body,
       }),
