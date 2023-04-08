@@ -51,7 +51,7 @@ export default function peerCellRenderer(
   if (column.key === "connectionStatus") {
     return (
       <TextCell
-        current={ConnectionStatus[row.connectionStatus]?.replace(/([a-z])([A-Z])/g, "$1 $2")}
+        current={t.peersPage[ConnectionStatus[row.connectionStatus]]}
         key={column.key.toString() + rowIndex}
         totalCell={isTotalsRow}
       />
@@ -61,7 +61,7 @@ export default function peerCellRenderer(
   if (column.key === "setting") {
     return (
       <TextCell
-        current={NodeConnectionSetting[row.setting]?.replace(/([a-z])([A-Z])/g, "$1 $2")}
+        current={t.peersPage[NodeConnectionSetting[row.setting]]}
         key={column.key.toString() + rowIndex}
         totalCell={isTotalsRow}
       />
@@ -102,7 +102,7 @@ export default function peerCellRenderer(
         </Button>
 
         <LinkButton
-          to={`${Routes.UPDATE_PEER}?nodeId=${row.nodeId}&peerAlias=${row.peerAlias}&torqNodeId=${row.torqNodeId}&torqNodeAlias=${row.torqNodeAlias}&setting=${row.setting}`}
+          to={`${Routes.UPDATE_PEER}?torqNodeId=${row.torqNodeId}&peerNodeId=${row.nodeId}`}
           state={{ background: location }}
           hideMobileText={true}
           buttonColor={ColorVariant.primary}

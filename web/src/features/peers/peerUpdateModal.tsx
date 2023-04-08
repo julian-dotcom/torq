@@ -22,9 +22,12 @@ import { Select } from "components/forms/forms";
 import mixpanel from "mixpanel-browser";
 import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
 import ErrorSummary from "components/errors/ErrorSummary";
-import { useUpdatePeerMutation } from "./peersApi";
+import { useGetPeersQuery, useUpdatePeerMutation } from "./peersApi";
 import clone from "clone";
 import { useSearchParams } from "react-router-dom";
+import { Peer } from "./peersTypes";
+import { useAppSelector } from "../../store/hooks";
+import { selectActiveNetwork } from "../network/networkSlice";
 
 const updateStatusClass = {
   PROCESSING: styles.processing,
@@ -39,10 +42,6 @@ const updateStatusIcon = {
   NOTE: <NoteIcon />,
 };
 
-const settingOptions: SelectOptions[] = [
-  { value: 0, label: "Always Reconnect" },
-  { value: 1, label: "Disable Reconnect" },
-];
 function isOption(result: unknown): result is SelectOptions & { value: number } {
   return (
     result !== null &&
@@ -55,22 +54,42 @@ function isOption(result: unknown): result is SelectOptions & { value: number } 
 
 function PeerUpdateModal() {
   const [queryParams] = useSearchParams();
-  const nodeId = parseInt(queryParams.get("nodeId") || "0");
-  const nodeAlias = queryParams.get("peerAlias") || "";
+  const peerNodeId = parseInt(queryParams.get("peerNodeId") || "0");
   const torqNodeId = parseInt(queryParams.get("torqNodeId") || "0");
-  const torqNodeAlias = queryParams.get("torqNodeAlias") || "";
-  const currentSetting = parseInt(queryParams.get("currentSetting") || "0");
+  const activeNetwork = useAppSelector(selectActiveNetwork);
+
+  const peersResponse = useGetPeersQuery<{
+    data: Array<Peer>;
+    isLoading: boolean;
+    isFetching: boolean;
+    isUninitialized: boolean;
+    isSuccess: boolean;
+  }>({ network: activeNetwork });
+
+  const peer = peersResponse?.data?.find((peer: Peer) => peer.nodeId === peerNodeId && peer.torqNodeId === torqNodeId);
 
   const { t } = useTranslations();
+
+  const settingOptions: SelectOptions[] = [
+    { value: 0, label: t.peersPage.AlwaysReconnect },
+    { value: 1, label: t.peersPage.DisableReconnect },
+  ];
+
   const navigate = useNavigate();
 
   const [connectState, setConnectState] = useState(ProgressStepState.active);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const [selectedSetting, setSelectedSetting] = useState<number>(currentSetting);
+  const [selectedSetting, setSelectedSetting] = useState<number | undefined>();
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [formErrorState, setFormErrorState] = useState({} as FormErrors);
   const [updatePeer, response] = useUpdatePeerMutation();
+
+  useEffect(() => {
+    if (peer) {
+      setSelectedSetting(peer.setting);
+    }
+  }, [peer]);
 
   useEffect(() => {
     if (response && response.isError && response.error && "data" in response.error && response.error.data) {
@@ -98,12 +117,14 @@ function PeerUpdateModal() {
   };
 
   function handleConnectPeer() {
+    if (selectedSetting === undefined) return;
+
     mixpanel.track("update-peer", {
-      nodeId: nodeId,
+      nodeId: peerNodeId,
       torqNodeId: torqNodeId,
       setting: selectedSetting,
     });
-    updatePeer({ nodeId: nodeId, torqNodeId: torqNodeId, setting: selectedSetting });
+    updatePeer({ nodeId: peerNodeId, torqNodeId: torqNodeId, setting: selectedSetting });
   }
 
   return (
@@ -119,11 +140,11 @@ function PeerUpdateModal() {
             <div className={styles.card}>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Node alias</div>
-                <div className={styles.rowValue}>{nodeAlias}</div>
+                <div className={styles.rowValue}>{peer?.peerAlias}</div>
               </div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Torq node alias</div>
-                <div className={classNames(styles.rowValue)}>{torqNodeAlias}</div>
+                <div className={classNames(styles.rowValue)}>{peer?.torqNodeAlias}</div>
               </div>
             </div>
           </FormRow>
@@ -149,9 +170,9 @@ function PeerUpdateModal() {
                   setConnectState(ProgressStepState.completed);
                   handleConnectPeer();
                 }}
-                buttonColor={ColorVariant.primary}
+                buttonColor={ColorVariant.success}
               >
-                {t.confirm}
+                {t.update}
               </Button>
             }
           />
@@ -160,7 +181,7 @@ function PeerUpdateModal() {
           <div
             className={classNames(
               styles.peerResultIconWrapper,
-              { [styles.failed]: !response.data },
+              { [styles.failed]: response.isError },
               updateStatusClass[response.isLoading ? "PROCESSING" : response.isError ? "FAILED" : "SUCCEEDED"]
             )}
           >
@@ -173,8 +194,8 @@ function PeerUpdateModal() {
           )}
           <div className={styles.peersResultDetails}>
             {response.isSuccess && (
-              <Note title={t.note} icon={<NoteIcon />} noteType={NoteType.info}>
-                {t.peersPage.confirmationConnectPeer}
+              <Note title={t.Success} icon={<NoteIcon />} noteType={NoteType.success}>
+                {t.peersPage.confirmationPeerUpdated}
               </Note>
             )}
             <ErrorSummary errors={formErrorState} />

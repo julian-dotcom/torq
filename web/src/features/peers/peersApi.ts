@@ -4,9 +4,11 @@ import {
   ConnectPeerResponse,
   DisconnectPeerRequest,
   DisconnectPeerResponse,
+  Peer,
   UpdatePeerRequest,
   UpdatePeerResponse,
 } from "./peersTypes";
+import { ActiveNetwork } from "types/api";
 
 export const peersApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -42,8 +44,22 @@ export const peersApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["peers"],
     }),
+    getPeers: builder.query<Peer[], ActiveNetwork>({
+      query: (params) => ({
+        url: `nodes/${params.network}/peers`,
+        method: "GET",
+      }),
+      providesTags: ["peers"],
+    }),
   }),
 });
 
-export const { useConnectPeerMutation, useDisconnectPeerMutation, useReconnectPeerMutation, useUpdatePeerMutation } =
-  peersApi;
+// Select a single peer from the list
+
+export const {
+  useConnectPeerMutation,
+  useDisconnectPeerMutation,
+  useReconnectPeerMutation,
+  useUpdatePeerMutation,
+  useGetPeersQuery,
+} = peersApi;

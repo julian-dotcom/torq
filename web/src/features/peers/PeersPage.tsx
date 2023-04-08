@@ -2,7 +2,7 @@ import {
   Options20Regular as OptionsIcon,
   ArrowDownload20Regular as DownloadCsvIcon,
   ArrowSync20Regular as RefreshIcon,
-  Molecule20Regular as PeersIcon,
+  Add20Regular as NewPeerIcon,
 } from "@fluentui/react-icons";
 import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
@@ -22,7 +22,7 @@ import {
   DefaultPeersView,
 } from "features/peers/peersDefaults";
 import { AllPeersColumns } from "features/peers/peersColumns.generated";
-import { useGetPeersQuery } from "apiSlice";
+import { useGetPeersQuery } from "features/peers/peersApi";
 import { useAppSelector } from "store/hooks";
 import { useGetTableViewsQuery, useUpdateTableViewMutation } from "features/viewManagement/viewsApiSlice";
 import { selectPeersViews, selectViews } from "features/viewManagement/viewSlice";
@@ -83,7 +83,7 @@ function PeersPage() {
           <Button
             buttonColor={ColorVariant.success}
             hideMobileText={true}
-            icon={<PeersIcon />}
+            icon={<NewPeerIcon />}
             onClick={() => {
               mixpanel.track("Navigate to connect new peer");
               navigate(Routes.CONNECT_PEER, { state: { background: location } });
