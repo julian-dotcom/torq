@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
@@ -146,6 +147,9 @@ func AddNodeWhenNew(db *sqlx.DB, node Node, peerConnectionHistory *NodeConnectio
 		if peerConnectionHistory != nil {
 			peerConnectionHistory.NodeId = node.NodeId
 			err = addNodeConnectionHistory(db, peerConnectionHistory)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to store Node Connection History for nodeId: %v", nodeId)
+			}
 		}
 
 		return node.NodeId, nil

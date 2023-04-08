@@ -502,21 +502,22 @@ func processDisconnectPeerRequest(ctx context.Context, request DisconnectPeerReq
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			peer, err := getPeersByPublicKey(ctx, client, publicKey)
-			if err != nil {
-				response.Error = err
-				return response
-			}
-
-			if peer != nil {
-				response.Error = errors.New("Disconnection unsuccessful")
-				return response
-			}
+	select {
+	case <-ctx.Done():
+		response.Error = errors.New("Context ended")
+		return response
+	case <-ticker.C:
+		peer, err := getPeersByPublicKey(ctx, client, publicKey)
+		if err != nil {
+			response.Error = err
 			return response
 		}
+
+		if peer != nil {
+			response.Error = errors.New("Disconnection unsuccessful")
+			return response
+		}
+		return response
 	}
 }
 
@@ -580,7 +581,7 @@ func getPeersByPublicKey(ctx context.Context, client lnrpc.LightningClient, publ
 	listPeersRequest := lnrpc.ListPeersRequest{}
 	peersResponse, err := client.ListPeers(ctx, &listPeersRequest)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Obtaining list of peers.")
 	}
 
 	var peer *lnrpc.Peer

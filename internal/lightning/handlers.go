@@ -162,7 +162,7 @@ func connectNewPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully connected to peer.")})
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully connected to peer."})
 }
 
 func disconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
@@ -206,7 +206,7 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully disconnected peer.")})
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully disconnected peer."})
 }
 
 func reconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
@@ -251,7 +251,7 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully disconnected peer.")})
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully disconnected peer."})
 }
 
 func updatePeer(c *gin.Context, db *sqlx.DB) {
