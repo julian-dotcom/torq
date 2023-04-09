@@ -2,14 +2,14 @@ import { Tag } from "pages/tags/tagsTypes";
 
 export type Peer = {
   nodeId: number;
-  pubKey: string;
   torqNodeId: number;
+  peerAlias: string;
   torqNodeAlias: string;
+  pubKey: string;
   address: string;
   connectionStatus: ConnectionStatus;
   setting: NodeConnectionSetting;
-  tags: Tag[];
-  peerAlias: string;
+  tags: Tag[]; // TODO: Add tags to the peers api endpoint.
 };
 
 export type ConnectPeerRequest = {
