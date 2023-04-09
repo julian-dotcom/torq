@@ -25,7 +25,7 @@ import ErrorSummary from "components/errors/ErrorSummary";
 import { useGetPeersQuery, useUpdatePeerMutation } from "./peersApi";
 import clone from "clone";
 import { useSearchParams } from "react-router-dom";
-import { Peer } from "./peersTypes";
+import { NodeConnectionSetting, NodeConnectionSettingInt, Peer } from "./peersTypes";
 import { useAppSelector } from "../../store/hooks";
 import { selectActiveNetwork } from "../network/networkSlice";
 
@@ -42,13 +42,13 @@ const updateStatusIcon = {
   NOTE: <NoteIcon />,
 };
 
-function isOption(result: unknown): result is SelectOptions & { value: number } {
+function isOption(result: unknown): result is SelectOptions & { value: string } {
   return (
     result !== null &&
     typeof result === "object" &&
     "value" in result &&
     "label" in result &&
-    typeof (result as SelectOptions).value === "number"
+    typeof (result as SelectOptions).value === "string"
   );
 }
 
@@ -71,8 +71,8 @@ function PeerUpdateModal() {
   const { t } = useTranslations();
 
   const settingOptions: SelectOptions[] = [
-    { value: 0, label: t.peersPage.AlwaysReconnect },
-    { value: 1, label: t.peersPage.DisableReconnect },
+    { value: NodeConnectionSetting.AlwaysReconnect, label: t.peersPage.AlwaysReconnect },
+    { value: NodeConnectionSetting.DisableReconnect, label: t.peersPage.DisableReconnect },
   ];
 
   const navigate = useNavigate();
@@ -80,7 +80,7 @@ function PeerUpdateModal() {
   const [connectState, setConnectState] = useState(ProgressStepState.active);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const [selectedSetting, setSelectedSetting] = useState<number | undefined>();
+  const [selectedSetting, setSelectedSetting] = useState<NodeConnectionSetting | undefined>();
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [formErrorState, setFormErrorState] = useState({} as FormErrors);
   const [updatePeer, response] = useUpdatePeerMutation();
@@ -105,7 +105,7 @@ function PeerUpdateModal() {
     }
   }, [response]);
 
-  function handleSettingSelection(value: number) {
+  function handleSettingSelection(value: NodeConnectionSetting) {
     setSelectedSetting(value);
   }
 
@@ -124,7 +124,7 @@ function PeerUpdateModal() {
       torqNodeId: torqNodeId,
       setting: selectedSetting,
     });
-    updatePeer({ nodeId: peerNodeId, torqNodeId: torqNodeId, setting: selectedSetting });
+    updatePeer({ nodeId: peerNodeId, torqNodeId: torqNodeId, setting: NodeConnectionSettingInt[selectedSetting] });
   }
 
   return (
@@ -155,7 +155,7 @@ function PeerUpdateModal() {
                 // Check if newValue is of type SelectOptions
                 if (isOption(newValue)) {
                   const selectOptions = newValue as SelectOptions;
-                  handleSettingSelection(selectOptions?.value as number);
+                  handleSettingSelection(selectOptions?.value as NodeConnectionSetting);
                 }
               }}
               options={settingOptions}

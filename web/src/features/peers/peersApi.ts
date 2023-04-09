@@ -9,12 +9,13 @@ import {
   UpdatePeerResponse,
 } from "./peersTypes";
 import { ActiveNetwork } from "types/api";
+import { queryParamsBuilder } from "utils/queryParamsBuilder";
 
 export const peersApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     connectPeer: builder.mutation<ConnectPeerResponse, ConnectPeerRequest>({
       query: (body) => ({
-        url: `lightning/peers/connect`,
+        url: `peers/connect`,
         method: "POST",
         body: body,
       }),
@@ -22,7 +23,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     disconnectPeer: builder.mutation<DisconnectPeerResponse, DisconnectPeerRequest>({
       query: (body) => ({
-        url: `lightning/peers/disconnect`,
+        url: `peers/disconnect`,
         method: "PATCH",
         body: body,
       }),
@@ -30,7 +31,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     reconnectPeer: builder.mutation<DisconnectPeerResponse, DisconnectPeerRequest>({
       query: (body) => ({
-        url: `lightning/peers/reconnect`,
+        url: `peers/reconnect`,
         method: "PATCH",
         body: body,
       }),
@@ -38,7 +39,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     updatePeer: builder.mutation<UpdatePeerResponse, UpdatePeerRequest>({
       query: (body) => ({
-        url: `lightning/peers/update`,
+        url: `peers/update`,
         method: "PATCH",
         body: body,
       }),
@@ -46,7 +47,7 @@ export const peersApi = torqApi.injectEndpoints({
     }),
     getPeers: builder.query<Peer[], ActiveNetwork>({
       query: (params) => ({
-        url: `nodes/${params.network}/peers`,
+        url: `peers` + queryParamsBuilder(params),
         method: "GET",
       }),
       providesTags: ["peers"],

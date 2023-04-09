@@ -15,16 +15,20 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		locked: true,
 	},
 	{
-		heading: "Public key",
-		type: "LongTextCell",
-		key: "pubKey",
-		valueType: "string",
-	},
-	{
 		heading: "Torq Alias",
 		type: "AliasCell",
 		key: "torqNodeAlias",
 		valueType: "string",
+	},
+	{
+		heading: "Status",
+		type: "TextCell",
+		key: "connectionStatus",
+		valueType: "enum",
+		selectOptions: [
+			{ label: "Connected", value: "Connected" },
+			{ label: "Disconnected", value: "Disconnected" },
+		],
 	},
 	{
 		heading: "Reconnect",
@@ -33,18 +37,14 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		valueType: "enum",
 		selectOptions: [
 			{ label: "Always Reconnect", value: "AlwaysReconnect" },
-			{ label: "Disable Reconnect", value: "DisableReconnect" },
+			{ label: "Never Reconnect", value: "DisableReconnect" },
 		],
 	},
 	{
-		heading: "Status",
-		type: "TextCell",
-		key: "connectionStatus",
-		valueType: "enum",
-		selectOptions: [
-			{ label: "Disconnected", value: "NodeConnectionStatusDisconnected" },
-			{ label: "Connected", value: "NodeConnectionStatusConnected" },
-		],
+		heading: "Public key",
+		type: "LongTextCell",
+		key: "pubKey",
+		valueType: "string",
 	},
 ];
 
@@ -56,8 +56,8 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 export const PeersSortableColumns: Array<keyof Peer> = [
 	"peerAlias",
 	"torqNodeAlias",
-	"setting",
 	"connectionStatus",
+	"setting",
 ];
 
 
@@ -68,6 +68,6 @@ export const PeersSortableColumns: Array<keyof Peer> = [
 export const PeersFilterableColumns: Array<keyof Peer> = [
 	"peerAlias",
 	"torqNodeAlias",
-	"setting",
 	"connectionStatus",
+	"setting",
 ];

@@ -33,7 +33,7 @@ export type DisconnectPeerResponse = {
 export type UpdatePeerRequest = {
   nodeId: number;
   torqNodeId: number;
-  setting: NodeConnectionSetting;
+  setting: number;
 };
 
 export type UpdatePeerResponse = {
@@ -41,11 +41,17 @@ export type UpdatePeerResponse = {
 };
 
 export enum ConnectionStatus {
-  Disconnected = 0,
-  Connected = 1,
+  Disconnected = "Disconnected",
+  Connected = "Connected",
 }
 
 export enum NodeConnectionSetting {
-  AlwaysReconnect = 0,
-  DisableReconnect = 1,
+  AlwaysReconnect = "AlwaysReconnect",
+  DisableReconnect = "DisableReconnect",
 }
+
+// Add NodeConnectionSetting to integer
+export const NodeConnectionSettingInt = {
+  [NodeConnectionSetting.AlwaysReconnect]: 0,
+  [NodeConnectionSetting.DisableReconnect]: 1,
+};

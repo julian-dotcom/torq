@@ -252,11 +252,20 @@ const (
 	NodeConnectionSettingDisableReconnect
 )
 
+// NodeConnectionStatus is the status of a node connection.
+func (s NodeConnectionSetting) String() string {
+	switch s {
+	case NodeConnectionSettingAlwaysReconnect:
+		return "AlwaysReconnect"
+	case NodeConnectionSettingDisableReconnect:
+		return "DisableReconnect"
+	}
+	return UnknownEnumString
+}
+
 type NodeConnectionStatus int
 
 const (
 	NodeConnectionStatusDisconnected = NodeConnectionStatus(iota)
 	NodeConnectionStatusConnected
-	NodeConnectionStatusArchived
-	NodeConnectionStatusDeleted
 )

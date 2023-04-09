@@ -1,4 +1,4 @@
-package peers
+package channels
 
 import (
 	"github.com/lightningnetwork/lnd/lnrpc"

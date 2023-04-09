@@ -1612,7 +1612,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
 				{value: "AlwaysReconnect", label: "Always Reconnect"},
-				{value: "DisableReconnect", label: "Disable Reconnect"},
+				{value: "DisableReconnect", label: "Never Reconnect"},
 			},
 			pages: map[TableViewPage]int{
 				PagePeers: 4,
@@ -1626,8 +1626,8 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "TextCell",
 			valueType:  "enum",
 			selectOptions: []tableViewSelectOptions{
-				{value: "NodeConnectionStatusDisconnected", label: "Disconnected"},
-				{value: "NodeConnectionStatusConnected", label: "Connected"},
+				{value: "Connected", label: "Connected"},
+				{value: "Disconnected", label: "Disconnected"},
 			},
 			pages: map[TableViewPage]int{
 				PagePeers: 3,

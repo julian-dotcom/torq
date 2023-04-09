@@ -53,7 +53,7 @@ function ChannelCell(props: ChannelCell) {
     <>
       <div className={classNames(styles.current, styles.text)}>{props.alias}</div>
       <div className={styles.actionButtons}>
-        {props.connectionStatus === ConnectionStatus.Disconnected && (
+        {props.connectionStatus.toString() === ConnectionStatus.Disconnected && (
           <Button
             disabled={reconnectIsLoading || disconnectIsLoading}
             buttonSize={SizeVariant.tiny}
@@ -70,7 +70,7 @@ function ChannelCell(props: ChannelCell) {
             {t.peersPage.connect}
           </Button>
         )}
-        {props.connectionStatus === ConnectionStatus.Connected && (
+        {props.connectionStatus.toString() === ConnectionStatus.Connected && (
           <Button
             disabled={reconnectIsLoading || disconnectIsLoading}
             buttonSize={SizeVariant.tiny}
@@ -95,11 +95,12 @@ function ChannelCell(props: ChannelCell) {
           to={`${Routes.UPDATE_PEER}?torqNodeId=${props.torqNodeId}&peerNodeId=${props.peerNodeId}`}
           state={{ background: location }}
           hideMobileText={true}
-          buttonColor={ColorVariant.primary}
+          buttonColor={ColorVariant.accent1}
           buttonSize={SizeVariant.tiny}
           onClick={() => {
             mixpanel.track("Navigate to Update Peer", {
-              nodeId: props.peerNodeId,
+              UpdatePeerPeerNodeId: props.peerNodeId,
+              UpdatePeerTorqNodeId: props.torqNodeId,
             });
           }}
         >

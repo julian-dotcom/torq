@@ -70,7 +70,7 @@ function Table<T>(props: TableProps<T>) {
               rowIndex={index}
               cellRenderer={props.cellRenderer}
               columns={props.activeColumns}
-              key={"row-" + index}
+              key={"table-row-" + index}
               selectable={props.selectable}
               selected={false}
               isTotalsRow={false}
@@ -115,7 +115,7 @@ function Table<T>(props: TableProps<T>) {
             cellRenderer={props.cellRenderer}
             rowIndex={props.activeColumns.length + 1}
             columns={props.activeColumns}
-            key={"row-" + "total"}
+            key={"row-" + "total" + 1}
             selectable={props.selectable}
             selected={false}
             isTotalsRow={true}
