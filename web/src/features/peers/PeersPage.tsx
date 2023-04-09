@@ -145,7 +145,7 @@ function PeersPage() {
     />
   );
 
-  const breadcrumbs = [<span key="b1">{t.peers}</span>];
+  const breadcrumbs = [t.manage, <span key="b1">{t.peers}</span>];
 
   return (
     <TablePageTemplate
