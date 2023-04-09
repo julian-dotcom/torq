@@ -5,6 +5,7 @@ export type Peer = {
   pubKey: string;
   torqNodeId: number;
   torqNodeAlias: string;
+  address: string;
   connectionStatus: ConnectionStatus;
   setting: NodeConnectionSetting;
   tags: Tag[];
