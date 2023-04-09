@@ -19,7 +19,7 @@ export function createCsvFile<T extends ChannelClosed | ChannelPending | channel
   const rows = data.map((obj: T) =>
     headers.map((header) => {
       if (header === "tags" && obj[header]) {
-        return `"${obj[header].map((tag) => tag.name).join(",")}"`;
+        return `"${(obj[header] || []).map((tag) => tag.name).join(",")}"`;
       }
       return obj[header as keyof T] ?? "";
     })
