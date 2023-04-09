@@ -157,7 +157,7 @@ func ConnectPeer(request ConnectPeerRequest) ConnectPeerResponse {
 
 func DisconnectPeer(request DisconnectPeerRequest) DisconnectPeerResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	process(context.Background(), disconnectPeerTimeoutInSeconds, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(DisconnectPeerResponse); ok {
 		return res
@@ -467,6 +467,10 @@ func processListPeersRequest(ctx context.Context, request ListPeersRequest) List
 	return response
 }
 
+const disconnectPeerTimeoutInSeconds = 10
+const disconnectPeerAttemptDelayInSeconds = 1
+const maximumAttempts = 5
+
 func processDisconnectPeerRequest(ctx context.Context, request DisconnectPeerRequest) DisconnectPeerResponse {
 	response := DisconnectPeerResponse{
 		CommunicationResponse: CommunicationResponse{
@@ -487,37 +491,63 @@ func processDisconnectPeerRequest(ctx context.Context, request DisconnectPeerReq
 		return response
 	}
 
+	iterationCounter := 0
 	client := lnrpc.NewLightningClient(connection)
-	_, err = client.DisconnectPeer(ctx, &disconnectPeerRequest)
-	if err != nil {
-		if strings.Contains(err.Error(), "not connected") {
-			response.RequestFailedCurrentlyDisconnected = true
-			return response
+	for {
+		_, err = client.DisconnectPeer(ctx, &disconnectPeerRequest)
+		if err != nil {
+			if strings.Contains(err.Error(), "not connected") {
+				if iterationCounter == 0 {
+					response.RequestFailedCurrentlyDisconnected = true
+					return response
+				}
+				response.Status = Active
+				return response
+			}
+			log.Debug().Err(err).Msgf(
+				"LND peer disconnection request failed for unknown reason but we ignore this and try again.")
+			if !core.Sleep(ctx, disconnectPeerAttemptDelayInSeconds*time.Second) {
+				break
+			}
+			continue
 		}
-		response.Error = err
-		return response
-	}
+		// Increment when LND request was successful
+		iterationCounter++
 
-	//ticker is needed to give lnd time to disconnect from the peer
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
-
-	select {
-	case <-ctx.Done():
-		response.Error = errors.New("Context ended")
-		return response
-	case <-ticker.C:
-		peer, err := getPeersByPublicKey(ctx, client, publicKey)
+		peer, err := getPeerByPublicKeyDelayed(ctx, client, publicKey)
 		if err != nil {
 			response.Error = err
 			return response
 		}
-
-		if peer != nil {
-			response.Error = errors.New("Disconnection unsuccessful")
+		if peer == nil {
+			response.Status = Active
 			return response
 		}
-		return response
+		if iterationCounter == maximumAttempts {
+			break
+		}
+	}
+	response.Error = errors.New("Disconnection unsuccessful")
+	return response
+}
+
+func getPeerByPublicKeyDelayed(ctx context.Context,
+	client lnrpc.LightningClient,
+	publicKey string) (*lnrpc.Peer, error) {
+
+	//ticker is needed to give lnd time to disconnect from the peer
+	ticker := time.NewTicker(disconnectPeerAttemptDelayInSeconds * time.Second)
+	defer ticker.Stop()
+
+	select {
+	case <-ctx.Done():
+		return nil, errors.New("Context ended")
+	case <-ticker.C:
+		peer, err := getPeerByPublicKey(ctx, client, publicKey)
+		if err != nil {
+			return nil, err
+		}
+		return peer, nil
 	}
 }
 
@@ -562,7 +592,7 @@ func processConnectPeerRequest(ctx context.Context, request ConnectPeerRequest) 
 		return response
 	case <-ticker.C:
 		// call lnd again to see if the peer is still connected
-		peer, err := getPeersByPublicKey(ctx, client, request.PublicKey)
+		peer, err := getPeerByPublicKey(ctx, client, request.PublicKey)
 		if err != nil {
 			response.Error = err
 			return response
@@ -572,12 +602,13 @@ func processConnectPeerRequest(ctx context.Context, request ConnectPeerRequest) 
 			response.Error = errors.New("Connection unsuccessful")
 			return response
 		}
+		response.Status = Active
 		return response
 	}
 }
 
 // It seems that the errors are not returned in the Connect/Disconnect response, so we need to check the peers list
-func getPeersByPublicKey(ctx context.Context, client lnrpc.LightningClient, publicKey string) (*lnrpc.Peer, error) {
+func getPeerByPublicKey(ctx context.Context, client lnrpc.LightningClient, publicKey string) (*lnrpc.Peer, error) {
 	listPeersRequest := lnrpc.ListPeersRequest{}
 	peersResponse, err := client.ListPeers(ctx, &listPeersRequest)
 	if err != nil {

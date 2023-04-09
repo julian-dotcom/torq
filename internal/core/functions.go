@@ -1,11 +1,13 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
@@ -430,6 +432,18 @@ func GetDeltaPerMille(base uint64, amt uint64) int {
 	} else {
 		return int((amt - base) / amt * 1_000)
 	}
+}
+
+func Sleep(ctx context.Context, d time.Duration) bool {
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-ticker.C:
+	}
+	return true
 }
 
 func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {
