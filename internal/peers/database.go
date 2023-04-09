@@ -3,8 +3,10 @@ package peers
 import (
 	"database/sql"
 	"encoding/json"
+
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
 )
@@ -30,7 +32,7 @@ func (p PeerNode) MarshalJSON() ([]byte, error) {
 	if p.Setting != nil {
 		settingStr = p.Setting.String()
 	}
-	return json.Marshal(&struct {
+	jsonBytes, err := json.Marshal(&struct {
 		*Alias
 		ConnectionStatus string `json:"connectionStatus"`
 		Setting          string `json:"setting"`
@@ -39,6 +41,10 @@ func (p PeerNode) MarshalJSON() ([]byte, error) {
 		ConnectionStatus: statusStr,
 		Setting:          settingStr,
 	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Marshalling PeerNode to JSON.")
+	}
+	return jsonBytes, nil
 }
 
 func GetPeerNodes(db *sqlx.DB, network core.Network) ([]PeerNode, error) {
