@@ -85,7 +85,7 @@ function PeersPage() {
             hideMobileText={true}
             icon={<NewPeerIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to connect new peer");
+              mixpanel.track("Navigate to Connect Peer");
               navigate(Routes.CONNECT_PEER, { state: { background: location } });
             }}
           >

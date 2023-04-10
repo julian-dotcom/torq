@@ -119,10 +119,10 @@ function PeerUpdateModal() {
   function handleConnectPeer() {
     if (selectedSetting === undefined) return;
 
-    mixpanel.track("update-peer", {
-      nodeId: peerNodeId,
+    mixpanel.track("Update Peer", {
+      peerNodeId: peerNodeId,
       torqNodeId: torqNodeId,
-      setting: selectedSetting,
+      peerSetting: selectedSetting,
     });
     updatePeer({ nodeId: peerNodeId, torqNodeId: torqNodeId, setting: NodeConnectionSettingInt[selectedSetting] });
   }

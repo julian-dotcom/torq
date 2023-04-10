@@ -59,8 +59,8 @@ function ChannelCell(props: ChannelCell) {
             buttonSize={SizeVariant.tiny}
             onClick={() => {
               mixpanel.track("Connect Peer", {
-                ConnectPeerPeerNodeId: props.peerNodeId,
-                ConnectPeerTorqNodeId: props.torqNodeId,
+                peerNodeId: props.peerNodeId,
+                torqNodeId: props.torqNodeId,
               });
               reconnectMutation({ nodeId: props.peerNodeId, torqNodeId: props.torqNodeId });
             }}
@@ -76,8 +76,8 @@ function ChannelCell(props: ChannelCell) {
             buttonSize={SizeVariant.tiny}
             onClick={() => {
               mixpanel.track("Disconnect Peer", {
-                DisconnectPeerPeerNodeId: props.peerNodeId,
-                DisconnectPeerTorqNodeId: props.torqNodeId,
+                peerNodeId: props.peerNodeId,
+                torqNodeId: props.torqNodeId,
               });
               disconnectNodeMutation({
                 nodeId: props.peerNodeId,
@@ -99,8 +99,8 @@ function ChannelCell(props: ChannelCell) {
           buttonSize={SizeVariant.tiny}
           onClick={() => {
             mixpanel.track("Navigate to Update Peer", {
-              UpdatePeerPeerNodeId: props.peerNodeId,
-              UpdatePeerTorqNodeId: props.torqNodeId,
+              peerNodeId: props.peerNodeId,
+              torqNodeId: props.torqNodeId,
             });
           }}
         >
