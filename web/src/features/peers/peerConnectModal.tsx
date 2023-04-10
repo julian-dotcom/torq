@@ -115,7 +115,7 @@ function ConnectPeerModal() {
     setStepIndex(1);
     setResultState(ProgressStepState.processing);
     mixpanel.track("Connect Peer", {
-      nodeId: selectedNodeId,
+      torqNodeId: selectedNodeId,
     });
     connectPeer({
       nodeId: selectedNodeId ?? 0,
