@@ -1,4 +1,4 @@
-package peers
+package channels
 
 import (
 	"context"
@@ -6,6 +6,18 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"strings"
 )
+
+type LndAddress struct {
+	PubKey string `json:"pubKey"`
+	Host   string `json:"host"`
+}
+
+type ConnectPeerRequest struct {
+	NodeId     int        `json:"nodeId"`
+	LndAddress LndAddress `json:"lndAddress"`
+	Perm       *bool      `json:"perm"`
+	TimeOut    *uint64    `json:"timeOut"`
+}
 
 func ConnectPeer(client lnrpc.LightningClient, ctx context.Context, req ConnectPeerRequest) (r string, err error) {
 	connPeerReq, err := processRequest(req)

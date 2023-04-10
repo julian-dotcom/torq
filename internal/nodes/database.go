@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
@@ -67,10 +68,10 @@ func getAllNodeInformationByNetwork(db *sqlx.DB, network core.Network) ([]NodeIn
 func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network core.Network) ([]NodeSummary, error) {
 	var nds []NodeSummary
 
-	query := `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
+	query := `SELECT n.node_id, n.public_key, n.chain, n.network, n.created_on, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where n.network = $1;`
 
 	if !includeDeleted {
-		query = `SELECT n.*, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
+		query = `SELECT n.node_id, n.public_key, n.chain, n.network, n.created_on, ncd.name, ncd.status_id FROM node n JOIN node_connection_details ncd on ncd.node_id = n.node_id where ncd.status_id != 3 AND n.network = $1;`
 	}
 
 	err := db.Select(&nds, query, network)
@@ -81,21 +82,6 @@ func getNodesByNetwork(db *sqlx.DB, includeDeleted bool, network core.Network) (
 		return nil, errors.Wrap(err, database.SqlExecutionError)
 	}
 	return nds, nil
-}
-
-func GetPeerNodes(db *sqlx.DB) ([]Node, error) {
-	var nodes []Node
-	err := db.Select(&nodes, `
-	SELECT n.node_id, public_key, chain, network, n.created_on
-	FROM node n
-	JOIN node_connection_details ncd ON n.node_id = ncd.node_id;`)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []Node{}, nil
-		}
-		return nil, errors.Wrap(err, database.SqlExecutionError)
-	}
-	return nodes, nil
 }
 
 func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
@@ -115,7 +101,7 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	return nodeEvent, nil
 }
 
-func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
+func AddNodeWhenNew(db *sqlx.DB, node Node, peerConnectionHistory *NodeConnectionHistory) (int, error) {
 	nodeId := cache.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		node.CreatedOn = time.Now().UTC()
@@ -131,6 +117,15 @@ func AddNodeWhenNew(db *sqlx.DB, node Node) (int, error) {
 			}
 			return 0, errors.Wrap(err, database.SqlExecutionError)
 		}
+
+		if peerConnectionHistory != nil {
+			peerConnectionHistory.NodeId = node.NodeId
+			err = addNodeConnectionHistory(db, peerConnectionHistory)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to store Node Connection History for nodeId: %v", nodeId)
+			}
+		}
+
 		return node.NodeId, nil
 	}
 	return nodeId, nil
@@ -153,4 +148,28 @@ func removeNode(db *sqlx.DB, nodeId int) (int64, error) {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
 	return rowsAffected, nil
+}
+
+func addNodeConnectionHistory(db *sqlx.DB, nch *NodeConnectionHistory) error {
+	if nch == nil {
+		return nil
+	}
+	_, err := db.Exec(
+		`INSERT INTO node_connection_history (
+                                     node_id,
+                                     torq_node_id,
+                                     connection_status,
+                                     address,
+                                     setting,
+                                     created_on) VALUES ($1, $2, $3, $4, $5, $6);`,
+		nch.NodeId,
+		nch.TorqNodeId,
+		nch.ConnectionStatus,
+		nch.Address,
+		nch.Setting,
+		time.Now().UTC())
+	if err != nil {
+		return errors.Wrap(err, database.SqlExecutionError)
+	}
+	return nil
 }

@@ -17,7 +17,7 @@ export const AllPaymentsColumns: ColumnMetaData<Payment>[] = [
 		heading: "Status",
 		type: "TextCell",
 		key: "status",
-		valueType: "array",
+		valueType: "enum",
 		selectOptions: [
 			{ label: "Succeeded", value: "SUCCEEDED" },
 			{ label: "In Flight", value: "IN_FLIGHT" },
@@ -58,7 +58,7 @@ export const AllPaymentsColumns: ColumnMetaData<Payment>[] = [
 		heading: "Failure Reason",
 		type: "TextCell",
 		key: "failureReason",
-		valueType: "array",
+		valueType: "enum",
 		selectOptions: [
 			{ label: "None", value: "FAILURE_REASON_NONE" },
 			{ label: "Timeout", value: "FAILURE_REASON_TIMEOUT" },

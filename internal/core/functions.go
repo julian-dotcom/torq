@@ -1,15 +1,33 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 )
+
+func (s Network) String() string {
+	switch s {
+	case MainNet:
+		return "MainNet"
+	case TestNet:
+		return "TestNet"
+	case RegTest:
+		return "RegTest"
+	case SigNet:
+		return "SigNet"
+	case SimNet:
+		return "SimNet"
+	}
+	return UnknownEnumString
+}
 
 // GetNetwork defaults to MainNet when no match is found
 func GetNetwork(network string) Network {
@@ -24,6 +42,16 @@ func GetNetwork(network string) Network {
 		return RegTest
 	}
 	return MainNet
+}
+
+func (s Chain) String() string {
+	switch s {
+	case Bitcoin:
+		return "MainNet"
+	case Litecoin:
+		return "Litecoin"
+	}
+	return UnknownEnumString
 }
 
 // GetChain defaults to Bitcoin when no match is found
@@ -404,6 +432,18 @@ func GetDeltaPerMille(base uint64, amt uint64) int {
 	} else {
 		return int((amt - base) / amt * 1_000)
 	}
+}
+
+func Sleep(ctx context.Context, d time.Duration) bool {
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-ticker.C:
+	}
+	return true
 }
 
 func IsWorkflowNodeTypeGrouped(workflowNodeType WorkflowNodeType) bool {

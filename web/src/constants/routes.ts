@@ -21,6 +21,7 @@ export const TRANSACTIONS = "transactions";
 export const PAYMENTS = "payments";
 export const INVOICES = "invoices";
 export const ONCHAIN = "onchain";
+export const PEERS = "peers";
 export const ALL = "all";
 
 export const SETTINGS = "/settings";
@@ -37,6 +38,8 @@ export const UPDATE_TAG = "/update-tag/:tagId";
 export const TAG_CHANNEL = "/tag-channel/:channelId";
 export const TAG_NODE = "/tag-node/:nodeId";
 export const MESSAGE_VERIFICATION = "/message-verification";
+export const CONNECT_PEER = "/connect-peer";
+export const UPDATE_PEER = "/edit-peer";
 
 // Automation
 export const WORKFLOWS = "workflows";

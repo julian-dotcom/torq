@@ -74,6 +74,7 @@ export const torqApi = createApi({
     "payments",
     "onChainTx",
     "invoices",
+    "peers",
     // "tagsForChannel",
     // "tagsForNodes",
   ],

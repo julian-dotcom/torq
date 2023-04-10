@@ -2,11 +2,10 @@ package nodes
 
 import (
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"net/http"
+	"strconv"
 
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
@@ -32,6 +31,15 @@ type NodeInformation struct {
 	Color     string         `json:"color"`
 	Addresses *[]NodeAddress `json:"addresses"`
 	Status    core.Status    `json:"status"`
+}
+
+type NodeWalletBalance struct {
+	NodeId                    int   `json:"nodeId"`
+	TotalBalance              int64 `json:"totalBalance"`
+	ConfirmedBalance          int64 `json:"confirmedBalance"`
+	UnconfirmedBalance        int64 `json:"unconfirmedBalance"`
+	LockedBalance             int64 `json:"lockedBalance"`
+	ReservedBalanceAnchorChan int64 `json:"reservedBalanceAnchorChan"`
 }
 
 func RegisterNodeRoutes(r *gin.RouterGroup, db *sqlx.DB) {

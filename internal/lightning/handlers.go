@@ -2,17 +2,15 @@ package lightning
 
 import (
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
-
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/rs/zerolog/log"
+	"net/http"
+	"strconv"
 )
 
 type routingPolicyUpdateRequest struct {

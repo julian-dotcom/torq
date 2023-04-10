@@ -231,3 +231,41 @@ type NotificationType int
 const (
 	NodeDetails NotificationType = iota
 )
+
+type PeerSyncType int32
+
+const (
+	// PeerUnknownSync Denotes that we cannot determine the peer's current sync type.
+	PeerUnknownSync PeerSyncType = 0
+	// PeerActiveSync Denotes that we are actively receiving new graph updates from the peer.
+	PeerActiveSync PeerSyncType = 1
+	// PeerPassiveSync Denotes that we are not receiving new graph updates from the peer.
+	PeerPassiveSync PeerSyncType = 2
+	// PeerPinnedSync Denotes that this peer is pinned into an active sync.
+	PeerPinnedSync PeerSyncType = 3
+)
+
+type NodeConnectionSetting int
+
+const (
+	NodeConnectionSettingAlwaysReconnect = NodeConnectionSetting(iota)
+	NodeConnectionSettingDisableReconnect
+)
+
+// NodeConnectionStatus is the status of a node connection.
+func (s NodeConnectionSetting) String() string {
+	switch s {
+	case NodeConnectionSettingAlwaysReconnect:
+		return "AlwaysReconnect"
+	case NodeConnectionSettingDisableReconnect:
+		return "DisableReconnect"
+	}
+	return UnknownEnumString
+}
+
+type NodeConnectionStatus int
+
+const (
+	NodeConnectionStatusDisconnected = NodeConnectionStatus(iota)
+	NodeConnectionStatusConnected
+)

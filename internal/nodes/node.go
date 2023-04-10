@@ -25,3 +25,21 @@ type NodeSummary struct {
 	Name      string       `json:"name" db:"name"`
 	// Will never be updated so no UpdatedOn...
 }
+
+type NodeConnectionHistory struct {
+	NodeId           int                        `json:"nodeId" db:"node_id"`
+	TorqNodeId       int                        `json:"torqNodeId" db:"torq_node_id"`
+	ConnectionStatus core.NodeConnectionStatus  `json:"connectionStatus" db:"connection_status"`
+	Address          string                     `json:"address" db:"address"`
+	Setting          core.NodeConnectionSetting `json:"setting" db:"setting"`
+	CreatedOn        time.Time                  `json:"createdOn" db:"created_on"`
+}
+
+type NodeConnectionHistoryWithDetail struct {
+	NodeId           int                        `json:"nodeId" db:"node_id"`
+	TorqNodeId       int                        `json:"torqNodeId" db:"torq_node_id"`
+	ConnectionStatus core.NodeConnectionStatus  `json:"connectionStatus" db:"connection_status"`
+	Address          string                     `json:"address" db:"address"`
+	Setting          core.NodeConnectionSetting `json:"setting" db:"setting"`
+	PubKey           string                     `json:"public_key" db:"public_key"`
+}

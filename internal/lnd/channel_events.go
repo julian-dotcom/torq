@@ -323,8 +323,15 @@ func addNodeWhenNew(remotePublicKey string, nodeSettings cache.NodeSettingsCache
 			Chain:     nodeSettings.Chain,
 			Network:   nodeSettings.Network,
 		}
+
+		peerConnectionHistory := &nodes.NodeConnectionHistory{
+			TorqNodeId:       nodeSettings.NodeId,
+			ConnectionStatus: core.NodeConnectionStatusConnected,
+			Setting:          core.NodeConnectionSettingAlwaysReconnect,
+		}
+
 		var err error
-		remoteNodeId, err = nodes.AddNodeWhenNew(db, newNode)
+		remoteNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 		if err != nil {
 			return 0, errors.Wrapf(err, "Adding node with public key: %v", remotePublicKey)
 		}

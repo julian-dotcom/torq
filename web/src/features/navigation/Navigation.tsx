@@ -23,6 +23,7 @@ import {
   Flash20Regular as WorkflowsIcon,
   Tag20Regular as TagsIcon,
   PanelSeparateWindow20Regular as DashboardIcon,
+  Molecule20Regular as PeersIcon,
 } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
@@ -129,6 +130,12 @@ function Navigation() {
             icon={<TagsIcon />}
             routeTo={"/manage/tags"}
             onClick={() => mixpanel.track("Navigate to Tags")}
+          />
+          <MenuItem
+            text={t.peers}
+            icon={<PeersIcon />}
+            routeTo={`/manage/${routes.PEERS}`}
+            onClick={() => mixpanel.track("Navigate to Peers")}
           />
 
           <MenuItem

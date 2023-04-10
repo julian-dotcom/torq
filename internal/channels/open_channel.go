@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/core"
-	"github.com/lncapital/torq/internal/peers"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
@@ -169,7 +168,7 @@ func translateChanPoint(cb []byte, oi uint32) (string, error) {
 
 func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId int, remotePubkey string, host string) (err error) {
 
-	peerList, err := peers.ListPeers(client, ctx, "true")
+	peerList, err := ListPeers(client, ctx, "true")
 	if err != nil {
 		return errors.Wrap(err, "List peers")
 	}
@@ -182,15 +181,15 @@ func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId 
 		}
 	}
 
-	req := peers.ConnectPeerRequest{
+	req := ConnectPeerRequest{
 		NodeId: nodeId,
-		LndAddress: peers.LndAddress{
+		LndAddress: LndAddress{
 			PubKey: remotePubkey,
 			Host:   host,
 		},
 	}
 
-	_, err = peers.ConnectPeer(client, ctx, req)
+	_, err = ConnectPeer(client, ctx, req)
 	if err != nil {
 		return errors.Wrap(err, "Connect peer")
 	}

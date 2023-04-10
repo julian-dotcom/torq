@@ -170,7 +170,7 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
 	for {
 		if delay {
-			sleep(ctx)
+			core.Sleep(ctx, 1*time.Second)
 		}
 
 		select {
@@ -259,17 +259,6 @@ func ScheduledTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 			cache.DeactivateEventTrigger(workflowTriggerNode.WorkflowVersionId,
 				workflowTriggerNode.WorkflowVersionNodeId, scheduledTrigger.TriggeringNodeType, events[0])
 		}
-	}
-}
-
-func sleep(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	select {
-	case <-ctx.Done():
-		return
-	case <-ticker.C:
 	}
 }
 

@@ -290,20 +290,6 @@ type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
 }
 
-// Request/Response for Vector
-type ShortChannelIdRequest struct {
-	CommunicationRequest
-	ResponseChannel chan<- ShortChannelIdResponse `json:"-"`
-	TransactionHash string                        `json:"transactionHash"`
-	OutputIndex     int                           `json:"outputIndex"`
-}
-
-type ShortChannelIdResponse struct {
-	Request ShortChannelIdRequest `json:"request"`
-	CommunicationResponse
-	ShortChannelId string `json:"shortChannelId"`
-}
-
 type InformationResponse struct {
 	NodeId                  int            `json:"nodeId"`
 	Implementation          Implementation `json:"implementation"`
@@ -322,6 +308,29 @@ type InformationResponse struct {
 	GraphSynced             bool           `json:"graphSynced"`
 	Addresses               []string       `json:"addresses"`
 	HtlcInterceptorRequired bool           `json:"htlcInterceptorRequired"`
+}
+
+type Feature struct {
+	Name       string `json:"name"`
+	IsRequired bool   `json:"is_required"`
+	IsKnown    bool   `json:"is_known"`
+}
+
+type Peer struct {
+	PubKey          string       `json:"pub_key"`
+	Address         string       `json:"address"`
+	BytesSent       uint64       `json:"bytes_sent"`
+	BytesRecv       uint64       `json:"bytes_recv"`
+	SatSent         int64        `json:"sat_sent"`
+	SatRecv         int64        `json:"sat_recv"`
+	Inbound         bool         `json:"inbound"`
+	PingTime        int64        `json:"ping_time"`
+	SyncType        PeerSyncType `json:"sync_type"`
+	Features        []Feature    `json:"features"`
+	Errors          []string     `json:"errors"`
+	FlapCount       int          `json:"flap_count"`
+	LastFlapNS      string       `json:"last_flap_ns"`
+	LastPingPayload string       `json:"last_ping_payload"`
 }
 
 type CommunicationRequest struct {

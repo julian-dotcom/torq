@@ -28,7 +28,7 @@ export function mergeServerError(serverErrors: ServerErrorType, existingErrors: 
   if (existingErrors.server === undefined) {
     existingErrors.server = [];
   }
-  existingErrors.server = serverErrors.errors.server?.map((se) => {
+  existingErrors.server = serverErrors?.errors?.server?.map((se) => {
     if (se.description) {
       // remove unnecessary fluff from GRPC errors
       se.description = se.description.replace("rpc error: code = Unknown desc =", "");
@@ -37,10 +37,10 @@ export function mergeServerError(serverErrors: ServerErrorType, existingErrors: 
     }
     return se;
   });
-  if (!serverErrors.errors.fields) {
+  if (!serverErrors?.errors?.fields) {
     return existingErrors;
   }
-  for (const [key, errorCodeOrDescription] of Object.entries(serverErrors.errors.fields)) {
+  for (const [key, errorCodeOrDescription] of Object.entries(serverErrors?.errors?.fields)) {
     if (existingErrors.fields === undefined) {
       existingErrors.fields = {} as Record<FieldName, Array<ErrorCodeOrDescription>>;
     }
