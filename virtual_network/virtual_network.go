@@ -774,7 +774,7 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 func PrintInstructions(carolPublicKey, carolIpAddress, bobPublicKey, bobIpAddress, alicePublicKey, aliceIpAddress string) {
 	fmt.Println("\nVirtual network is ready. Start Torq by running:")
-	fmt.Println("\n\tgo build ./cmd/torq && ./torq --torq.password password --db.user postgres --db.port 5444 " +
+	fmt.Println("\n\tgo run ./cmd/torq/torq.go --torq.password password --db.name torq --db.port 5444 " +
 		"--db.password password start")
 
 	fmt.Println("\nThe frontend password is 'password'.")
