@@ -17,6 +17,14 @@ const (
 	Archived = WorkflowStatus(core.Archived)
 )
 
+type WorkflowNodeStatus int
+
+const (
+	WorkflowNodeInactive = WorkflowNodeStatus(core.Inactive)
+	WorkflowNodeActive   = WorkflowNodeStatus(core.Active)
+	WorkflowNodeDeleted  = WorkflowNodeStatus(core.Deleted)
+)
+
 type TagAction int
 
 const (
@@ -138,7 +146,7 @@ type WorkflowVersionNode struct {
 	WorkflowVersionNodeId int                            `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  string                         `json:"name" db:"name"`
 	Stage                 int                            `json:"stage" db:"stage"`
-	Status                WorkflowStatus                 `json:"status" db:"status"`
+	Status                WorkflowNodeStatus             `json:"status" db:"status"`
 	Type                  core.WorkflowNodeType          `json:"type" db:"type"`
 	Parameters            interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
@@ -158,7 +166,7 @@ type CreateNodeRequest struct {
 type UpdateNodeRequest struct {
 	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId" db:"workflow_version_node_id"`
 	Name                  *string                         `json:"name" db:"name"`
-	Status                *WorkflowStatus                 `json:"status" db:"status"`
+	Status                *WorkflowNodeStatus             `json:"status" db:"status"`
 	Parameters            *interface{}                    `json:"parameters" db:"parameters"`
 	VisibilitySettings    *WorkflowNodeVisibilitySettings `json:"visibilitySettings" db:"visibility_settings"`
 }
@@ -234,7 +242,7 @@ type WorkflowVersionNodeLog struct {
 type WorkflowNode struct {
 	WorkflowVersionNodeId int                             `json:"workflowVersionNodeId"`
 	Name                  string                          `json:"name"`
-	Status                WorkflowStatus                  `json:"status"`
+	Status                WorkflowNodeStatus              `json:"status"`
 	Stage                 int                             `json:"stage"`
 	Type                  core.WorkflowNodeType           `json:"type"`
 	Parameters            string                          `json:"parameters"`

@@ -254,7 +254,7 @@ func deleteStageHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	err = deleteStage(db, workflowVersion.WorkflowVersionId, stage)
+	err = updateStageDeleted(db, workflowVersion.WorkflowVersionId, stage)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Deleting stage %v for workflowVersionId: %v", stage, workflowVersion.WorkflowVersionId))
 		return
@@ -562,12 +562,12 @@ func removeNodeHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	count, err := deleteNode(db, workflowVersionNodeId)
+	err = updateNodeDeleted(db, workflowVersionNodeId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, fmt.Sprintf("Removing workflow version node for workflowVersionNodeId: %v", workflowVersionNodeId))
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{"message": fmt.Sprintf("Successfully deleted %v workflow version node(s).", count)})
+	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully deleted workflow version node."})
 }
 
 func addNodeLinkHandler(c *gin.Context, db *sqlx.DB) {
