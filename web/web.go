@@ -11,18 +11,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:embed build
+//go:embed build/*
 var staticFS embed.FS
 
 // AddRoutes serves the static file system for the UI React App.
 func AddRoutes(router gin.IRouter) {
-	embeddedBuildFolder := newStaticFileSystem()
-	router.Use(static.Serve("/", embeddedBuildFolder))
+	router.Use(static.Serve("/", newStaticFileSystem()))
 }
 
 // ----------------------------------------------------------------------
 // staticFileSystem serves files out of the embedded build folder
-
 type staticFileSystem struct {
 	http.FileSystem
 }

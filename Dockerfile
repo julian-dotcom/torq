@@ -1,8 +1,8 @@
 # frontend build stage
 FROM node:buster-slim as frontend-builder
-WORKDIR /app
+WORKDIR /app/web
 COPY web/package*.json ./
-RUN npm install && npm cache clean --force;
+RUN npm install --legacy-peer-deps && npm cache clean --force
 COPY web/. .
 RUN TSX_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true npm run build
 
@@ -12,9 +12,9 @@ ENV GO111MODULE=on
 WORKDIR /app
 COPY go.mod .
 COPY go.sum .
-COPY --from=frontend-builder /app/build /app/web/build
 RUN go mod download
 COPY . .
+COPY --from=frontend-builder /app/web/build /app/web/build
 RUN CGO_ENABLED=0 GOOS=linux go generate build/version.go
 RUN CGO_ENABLED=0 GOOS=linux go build cmd/torq/torq.go
 

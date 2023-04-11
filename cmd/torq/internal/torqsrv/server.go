@@ -121,8 +121,6 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 
-	registerStaticRoutes(r)
-
 	api := r.Group("/api")
 
 	api.POST("/logout", auth.Logout)
@@ -240,6 +238,8 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 	}
 
 	web.AddRoutes(r)
+
+	registerStaticRoutes(r)
 }
 
 func registerStaticRoutes(r *gin.Engine) {
