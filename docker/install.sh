@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo Configuring docker-compose file
+echo Configuring docker-compose and torq.conf files
 
 # Set Torq help commands directory
 
