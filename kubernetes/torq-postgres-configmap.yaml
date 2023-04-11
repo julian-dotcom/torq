@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: torq-timescaledb-config
+  labels:
+    app: torq-timescaledb
+data:
+  POSTGRES_DB: "torqtimescaledb"
+  POSTGRES_USER: "torq"
+  POSTGRES_PASSWORD: "runningtorq"
+  PGDATA: "/var/lib/postgresql/data/pgdata"
