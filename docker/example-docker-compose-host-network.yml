@@ -1,0 +1,28 @@
+version: "3.7"
+services:
+  torq:
+    image: "lncapital/torq:latest"
+    restart: always
+    depends_on:
+      - "db"
+    command:
+      - --db.host
+      - db
+      - --db.password
+      - runningtorq
+      - --torq.password
+      - "<YourUIPassword>" # Set password here to connect to login to the web ui
+      - --torq.port
+      - "<YourPort>"
+      - start
+    network_mode: "host"
+  db:
+    restart: always
+    image: "timescale/timescaledb:latest-pg14"
+    environment:
+      POSTGRES_PASSWORD: "runningtorq" # Must match db password set above
+    volumes:
+      - torq_db:/var/lib/postgresql/data
+    network_mode: "host"
+volumes:
+  torq_db:
