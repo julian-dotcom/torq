@@ -29,7 +29,40 @@ func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB) {
 		case <-ticker.C:
 			// TODO get forwards/invoices/payments without firstNodeId/secondNodeId/nodeId and assign correctly
 			processMissingChannelData(db)
+			deleteWorkflowLogs(db)
 		}
+	}
+}
+
+func deleteWorkflowLogs(db *sqlx.DB) {
+	res, err := db.Exec(`DELETE FROM workflow_version_node_log WHERE created_on < $1`,
+		time.Now().Add(7*24*time.Hour))
+	if err != nil {
+		log.Error().Err(err).Msgf("Couldn't delete workflow logs older then 7 days.")
+		return
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err == nil && rowsAffected != 0 {
+		log.Info().Msgf("%v workflow log records deleted (which were older then 7 days).", rowsAffected)
+	}
+
+	res, err = db.Exec(`
+		DELETE FROM workflow_version_node_log
+		WHERE created_on < (
+			SELECT created_on
+			FROM workflow_version_node_log
+			ORDER BY created_on DESC
+			OFFSET 500000 ROWS
+			FETCH FIRST 1 ROW ONLY
+		);`)
+	if err != nil {
+		log.Error().Err(err).Msgf("Couldn't delete workflow logs based on record count > 500,000.")
+		return
+	}
+	rowsAffected, err = res.RowsAffected()
+	if err == nil && rowsAffected != 0 {
+		log.Info().Msgf("%v workflow log records deleted. (table contained more then 500,000 records)",
+			rowsAffected)
 	}
 }
 

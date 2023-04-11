@@ -1,0 +1,11 @@
+
+DELETE FROM workflow_version_node_log WHERE created_on < NOW() - INTERVAL '7 DAY';
+
+DELETE FROM workflow_version_node_log
+WHERE created_on < (
+    SELECT created_on
+    FROM workflow_version_node_log
+    ORDER BY created_on DESC
+    OFFSET 500000 ROWS
+    FETCH FIRST 1 ROW ONLY
+);
