@@ -6,6 +6,6 @@ metadata:
     app: torq-timescaledb
 data:
   POSTGRES_DB: "torqtimescaledb"
-  POSTGRES_USER: "torq"
-  POSTGRES_PASSWORD: "runningtorq"
+  POSTGRES_USER: "<torq-user>"
+  POSTGRES_PASSWORD: "<torq-pass>"
   PGDATA: "/var/lib/postgresql/data/pgdata"

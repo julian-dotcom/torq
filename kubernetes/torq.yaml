@@ -33,8 +33,8 @@ spec:
           args:
             - --db.name=torqtimescaledb
             - --db.host=torq-timescaledb-service
-            - --db.user=torq
-            - --db.password=runningtorq
+            - --db.user=<torq-user>
+            - --db.password=<torq-pass>
             - --lnd.url=lnd-service:10009
             - --lnd.tls-path=/app/lnd/tls/tls.cert
             - --lnd.macaroon-path=/app/lnd/macaroon/admin.macaroon
