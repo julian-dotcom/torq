@@ -42,7 +42,7 @@ func deleteWorkflowLogs(db *sqlx.DB) {
 		return
 	}
 	rowsAffected, err := res.RowsAffected()
-	if err == nil {
+	if err == nil && rowsAffected != 0 {
 		log.Info().Msgf("%v workflow log records deleted (which were older then 7 days).", rowsAffected)
 	}
 
@@ -60,7 +60,7 @@ func deleteWorkflowLogs(db *sqlx.DB) {
 		return
 	}
 	rowsAffected, err = res.RowsAffected()
-	if err == nil {
+	if err == nil && rowsAffected != 0 {
 		log.Info().Msgf("%v workflow log records deleted. (table contained more then 500,000 records)",
 			rowsAffected)
 	}
