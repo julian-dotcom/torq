@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/settings"
 )
 
 type peerEventsClient interface {
@@ -20,6 +22,7 @@ type peerEventsClient interface {
 
 func SubscribePeerEvents(ctx context.Context,
 	client peerEventsClient,
+	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
 	serviceType := core.LndServicePeerEventStream
@@ -60,6 +63,8 @@ func SubscribePeerEvents(ctx context.Context,
 
 		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
+			setNodeConnectionHistory(db, peerEvent, eventNodeId, nodeSettings.NodeId)
+
 			ProcessPeerEvent(core.PeerEvent{
 				EventData: core.EventData{
 					EventTime: time.Now().UTC(),
@@ -69,5 +74,29 @@ func SubscribePeerEvents(ctx context.Context,
 				EventNodeId: eventNodeId,
 			})
 		}
+	}
+}
+
+func setNodeConnectionHistory(db *sqlx.DB,
+	peerEvent *lnrpc.PeerEvent,
+	eventNodeId int,
+	nodeId int) {
+
+	_, address, setting, _, err := settings.GetNodeConnectionHistoryWithDetail(db, eventNodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf(
+			"Obtaining existing settings for node connection history failed for nodeId: %v (eventNodeId: %v)",
+			nodeId, eventNodeId)
+		return
+	}
+	switch peerEvent.Type {
+	case lnrpc.PeerEvent_PEER_ONLINE:
+		err = settings.AddNodeConnectionHistory(db, nodeId, eventNodeId, address, setting, core.NodeConnectionStatusConnected)
+	case lnrpc.PeerEvent_PEER_OFFLINE:
+		err = settings.AddNodeConnectionHistory(db, nodeId, eventNodeId, address, setting, core.NodeConnectionStatusDisconnected)
+	}
+	if err != nil {
+		log.Error().Err(err).Msgf(
+			"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)", nodeId, eventNodeId)
 	}
 }

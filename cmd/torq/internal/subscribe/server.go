@@ -133,7 +133,7 @@ func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 	cache.SetPendingLndServiceState(serviceType, nodeId)
 
-	lnd.SubscribePeerEvents(ctx, lnrpc.NewLightningClient(conn), cache.GetNodeSettingsByNodeId(nodeId))
+	lnd.SubscribePeerEvents(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }
 
 func StartChannelBalanceCacheMaintenance(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
