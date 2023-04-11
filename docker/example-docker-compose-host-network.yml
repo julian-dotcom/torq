@@ -6,14 +6,8 @@ services:
     depends_on:
       - "db"
     command:
-      - --db.host
-      - db
-      - --db.password
-      - runningtorq
-      - --torq.password
-      - "<YourUIPassword>" # Set password here to connect to login to the web ui
-      - --torq.port
-      - "<YourPort>"
+      - --config
+      - "<Path>"
       - start
     network_mode: "host"
   db:

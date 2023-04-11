@@ -36,6 +36,18 @@ while [[ ! $UI_PORT =~ ^[0-9]+$ ]] || [[ $UI_PORT -lt 1 ]] || [[ $UI_PORT -gt 65
     read -p "Invalid port number. Please enter a valid port number from 1 through 65535: " UI_PORT
 done
 
+# Set network type
+
+printf "\n"
+stty -echo
+read -p "Please choose network type (host/docker): " NETWORK
+
+while [[ "$NETWORK" != "host" ]] && [[ "$NETWORK" != "docker" ]]; do
+  printf "\n"
+  read -p "Please choose network type (host/docker): " NETWORK
+done
+
+stty echo
 printf "\n"
 
 mkdir -p $TORQDIR
@@ -47,11 +59,17 @@ STOP_COMMAND='stop-torq'
 UPDATE_COMMAND='update-torq'
 DELETE_COMMAND='delete-torq'
 
-curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose.yml
-curl --location --silent --output "${TORQDIR}/${START_COMMAND}" https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
-curl --location --silent --output "${TORQDIR}/${STOP_COMMAND}" https://raw.githubusercontent.com/lncapital/torq/main/docker/stop.sh
-curl --location --silent --output "${TORQDIR}/${UPDATE_COMMAND}" https://raw.githubusercontent.com/lncapital/torq/main/docker/update.sh
-curl --location --silent --output "${TORQDIR}/${DELETE_COMMAND}" https://raw.githubusercontent.com/lncapital/torq/main/docker/delete.sh
+curl --location --silent --output "${TORQDIR}/torq.conf"            https://raw.githubusercontent.com/lncapital/torq/main/docker/example-torq.conf
+if [[ "$NETWORK" == "host" ]]; then
+  curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose-host-network.yml
+fi
+if [[ "$NETWORK" == "docker" ]]; then
+  curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose.yml
+fi
+curl --location --silent --output "${TORQDIR}/${START_COMMAND}"     https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
+curl --location --silent --output "${TORQDIR}/${STOP_COMMAND}"      https://raw.githubusercontent.com/lncapital/torq/main/docker/stop.sh
+curl --location --silent --output "${TORQDIR}/${UPDATE_COMMAND}"    https://raw.githubusercontent.com/lncapital/torq/main/docker/update.sh
+curl --location --silent --output "${TORQDIR}/${DELETE_COMMAND}"    https://raw.githubusercontent.com/lncapital/torq/main/docker/delete.sh
 
 chmod +x $TORQDIR/$START_COMMAND
 chmod +x $TORQDIR/$STOP_COMMAND
@@ -59,11 +77,19 @@ chmod +x $TORQDIR/$UPDATE_COMMAND
 chmod +x $TORQDIR/$DELETE_COMMAND
 
 # https://stackoverflow.com/questions/16745988/sed-command-with-i-option-in-place-editing-works-fine-on-ubuntu-but-not-mac
-sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
-sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
-sed -i.bak "s/<YourPort>/$UI_PORT/g" $TORQDIR/start-torq && rm $TORQDIR/start-torq.bak
+#torq.conf setup
+sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/g" $TORQDIR/torq.conf          && rm $TORQDIR/torq.conf.bak
+sed -i.bak "s/<YourPort>/$UI_PORT/g"          $TORQDIR/torq.conf          && rm $TORQDIR/torq.conf.bak
+#docker-compose.yml setup
+sed -i.bak "s/<Path>/$TORQDIR\/torq.conf/g"   $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
+if [[ "$NETWORK" == "docker" ]]; then
+  sed -i.bak "s/<YourPort>/$UI_PORT/g"        $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
+fi
+#start-torq setup
+sed -i.bak "s/<YourPort>/$UI_PORT/g"          $TORQDIR/start-torq         && rm $TORQDIR/start-torq.bak
 
 echo 'Docker compose file (docker-compose.yml) created in '$TORQDIR
+echo 'Torq configuration file (torq.conf) created in '$TORQDIR
 
 printf "\n"
 
