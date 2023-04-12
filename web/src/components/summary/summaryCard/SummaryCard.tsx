@@ -2,7 +2,6 @@ import styles from "components/summary/summaryCard/summary-card.module.scss";
 import { Eye20Regular as InspectIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
 import React, { useState } from "react";
-import { format } from "d3";
 import useTouchDevice from "features/touch/useTouchDevice";
 
 export type valueLabel = "" | "btc";
@@ -11,7 +10,6 @@ export type SummaryCardProps = {
   heading: string;
   value?: number;
   valueLabel: valueLabel;
-  summaryClassOverride?: string;
   details?: React.ReactNode;
   children?: React.ReactNode;
 };
@@ -19,7 +17,7 @@ export type SummaryCardProps = {
 function formatValue(value: number, valueLabel: valueLabel): string {
   if (valueLabel === "btc" && value > 0) {
     value = value / 100000000;
-    return format(",.2f")(value);
+    return value.toFixed(8);
   }
   return value.toString();
 }
@@ -40,11 +38,7 @@ export default function SummaryCard(props: SummaryCardProps) {
 
   return (
     <div
-      className={classNames(
-        { [styles.expanded]: showInspection && props.details },
-        styles.summaryCard,
-        props.summaryClassOverride ? props.summaryClassOverride : ""
-      )}
+      className={classNames({ [styles.expanded]: showInspection && props.details }, styles.summaryCard)}
       onMouseEnter={() => handleHover(true)}
       onMouseLeave={() => handleHover(false)}
       onClick={handleClick}

@@ -22,7 +22,6 @@ import {
   MoneyHand20Regular as TransactionIcon,
   Question20Regular as QuestionIcon,
 } from "@fluentui/react-icons";
-import { format } from "d3";
 import SummaryCard from "components/summary/summaryCard/SummaryCard";
 import SummaryNode from "components/summary/summaryNode/SummaryNode";
 import {
@@ -42,8 +41,6 @@ import ToastContext from "../toast/context";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { toastCategory } from "../toast/Toasts";
 import Modal from "../modal/Modal";
-
-const tformtatter = format(",.0f");
 
 interface nodeSummary {
   nodeId: number;
@@ -313,7 +310,6 @@ function DashboardPage() {
                   heading={t.dashboardPage.totalOnChainBalance}
                   value={node.onChainBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.nodeSummaryDetailsContainer}>
                       <div
@@ -326,9 +322,9 @@ function DashboardPage() {
                       <div
                         className={classNames(styles.nodeSummaryDetailsColumn, styles.nodeSummaryDetailsNumberColumn)}
                       >
-                        <div>{tformtatter(node?.walletBalances?.confirmedBalance)}</div>
-                        <div>{tformtatter(node?.walletBalances?.unconfirmedBalance)}</div>
-                        <div>{tformtatter(node?.walletBalances?.lockedBalance)}</div>
+                        <div>{node?.walletBalances?.confirmedBalance}</div>
+                        <div>{node?.walletBalances?.unconfirmedBalance}</div>
+                        <div>{node?.walletBalances?.lockedBalance}</div>
                       </div>
                     </div>
                   }
@@ -337,19 +333,16 @@ function DashboardPage() {
                   heading={t.dashboardPage.totalOffChainBalance}
                   value={node.localBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.totalBalance}
                   value={node.totalBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.channels}
                   value={node.channels}
                   valueLabel={""}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.nodeSummaryDetailsContainer}>
                       <div
@@ -371,13 +364,11 @@ function DashboardPage() {
                   heading={t.dashboardPage.capacity}
                   value={node.capacity}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.publicKey}
                   value={node.channels}
                   valueLabel={""}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.addressDetailsContainer}>
                       <div className={styles.addressDetailItem} title={node.publicKey}>
