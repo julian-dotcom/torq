@@ -21,13 +21,43 @@ Whether you're running a small or a large node, Torq can help you optimize its p
 
 ## Quick start
 
-To install Torq run:
+### configuration
+
+Torq supports a TOML configuration file. The docker compose install script auto generates this file.
+You can find an example configuration file at [example-torq.conf](./docker/example-torq.conf)
+
+### docker compose
+To install Torq via docker compose:
 
 ```sh
 sh -c "$(curl -fsSL https://torq.sh)"
 ```
-
 You do not need sudo/root to run this and you can check the contents of the installation script here: https://torq.sh
+
+### podman
+To run the database via host network:
+
+```sh
+podman run -d --name torqdb --network=host -v torq_db:/var/lib/postgresql/data -e POSTGRES_PASSWORD="<YourPostgresPasswordHere>" timescale/timescaledb:latest-pg14
+```
+
+To run Torq via via host network:
+
+First create your TOML configuration file and store it in `~/.torq/torq.conf`
+
+```sh
+podman run -d --name torq --network=host -v ~/.torq/torq.conf:/home/torq/torq.conf lncapital/torq:latest --config=/home/torq/torq.conf start
+```
+
+### kubernetes
+
+We shared templates for CRDs in folder [kubernetes](./kubernetes).
+This folder also has it's own readme.
+
+### network
+
+Be aware then when you try Torq on testnet, simnet or some other type of network that you use the network switch when trying to browse the web interface.
+Then network switch is the globe icon in the top left corner, next to the Torq logo.
 
 ## How to Videos
 

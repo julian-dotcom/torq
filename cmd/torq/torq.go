@@ -72,7 +72,6 @@ func main() {
 		// Torq details
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.pprof.path",
-			Value: "localhost:6060",
 			Usage: "Set pprof path",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
