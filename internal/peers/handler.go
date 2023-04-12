@@ -1,17 +1,19 @@
 package peers
 
 import (
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/server_errors"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
 type connectPeerRequest struct {
@@ -100,7 +102,8 @@ func connectNewPeerHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Saving peer node.")
 		return
 	}
-	err = settings.AddNodeConnectionHistory(db, req.NodeId, nodeId, host, req.Setting, core.NodeConnectionStatusConnected)
+	connected := core.NodeConnectionStatusConnected
+	err = settings.AddNodeConnectionHistory(db, req.NodeId, nodeId, &host, &req.Setting, &connected)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Saving peer node connection history.")
 		return
@@ -116,25 +119,26 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	torqNodeId, address, setting, _, err := settings.GetNodeConnectionHistoryWithDetail(db, req.NodeId)
+	address, setting, _, err := settings.GetNodeConnectionHistoryWithDetail(db, req.TorqNodeId, req.NodeId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting node by id.")
 		return
 	}
 
-	if address == "" {
-		host, err := getHostFromPeer(torqNodeId, req.NodeId)
+	if address == nil || *address == "" {
+		host, err := getHostFromPeer(req.TorqNodeId, req.NodeId)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Getting host from peer.")
 			return
 		}
-		address = host
+		address = &host
 	}
 
+	disconnected := core.NodeConnectionStatusDisconnected
 	requestFailedCurrentlyDisconnected, err := lightning.DisconnectPeer(req.TorqNodeId, req.NodeId)
 	if err != nil {
 		if requestFailedCurrentlyDisconnected {
-			err = settings.AddNodeConnectionHistory(db, torqNodeId, req.NodeId, address, setting, core.NodeConnectionStatusDisconnected)
+			err = settings.AddNodeConnectionHistory(db, req.TorqNodeId, req.NodeId, address, setting, &disconnected)
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Saving peer node connection history.")
 				return
@@ -144,7 +148,7 @@ func disconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	err = settings.AddNodeConnectionHistory(db, torqNodeId, req.NodeId, address, setting, core.NodeConnectionStatusDisconnected)
+	err = settings.AddNodeConnectionHistory(db, req.TorqNodeId, req.NodeId, address, setting, &disconnected)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Saving peer node connection history.")
 		return
@@ -160,26 +164,27 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	torqNodeId, address, setting, _, err := settings.GetNodeConnectionHistoryWithDetail(db, req.NodeId)
+	address, setting, _, err := settings.GetNodeConnectionHistoryWithDetail(db, req.TorqNodeId, req.NodeId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting node connection history by id.")
 		return
 	}
 
-	if address == "" {
-		host, err := getHostFromPeer(torqNodeId, req.NodeId)
+	if address == nil || *address == "" {
+		host, err := getHostFromPeer(req.TorqNodeId, req.NodeId)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Getting host from peer.")
 			return
 		}
-		address = host
+		address = &host
 	}
 
+	connected := core.NodeConnectionStatusConnected
 	publicKey := cache.GetNodeSettingsByNodeId(req.NodeId).PublicKey
-	requestFailCurrentlyConnected, err := lightning.ConnectPeer(req.TorqNodeId, publicKey, address)
+	requestFailCurrentlyConnected, err := lightning.ConnectPeer(req.TorqNodeId, publicKey, *address)
 	if err != nil {
 		if requestFailCurrentlyConnected {
-			err = settings.AddNodeConnectionHistory(db, torqNodeId, req.NodeId, address, setting, core.NodeConnectionStatusConnected)
+			err = settings.AddNodeConnectionHistory(db, req.TorqNodeId, req.NodeId, address, setting, &connected)
 			if err != nil {
 				server_errors.WrapLogAndSendServerError(c, err, "Saving peer node connection history.")
 				return
@@ -189,7 +194,7 @@ func reconnectPeerHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	err = settings.AddNodeConnectionHistory(db, torqNodeId, req.NodeId, address, setting, core.NodeConnectionStatusConnected)
+	err = settings.AddNodeConnectionHistory(db, req.TorqNodeId, req.NodeId, address, setting, &connected)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Saving peer node.")
 		return
@@ -220,22 +225,22 @@ func updatePeer(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	torqNodeId, address, _, status, err := settings.GetNodeConnectionHistoryWithDetail(db, req.NodeId)
+	address, _, status, err := settings.GetNodeConnectionHistoryWithDetail(db, req.TorqNodeId, req.NodeId)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting node connection history by id.")
 		return
 	}
 
-	if address == "" {
-		host, err := getHostFromPeer(torqNodeId, req.NodeId)
+	if address == nil || *address == "" {
+		host, err := getHostFromPeer(req.TorqNodeId, req.NodeId)
 		if err != nil {
 			server_errors.WrapLogAndSendServerError(c, err, "Getting host from peer.")
 			return
 		}
-		address = host
+		address = &host
 	}
 
-	err = settings.AddNodeConnectionHistory(db, torqNodeId, req.NodeId, address, *req.Setting, status)
+	err = settings.AddNodeConnectionHistory(db, req.TorqNodeId, req.NodeId, address, req.Setting, status)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "updating peer node.")
 		return

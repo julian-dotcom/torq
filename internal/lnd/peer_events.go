@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/settings"
 )
 
 type peerEventsClient interface {
@@ -20,6 +22,7 @@ type peerEventsClient interface {
 
 func SubscribePeerEvents(ctx context.Context,
 	client peerEventsClient,
+	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
 	serviceType := core.LndServicePeerEventStream
@@ -60,6 +63,13 @@ func SubscribePeerEvents(ctx context.Context,
 
 		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
+			err = setNodeConnectionHistory(db, peerEvent, eventNodeId, nodeSettings.NodeId)
+			if err != nil {
+				log.Error().Err(err).Msgf(
+					"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)",
+					nodeSettings.NodeId, eventNodeId)
+			}
+
 			ProcessPeerEvent(core.PeerEvent{
 				EventData: core.EventData{
 					EventTime: time.Now().UTC(),
@@ -70,4 +80,31 @@ func SubscribePeerEvents(ctx context.Context,
 			})
 		}
 	}
+}
+
+func setNodeConnectionHistory(db *sqlx.DB,
+	peerEvent *lnrpc.PeerEvent,
+	eventNodeId int,
+	torqNodeId int) error {
+
+	address, setting, connectionStatus, err := settings.GetNodeConnectionHistoryWithDetail(db, torqNodeId, eventNodeId)
+	if err != nil {
+		return errors.Wrap(err, "obtaining existing details like address, settings and status")
+	}
+	switch peerEvent.Type {
+	case lnrpc.PeerEvent_PEER_ONLINE:
+		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusConnected {
+			connected := core.NodeConnectionStatusConnected
+			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &connected)
+		}
+	case lnrpc.PeerEvent_PEER_OFFLINE:
+		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusDisconnected {
+			disconnected := core.NodeConnectionStatusDisconnected
+			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &disconnected)
+		}
+	}
+	if err != nil {
+		return errors.Wrap(err, "adding connection history")
+	}
+	return nil
 }

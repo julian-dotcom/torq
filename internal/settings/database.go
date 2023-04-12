@@ -169,9 +169,9 @@ func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain core.Chain, network cor
 func AddNodeConnectionHistory(db *sqlx.DB,
 	torqNodeId int,
 	nodeId int,
-	address string,
-	setting core.NodeConnectionSetting,
-	connectionStatus core.NodeConnectionStatus) error {
+	address *string,
+	setting *core.NodeConnectionSetting,
+	connectionStatus *core.NodeConnectionStatus) error {
 
 	createdOn := time.Now().UTC()
 	_, err := db.Exec(
@@ -188,22 +188,25 @@ func AddNodeConnectionHistory(db *sqlx.DB,
 }
 
 func GetNodeConnectionHistoryWithDetail(db *sqlx.DB,
-	nodeId int) (
 	torqNodeId int,
-	address string,
-	setting core.NodeConnectionSetting,
-	connectionStatus core.NodeConnectionStatus,
+	peerNodeId int) (
+	address *string,
+	setting *core.NodeConnectionSetting,
+	connectionStatus *core.NodeConnectionStatus,
 	err error) {
 
 	err = db.QueryRowx(
-		`SELECT nch.torq_node_id, nch.connection_status, nch.address, nch.setting
+		`SELECT nch.connection_status, nch.address, nch.setting
 				FROM node n
     			LEFT JOIN (
-					SELECT LAST(node_id, created_on) as node_id, LAST(torq_node_id, created_on) as torq_node_id, LAST(connection_status, created_on) as connection_status, LAST(address, created_on) as address, LAST(setting, created_on) as setting
+					SELECT LAST(node_id, created_on) as node_id,
+					       LAST(connection_status, created_on) as connection_status,
+					       LAST(address, created_on) as address,
+					       LAST(setting, created_on) as setting
 			  		FROM node_connection_history
-			  		WHERE node_id = $1
-			  		GROUP BY node_id) nch ON nch.node_id = n.node_id
-				WHERE n.node_id = $1;`, nodeId).Scan(&torqNodeId, &connectionStatus, &address, &setting)
+			  		WHERE node_id = $1 AND torq_node_id = $2
+			  		GROUP BY node_id, torq_node_id) nch ON nch.node_id = n.node_id
+				WHERE n.node_id = $1;`, peerNodeId, torqNodeId).Scan(&connectionStatus, &address, &setting)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = nil
