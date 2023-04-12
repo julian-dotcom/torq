@@ -57,7 +57,7 @@ func getConnection(nodeId int) (*grpc.ClientConn, error) {
 
 	ncd := cache.GetLndNodeConnectionDetails(nodeId)
 
-	_, exists := connectionWrapper.connections[nodeId]
+	existingConnection, exists := connectionWrapper.connections[nodeId]
 	if !exists ||
 		connectionWrapper.grpcAddresses[nodeId] != ncd.GRPCAddress ||
 		!bytes.Equal(connectionWrapper.tlsBytes[nodeId], ncd.TLSFileBytes) ||
@@ -72,6 +72,12 @@ func getConnection(nodeId int) (*grpc.ClientConn, error) {
 		connectionWrapper.grpcAddresses[nodeId] = ncd.GRPCAddress
 		connectionWrapper.tlsBytes[nodeId] = ncd.TLSFileBytes
 		connectionWrapper.macaroonBytes[nodeId] = ncd.MacaroonFileBytes
+		if exists && existingConnection != nil {
+			err = existingConnection.Close()
+			if err != nil {
+				log.Error().Err(err).Msgf("GRPC close connection failed for node id: %v", nodeId)
+			}
+		}
 	}
 	return connectionWrapper.connections[nodeId], nil
 }
