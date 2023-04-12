@@ -63,7 +63,12 @@ func SubscribePeerEvents(ctx context.Context,
 
 		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
-			setNodeConnectionHistory(db, peerEvent, eventNodeId, nodeSettings.NodeId)
+			err = setNodeConnectionHistory(db, peerEvent, eventNodeId, nodeSettings.NodeId)
+			if err != nil {
+				log.Error().Err(err).Msgf(
+					"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)",
+					nodeSettings.NodeId, eventNodeId)
+			}
 
 			ProcessPeerEvent(core.PeerEvent{
 				EventData: core.EventData{
@@ -80,14 +85,11 @@ func SubscribePeerEvents(ctx context.Context,
 func setNodeConnectionHistory(db *sqlx.DB,
 	peerEvent *lnrpc.PeerEvent,
 	eventNodeId int,
-	torqNodeId int) {
+	torqNodeId int) error {
 
 	address, setting, connectionStatus, err := settings.GetNodeConnectionHistoryWithDetail(db, torqNodeId, eventNodeId)
 	if err != nil {
-		log.Error().Err(err).Msgf(
-			"Obtaining existing settings for node connection history failed for nodeId: %v (eventNodeId: %v)",
-			torqNodeId, eventNodeId)
-		return
+		return errors.Wrap(err, "obtaining existing details like address, settings and status")
 	}
 	switch peerEvent.Type {
 	case lnrpc.PeerEvent_PEER_ONLINE:
@@ -102,7 +104,7 @@ func setNodeConnectionHistory(db *sqlx.DB,
 		}
 	}
 	if err != nil {
-		log.Error().Err(err).Msgf(
-			"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)", torqNodeId, eventNodeId)
+		return errors.Wrap(err, "adding connection history")
 	}
+	return nil
 }
