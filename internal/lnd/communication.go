@@ -1,6 +1,7 @@
 package lnd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -32,44 +33,48 @@ var (
 )
 
 type connectionsWrapper struct {
-	mu          sync.Mutex
-	connections map[int]*grpc.ClientConn
+	mu            sync.Mutex
+	connections   map[int]*grpc.ClientConn
+	grpcAddresses map[int]string
+	tlsBytes      map[int][]byte
+	macaroonBytes map[int][]byte
 }
 
 func getConnection(nodeId int) (*grpc.ClientConn, error) {
 	connectionWrapperOnce.Do(func() {
 		log.Debug().Msg("Loading Connection Wrapper.")
 		connectionWrapper = &connectionsWrapper{
-			mu:          sync.Mutex{},
-			connections: make(map[int]*grpc.ClientConn),
+			mu:            sync.Mutex{},
+			connections:   make(map[int]*grpc.ClientConn),
+			grpcAddresses: make(map[int]string),
+			tlsBytes:      make(map[int][]byte),
+			macaroonBytes: make(map[int][]byte),
 		}
 	})
 
 	connectionWrapper.mu.Lock()
 	defer connectionWrapper.mu.Unlock()
 
+	ncd := cache.GetLndNodeConnectionDetails(nodeId)
+
 	_, exists := connectionWrapper.connections[nodeId]
-	if !exists {
-		ncd := cache.GetLndNodeConnectionDetails(nodeId)
+	if !exists ||
+		connectionWrapper.grpcAddresses[nodeId] != ncd.GRPCAddress ||
+		!bytes.Equal(connectionWrapper.tlsBytes[nodeId], ncd.TLSFileBytes) ||
+		!bytes.Equal(connectionWrapper.macaroonBytes[nodeId], ncd.MacaroonFileBytes) {
+
 		conn, err := lnd_connect.Connect(ncd.GRPCAddress, ncd.TLSFileBytes, ncd.MacaroonFileBytes)
 		if err != nil {
 			log.Error().Err(err).Msgf("GRPC connection Failed for node id: %v", nodeId)
 			return nil, errors.Wrapf(err, "Connecting to GRPC.")
 		}
 		connectionWrapper.connections[nodeId] = conn
+		connectionWrapper.grpcAddresses[nodeId] = ncd.GRPCAddress
+		connectionWrapper.tlsBytes[nodeId] = ncd.TLSFileBytes
+		connectionWrapper.macaroonBytes[nodeId] = ncd.MacaroonFileBytes
 	}
 	return connectionWrapper.connections[nodeId], nil
 }
-
-//func removeConnection(nodeId int) {
-//	connectionWrapper.mu.Lock()
-//	defer connectionWrapper.mu.Unlock()
-//
-//	_, exists := connectionWrapper.connections[nodeId]
-//	if exists {
-//		delete(connectionWrapper.connections, nodeId)
-//	}
-//}
 
 type lightningService struct {
 	limit chan struct{}
