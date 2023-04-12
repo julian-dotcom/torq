@@ -29,10 +29,10 @@ You can find an example configuration file at [example-torq.conf](./docker/examp
 ### docker compose
 To install Torq via docker compose:
 
-```sh
-sh -c "$(curl -fsSL https://torq.sh)"
+```bash
+bash -c "$(curl -fsSL https://torq.sh)"
 ```
-You do not need sudo/root to run this and you can check the contents of the installation script here: https://torq.sh
+You do not need sudo/root to run this, and you can check the contents of the installation script here: https://torq.sh
 
 ### podman
 To run the database via host network:
@@ -41,7 +41,7 @@ To run the database via host network:
 podman run -d --name torqdb --network=host -v torq_db:/var/lib/postgresql/data -e POSTGRES_PASSWORD="<YourPostgresPasswordHere>" timescale/timescaledb:latest-pg14
 ```
 
-To run Torq via via host network:
+To run Torq via host network:
 
 First create your TOML configuration file and store it in `~/.torq/torq.conf`
 
@@ -52,12 +52,12 @@ podman run -d --name torq --network=host -v ~/.torq/torq.conf:/home/torq/torq.co
 ### kubernetes
 
 We shared templates for CRDs in folder [kubernetes](./kubernetes).
-This folder also has it's own readme.
+This folder also has its own [readme](./kubernetes/README.md).
 
 ### network
 
-Be aware then when you try Torq on testnet, simnet or some other type of network that you use the network switch when trying to browse the web interface.
-Then network switch is the globe icon in the top left corner, next to the Torq logo.
+Be aware that when you try Torq on testnet, simnet or some other type of network that you must use the network switch when trying to browse the web interface.
+The network switch is the globe icon in the top left corner, next to the Torq logo.
 
 ## How to Videos
 

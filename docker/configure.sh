@@ -37,7 +37,6 @@ done
 # Set network type
 
 printf "\n"
-stty -echo
 read -p "Please choose network type (host/docker): " NETWORK
 
 while [[ "$NETWORK" != "host" ]] && [[ "$NETWORK" != "docker" ]]; do
@@ -45,27 +44,31 @@ while [[ "$NETWORK" != "host" ]] && [[ "$NETWORK" != "docker" ]]; do
   read -p "Please choose network type (host/docker): " NETWORK
 done
 
-stty echo
 printf "\n"
 
 mkdir -p $TORQDIR
 
 [ -f docker-compose.yml ] && rm docker-compose.yml
 
-curl --location --silent --output "${TORQDIR}/torq.conf"            https://raw.githubusercontent.com/lncapital/torq/main/docker/example-torq.conf
+TORQ_CONFIG=${TORQDIR}/torq.conf
+
+curl --location --silent --output "${TORQ_CONFIG}"                  https://raw.githubusercontent.com/lncapital/torq/main/docker/example-torq.conf
 if [[ "$NETWORK" == "host" ]]; then
   curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose-host-network.yml
 fi
 if [[ "$NETWORK" == "docker" ]]; then
   curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose.yml
 fi
+curl --location --silent --output "${TORQDIR}/${START_COMMAND}"     https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
+
+chmod +x $TORQDIR/$START_COMMAND
 
 # https://stackoverflow.com/questions/16745988/sed-command-with-i-option-in-place-editing-works-fine-on-ubuntu-but-not-mac
 #torq.conf setup
-sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/g" $TORQDIR/torq.conf          && rm $TORQDIR/torq.conf.bak
-sed -i.bak "s/<YourPort>/$UI_PORT/g"          $TORQDIR/torq.conf          && rm $TORQDIR/torq.conf.bak
+sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/g" $TORQ_CONFIG                && rm $TORQ_CONFIG.bak
+sed -i.bak "s/<YourPort>/$UI_PORT/g"          $TORQ_CONFIG                && rm $TORQ_CONFIG.bak
 #docker-compose.yml setup
-sed -i.bak "s/<Path>/$TORQDIR\/torq.conf/g"   $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
+sed -i.bak "s|<Path>|$TORQ_CONFIG|g"          $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 if [[ "$NETWORK" == "docker" ]]; then
   sed -i.bak "s/<YourPort>/$UI_PORT/g"        $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 fi
