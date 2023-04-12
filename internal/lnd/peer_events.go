@@ -80,23 +80,29 @@ func SubscribePeerEvents(ctx context.Context,
 func setNodeConnectionHistory(db *sqlx.DB,
 	peerEvent *lnrpc.PeerEvent,
 	eventNodeId int,
-	nodeId int) {
+	torqNodeId int) {
 
-	_, address, setting, _, err := settings.GetNodeConnectionHistoryWithDetail(db, eventNodeId)
+	address, setting, connectionStatus, err := settings.GetNodeConnectionHistoryWithDetail(db, torqNodeId, eventNodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf(
 			"Obtaining existing settings for node connection history failed for nodeId: %v (eventNodeId: %v)",
-			nodeId, eventNodeId)
+			torqNodeId, eventNodeId)
 		return
 	}
 	switch peerEvent.Type {
 	case lnrpc.PeerEvent_PEER_ONLINE:
-		err = settings.AddNodeConnectionHistory(db, nodeId, eventNodeId, address, setting, core.NodeConnectionStatusConnected)
+		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusConnected {
+			connected := core.NodeConnectionStatusConnected
+			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &connected)
+		}
 	case lnrpc.PeerEvent_PEER_OFFLINE:
-		err = settings.AddNodeConnectionHistory(db, nodeId, eventNodeId, address, setting, core.NodeConnectionStatusDisconnected)
+		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusDisconnected {
+			disconnected := core.NodeConnectionStatusDisconnected
+			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &disconnected)
+		}
 	}
 	if err != nil {
 		log.Error().Err(err).Msgf(
-			"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)", nodeId, eventNodeId)
+			"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)", torqNodeId, eventNodeId)
 	}
 }
