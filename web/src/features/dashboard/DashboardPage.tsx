@@ -313,7 +313,6 @@ function DashboardPage() {
                   heading={t.dashboardPage.totalOnChainBalance}
                   value={node.onChainBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.nodeSummaryDetailsContainer}>
                       <div
@@ -337,19 +336,16 @@ function DashboardPage() {
                   heading={t.dashboardPage.totalOffChainBalance}
                   value={node.localBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.totalBalance}
                   value={node.totalBalance}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.channels}
                   value={node.channels}
                   valueLabel={""}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.nodeSummaryDetailsContainer}>
                       <div
@@ -371,13 +367,11 @@ function DashboardPage() {
                   heading={t.dashboardPage.capacity}
                   value={node.capacity}
                   valueLabel={t.dashboardPage.btc}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.publicKey}
                   value={node.channels}
                   valueLabel={""}
-                  summaryClassOverride={styles.nodeSummaryCardOverride}
                   details={
                     <div className={styles.addressDetailsContainer}>
                       <div className={styles.addressDetailItem} title={node.publicKey}>
