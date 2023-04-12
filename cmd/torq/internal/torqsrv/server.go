@@ -2,8 +2,10 @@ package torqsrv
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/cockroachdb/errors"
@@ -121,8 +123,6 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		log.Debug().Msgf("WebsocketHandler: %v", err)
 	})
 
-	registerStaticRoutes(r)
-
 	api := r.Group("/api")
 
 	api.POST("/logout", auth.Logout)
@@ -239,11 +239,13 @@ func registerRoutes(r *gin.Engine, db *sqlx.DB, apiPwd string, cookiePath string
 		})
 	}
 
-	web.AddRoutes(r)
+	registerStaticRoutes(r)
 }
 
 func registerStaticRoutes(r *gin.Engine) {
+	embeddedFS := web.NewStaticFileSystem()
 	r.NoRoute(func(c *gin.Context) {
+		log.Warn().Msg("No route")
 		path := c.Request.URL.Path
 
 		knownAssetList := []string{
@@ -257,11 +259,12 @@ func registerStaticRoutes(r *gin.Engine) {
 			"/apple-touch-icon.png",
 			"/browserconfig.xml",
 			"/manifest.json",
-			"/robots.txt"}
+			"/robots.txt",
+		}
 
 		for _, knownAsset := range knownAssetList {
 			if strings.HasSuffix(path, knownAsset) {
-				c.File("./web/build" + knownAsset)
+				c.FileFromFS(knownAsset, embeddedFS)
 				return
 			}
 		}
@@ -270,17 +273,25 @@ func registerStaticRoutes(r *gin.Engine) {
 		if strings.Contains(path, "/static/") && strings.Contains(path, ".") &&
 			(strings.Contains(path, "css") || strings.Contains(path, "js") || strings.Contains(path, "media")) {
 			parts := strings.Split(path, "/")
-			c.File("./web/build/static/" + parts[len(parts)-2] + "/" + parts[len(parts)-1])
+			c.FileFromFS("static/"+parts[len(parts)-2]+"/"+parts[len(parts)-1], embeddedFS)
 			return
 		}
 
 		// locales json files
 		if strings.Contains(path, "/locales/") && strings.Contains(path, ".json") {
 			parts := strings.Split(path, "/")
-			c.File("./web/build/locales/" + parts[len(parts)-1])
+			c.FileFromFS("locales/"+parts[len(parts)-1], embeddedFS)
 			return
 		}
 
-		c.File("./web/build/index.html")
+		// the reason that we can't use c.FileFromFS for index.html is because golang will return a redirect instead of serving the file
+		// so we have to manually read the file and send it out
+		// https://stackoverflow.com/questions/43527073/golang-static-stop-index-html-redirection
+		f, err := embeddedFS.Open("index.html")
+		if err != nil {
+			log.Panic().Err(err).Msg("Couldn't read index.html")
+			panic(err)
+		}
+		http.ServeContent(c.Writer, c.Request, "index.html", time.Now(), f)
 	})
 }
