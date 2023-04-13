@@ -250,7 +250,7 @@ func updatePeer(c *gin.Context, db *sqlx.DB) {
 
 func getHostFromPeer(connectionDetailsNodeId int, nodeId int) (string, error) {
 	nodeSettings := cache.GetNodeSettingsByNodeId(nodeId)
-	peers, err := lightning.ListPeers(connectionDetailsNodeId)
+	peers, err := lightning.ListPeers(connectionDetailsNodeId, true)
 	if err != nil {
 		return "", errors.Wrap(err, "Getting list of peers.")
 	}

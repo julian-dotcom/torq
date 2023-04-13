@@ -310,27 +310,37 @@ type InformationResponse struct {
 	HtlcInterceptorRequired bool           `json:"htlcInterceptorRequired"`
 }
 
+type FeatureEntry struct {
+	Key   uint32  `json:"key"`
+	Value Feature `json:"value"`
+}
+
 type Feature struct {
 	Name       string `json:"name"`
-	IsRequired bool   `json:"is_required"`
-	IsKnown    bool   `json:"is_known"`
+	IsRequired bool   `json:"isRequired"`
+	IsKnown    bool   `json:"isKnown"`
+}
+
+type TimeStampedError struct {
+	Timestamp uint64 `json:"timestamp"`
+	Error     string `json:"error"`
 }
 
 type Peer struct {
-	PubKey          string       `json:"pub_key"`
-	Address         string       `json:"address"`
-	BytesSent       uint64       `json:"bytes_sent"`
-	BytesRecv       uint64       `json:"bytes_recv"`
-	SatSent         int64        `json:"sat_sent"`
-	SatRecv         int64        `json:"sat_recv"`
-	Inbound         bool         `json:"inbound"`
-	PingTime        int64        `json:"ping_time"`
-	SyncType        PeerSyncType `json:"sync_type"`
-	Features        []Feature    `json:"features"`
-	Errors          []string     `json:"errors"`
-	FlapCount       int          `json:"flap_count"`
-	LastFlapNS      string       `json:"last_flap_ns"`
-	LastPingPayload string       `json:"last_ping_payload"`
+	PubKey          string             `json:"pubKey"`
+	Address         string             `json:"address"`
+	BytesSent       uint64             `json:"bytesSent"`
+	BytesRecv       uint64             `json:"bytesRecv"`
+	SatSent         int64              `json:"satSent"`
+	SatRecv         int64              `json:"satRecv"`
+	Inbound         bool               `json:"inbound"`
+	PingTime        int64              `json:"pingTime"`
+	SyncType        PeerSyncType       `json:"syncType"`
+	Features        []FeatureEntry     `json:"features"`
+	Errors          []TimeStampedError `json:"errors"`
+	FlapCount       int32              `json:"flapCount"`
+	LastFlapNS      int64              `json:"lastFlapNs"`
+	LastPingPayload []byte             `json:"lastPingPayload"`
 }
 
 type CommunicationRequest struct {

@@ -177,12 +177,13 @@ func DisconnectPeer(nodeId int, peerNodeId int) (bool, error) {
 	return response.RequestFailedCurrentlyDisconnected, nil
 }
 
-func ListPeers(nodeId int) (map[string]core.Peer, error) {
+func ListPeers(nodeId int, latestError bool) (map[string]core.Peer, error) {
 	request := lnd.ListPeersRequest{
 		CommunicationRequest: lnd.CommunicationRequest{
 			NodeId: nodeId,
 		},
-		NodeId: nodeId,
+		NodeId:      nodeId,
+		LatestError: latestError,
 	}
 	response := lnd.ListPeers(request)
 	if response.Error != nil {
