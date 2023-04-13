@@ -13,7 +13,7 @@ import (
 
 type PeerNode struct {
 	NodeId           int                         `json:"nodeId" db:"node_id"`
-	Alias            string                      `json:"peerAlias" db:"alias"`
+	Alias            *string                     `json:"peerAlias" db:"alias"`
 	PublicKey        string                      `json:"pubKey" db:"public_key"`
 	TorqNodeId       *int                        `json:"torqNodeId" db:"torq_node_id"`
 	TorqNodeAlias    *string                     `json:"torqNodeAlias" db:"torq_node_alias"`
