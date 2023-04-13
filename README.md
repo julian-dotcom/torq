@@ -26,6 +26,24 @@ Whether you're running a small or a large node, Torq can help you optimize its p
 Torq supports a TOML configuration file. The docker compose install script auto generates this file.
 You can find an example configuration file at [example-torq.conf](./docker/example-torq.conf)
 
+It is also possible not to use any TOML configuration files and use command like parameters. The list of parameters are:
+ - **--lnd.url**: Host:Port of the LND node (example: "127.0.0.1:10009")
+ - **--lnd.macaroon-path**: Path on disk to LND Macaroon (example: "~/.lnd/admin.macaroon")
+ - **--lnd.tls-path**: Path on disk to LND TLS file (example: "~/.lnd/tls.cert")
+ - **--db.name**: Name of the database (default: "torq")
+ - **--db.user**: Name of the postgres user with access to the database (default: "postgres")
+ - **--db.password**: Password used to access the database (default: "runningtorq")
+ - **--db.port**: Port of the database (default: "5432")
+ - **--db.host**: Host of the database (default: "localhost")
+ - **--torq.password**: Password used to access the API and frontend (example: "C44y78A4JXHCVziRcFqaJfFij5HpJhF6VwKjz4vR")
+ - **--torq.port**: Port to serve the HTTP API (default: "8080")
+ - **--torq.pprof.path**: When pprof path is set then pprof is loaded when Torq boots. (example: "localhost:6060")
+ - **--torq.debuglevel**: Specify different debug levels (panic|fatal|error|warn|info|debug|trace) (default: "info")
+ - **--torq.vector.url**: Alternative path for alternative vector service implementation (default: "https://vector.ln.capital/")
+ - **--torq.cookie-path**: Path to auth cookie file
+ - **--torq.no-sub**: Start the server without subscribing to node data (default: "false")
+ - **--torq.auto-login**: Allows logging in without a password (default: "false")
+
 ### docker compose
 To install Torq via docker compose:
 
