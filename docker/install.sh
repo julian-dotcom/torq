@@ -39,11 +39,17 @@ done
 # Set network type
 
 printf "\n"
-read -p "Please choose network type (host/docker): " NETWORK
+echo "Only run with host network when your server has a firewall and doesn't automatically open all port to the internet."
+echo "You don't want the database to be accessible from the internet!"
+echo "You usually want host network when you have a firewall and access the GRPC via localhost or 127.0.0.1"
+echo "In all other cases bridge is the better and safer choice"
+read -p "Please choose network type host or bridge (default: bridge): " NETWORK
+eval NETWORK="${NETWORK:=bridge}"
 
-while [[ "$NETWORK" != "host" ]] && [[ "$NETWORK" != "docker" ]]; do
+while [[ "$NETWORK" != "host" ]] && [[ "$NETWORK" != "bridge" ]]; do
   printf "\n"
-  read -p "Please choose network type (host/docker): " NETWORK
+  read -p "Please choose network type host or bridge (default: bridge): " NETWORK
+  eval NETWORK="${NETWORK:=bridge}"
 done
 
 printf "\n"
@@ -62,7 +68,7 @@ curl --location --silent --output "${TORQ_CONFIG}"                  https://raw.
 if [[ "$NETWORK" == "host" ]]; then
   curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose-host-network.yml
 fi
-if [[ "$NETWORK" == "docker" ]]; then
+if [[ "$NETWORK" == "bridge" ]]; then
   curl --location --silent --output "${TORQDIR}/docker-compose.yml" https://raw.githubusercontent.com/lncapital/torq/main/docker/example-docker-compose.yml
 fi
 curl --location --silent --output "${TORQDIR}/${START_COMMAND}"     https://raw.githubusercontent.com/lncapital/torq/main/docker/start.sh
@@ -81,7 +87,7 @@ sed -i.bak "s/<YourUIPassword>/$UIPASSWORD/g" $TORQ_CONFIG                && rm 
 sed -i.bak "s/<YourPort>/$UI_PORT/g"          $TORQ_CONFIG                && rm $TORQ_CONFIG.bak
 #docker-compose.yml setup
 sed -i.bak "s|<Path>|$TORQ_CONFIG|g"          $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
-if [[ "$NETWORK" == "docker" ]]; then
+if [[ "$NETWORK" == "bridge" ]]; then
   sed -i.bak "s/<YourPort>/$UI_PORT/g"        $TORQDIR/docker-compose.yml && rm $TORQDIR/docker-compose.yml.bak
 fi
 #start-torq setup

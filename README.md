@@ -66,6 +66,7 @@ First create your TOML configuration file and store it in `~/.torq/torq.conf`
 ```sh
 podman run -d --name torq --network=host -v ~/.torq/torq.conf:/home/torq/torq.conf lncapital/torq:latest --config=/home/torq/torq.conf start
 ```
+**Note**: Only run with host network when your server has a firewall and doesn't automatically open all port to the internet. You don't want the database to be accessible from the internet!
 
 ### kubernetes
 
