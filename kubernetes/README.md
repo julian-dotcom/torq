@@ -5,13 +5,13 @@
 Torq Kubernetes CRD files are work-in-progress example template files.
 
 Files that require custom modifications are:
- - bitcoin-core.yaml: <rpc-auth>
- - cluster-issuer.yaml: <Email-Address>
- - lnd-postgres-configmap.yaml: <lnd-postgres-user> and <lnd-postgres-pass>
- - lnd.yaml: <RPC-Password>, <RPC-User>, <lnd-postgres-user> and <lnd-postgres-pass>
- - torq-ingress.yaml: <Public-URL>
- - torq-postgres-configmap.yaml: <torq-user> and <torq-pass>
- - torq.yaml: <torq-user> and <torq-pass>
+ - bitcoin-core.yaml: \<rpc-auth\>
+ - cluster-issuer.yaml: \<Email-Address\>
+ - lnd-postgres-configmap.yaml: \<lnd-postgres-user\> and \<lnd-postgres-pass\>
+ - lnd.yaml: \<RPC-Password\>, \<RPC-User\>, \<lnd-postgres-user\> and \<lnd-postgres-pass\>
+ - torq-ingress.yaml: \<Public-URL\>
+ - torq-postgres-configmap.yaml: \<torq-user\> and \<torq-pass\>
+ - torq.yaml: \<torq-user\> and \<torq-pass\>
 
 # Secret creation
 
