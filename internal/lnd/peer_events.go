@@ -12,6 +12,7 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/nodes"
 	"github.com/lncapital/torq/internal/settings"
 )
 
@@ -121,14 +122,24 @@ func ImportPeerStatus(ctx context.Context,
 
 	resp, err := client.ListPeers(ctx, &lnrpc.ListPeersRequest{LatestError: true})
 	if err != nil {
-		return errors.Wrapf(err, "Get list of peers from lnd for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(err, "get list of peers from lnd for nodeId: %v", nodeSettings.NodeId)
 	}
 
 	for _, peer := range resp.Peers {
 		peerNodeId := cache.GetNodeIdByPublicKey(peer.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		if peerNodeId == 0 {
+			peerNodeId, err = nodes.AddNodeWhenNew(db, nodes.Node{
+				PublicKey: peer.PubKey,
+				Chain:     nodeSettings.Chain,
+				Network:   nodeSettings.Network,
+			}, nil)
+			if err != nil {
+				return errors.Wrapf(err, "adding unknown peer (%v) for nodeId: %v", peer.PubKey, nodeSettings.NodeId)
+			}
+		}
 		err = setNodeConnectionHistory(db, lnrpc.PeerEvent_PEER_ONLINE, peerNodeId, nodeSettings.NodeId)
 		if err != nil {
-			return errors.Wrapf(err, "Insert peer status")
+			return errors.Wrapf(err, "insert peer status")
 		}
 	}
 	return nil
