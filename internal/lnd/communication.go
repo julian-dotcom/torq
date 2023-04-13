@@ -445,46 +445,8 @@ func processListPeersRequest(ctx context.Context, request ListPeersRequest) List
 	}
 
 	peers := make(map[string]core.Peer)
-
 	for _, peer := range rsp.Peers {
-		p := core.Peer{
-			PubKey:          peer.PubKey,
-			Address:         peer.Address,
-			BytesSent:       peer.BytesSent,
-			BytesRecv:       peer.BytesRecv,
-			SatSent:         peer.SatSent,
-			SatRecv:         peer.SatRecv,
-			Inbound:         peer.Inbound,
-			PingTime:        peer.PingTime,
-			SyncType:        core.PeerSyncType(peer.SyncType),
-			FlapCount:       peer.FlapCount,
-			LastFlapNS:      peer.LastFlapNs,
-			LastPingPayload: peer.LastPingPayload,
-		}
-
-		features := make([]core.FeatureEntry, len(peer.Features))
-		for key, feature := range peer.Features {
-			features = append(features, core.FeatureEntry{
-				Key: key,
-				Value: core.Feature{
-					Name:       feature.Name,
-					IsRequired: feature.IsRequired,
-					IsKnown:    feature.IsKnown,
-				},
-			})
-		}
-		p.Features = features
-
-		timeStampedErrors := make([]core.TimeStampedError, len(peer.Errors))
-		for _, tse := range peer.Errors {
-			timeStampedErrors = append(timeStampedErrors, core.TimeStampedError{
-				Timestamp: tse.Timestamp,
-				Error:     tse.Error,
-			})
-		}
-		p.Errors = timeStampedErrors
-
-		peers[p.PubKey] = p
+		peers[peer.PubKey] = core.GetPeer(peer)
 	}
 
 	response.Status = Active
