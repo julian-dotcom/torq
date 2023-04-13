@@ -144,6 +144,7 @@ const (
 	ImportNodeInformation
 	ImportAllChannels
 	ImportPendingChannelsOnly
+	ImportPeerStatus
 )
 
 const (

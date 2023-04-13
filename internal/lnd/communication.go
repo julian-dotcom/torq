@@ -410,7 +410,8 @@ type DisconnectPeerResponse struct {
 
 type ListPeersRequest struct {
 	CommunicationRequest
-	NodeId int
+	NodeId      int
+	LatestError bool
 }
 
 type ListPeersResponse struct {
@@ -434,7 +435,7 @@ func processListPeersRequest(ctx context.Context, request ListPeersRequest) List
 		return response
 	}
 
-	listPeersRequest := lnrpc.ListPeersRequest{}
+	listPeersRequest := lnrpc.ListPeersRequest{LatestError: request.LatestError}
 	client := lnrpc.NewLightningClient(connection)
 	rsp, err := client.ListPeers(ctx, &listPeersRequest)
 
@@ -447,27 +448,41 @@ func processListPeersRequest(ctx context.Context, request ListPeersRequest) List
 
 	for _, peer := range rsp.Peers {
 		p := core.Peer{
-			PubKey:    peer.PubKey,
-			Address:   peer.Address,
-			BytesSent: peer.BytesSent,
-			BytesRecv: peer.BytesRecv,
-			SatSent:   peer.SatSent,
-			SatRecv:   peer.SatRecv,
-			Inbound:   peer.Inbound,
-			PingTime:  peer.PingTime,
-			SyncType:  core.PeerSyncType(peer.SyncType),
+			PubKey:          peer.PubKey,
+			Address:         peer.Address,
+			BytesSent:       peer.BytesSent,
+			BytesRecv:       peer.BytesRecv,
+			SatSent:         peer.SatSent,
+			SatRecv:         peer.SatRecv,
+			Inbound:         peer.Inbound,
+			PingTime:        peer.PingTime,
+			SyncType:        core.PeerSyncType(peer.SyncType),
+			FlapCount:       peer.FlapCount,
+			LastFlapNS:      peer.LastFlapNs,
+			LastPingPayload: peer.LastPingPayload,
 		}
 
-		features := make([]core.Feature, len(peer.Features))
-		for _, feature := range peer.Features {
-			features = append(features, core.Feature{
-				Name:       feature.Name,
-				IsRequired: feature.IsRequired,
-				IsKnown:    feature.IsKnown,
+		features := make([]core.FeatureEntry, len(peer.Features))
+		for key, feature := range peer.Features {
+			features = append(features, core.FeatureEntry{
+				Key: key,
+				Value: core.Feature{
+					Name:       feature.Name,
+					IsRequired: feature.IsRequired,
+					IsKnown:    feature.IsKnown,
+				},
 			})
 		}
-
 		p.Features = features
+
+		timeStampedErrors := make([]core.TimeStampedError, len(peer.Errors))
+		for _, tse := range peer.Errors {
+			timeStampedErrors = append(timeStampedErrors, core.TimeStampedError{
+				Timestamp: tse.Timestamp,
+				Error:     tse.Error,
+			})
+		}
+		p.Errors = timeStampedErrors
 
 		peers[p.PubKey] = p
 	}
@@ -660,6 +675,8 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 				log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
 			case core.ImportNodeInformation:
 				log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
+			case core.ImportPeerStatus:
+				log.Info().Msgf("PeerStatus were imported very recently for nodeId: %v.", request.NodeId)
 			}
 			return response
 		}
@@ -674,6 +691,8 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
 		case core.ImportNodeInformation:
 			log.Info().Msgf("Forced import of NodeInformation for nodeId: %v.", request.NodeId)
+		case core.ImportPeerStatus:
+			log.Info().Msgf("Forced import of PeerStatus for nodeId: %v.", request.NodeId)
 		}
 	}
 
@@ -748,6 +767,14 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 			return response
 		}
 		log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	case core.ImportPeerStatus:
+		err := ImportPeerStatus(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to import peer status.")
+			response.Error = err
+			return response
+		}
+		log.Info().Msgf("PeerStatus was imported successfully for nodeId: %v.", nodeSettings.NodeId)
 	}
 	successTimes[request.ImportType] = time.Now()
 	cache.SetSuccessTimes(request.NodeId, successTimes)

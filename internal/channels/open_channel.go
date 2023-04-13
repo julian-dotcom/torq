@@ -168,7 +168,7 @@ func translateChanPoint(cb []byte, oi uint32) (string, error) {
 
 func checkConnectPeer(client lnrpc.LightningClient, ctx context.Context, nodeId int, remotePubkey string, host string) (err error) {
 
-	peerList, err := ListPeers(client, ctx, "true")
+	peerList, err := ListPeers(client, ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "List peers")
 	}

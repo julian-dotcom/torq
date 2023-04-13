@@ -133,6 +133,13 @@ func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 	cache.SetPendingLndServiceState(serviceType, nodeId)
 
+	err := lightning.Import(db, core.ImportPeerStatus, false, nodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("LND import peer status for nodeId: %v", nodeId)
+		cache.SetFailedLndServiceState(serviceType, nodeId)
+		return
+	}
+
 	lnd.SubscribePeerEvents(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }
 

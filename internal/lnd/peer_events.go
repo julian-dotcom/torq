@@ -20,6 +20,11 @@ type peerEventsClient interface {
 		opts ...grpc.CallOption) (lnrpc.Lightning_SubscribePeerEventsClient, error)
 }
 
+type listPeersClient interface {
+	ListPeers(ctx context.Context, in *lnrpc.ListPeersRequest,
+		opts ...grpc.CallOption) (*lnrpc.ListPeersResponse, error)
+}
+
 func SubscribePeerEvents(ctx context.Context,
 	client peerEventsClient,
 	db *sqlx.DB,
@@ -63,7 +68,7 @@ func SubscribePeerEvents(ctx context.Context,
 
 		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
-			err = setNodeConnectionHistory(db, peerEvent, eventNodeId, nodeSettings.NodeId)
+			err = setNodeConnectionHistory(db, peerEvent.Type, eventNodeId, nodeSettings.NodeId)
 			if err != nil {
 				log.Error().Err(err).Msgf(
 					"Adding node connection history entry failed for nodeId: %v (eventNodeId: %v)",
@@ -83,7 +88,7 @@ func SubscribePeerEvents(ctx context.Context,
 }
 
 func setNodeConnectionHistory(db *sqlx.DB,
-	peerEvent *lnrpc.PeerEvent,
+	peerEventType lnrpc.PeerEvent_EventType,
 	eventNodeId int,
 	torqNodeId int) error {
 
@@ -91,7 +96,7 @@ func setNodeConnectionHistory(db *sqlx.DB,
 	if err != nil {
 		return errors.Wrap(err, "obtaining existing details like address, settings and status")
 	}
-	switch peerEvent.Type {
+	switch peerEventType {
 	case lnrpc.PeerEvent_PEER_ONLINE:
 		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusConnected {
 			connected := core.NodeConnectionStatusConnected
@@ -105,6 +110,26 @@ func setNodeConnectionHistory(db *sqlx.DB,
 	}
 	if err != nil {
 		return errors.Wrap(err, "adding connection history")
+	}
+	return nil
+}
+
+func ImportPeerStatus(ctx context.Context,
+	client listPeersClient,
+	db *sqlx.DB,
+	nodeSettings cache.NodeSettingsCache) error {
+
+	resp, err := client.ListPeers(ctx, &lnrpc.ListPeersRequest{LatestError: true})
+	if err != nil {
+		return errors.Wrapf(err, "Get list of peers from lnd for nodeId: %v", nodeSettings.NodeId)
+	}
+
+	for _, peer := range resp.Peers {
+		peerNodeId := cache.GetNodeIdByPublicKey(peer.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		err = setNodeConnectionHistory(db, lnrpc.PeerEvent_PEER_ONLINE, peerNodeId, nodeSettings.NodeId)
+		if err != nil {
+			return errors.Wrapf(err, "Insert peer status")
+		}
 	}
 	return nil
 }

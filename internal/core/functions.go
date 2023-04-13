@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 )
 
@@ -468,6 +469,46 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 		WorkflowParameterLabelRebalanceSettings,
 		WorkflowParameterLabelStatus,
 	}
+}
+
+func GetPeer(peer *lnrpc.Peer) Peer {
+	p := Peer{
+		PubKey:          peer.PubKey,
+		Address:         peer.Address,
+		BytesSent:       peer.BytesSent,
+		BytesRecv:       peer.BytesRecv,
+		SatSent:         peer.SatSent,
+		SatRecv:         peer.SatRecv,
+		Inbound:         peer.Inbound,
+		PingTime:        peer.PingTime,
+		SyncType:        PeerSyncType(peer.SyncType),
+		FlapCount:       peer.FlapCount,
+		LastFlapNS:      peer.LastFlapNs,
+		LastPingPayload: peer.LastPingPayload,
+	}
+
+	features := make([]FeatureEntry, len(peer.Features))
+	for key, feature := range peer.Features {
+		features = append(features, FeatureEntry{
+			Key: key,
+			Value: Feature{
+				Name:       feature.Name,
+				IsRequired: feature.IsRequired,
+				IsKnown:    feature.IsKnown,
+			},
+		})
+	}
+	p.Features = features
+
+	timeStampedErrors := make([]TimeStampedError, len(peer.Errors))
+	for _, tse := range peer.Errors {
+		timeStampedErrors = append(timeStampedErrors, TimeStampedError{
+			Timestamp: tse.Timestamp,
+			Error:     tse.Error,
+		})
+	}
+	p.Errors = timeStampedErrors
+	return p
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {
