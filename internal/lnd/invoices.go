@@ -325,7 +325,7 @@ func processInvoice(lndInvoice *lnrpc.Invoice, nodeSettings cache.NodeSettingsCa
 			log.Error().Msgf("Subscribe and store invoices - decode payment request: %v", err)
 		} else {
 			destinationPublicKey = fmt.Sprintf("%x", inva.Destination.SerializeCompressed())
-			destinationNodeIdValue := cache.GetNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
+			destinationNodeIdValue := cache.GetChannelPeerNodeIdByPublicKey(destinationPublicKey, nodeSettings.Chain, nodeSettings.Network)
 			destinationNodeId = &destinationNodeIdValue
 			invoiceEvent.DestinationNodeId = destinationNodeId
 		}

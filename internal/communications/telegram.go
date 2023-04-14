@@ -306,7 +306,7 @@ func SendNodeSettingsMenu(db *sqlx.DB,
 	var communicationId int
 	publicKey := PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()]
 	if publicKey != "" {
-		specifiedNodeId := cache.GetNodeIdByPublicKey(publicKey, core.Bitcoin, core.MainNet)
+		specifiedNodeId := cache.GetChannelPeerNodeIdByPublicKey(publicKey, core.Bitcoin, core.MainNet)
 		nodeIds, err := GetNodeIdsByCommunication(db, communicationTargetType)
 		if err != nil {
 			log.Error().Err(err).Msg("Telegram bot failed to obtain existing nodeId")

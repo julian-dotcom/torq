@@ -127,7 +127,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 	}
 	for _, lndChannel := range r.Channels {
 		channelId := cache.GetChannelIdByChannelPoint(lndChannel.ChannelPoint)
-		remoteNodeId := cache.GetNodeIdByPublicKey(lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
+		remoteNodeId := cache.GetChannelPeerNodeIdByPublicKey(lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network)
 		if channelId == 0 {
 			return errors.Wrapf(err, "Obtaining channelId from channelPoint: %v", lndChannel.ChannelPoint)
 		}

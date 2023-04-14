@@ -154,7 +154,7 @@ func TestSubscribeForwardingEvents(t *testing.T) {
 		defer wg.Done()
 		SubscribeForwardingEvents(ctx, &mclient, db,
 			cache.GetNodeSettingsByNodeId(
-				cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)), &opt)
+				cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)), &opt)
 	}()
 	// Simulate passing intervals, one more than required to processRequest
 	numbTicks := 2

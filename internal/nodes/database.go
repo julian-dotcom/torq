@@ -101,21 +101,34 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 	return nodeEvent, nil
 }
 
+// AddNodeWhenNew partial duplication from settings.AddNodeWhenNew (caused by cyclic dependency)
 func AddNodeWhenNew(db *sqlx.DB, node Node, peerConnectionHistory *NodeConnectionHistory) (int, error) {
-	nodeId := cache.GetNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
+	nodeId := cache.GetChannelPeerNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
-		node.CreatedOn = time.Now().UTC()
-		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
-			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
-			node.PublicKey, node.Chain, node.Network, node.CreatedOn).Scan(&node.NodeId)
-		if err != nil {
-			if err, ok := err.(*pq.Error); ok {
-				if err.Code == "23505" {
-					storedNode, err := GetNodeByPublicKey(db, node.PublicKey)
-					return storedNode.NodeId, err
-				}
-			}
+		nodeId = cache.GetConnectedPeerNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
+	}
+	if nodeId == 0 {
+		var existingNodeId int
+		err := db.Get(&existingNodeId, `SELECT node_id FROM node WHERE public_key=$1 AND chain=$2 AND network=$3`,
+			node.PublicKey, node.Chain, node.Network)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
+		}
+		node.NodeId = existingNodeId
+		if existingNodeId == 0 {
+			node.CreatedOn = time.Now().UTC()
+			err = db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
+			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
+				node.PublicKey, node.Chain, node.Network, node.CreatedOn).Scan(&node.NodeId)
+			if err != nil {
+				if err, ok := err.(*pq.Error); ok {
+					if err.Code == "23505" {
+						storedNode, err := GetNodeByPublicKey(db, node.PublicKey)
+						return storedNode.NodeId, err
+					}
+				}
+				return 0, errors.Wrap(err, database.SqlExecutionError)
+			}
 		}
 
 		if peerConnectionHistory != nil {

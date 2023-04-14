@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -86,12 +87,39 @@ func SubscribeAndStoreChannelGraph(ctx context.Context,
 }
 
 func ImportNodeInfo(ctx context.Context,
-	client subscribeChannelGraphClient,
+	client lnrpc.LightningClient,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) error {
 
 	// Get all node public keys with channels
-	publicKeys := cache.GetAllChannelPublicKeys(nodeSettings.Chain, nodeSettings.Network)
+	publicKeys := cache.GetAllChannelPeerPublicKeys(nodeSettings.Chain, nodeSettings.Network)
+
+	peers, err := client.ListPeers(ctx, &lnrpc.ListPeersRequest{LatestError: true})
+	if err != nil {
+		log.Debug().Err(err).Msgf(
+			"Failed to obtain peers (node info import) for nodeId: %v", nodeSettings.NodeId)
+	}
+	if peers != nil {
+		for _, p := range peers.Peers {
+			if p != nil && !slices.Contains(publicKeys, p.PubKey) {
+				nodeId := cache.GetChannelPeerNodeIdByPublicKey(p.PubKey, nodeSettings.Chain, nodeSettings.Network)
+				if nodeId == 0 {
+					nodeId, err = nodes.AddNodeWhenNew(db, nodes.Node{
+						PublicKey: p.PubKey,
+						Chain:     nodeSettings.Chain,
+						Network:   nodeSettings.Network,
+					}, nil)
+					if err != nil {
+						log.Debug().Err(err).Msgf(
+							"Failed to create connected peer node (node info import) for nodeId: %v", nodeSettings.NodeId)
+						continue
+					}
+				}
+				cache.SetConnectedPeerNode(nodeId, p.PubKey, nodeSettings.Chain, nodeSettings.Network)
+				publicKeys = append(publicKeys, p.PubKey)
+			}
+		}
+	}
 
 	for _, publicKey := range publicKeys {
 		ni, err := client.GetNodeInfo(ctx, &lnrpc.NodeInfoRequest{PubKey: publicKey, IncludeChannels: false})
@@ -108,7 +136,7 @@ func ImportNodeInfo(ctx context.Context,
 			}
 		}
 		err = insertNodeEvent(db, time.Now().UTC(),
-			cache.GetNodeIdByPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
+			cache.GetChannelPeerNodeIdByPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
 			ni.Node.Alias, ni.Node.Color, ni.Node.Addresses, ni.Node.Features, nodeSettings.NodeId)
 		if err != nil {
 			return errors.Wrap(err, "Insert node event")
@@ -119,7 +147,10 @@ func ImportNodeInfo(ctx context.Context,
 
 func processNodeUpdates(nus []*lnrpc.NodeUpdate, db *sqlx.DB, nodeSettings cache.NodeSettingsCache) error {
 	for _, nu := range nus {
-		eventNodeId := cache.GetActiveNodeIdByPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := cache.GetActiveChannelPeerNodeIdByPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		if eventNodeId == 0 {
+			eventNodeId = cache.GetConnectedPeerNodeIdByPublicKey(nu.IdentityKey, nodeSettings.Chain, nodeSettings.Network)
+		}
 		if eventNodeId != 0 {
 			err := insertNodeEvent(db, time.Now().UTC(), eventNodeId, nu.Alias, nu.Color,
 				nu.NodeAddresses, nu.Features, nodeSettings.NodeId)
@@ -170,7 +201,7 @@ func insertRoutingPolicy(
 
 	announcingNodeId := 0
 	if cu.AdvertisingNode != "" {
-		announcingNodeId = cache.GetNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
+		announcingNodeId = cache.GetChannelPeerNodeIdByPublicKey(cu.AdvertisingNode, nodeSettings.Chain, nodeSettings.Network)
 		if announcingNodeId == 0 {
 			newNode := nodes.Node{
 				PublicKey: cu.AdvertisingNode,
@@ -180,7 +211,6 @@ func insertRoutingPolicy(
 			peerConnectionHistory := &nodes.NodeConnectionHistory{
 				TorqNodeId:       nodeSettings.NodeId,
 				ConnectionStatus: core.NodeConnectionStatusConnected,
-				Setting:          core.NodeConnectionSettingAlwaysReconnect,
 			}
 			announcingNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 			if err != nil {
@@ -190,7 +220,7 @@ func insertRoutingPolicy(
 	}
 	connectingNodeId := 0
 	if cu.ConnectingNode != "" {
-		connectingNodeId = cache.GetNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
+		connectingNodeId = cache.GetChannelPeerNodeIdByPublicKey(cu.ConnectingNode, nodeSettings.Chain, nodeSettings.Network)
 		if connectingNodeId == 0 {
 			newNode := nodes.Node{
 				PublicKey: cu.ConnectingNode,
@@ -200,7 +230,6 @@ func insertRoutingPolicy(
 			peerConnectionHistory := &nodes.NodeConnectionHistory{
 				TorqNodeId:       nodeSettings.NodeId,
 				ConnectionStatus: core.NodeConnectionStatusConnected,
-				Setting:          core.NodeConnectionSettingAlwaysReconnect,
 			}
 			connectingNodeId, err = nodes.AddNodeWhenNew(db, newNode, peerConnectionHistory)
 			if err != nil {

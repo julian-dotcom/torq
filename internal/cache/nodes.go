@@ -25,15 +25,17 @@ const (
 	readActiveTorqPublicKeys
 	readAllActiveTorqNodeIds
 	readAllActiveTorqNodeSettings
-	readActiveChannelNode
-	readChannelNode
-	writeActiveChannelNode
-	writeInactiveChannelNode
-	readAllChannelNodeIds
-	readAllChannelPublicKeys
-	readActiveChannelPublicKeys
+	readActiveChannelPeerNode
+	readChannelPeerNode
+	writeActiveChannelPeerNode
+	writeInactiveChannelPeerNode
+	readAllChannelPeerNodeIds
+	readAllChannelPeerPublicKeys
+	readActiveChannelPeerPublicKeys
 	readNodeSetting
 	removeNodeFromCached
+	readConnectedPeerNode
+	writeConnectedPeerNode
 )
 
 type NodeCache struct {
@@ -55,16 +57,19 @@ type NodeSettingsCache struct {
 	Chain     core.Chain
 	Network   core.Network
 	PublicKey string
-	Name      *string
-	Status    core.Status
+	// only populated when it's a node managed by Torq
+	Name *string
+	// only populated when there is a channel
+	ChannelStatus *core.Status
 }
 
 // NodesCacheHandler parameter Context is for test cases...
 func NodesCacheHandler(ch <-chan NodeCache, ctx context.Context) {
 	allTorqNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
 	activeTorqNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
-	channelNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
-	allChannelNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
+	channelPeerNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
+	allChannelPeerNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
+	connectedPeerNodeIdCache := make(map[core.Chain]map[core.Network]map[publicKey]nodeId)
 	nodeSettingsByNodeIdCache := make(map[nodeId]NodeSettingsCache)
 	torqNodeNameByNodeIdCache := make(map[nodeId]string)
 	for {
@@ -73,7 +78,7 @@ func NodesCacheHandler(ch <-chan NodeCache, ctx context.Context) {
 			return
 		case nodeCache := <-ch:
 			handleNodeOperation(nodeCache, allTorqNodeIdCache, activeTorqNodeIdCache,
-				channelNodeIdCache, allChannelNodeIdCache, nodeSettingsByNodeIdCache,
+				channelPeerNodeIdCache, allChannelPeerNodeIdCache, connectedPeerNodeIdCache, nodeSettingsByNodeIdCache,
 				torqNodeNameByNodeIdCache)
 		}
 	}
@@ -82,8 +87,9 @@ func NodesCacheHandler(ch <-chan NodeCache, ctx context.Context) {
 func handleNodeOperation(nodeCache NodeCache,
 	allTorqNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
 	activeTorqNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
-	channelNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
-	allChannelNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
+	channelPeerNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
+	allChannelPeerNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
+	connectedPeerNodeIdCache map[core.Chain]map[core.Network]map[publicKey]nodeId,
 	nodeSettingsByNodeIdCache map[nodeId]NodeSettingsCache,
 	torqNodeNameByNodeIdCache map[nodeId]string) {
 	switch nodeCache.Type {
@@ -105,21 +111,30 @@ func handleNodeOperation(nodeCache NodeCache,
 			setNameInNodeCache(nodeCache, torqNodeNameByNodeIdCache)
 		}
 		nodeCache.Out <- nodeCache
-	case readActiveChannelNode:
+	case readActiveChannelPeerNode:
 		if nodeCache.Chain == nil || nodeCache.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(channelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			nodeCache.NodeId = int(channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)])
+			initializeNodeIdCache(channelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			nodeCache.NodeId = int(channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)])
 			setNameInNodeCache(nodeCache, torqNodeNameByNodeIdCache)
 		}
 		nodeCache.Out <- nodeCache
-	case readChannelNode:
+	case readChannelPeerNode:
 		if nodeCache.Chain == nil || nodeCache.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			nodeCache.NodeId = int(allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)])
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			nodeCache.NodeId = int(allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)])
+			setNameInNodeCache(nodeCache, torqNodeNameByNodeIdCache)
+		}
+		nodeCache.Out <- nodeCache
+	case readConnectedPeerNode:
+		if nodeCache.Chain == nil || nodeCache.Network == nil {
+			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
+		} else {
+			initializeNodeIdCache(connectedPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			nodeCache.NodeId = int(connectedPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)])
 			setNameInNodeCache(nodeCache, torqNodeNameByNodeIdCache)
 		}
 		nodeCache.Out <- nodeCache
@@ -155,13 +170,13 @@ func handleNodeOperation(nodeCache NodeCache,
 			}
 		}
 		nodeCache.NodeIdsOut <- allNodeIds
-	case readAllChannelNodeIds:
+	case readAllChannelPeerNodeIds:
 		var allNodeIds []int
 		if nodeCache.Chain == nil || nodeCache.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			for _, value := range allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			for _, value := range allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
 				allNodeIds = append(allNodeIds, int(value))
 			}
 		}
@@ -231,24 +246,24 @@ func handleNodeOperation(nodeCache NodeCache,
 			}
 		}
 		nodeCache.NodeSettingsOut <- nodes
-	case readAllChannelPublicKeys:
+	case readAllChannelPeerPublicKeys:
 		var channelPublicKeys []string
 		if nodeCache.Chain == nil || nodeCache.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			for key := range allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			for key := range allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
 				channelPublicKeys = append(channelPublicKeys, string(key))
 			}
 		}
 		nodeCache.PublicKeysOut <- channelPublicKeys
-	case readActiveChannelPublicKeys:
+	case readActiveChannelPeerPublicKeys:
 		var channelPublicKeys []string
 		if nodeCache.Chain == nil || nodeCache.Network == nil {
 			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(channelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			for key := range channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
+			initializeNodeIdCache(channelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			for key := range channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
 				channelPublicKeys = append(channelPublicKeys, string(key))
 			}
 		}
@@ -272,10 +287,10 @@ func handleNodeOperation(nodeCache NodeCache,
 			delete(activeTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
 			initializeNodeIdCache(allTorqNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
 			allTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
-			initializeNodeIdCache(channelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			delete(channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			initializeNodeIdCache(channelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			delete(channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
 			nodeSettingsByNodeIdCache[nodeId(nodeCache.NodeId)] = NodeSettingsCache{
 				NodeId:    nodeCache.NodeId,
 				Network:   *nodeCache.Network,
@@ -294,10 +309,10 @@ func handleNodeOperation(nodeCache NodeCache,
 			activeTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
 			initializeNodeIdCache(allTorqNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
 			allTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
-			initializeNodeIdCache(channelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			initializeNodeIdCache(channelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
 			nodeSettingsByNodeIdCache[nodeId(nodeCache.NodeId)] = NodeSettingsCache{
 				NodeId:    nodeCache.NodeId,
 				Network:   *nodeCache.Network,
@@ -305,48 +320,66 @@ func handleNodeOperation(nodeCache NodeCache,
 				PublicKey: nodeCache.PublicKey,
 			}
 		}
-	case writeActiveChannelNode:
+	case writeActiveChannelPeerNode:
 		if nodeCache.PublicKey == "" || nodeCache.NodeId == 0 || nodeCache.Chain == nil ||
 			nodeCache.Network == nil {
 			log.Error().Msgf("No empty publicKey (%v), chain (%v), network (%v) or nodeId (%v) allowed",
 				nodeCache.PublicKey, nodeCache.NodeId, nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(channelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			initializeNodeIdCache(channelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			active := core.Active
 			nodeSettingsByNodeIdCache[nodeId(nodeCache.NodeId)] = NodeSettingsCache{
-				NodeId:    nodeCache.NodeId,
-				Network:   *nodeCache.Network,
-				Chain:     *nodeCache.Chain,
-				PublicKey: nodeCache.PublicKey,
-				Status:    core.Active,
+				NodeId:        nodeCache.NodeId,
+				Network:       *nodeCache.Network,
+				Chain:         *nodeCache.Chain,
+				PublicKey:     nodeCache.PublicKey,
+				ChannelStatus: &active,
 			}
 		}
-	case writeInactiveChannelNode:
+	case writeInactiveChannelPeerNode:
 		if nodeCache.PublicKey == "" || nodeCache.NodeId == 0 || nodeCache.Chain == nil ||
 			nodeCache.Network == nil {
 			log.Error().Msgf("No empty publicKey (%v), chain (%v), network (%v) or nodeId (%v) allowed",
 				nodeCache.PublicKey, nodeCache.NodeId, nodeCache.Chain, nodeCache.Network)
 		} else {
-			initializeNodeIdCache(channelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			delete(channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
-			initializeNodeIdCache(allChannelNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
-			allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			initializeNodeIdCache(channelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			delete(channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
+			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
+			inactive := core.Inactive
+			nodeSettingsByNodeIdCache[nodeId(nodeCache.NodeId)] = NodeSettingsCache{
+				NodeId:        nodeCache.NodeId,
+				Network:       *nodeCache.Network,
+				Chain:         *nodeCache.Chain,
+				PublicKey:     nodeCache.PublicKey,
+				ChannelStatus: &inactive,
+			}
+		}
+	case writeConnectedPeerNode:
+		if nodeCache.PublicKey == "" || nodeCache.NodeId == 0 || nodeCache.Chain == nil ||
+			nodeCache.Network == nil {
+			log.Error().Msgf("No empty publicKey (%v), chain (%v), network (%v) or nodeId (%v) allowed",
+				nodeCache.PublicKey, nodeCache.NodeId, nodeCache.Chain, nodeCache.Network)
+		} else {
+			initializeNodeIdCache(connectedPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			connectedPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network][publicKey(nodeCache.PublicKey)] = nodeId(nodeCache.NodeId)
 			nodeSettingsByNodeIdCache[nodeId(nodeCache.NodeId)] = NodeSettingsCache{
 				NodeId:    nodeCache.NodeId,
 				Network:   *nodeCache.Network,
 				Chain:     *nodeCache.Chain,
 				PublicKey: nodeCache.PublicKey,
-				Status:    core.Inactive,
 			}
 		}
 	case removeNodeFromCached:
-		delete(channelNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
+		delete(channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
 		delete(allTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
 		delete(nodeSettingsByNodeIdCache, nodeId(nodeCache.NodeId))
 		delete(activeTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
-		delete(allChannelNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
+		delete(allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
+		delete(connectedPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
 		delete(torqNodeNameByNodeIdCache, nodeId(nodeCache.NodeId))
 	}
 }
@@ -382,24 +415,24 @@ func initializeNodeIdCache(nodeIdCache map[core.Chain]map[core.Network]map[publi
 	}
 }
 
-func GetActiveChannelPublicKeys(chain core.Chain, network core.Network) []string {
+func GetActiveChannelPeerPublicKeys(chain core.Chain, network core.Network) []string {
 	publicKeysResponseChannel := make(chan []string)
 	nodeCache := NodeCache{
 		Chain:         &chain,
 		Network:       &network,
-		Type:          readActiveChannelPublicKeys,
+		Type:          readActiveChannelPeerPublicKeys,
 		PublicKeysOut: publicKeysResponseChannel,
 	}
 	NodesCacheChannel <- nodeCache
 	return <-publicKeysResponseChannel
 }
 
-func GetAllChannelPublicKeys(chain core.Chain, network core.Network) []string {
+func GetAllChannelPeerPublicKeys(chain core.Chain, network core.Network) []string {
 	publicKeysResponseChannel := make(chan []string)
 	nodeCache := NodeCache{
 		Chain:         &chain,
 		Network:       &network,
-		Type:          readAllChannelPublicKeys,
+		Type:          readAllChannelPeerPublicKeys,
 		PublicKeysOut: publicKeysResponseChannel,
 	}
 	NodesCacheChannel <- nodeCache
@@ -440,12 +473,12 @@ func GetAllTorqNodeIds() []int {
 	return <-nodeIdsResponseChannel
 }
 
-func GetChannelNodeIds(chain core.Chain, network core.Network) []int {
+func GetChannelPeerNodeIds(chain core.Chain, network core.Network) []int {
 	nodeIdsResponseChannel := make(chan []int)
 	nodeCache := NodeCache{
 		Chain:      &chain,
 		Network:    &network,
-		Type:       readAllChannelNodeIds,
+		Type:       readAllChannelPeerNodeIds,
 		NodeIdsOut: nodeIdsResponseChannel,
 	}
 	NodesCacheChannel <- nodeCache
@@ -499,13 +532,13 @@ func SetTorqNode(nodeId int, name string, status core.Status, publicKey string, 
 	}
 }
 
-func GetNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
+func GetChannelPeerNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
 	nodeResponseChannel := make(chan NodeCache)
 	nodeCache := NodeCache{
 		PublicKey: publicKey,
 		Chain:     &chain,
 		Network:   &network,
-		Type:      readChannelNode,
+		Type:      readChannelPeerNode,
 		Out:       nodeResponseChannel,
 	}
 	NodesCacheChannel <- nodeCache
@@ -513,13 +546,13 @@ func GetNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Netwo
 	return nodeResponse.NodeId
 }
 
-func GetActiveNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
+func GetActiveChannelPeerNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
 	nodeResponseChannel := make(chan NodeCache)
 	nodeCache := NodeCache{
 		PublicKey: publicKey,
 		Chain:     &chain,
 		Network:   &network,
-		Type:      readActiveChannelNode,
+		Type:      readActiveChannelPeerNode,
 		Out:       nodeResponseChannel,
 	}
 	NodesCacheChannel <- nodeCache
@@ -527,27 +560,51 @@ func GetActiveNodeIdByPublicKey(publicKey string, chain core.Chain, network core
 	return nodeResponse.NodeId
 }
 
-func SetChannelNode(nodeId int, publicKey string, chain core.Chain, network core.Network, status core.ChannelStatus) {
+func GetConnectedPeerNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
+	nodeResponseChannel := make(chan NodeCache)
+	nodeCache := NodeCache{
+		PublicKey: publicKey,
+		Chain:     &chain,
+		Network:   &network,
+		Type:      readConnectedPeerNode,
+		Out:       nodeResponseChannel,
+	}
+	NodesCacheChannel <- nodeCache
+	nodeResponse := <-nodeResponseChannel
+	return nodeResponse.NodeId
+}
+
+func SetChannelPeerNode(nodeId int, publicKey string, chain core.Chain, network core.Network, status core.ChannelStatus) {
 	if status < core.CooperativeClosed {
 		NodesCacheChannel <- NodeCache{
 			NodeId:    nodeId,
 			PublicKey: publicKey,
 			Chain:     &chain,
 			Network:   &network,
-			Type:      writeActiveChannelNode,
+			Type:      writeActiveChannelPeerNode,
 		}
 	} else {
-		SetInactiveChannelNode(nodeId, publicKey, chain, network)
+		SetInactiveChannelPeerNode(nodeId, publicKey, chain, network)
 	}
 }
 
-func SetInactiveChannelNode(nodeId int, publicKey string, chain core.Chain, network core.Network) {
+func SetInactiveChannelPeerNode(nodeId int, publicKey string, chain core.Chain, network core.Network) {
 	NodesCacheChannel <- NodeCache{
 		NodeId:    nodeId,
 		PublicKey: publicKey,
 		Chain:     &chain,
 		Network:   &network,
-		Type:      writeInactiveChannelNode,
+		Type:      writeInactiveChannelPeerNode,
+	}
+}
+
+func SetConnectedPeerNode(nodeId int, publicKey string, chain core.Chain, network core.Network) {
+	NodesCacheChannel <- NodeCache{
+		NodeId:    nodeId,
+		PublicKey: publicKey,
+		Chain:     &chain,
+		Network:   &network,
+		Type:      writeConnectedPeerNode,
 	}
 }
 

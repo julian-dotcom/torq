@@ -146,14 +146,54 @@ func Information(request InformationRequest) InformationResponse {
 	return InformationResponse{}
 }
 
-func Import(request ImportRequest) ImportResponse {
+func ImportAllChannels(request ImportAllChannelsRequest) ImportAllChannelsResponse {
 	responseChan := make(chan any)
 	process(context.Background(), 60, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(ImportResponse); ok {
+	if res, ok := response.(ImportAllChannelsResponse); ok {
 		return res
 	}
-	return ImportResponse{}
+	return ImportAllChannelsResponse{}
+}
+
+func ImportPendingChannels(request ImportPendingChannelsRequest) ImportPendingChannelsResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(ImportPendingChannelsResponse); ok {
+		return res
+	}
+	return ImportPendingChannelsResponse{}
+}
+
+func ImportChannelRoutingPolicies(request ImportChannelRoutingPoliciesRequest) ImportChannelRoutingPoliciesResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(ImportChannelRoutingPoliciesResponse); ok {
+		return res
+	}
+	return ImportChannelRoutingPoliciesResponse{}
+}
+
+func ImportNodeInformation(request ImportNodeInformationRequest) ImportNodeInformationResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(ImportNodeInformationResponse); ok {
+		return res
+	}
+	return ImportNodeInformationResponse{}
+}
+
+func ImportPeerStatus(request ImportPeerStatusRequest) ImportPeerStatusResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 60, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(ImportPeerStatusResponse); ok {
+		return res
+	}
+	return ImportPeerStatusResponse{}
 }
 
 func ConnectPeer(request ConnectPeerRequest) ConnectPeerResponse {
@@ -223,8 +263,20 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 	case InformationRequest:
 		responseChan <- processGetInfoRequest(ctx, r)
 		return
-	case ImportRequest:
-		responseChan <- processImportRequest(ctx, r)
+	case ImportAllChannelsRequest:
+		responseChan <- processImportAllChannelsRequest(ctx, r)
+		return
+	case ImportPendingChannelsRequest:
+		responseChan <- processImportPendingChannelsRequest(ctx, r)
+		return
+	case ImportChannelRoutingPoliciesRequest:
+		responseChan <- processImportChannelRoutingPoliciesRequest(ctx, r)
+		return
+	case ImportNodeInformationRequest:
+		responseChan <- processImportNodeInformationRequest(ctx, r)
+		return
+	case ImportPeerStatusRequest:
+		responseChan <- processImportPeerStatusRequest(ctx, r)
 		return
 	case ConnectPeerRequest:
 		responseChan <- processConnectPeerRequest(ctx, r)
@@ -377,9 +429,53 @@ type ImportRequest struct {
 }
 
 type ImportResponse struct {
-	Request ImportRequest
 	CommunicationResponse
 	Error error
+}
+
+type ImportAllChannelsRequest struct {
+	ImportRequest
+}
+
+type ImportAllChannelsResponse struct {
+	Request ImportAllChannelsRequest
+	ImportResponse
+}
+
+type ImportPendingChannelsRequest struct {
+	ImportRequest
+}
+
+type ImportPendingChannelsResponse struct {
+	Request ImportPendingChannelsRequest
+	ImportResponse
+}
+
+type ImportChannelRoutingPoliciesRequest struct {
+	ImportRequest
+}
+
+type ImportChannelRoutingPoliciesResponse struct {
+	Request ImportChannelRoutingPoliciesRequest
+	ImportResponse
+}
+
+type ImportNodeInformationRequest struct {
+	ImportRequest
+}
+
+type ImportNodeInformationResponse struct {
+	Request ImportNodeInformationRequest
+	ImportResponse
+}
+
+type ImportPeerStatusRequest struct {
+	ImportRequest
+}
+
+type ImportPeerStatusResponse struct {
+	Request ImportPeerStatusRequest
+	ImportResponse
 }
 
 type ConnectPeerRequest struct {
@@ -612,27 +708,22 @@ func getPeerByPublicKey(ctx context.Context, client lnrpc.LightningClient, publi
 	return peer, nil
 }
 
-func processImportAllChannelsRequest(ctx context.Context, request ImportRequest) ImportResponse {
+func processImportAllChannelsRequest(ctx context.Context, request ImportAllChannelsRequest) ImportAllChannelsResponse {
+	importType := core.ImportAllChannels
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
-	response := ImportResponse{
-		CommunicationResponse: CommunicationResponse{
-			Status: Inactive,
-		},
+	response := ImportAllChannelsResponse{
 		Request: request,
+		ImportResponse: ImportResponse{
+			CommunicationResponse: CommunicationResponse{
+				Status: Inactive,
+			},
+		},
 	}
-	// TODO FIXME For now there is no concurrency enabled for lightning communication
-	// When concurrency is enabled this need to be revisited
-	successTimes := cache.GetSuccessTimes(request.NodeId)
-	if !request.Force {
-		successTime, exists := cache.GetSuccessTimes(request.NodeId)[core.ImportAllChannels]
-		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-			log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
-			return response
-		}
-	}
-	if request.Force {
-		log.Info().Msgf("Forced import of All Channels for nodeId: %v.", request.NodeId)
+
+	successTimes, skip := getSuccessTimes(request.NodeId, request.Force, importType)
+	if skip {
+		return response
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -643,7 +734,7 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportRequest)
 	}
 
 	//Import Pending channels
-	err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
+	err = ImportPendingChannelsFromLnd(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import pending channels.")
 		response.Error = err
@@ -672,34 +763,30 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportRequest)
 		response.Error = err
 		return response
 	}
-	log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	successTimes[core.ImportAllChannels] = time.Now()
-	cache.SetSuccessTimes(request.NodeId, successTimes)
+
+	setSuccessTime(request.NodeId, successTimes, importType)
 	response.Status = Active
 	return response
 }
 
-func processImportPendingChannelsOnlyRequest(ctx context.Context, request ImportRequest) ImportResponse {
+func processImportPendingChannelsRequest(ctx context.Context,
+	request ImportPendingChannelsRequest) ImportPendingChannelsResponse {
+
+	importType := core.ImportPendingChannels
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
-	response := ImportResponse{
-		CommunicationResponse: CommunicationResponse{
-			Status: Inactive,
-		},
+	response := ImportPendingChannelsResponse{
 		Request: request,
+		ImportResponse: ImportResponse{
+			CommunicationResponse: CommunicationResponse{
+				Status: Inactive,
+			},
+		},
 	}
-	// TODO FIXME For now there is no concurrency enabled for lightning communication
-	// When concurrency is enabled this need to be revisited
-	successTimes := cache.GetSuccessTimes(request.NodeId)
-	if !request.Force {
-		successTime, exists := cache.GetSuccessTimes(request.NodeId)[core.ImportPendingChannelsOnly]
-		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-			log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
-			return response
-		}
-	}
-	if request.Force {
-		log.Info().Msgf("Forced import of Pending Channels for nodeId: %v.", request.NodeId)
+
+	successTimes, skip := getSuccessTimes(request.NodeId, request.Force, importType)
+	if skip {
+		return response
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -709,7 +796,7 @@ func processImportPendingChannelsOnlyRequest(ctx context.Context, request Import
 		return response
 	}
 
-	err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
+	err = ImportPendingChannelsFromLnd(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import pending channels.")
 		response.Error = err
@@ -722,35 +809,30 @@ func processImportPendingChannelsOnlyRequest(ctx context.Context, request Import
 		response.Error = err
 		return response
 	}
-	log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
 
-	successTimes[core.ImportPendingChannelsOnly] = time.Now()
-	cache.SetSuccessTimes(request.NodeId, successTimes)
+	setSuccessTime(request.NodeId, successTimes, importType)
 	response.Status = Active
 	return response
 }
 
-func processImportChannelRoutingPoliciesRequest(ctx context.Context, request ImportRequest) ImportResponse {
+func processImportChannelRoutingPoliciesRequest(ctx context.Context,
+	request ImportChannelRoutingPoliciesRequest) ImportChannelRoutingPoliciesResponse {
+
+	importType := core.ImportChannelRoutingPolicies
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
-	response := ImportResponse{
-		CommunicationResponse: CommunicationResponse{
-			Status: Inactive,
-		},
+	response := ImportChannelRoutingPoliciesResponse{
 		Request: request,
+		ImportResponse: ImportResponse{
+			CommunicationResponse: CommunicationResponse{
+				Status: Inactive,
+			},
+		},
 	}
-	// TODO FIXME For now there is no concurrency enabled for lightning communication
-	// When concurrency is enabled this need to be revisited
-	successTimes := cache.GetSuccessTimes(request.NodeId)
-	if !request.Force {
-		successTime, exists := cache.GetSuccessTimes(request.NodeId)[core.ImportChannelRoutingPolicies]
-		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-			log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
-			return response
-		}
-	}
-	if request.Force {
-		log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
+
+	successTimes, skip := getSuccessTimes(request.NodeId, request.Force, importType)
+	if skip {
+		return response
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -766,56 +848,29 @@ func processImportChannelRoutingPoliciesRequest(ctx context.Context, request Imp
 		response.Error = err
 		return response
 	}
-	log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	successTimes[core.ImportChannelRoutingPolicies] = time.Now()
-	cache.SetSuccessTimes(request.NodeId, successTimes)
+	setSuccessTime(request.NodeId, successTimes, importType)
 	response.Status = Active
 	return response
 }
 
-func processImportRequest(ctx context.Context, request ImportRequest) ImportResponse {
+func processImportNodeInformationRequest(ctx context.Context,
+	request ImportNodeInformationRequest) ImportNodeInformationResponse {
+
+	importType := core.ImportNodeInformation
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
-	response := ImportResponse{
-		CommunicationResponse: CommunicationResponse{
-			Status: Inactive,
-		},
+	response := ImportNodeInformationResponse{
 		Request: request,
+		ImportResponse: ImportResponse{
+			CommunicationResponse: CommunicationResponse{
+				Status: Inactive,
+			},
+		},
 	}
-	// TODO FIXME For now there is no concurrency enabled for lightning communication
-	// When concurrency is enabled this need to be revisited
-	successTimes := cache.GetSuccessTimes(request.NodeId)
-	if !request.Force {
-		successTime, exists := cache.GetSuccessTimes(request.NodeId)[request.ImportType]
-		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-			switch request.ImportType {
-			case core.ImportAllChannels:
-				log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportPendingChannelsOnly:
-				log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportChannelRoutingPolicies:
-				log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportNodeInformation:
-				log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportPeerStatus:
-				log.Info().Msgf("PeerStatus were imported very recently for nodeId: %v.", request.NodeId)
-			}
-			return response
-		}
-	}
-	if request.Force {
-		switch request.ImportType {
-		case core.ImportAllChannels:
-			log.Info().Msgf("Forced import of All Channels for nodeId: %v.", request.NodeId)
-		case core.ImportPendingChannelsOnly:
-			log.Info().Msgf("Forced import of Pending Channels for nodeId: %v.", request.NodeId)
-		case core.ImportChannelRoutingPolicies:
-			log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
-		case core.ImportNodeInformation:
-			log.Info().Msgf("Forced import of NodeInformation for nodeId: %v.", request.NodeId)
-		case core.ImportPeerStatus:
-			log.Info().Msgf("Forced import of PeerStatus for nodeId: %v.", request.NodeId)
-		}
+
+	successTimes, skip := getSuccessTimes(request.NodeId, request.Force, importType)
+	if skip {
+		return response
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -825,128 +880,33 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		return response
 	}
 
-	switch request.ImportType {
-	case core.ImportAllChannels:
-		//Import Pending channels
-		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import pending channels.")
-			response.Error = err
-			return response
-		}
-
-		//Import Open channels
-		err = ImportOpenChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import open channels.")
-			response.Error = err
-			return response
-		}
-
-		// Import Closed channels
-		err = ImportClosedChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import closed channels.")
-			response.Error = err
-			return response
-		}
-
-		err = settings.InitializeChannelsCache(request.Db)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to Initialize ChannelsCacheHandler.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportPendingChannelsOnly:
-		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import pending channels.")
-			response.Error = err
-			return response
-		}
-
-		err = settings.InitializeChannelsCache(request.Db)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to Initialize ChannelsCacheHandler.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportChannelRoutingPolicies:
-		err = ImportRoutingPolicies(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import routing policies.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportNodeInformation:
-		err := ImportNodeInfo(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import node information.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportPeerStatus:
-		err := ImportPeerStatus(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import peer status.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("PeerStatus was imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	err = ImportNodeInfo(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to import node information.")
+		response.Error = err
+		return response
 	}
-	successTimes[request.ImportType] = time.Now()
-	cache.SetSuccessTimes(request.NodeId, successTimes)
+	setSuccessTime(request.NodeId, successTimes, importType)
 	response.Status = Active
 	return response
 }
 
-func processImportRequest(ctx context.Context, request ImportRequest) ImportResponse {
+func processImportPeerStatusRequest(ctx context.Context, request ImportPeerStatusRequest) ImportPeerStatusResponse {
+	importType := core.ImportPeerStatus
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
-	response := ImportResponse{
-		CommunicationResponse: CommunicationResponse{
-			Status: Inactive,
-		},
+	response := ImportPeerStatusResponse{
 		Request: request,
+		ImportResponse: ImportResponse{
+			CommunicationResponse: CommunicationResponse{
+				Status: Inactive,
+			},
+		},
 	}
-	// TODO FIXME For now there is no concurrency enabled for lightning communication
-	// When concurrency is enabled this need to be revisited
-	successTimes := cache.GetSuccessTimes(request.NodeId)
-	if !request.Force {
-		successTime, exists := cache.GetSuccessTimes(request.NodeId)[request.ImportType]
-		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
-			switch request.ImportType {
-			case core.ImportAllChannels:
-				log.Info().Msgf("All Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportPendingChannelsOnly:
-				log.Info().Msgf("Pending Channels were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportChannelRoutingPolicies:
-				log.Info().Msgf("ChannelRoutingPolicies were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportNodeInformation:
-				log.Info().Msgf("NodeInformation were imported very recently for nodeId: %v.", request.NodeId)
-			case core.ImportPeerStatus:
-				log.Info().Msgf("PeerStatus were imported very recently for nodeId: %v.", request.NodeId)
-			}
-			return response
-		}
-	}
-	if request.Force {
-		switch request.ImportType {
-		case core.ImportAllChannels:
-			log.Info().Msgf("Forced import of All Channels for nodeId: %v.", request.NodeId)
-		case core.ImportPendingChannelsOnly:
-			log.Info().Msgf("Forced import of Pending Channels for nodeId: %v.", request.NodeId)
-		case core.ImportChannelRoutingPolicies:
-			log.Info().Msgf("Forced import of ChannelRoutingPolicies for nodeId: %v.", request.NodeId)
-		case core.ImportNodeInformation:
-			log.Info().Msgf("Forced import of NodeInformation for nodeId: %v.", request.NodeId)
-		case core.ImportPeerStatus:
-			log.Info().Msgf("Forced import of PeerStatus for nodeId: %v.", request.NodeId)
-		}
+
+	successTimes, skip := getSuccessTimes(request.NodeId, request.Force, importType)
+	if skip {
+		return response
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -956,83 +916,38 @@ func processImportRequest(ctx context.Context, request ImportRequest) ImportResp
 		return response
 	}
 
-	switch request.ImportType {
-	case core.ImportAllChannels:
-		//Import Pending channels
-		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import pending channels.")
-			response.Error = err
-			return response
-		}
-
-		//Import Open channels
-		err = ImportOpenChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import open channels.")
-			response.Error = err
-			return response
-		}
-
-		// Import Closed channels
-		err = ImportClosedChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import closed channels.")
-			response.Error = err
-			return response
-		}
-
-		err = settings.InitializeChannelsCache(request.Db)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to Initialize ChannelsCacheHandler.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("All Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportPendingChannelsOnly:
-		err = ImportPendingChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import pending channels.")
-			response.Error = err
-			return response
-		}
-
-		err = settings.InitializeChannelsCache(request.Db)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to Initialize ChannelsCacheHandler.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("Pending Channels were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportChannelRoutingPolicies:
-		err = ImportRoutingPolicies(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import routing policies.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("ChannelRoutingPolicies were imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportNodeInformation:
-		err := ImportNodeInfo(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import node information.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("NodeInformation was imported successfully for nodeId: %v.", nodeSettings.NodeId)
-	case core.ImportPeerStatus:
-		err := ImportPeerStatus(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to import peer status.")
-			response.Error = err
-			return response
-		}
-		log.Info().Msgf("PeerStatus was imported successfully for nodeId: %v.", nodeSettings.NodeId)
+	err = ImportPeerStatusFromLnd(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to import peer status.")
+		response.Error = err
+		return response
 	}
-	successTimes[request.ImportType] = time.Now()
-	cache.SetSuccessTimes(request.NodeId, successTimes)
+	setSuccessTime(request.NodeId, successTimes, importType)
 	response.Status = Active
 	return response
+}
+
+func getSuccessTimes(nodeId int, force bool, importType core.ImportType) (map[core.ImportType]time.Time, bool) {
+	// TODO FIXME For now there is no concurrency enabled for lightning communication
+	// When concurrency is enabled this need to be revisited
+	successTimes := cache.GetSuccessTimes(nodeId)
+	if !force {
+		successTime, exists := cache.GetSuccessTimes(nodeId)[importType]
+		if exists && time.Since(successTime).Seconds() < avoidChannelAndPolicyImportRerunTimeSeconds {
+			log.Info().Msgf("%v were imported very recently for nodeId: %v.", importType.String(), nodeId)
+			return nil, true
+		}
+	}
+	if force {
+		log.Info().Msgf("Forced import of %v for nodeId: %v.", importType.String(), nodeId)
+	}
+	return successTimes, false
+}
+
+func setSuccessTime(nodeId int, successTimes map[core.ImportType]time.Time, importType core.ImportType) {
+	log.Info().Msgf("%v was imported successfully for nodeId: %v.", importType.String(), nodeId)
+	successTimes[importType] = time.Now()
+	cache.SetSuccessTimes(nodeId, successTimes)
 }
 
 func processSignMessageRequest(ctx context.Context, request SignMessageRequest) SignMessageResponse {
