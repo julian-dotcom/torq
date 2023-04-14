@@ -7,9 +7,11 @@ services:
       - "db"
     command:
       - --config
-      - "<Path>"
+      - "/home/torq/torq.conf"
       - start
     network_mode: "host"
+    volumes:
+      - <Path>:/home/torq/torq.conf
   db:
     restart: always
     image: "timescale/timescaledb:latest-pg14"

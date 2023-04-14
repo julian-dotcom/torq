@@ -7,10 +7,12 @@ services:
       - "db"
     command:
       - --config
-      - "<Path>"
+      - "/home/torq/torq.conf"
       - start
     ports:
       - "<YourPort>:<YourPort>"
+    volumes:
+      - <Path>:/home/torq/torq.conf
   db:
     restart: always
     image: "timescale/timescaledb:latest-pg14"
