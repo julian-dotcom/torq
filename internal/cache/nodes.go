@@ -35,6 +35,7 @@ const (
 	readNodeSetting
 	removeNodeFromCached
 	readConnectedPeerNode
+	readAllConnectedPeerNodeIds
 	writeConnectedPeerNode
 )
 
@@ -177,6 +178,17 @@ func handleNodeOperation(nodeCache NodeCache,
 		} else {
 			initializeNodeIdCache(allChannelPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
 			for _, value := range allChannelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
+				allNodeIds = append(allNodeIds, int(value))
+			}
+		}
+		nodeCache.NodeIdsOut <- allNodeIds
+	case readAllConnectedPeerNodeIds:
+		var allNodeIds []int
+		if nodeCache.Chain == nil || nodeCache.Network == nil {
+			log.Error().Msgf("No empty Chain (%v) or Network (%v) allowed", nodeCache.Chain, nodeCache.Network)
+		} else {
+			initializeNodeIdCache(connectedPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			for _, value := range connectedPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network] {
 				allNodeIds = append(allNodeIds, int(value))
 			}
 		}
@@ -479,6 +491,18 @@ func GetChannelPeerNodeIds(chain core.Chain, network core.Network) []int {
 		Chain:      &chain,
 		Network:    &network,
 		Type:       readAllChannelPeerNodeIds,
+		NodeIdsOut: nodeIdsResponseChannel,
+	}
+	NodesCacheChannel <- nodeCache
+	return <-nodeIdsResponseChannel
+}
+
+func GetConnectedPeerNodeIds(chain core.Chain, network core.Network) []int {
+	nodeIdsResponseChannel := make(chan []int)
+	nodeCache := NodeCache{
+		Chain:      &chain,
+		Network:    &network,
+		Type:       readAllConnectedPeerNodeIds,
 		NodeIdsOut: nodeIdsResponseChannel,
 	}
 	NodesCacheChannel <- nodeCache
