@@ -245,7 +245,7 @@ func verifyChannelCapacityMismatch(channelStateSettings cache.ChannelStateSettin
 	if tolerance < remoteTolerance {
 		tolerance = remoteTolerance
 	}
-	if channelSettings.Capacity-(channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance) > int64(tolerance) {
+	if core.Abs(channelSettings.Capacity-(channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance)) > int64(tolerance) {
 		log.Error().Msgf("ChannelBalanceCacheMaintenance: Capacity (%v) - ( RemoteBalance (%v) + LocalBalance (%v) ) > %v for channelId: %v",
 			channelSettings.Capacity, channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance,
 			tolerance, channelId)
