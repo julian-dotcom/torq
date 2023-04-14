@@ -216,6 +216,13 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
+	nodeStartDate, err := getNodeStartDateFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
+	if err != nil {
+		server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get node start date from LND Node"), "LNDConnect", nil)
+		return
+	}
+	ncd.NodeStartDate = nodeStartDate
+
 	nodeId := cache.GetPeerNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		nodeId, err = AddNodeWhenNew(db, publicKey, chain, network)
@@ -375,6 +382,17 @@ func setNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		if !canSignMessages {
 			ncd.PingSystem = 0
 		}
+
+	}
+
+	// Get node start date from lnd if user didn't give it manually
+	if ncd.NodeStartDate == nil {
+		nodeStartDate, err := getNodeStartDateFromLndNode(*ncd.GRPCAddress, ncd.TLSDataBytes, ncd.MacaroonDataBytes)
+		if err != nil {
+			server_errors.LogAndSendServerErrorCode(c, errors.Wrap(err, "Get node start date from LND Node"), "LNDConnect", nil)
+			return
+		}
+		ncd.NodeStartDate = nodeStartDate
 	}
 
 	nodeSettings := cache.GetNodeSettingsByNodeId(ncd.NodeId)
@@ -436,6 +454,18 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 		return NodeConnectionDetails{}, errors.New("Failed to parse customSettings in the request.")
 	}
 	ncd.CustomSettings = core.NodeConnectionDetailCustomSettings(customSettings)
+
+	nodeStartDateInput := c.Request.Form.Get("nodeStartDate")
+	if nodeStartDateInput != "" {
+		nodeStartDate, err := time.Parse(time.DateOnly, nodeStartDateInput)
+		if err != nil {
+			return NodeConnectionDetails{}, errors.New("Failed to parse nodeStartDate in the request.")
+		}
+		ncd.NodeStartDate = &nodeStartDate
+	} else {
+		ncd.NodeStartDate = nil
+	}
+
 	return ncd, nil
 }
 
@@ -809,4 +839,38 @@ func processMacaroon(ncd NodeConnectionDetails) (NodeConnectionDetails, error) {
 		ncd.MacaroonDataBytes = macaroonData
 	}
 	return ncd, nil
+}
+
+func getNodeStartDateFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile []byte) (*time.Time, error) {
+	conn, err := lnd_connect.Connect(grpcAddress, tlsCert, macaroonFile)
+	if err != nil {
+		return nil, errors.Wrap(err,
+			"Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to close gRPC connection.")
+		}
+	}(conn)
+
+	client := lnrpc.NewLightningClient(conn)
+	ctx := context.Background()
+
+	onChainTxDetails, err := client.GetTransactions(ctx, &lnrpc.GetTransactionsRequest{})
+
+	if err != nil {
+		return nil, errors.Wrap(err,
+			"Failed to get transactions from node.")
+	}
+
+	if len(onChainTxDetails.Transactions) == 0 {
+		return nil, nil
+	}
+
+	// Chronologically first tx is the last one returned in the array
+	firstTx := onChainTxDetails.Transactions[len(onChainTxDetails.Transactions)-1]
+	nodeStartTime := time.Unix(firstTx.TimeStamp, 0)
+
+	return &nodeStartTime, nil
 }

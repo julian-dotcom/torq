@@ -170,6 +170,7 @@
   "nodeName": "Node Name",
   "grpcAddress": "GRPC Address (IP or Tor)",
   "tlsCertificate": "TLS Certificate",
+  "nodeStartDate": "Starting date of the node (leave empty to get automatically)",
   "macaroon": "Macaroon",
   "summary": "Summary",
   "forwards": "Forwards",
@@ -440,12 +441,12 @@
       "closing": "Closing"
     }
   },
-  "summaryNode" : {
-    "online" : "Online",
-    "offline" : "Disabled"
+  "summaryNode": {
+    "online": "Online",
+    "offline": "Disabled"
   },
-  "peers" : "Peers",
-  "peerNode" : "Peer Node",
+  "peers": "Peers",
+  "peerNode": "Peer Node",
   "peersPage": {
     "connect": "Connect",
     "disconnect": "Disconnect",

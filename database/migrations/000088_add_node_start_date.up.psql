@@ -1,0 +1,9 @@
+ALTER TABLE node_connection_details
+ADD COLUMN node_start_date TIMESTAMPTZ;
+
+-- Populate the added value for existing nodes
+UPDATE node_connection_details
+SET node_start_date = (SELECT tx.timestamp
+    FROM tx
+    WHERE tx.node_id = node_connection_details.node_id
+    ORDER BY block_height ASC LIMIT 1)

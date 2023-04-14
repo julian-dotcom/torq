@@ -38,6 +38,7 @@ import Form from "components/forms/form/Form";
 import Note, { NoteType } from "features/note/Note";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { FormErrors, mergeServerError } from "components/errors/errors";
+import { format } from "date-fns";
 import { torqApi } from "apiSlice";
 import { useAppDispatch } from "store/hooks";
 
@@ -61,6 +62,7 @@ const nodeConfigurationTemplate = {
   status: 0,
   pingSystem: 0,
   customSettings: 0,
+  nodeStartDate: undefined,
 };
 
 const importFailedPayments = "importFailedPayments";
@@ -151,6 +153,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       pingSystem: 0,
       name: "",
       customSettings: 0,
+      nodeStartDate: undefined
     } as nodeConfiguration);
   };
 
@@ -200,6 +203,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
     if (nodeConfigurationState.macaroonFile) {
       form.append("macaroonFile", nodeConfigurationState.macaroonFile, nodeConfigurationState.macaroonFileName);
+    }
+    if (nodeConfigurationState.nodeStartDate) {
+      form.append("nodeStartDate", "" + formatDate(nodeConfigurationState.nodeStartDate));
     }
     // we are adding new node
     if (!nodeConfigurationState.nodeId || nodeConfigurationState.nodeId == 0) {
@@ -411,6 +417,16 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     }
   };
 
+  const handleNodeStartDateChange = (value: string) => {
+    // use Date.parse to get utc date
+    const date = new Date(Date.parse(value));
+    if (!Number.isNaN(date.valueOf()) && date.valueOf() !== 0) {
+      setNodeConfigurationState({ ...nodeConfigurationState, nodeStartDate: date });
+    } else {
+      setNodeConfigurationState({ ...nodeConfigurationState, nodeStartDate: undefined });
+    }
+  }
+
   const toggleCustomSettingsStateNow = (key: string) => {
     setCustomSettingsSaveEnabledState(true);
     const data = customSettingsSidebarData.get(key);
@@ -428,6 +444,14 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       }
     }
   };
+
+  const formatDate = (date: Date | undefined) => {
+    if (date != undefined && !Number.isNaN(date.valueOf()) && date.valueOf() !== 0) {
+      return format(new Date(date.valueOf()), "yyyy-MM-dd");
+    }
+    return "";
+  }
+
 
   const implementationOptions: Array<SelectOption> = [{ value: "0", label: "LND" }];
 
@@ -529,6 +553,15 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   fileName={nodeConfigurationState?.macaroonFileName}
                 />
               </span>
+              <span id="nodeStartDate">
+                <Input
+                  label={t.nodeStartDate}
+                  value={formatDate(nodeConfigurationState.nodeStartDate)}
+                  max={formatDate(new Date())}
+                  type={"date"}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNodeStartDateChange(e.target.value)}
+                />
+              </span>
               {addMode && (
                 <div className={styles.customImportSettings}>
                   <div
@@ -592,10 +625,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 {addMode
                   ? "Add Node"
                   : nodeConfigurationState.status == 1
-                  ? "Disable node to update"
-                  : saveEnabledState
-                  ? "Save node details"
-                  : "Saving..."}
+                    ? "Disable node to update"
+                    : saveEnabledState
+                      ? "Save node details"
+                      : "Saving..."}
               </Button>
               {!addMode && (
                 <div className={styles.toggleSettings}>

@@ -28,6 +28,7 @@ type NodeConnectionDetails struct {
 	CustomSettings    core.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
 	CreateOn          time.Time                               `json:"createdOn" db:"created_on"`
 	UpdatedOn         *time.Time                              `json:"updatedOn"  db:"updated_on"`
+	NodeStartDate     *time.Time                              `json:"nodeStartDate"  db:"node_start_date"`
 }
 
 func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
@@ -70,6 +71,11 @@ func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 		return ncd, nil
 	}
 
+	nodeStartDate, err := getNodeStartDateFromLndNode(grpcAddress, tlsDataBytes, macaroonDataBytes)
+	if err != nil {
+		return NodeConnectionDetails{}, errors.Wrap(err, "Getting node start date from lnd node")
+	}
+
 	nodeConnectionDetailsData := NodeConnectionDetails{
 		NodeId:            nodeId,
 		Name:              fmt.Sprintf("Node_%v", nodeId),
@@ -79,6 +85,7 @@ func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 		TLSDataBytes:      tlsDataBytes,
 		MacaroonDataBytes: macaroonDataBytes,
 		CreateOn:          time.Now().UTC(),
+		NodeStartDate:     nodeStartDate,
 	}
 	ncd, err := addNodeConnectionDetails(db, nodeConnectionDetailsData)
 	if err != nil {

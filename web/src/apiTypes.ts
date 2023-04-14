@@ -36,6 +36,7 @@ export interface nodeConfiguration {
   status: number;
   pingSystem: number;
   customSettings: number;
+  nodeStartDate?: Date;
 }
 
 export interface stringMap<T> {
