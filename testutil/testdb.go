@@ -251,9 +251,9 @@ func addNode(db *sqlx.DB, testPublicKey string, cancel context.CancelFunc) (int,
 
 func addNodeConnectionDetails(db *sqlx.DB, testNodeId int, cancel context.CancelFunc) error {
 	_, err := db.Exec(`INSERT INTO node_connection_details
-			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
-		testNodeId, fmt.Sprintf("Node_%v", testNodeId), core.LND, core.Active, 0, 0, time.Now().UTC(), time.Now().UTC())
+			(node_id, name, implementation, status_id, ping_system, custom_settings, created_on, updated_on, node_start_date)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+		testNodeId, fmt.Sprintf("Node_%v", testNodeId), core.LND, core.Active, 0, 0, time.Now().UTC(), time.Now().UTC(), nil)
 	if err != nil {
 		cancel()
 		return errors.Wrapf(err, "Inserting default node_connection_details for testing with nodeId: %v", testNodeId)
