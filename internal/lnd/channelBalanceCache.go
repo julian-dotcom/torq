@@ -222,17 +222,11 @@ func verifyChannelCapacityMismatch(channelStateSettings cache.ChannelStateSettin
 	lndChannel *lnrpc.Channel) (cache.ChannelStateSettingsCache, error) {
 
 	channelSettings := cache.GetChannelSettingByChannelId(channelId)
-	if channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance > channelSettings.Capacity {
-		log.Error().Msgf("ChannelBalanceCacheMaintenance: RemoteBalance (%v) + LocalBalance (%v) > Capacity (%v) for channelId: %v",
-			channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance, channelSettings.Capacity,
-			channelId)
-		marshalledLndChannel, err := json.Marshal(lndChannel)
-		if err != nil {
-			log.Error().Err(err).Msgf("ChannelBalanceCacheMaintenance: failed to marshal lnrpc data: %v", lndChannel)
-		}
-		if err == nil {
-			log.Error().Msgf("ChannelBalanceCacheMaintenance: lnrpc channel data: %v", string(marshalledLndChannel))
-		}
+
+	if channelStateSettings.RemoteBalance < 0 {
+		log.Error().Msgf("ChannelBalanceCacheMaintenance: RemoteBalance (%v) < 0 for channelId: %v",
+			channelStateSettings.RemoteBalance, channelId)
+		logLndChannelDebugData(lndChannel)
 		existingSettings := cache.GetChannelState(nodeId, channelId, true)
 		if existingSettings == nil {
 			return cache.ChannelStateSettingsCache{},
@@ -240,22 +234,43 @@ func verifyChannelCapacityMismatch(channelStateSettings cache.ChannelStateSettin
 		}
 		return *existingSettings, nil
 	}
+
+	if channelStateSettings.LocalBalance < 0 {
+		log.Error().Msgf("ChannelBalanceCacheMaintenance: LocalBalance (%v) < 0 for channelId: %v",
+			channelStateSettings.LocalBalance, channelId)
+		logLndChannelDebugData(lndChannel)
+		existingSettings := cache.GetChannelState(nodeId, channelId, true)
+		if existingSettings == nil {
+			return cache.ChannelStateSettingsCache{},
+				errors.New(fmt.Sprintf("Capacity mismatch found and no fallback available for nodeId: %v", nodeId))
+		}
+		return *existingSettings, nil
+	}
+	localPlusRemote := channelStateSettings.RemoteBalance + channelStateSettings.LocalBalance
+	if localPlusRemote > channelSettings.Capacity {
+		log.Error().Msgf("ChannelBalanceCacheMaintenance: RemoteBalance (%v) + LocalBalance (%v) > Capacity (%v) for channelId: %v",
+			channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance, channelSettings.Capacity,
+			channelId)
+		logLndChannelDebugData(lndChannel)
+		existingSettings := cache.GetChannelState(nodeId, channelId, true)
+		if existingSettings == nil {
+			return cache.ChannelStateSettingsCache{},
+				errors.New(fmt.Sprintf("Capacity mismatch found and no fallback available for nodeId: %v", nodeId))
+		}
+		return *existingSettings, nil
+	}
+
 	tolerance := lndChannel.GetLocalConstraints().ChanReserveSat + lndChannel.GetLocalConstraints().DustLimitSat
 	remoteTolerance := lndChannel.GetRemoteConstraints().ChanReserveSat + lndChannel.GetRemoteConstraints().DustLimitSat
 	if tolerance < remoteTolerance {
 		tolerance = remoteTolerance
 	}
-	if core.Abs(channelSettings.Capacity-(channelStateSettings.RemoteBalance+channelStateSettings.LocalBalance)) > int64(tolerance) {
+	tolerance = tolerance + uint64(core.Abs(lndChannel.CommitFee))
+	if channelSettings.Capacity-localPlusRemote > int64(tolerance) {
 		log.Error().Msgf("ChannelBalanceCacheMaintenance: Capacity (%v) - ( RemoteBalance (%v) + LocalBalance (%v) ) > %v for channelId: %v",
 			channelSettings.Capacity, channelStateSettings.RemoteBalance, channelStateSettings.LocalBalance,
 			tolerance, channelId)
-		marshalledLndChannel, err := json.Marshal(lndChannel)
-		if err != nil {
-			log.Error().Err(err).Msgf("ChannelBalanceCacheMaintenance: failed to marshal lnrpc data: %v", lndChannel)
-		}
-		if err == nil {
-			log.Error().Msgf("ChannelBalanceCacheMaintenance: lnrpc channel data: %v", string(marshalledLndChannel))
-		}
+		logLndChannelDebugData(lndChannel)
 		existingSettings := cache.GetChannelState(nodeId, channelId, true)
 		if existingSettings == nil {
 			return cache.ChannelStateSettingsCache{},
@@ -264,6 +279,16 @@ func verifyChannelCapacityMismatch(channelStateSettings cache.ChannelStateSettin
 		return *existingSettings, nil
 	}
 	return channelStateSettings, nil
+}
+
+func logLndChannelDebugData(lndChannel *lnrpc.Channel) {
+	marshalledLndChannel, err := json.Marshal(lndChannel)
+	if err != nil {
+		log.Error().Err(err).Msgf("ChannelBalanceCacheMaintenance: failed to marshal lnrpc data: %v", lndChannel)
+	}
+	if err == nil {
+		log.Error().Msgf("ChannelBalanceCacheMaintenance: lnrpc channel data: %v", string(marshalledLndChannel))
+	}
 }
 
 func ProcessChannelEvent(channelEvent core.ChannelEvent) {
