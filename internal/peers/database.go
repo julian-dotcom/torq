@@ -70,10 +70,28 @@ func GetPeerNodes(db *sqlx.DB, network core.Network) ([]PeerNode, error) {
 		nch.connection_status,
 		nch.setting
 	FROM Node n
-	LEFT JOIN (SELECT LAST(node_id, created_on) as node_id, LAST(torq_node_id, created_on) as torq_node_id, LAST(connection_status, created_on) as connection_status, LAST(setting, created_on) as setting, LAST(setting, created_on) as address FROM node_connection_history GROUP BY node_id) nch on nch.node_id = n.node_id
-	LEFT JOIN (SELECT LAST(event_node_id, timestamp) as node_id, LAST(alias, timestamp) as alias, LAST(color, timestamp) as color FROM node_event GROUP BY event_node_id) ne ON ne.node_id = n.node_id
-	LEFT JOIN (SELECT LAST(event_node_id, timestamp) as node_id, LAST(alias, timestamp) as alias, LAST(color, timestamp) as color FROM node_event GROUP BY event_node_id) netorq ON netorq.node_id = nch.torq_node_id
-	WHERE n.node_id = ANY($1) AND nch.torq_node_id IS NOT NULL;`, pq.Array(nodeIds))
+	LEFT JOIN (
+		SELECT LAST(node_id, created_on) as node_id,
+		       LAST(torq_node_id, created_on) as torq_node_id,
+		       LAST(connection_status, created_on) as connection_status,
+		       LAST(setting, created_on) as setting
+		FROM node_connection_history
+		GROUP BY node_id
+	) nch on nch.node_id = n.node_id
+	LEFT JOIN (
+		SELECT LAST(event_node_id, timestamp) as node_id,
+		       LAST(alias, timestamp) as alias
+		FROM node_event
+		GROUP BY event_node_id
+	) ne ON ne.node_id = n.node_id
+	LEFT JOIN (
+		SELECT LAST(event_node_id, timestamp) as node_id,
+		       LAST(alias, timestamp) as alias
+		FROM node_event
+		GROUP BY event_node_id
+	) netorq ON netorq.node_id = nch.torq_node_id
+	WHERE nch.torq_node_id IS NOT NULL AND (n.node_id = ANY($1) OR (nch.setting IS NOT NULL AND n.network = $2));`,
+		pq.Array(nodeIds), network)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
