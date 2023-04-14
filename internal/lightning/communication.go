@@ -128,8 +128,7 @@ func GetInformationRequest(nodeId int) (core.InformationResponse, error) {
 	}, nil
 }
 
-func Import(db *sqlx.DB,
-	importType core.ImportType,
+func ImportPeerStatus(db *sqlx.DB,
 	force bool,
 	nodeId int) error {
 
@@ -137,9 +136,8 @@ func Import(db *sqlx.DB,
 		CommunicationRequest: lnd.CommunicationRequest{
 			NodeId: nodeId,
 		},
-		ImportType: importType,
-		Db:         db,
-		Force:      force,
+		Db:    db,
+		Force: force,
 	}
 	response := lnd.Import(request)
 	if response.Error != nil {
