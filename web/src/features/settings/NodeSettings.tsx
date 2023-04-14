@@ -153,7 +153,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       pingSystem: 0,
       name: "",
       customSettings: 0,
-      nodeStartDate: undefined
+      nodeStartDate: undefined,
     } as nodeConfiguration);
   };
 
@@ -425,7 +425,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     } else {
       setNodeConfigurationState({ ...nodeConfigurationState, nodeStartDate: undefined });
     }
-  }
+  };
 
   const toggleCustomSettingsStateNow = (key: string) => {
     setCustomSettingsSaveEnabledState(true);
@@ -450,8 +450,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       return format(new Date(date.valueOf()), "yyyy-MM-dd");
     }
     return "";
-  }
-
+  };
 
   const implementationOptions: Array<SelectOption> = [{ value: "0", label: "LND" }];
 
@@ -625,10 +624,10 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                 {addMode
                   ? "Add Node"
                   : nodeConfigurationState.status == 1
-                    ? "Disable node to update"
-                    : saveEnabledState
-                      ? "Save node details"
-                      : "Saving..."}
+                  ? "Disable node to update"
+                  : saveEnabledState
+                  ? "Save node details"
+                  : "Saving..."}
               </Button>
               {!addMode && (
                 <div className={styles.toggleSettings}>
