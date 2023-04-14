@@ -103,10 +103,7 @@ func getLatestNodeEvent(db *sqlx.DB, nodeId int) (NodeEvent, error) {
 
 // AddNodeWhenNew partial duplication from settings.AddNodeWhenNew (caused by cyclic dependency)
 func AddNodeWhenNew(db *sqlx.DB, node Node, peerConnectionHistory *NodeConnectionHistory) (int, error) {
-	nodeId := cache.GetChannelPeerNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
-	if nodeId == 0 {
-		nodeId = cache.GetConnectedPeerNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
-	}
+	nodeId := cache.GetPeerNodeIdByPublicKey(node.PublicKey, node.Chain, node.Network)
 	if nodeId == 0 {
 		var existingNodeId int
 		err := db.Get(&existingNodeId, `SELECT node_id FROM node WHERE public_key=$1 AND chain=$2 AND network=$3`,

@@ -464,7 +464,7 @@ func processSettingsRequest(db *sqlx.DB,
 		nodeIds, err = GetNodeIdsByCommunication(db, communicationTargetType)
 		cachedPublicKey := PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()]
 		if PublicKeys[communicationTargetType][messageForBot.GetChannelIdentifier()] != "" {
-			nodeId := cache.GetChannelPeerNodeIdByPublicKey(cachedPublicKey, core.Bitcoin, core.MainNet)
+			nodeId := cache.GetPeerNodeIdByPublicKey(cachedPublicKey, core.Bitcoin, core.MainNet)
 			nodeIds = []int{nodeId}
 			if nodeId == 0 {
 				nodeIds = []int{}
@@ -674,7 +674,7 @@ func getNodeIds(db *sqlx.DB,
 
 	nodeIds, err := GetNodeIdsByCommunication(db, communicationTargetType)
 	if publicKey != "" {
-		nodeId := cache.GetChannelPeerNodeIdByPublicKey(publicKey, core.Bitcoin, core.MainNet)
+		nodeId := cache.GetPeerNodeIdByPublicKey(publicKey, core.Bitcoin, core.MainNet)
 		if slices.Contains(nodeIds, nodeId) {
 			nodeIds = []int{nodeId}
 		} else {

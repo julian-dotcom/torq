@@ -556,6 +556,14 @@ func SetTorqNode(nodeId int, name string, status core.Status, publicKey string, 
 	}
 }
 
+func GetPeerNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
+	peerNodeId := GetChannelPeerNodeIdByPublicKey(publicKey, chain, network)
+	if peerNodeId != 0 {
+		return peerNodeId
+	}
+	return GetConnectedPeerNodeIdByPublicKey(publicKey, chain, network)
+}
+
 func GetChannelPeerNodeIdByPublicKey(publicKey string, chain core.Chain, network core.Network) int {
 	nodeResponseChannel := make(chan NodeCache)
 	nodeCache := NodeCache{

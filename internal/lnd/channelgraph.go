@@ -102,7 +102,7 @@ func ImportNodeInfo(ctx context.Context,
 	if peers != nil {
 		for _, p := range peers.Peers {
 			if p != nil && !slices.Contains(publicKeys, p.PubKey) {
-				nodeId := cache.GetChannelPeerNodeIdByPublicKey(p.PubKey, nodeSettings.Chain, nodeSettings.Network)
+				nodeId := cache.GetPeerNodeIdByPublicKey(p.PubKey, nodeSettings.Chain, nodeSettings.Network)
 				if nodeId == 0 {
 					nodeId, err = nodes.AddNodeWhenNew(db, nodes.Node{
 						PublicKey: p.PubKey,
@@ -136,7 +136,7 @@ func ImportNodeInfo(ctx context.Context,
 			}
 		}
 		err = insertNodeEvent(db, time.Now().UTC(),
-			cache.GetChannelPeerNodeIdByPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
+			cache.GetPeerNodeIdByPublicKey(publicKey, nodeSettings.Chain, nodeSettings.Network),
 			ni.Node.Alias, ni.Node.Color, ni.Node.Addresses, ni.Node.Features, nodeSettings.NodeId)
 		if err != nil {
 			return errors.Wrap(err, "Insert node event")

@@ -54,7 +54,7 @@ func storeChannelEvent(ctx context.Context,
 	case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
 		c := ce.GetOpenChannel()
 		remotePublicKey := c.RemotePubkey
-		remoteNodeId, err := addNodeWhenNew(remotePublicKey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, remotePublicKey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "OPEN_CHANNEL: Add Node When New")
 		}
@@ -115,7 +115,7 @@ func storeChannelEvent(ctx context.Context,
 	case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
 		c := ce.GetClosedChannel()
 		remotePublicKey := c.RemotePubkey
-		remoteNodeId, err := addNodeWhenNew(remotePublicKey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, remotePublicKey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "CLOSED_CHANNEL: Add Node When New")
 		}
@@ -316,11 +316,8 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 	return channel, nil
 }
 
-func addNodeWhenNew(remotePublicKey string, nodeSettings cache.NodeSettingsCache, db *sqlx.DB) (int, error) {
-	remoteNodeId := cache.GetChannelPeerNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
-	if remoteNodeId == 0 {
-		remoteNodeId = cache.GetConnectedPeerNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
-	}
+func addNodeWhenNew(db *sqlx.DB, remotePublicKey string, nodeSettings cache.NodeSettingsCache) (int, error) {
+	remoteNodeId := cache.GetPeerNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 	if remoteNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: remotePublicKey,
@@ -532,7 +529,7 @@ func processPendingChannel(db *sqlx.DB,
 	var closingNodeId *int
 	var closeType *lnrpc.ChannelCloseSummary_ClosureType
 
-	remoteNodeId, err := addNodeWhenNew(lndChannel.RemoteNodePub, nodeSettings, db)
+	remoteNodeId, err := addNodeWhenNew(db, lndChannel.RemoteNodePub, nodeSettings)
 	if err != nil {
 		return 0, nil, nil, nil, errors.Wrap(err, "Add Node When New")
 	}
@@ -694,7 +691,7 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings cac
 icoLoop:
 	for _, lndChannel := range c {
 
-		remoteNodeId, err := addNodeWhenNew(lndChannel.RemotePubkey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, lndChannel.RemotePubkey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Add Node When New")
 		}
@@ -761,7 +758,7 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 icoLoop:
 	for _, lndChannel := range c {
 
-		remoteNodeId, err := addNodeWhenNew(lndChannel.RemotePubkey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, lndChannel.RemotePubkey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Add Node When New")
 		}

@@ -215,7 +215,7 @@ func addNodeConnectionDetailsHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	nodeId := cache.GetChannelPeerNodeIdByPublicKey(publicKey, chain, network)
+	nodeId := cache.GetPeerNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		nodeId, err = AddNodeWhenNew(db, publicKey, chain, network)
 		if err != nil {

@@ -144,10 +144,7 @@ func GetNodeDetailsById(db *sqlx.DB, nodeId int) (string, core.Chain, core.Netwo
 
 // AddNodeWhenNew partial duplication from nodes.AddNodeWhenNew (caused by cyclic dependency)
 func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain core.Chain, network core.Network) (int, error) {
-	nodeId := cache.GetChannelPeerNodeIdByPublicKey(publicKey, chain, network)
-	if nodeId == 0 {
-		nodeId = cache.GetConnectedPeerNodeIdByPublicKey(publicKey, chain, network)
-	}
+	nodeId := cache.GetPeerNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
 		var existingNodeId int
 		err := db.Get(&existingNodeId, `SELECT node_id FROM node WHERE public_key=$1 AND chain=$2 AND network=$3`,
