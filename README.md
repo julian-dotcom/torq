@@ -56,6 +56,12 @@ Be aware that when you try Torq on testnet, simnet or some other type of network
 The network switch is the globe icon in the top left corner, next to the Torq logo.
 
 
+### Guides
+
+We're adding more guides and help articles on [https://docs.ln.capital](docs.ln.capital).
+
+* [How to add a domain for Torq with https](https://docs.ln.capital/en/articles/7323907-how-to-add-a-domain-to-torq-using-caddy).
+
 ## Configuration
 
 Torq supports a TOML configuration file. The docker compose install script auto generates this file.
