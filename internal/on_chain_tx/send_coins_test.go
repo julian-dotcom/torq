@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/core"
 )

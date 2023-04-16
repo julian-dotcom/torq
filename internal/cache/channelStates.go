@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/core"
 )

@@ -1,9 +1,10 @@
 package invoices
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 func Test_constructDecodedInvoice(t *testing.T) {

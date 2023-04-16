@@ -9,11 +9,12 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"

@@ -10,8 +10,9 @@ import (
 	//"net/http"
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"google.golang.org/grpc"
 

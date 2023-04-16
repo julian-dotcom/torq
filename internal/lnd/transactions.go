@@ -7,9 +7,10 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
+	"github.com/lncapital/torq/proto/lnrpc/chainrpc"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"

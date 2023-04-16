@@ -2,9 +2,11 @@ package channels
 
 import (
 	"context"
-	"github.com/cockroachdb/errors"
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"strings"
+
+	"github.com/cockroachdb/errors"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 type LndAddress struct {

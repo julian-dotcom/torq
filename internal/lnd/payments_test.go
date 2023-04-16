@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/mixer/clock"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"

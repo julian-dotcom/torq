@@ -2,11 +2,12 @@ package on_chain_tx
 
 import (
 	"context"
+
 	"github.com/rs/zerolog/log"
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
+	"github.com/lncapital/torq/proto/lnrpc/walletrpc"
 	"google.golang.org/grpc"
 
 	"github.com/lncapital/torq/internal/settings"

@@ -3,7 +3,7 @@ package channel_events
 import (
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 type ChannelEvent struct {
