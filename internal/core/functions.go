@@ -81,6 +81,13 @@ func RWMutexReadLocked(rw *sync.RWMutex) bool {
 	return reflect.ValueOf(rw).Elem().FieldByName("readerCount").Int() > 0
 }
 
+func Abs(x int64) int64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 func ConvertLNDShortChannelID(LNDShortChannelID uint64) string {
 	blockHeight := uint32(LNDShortChannelID >> 40)
 	txIndex := uint32(LNDShortChannelID>>16) & 0xFFFFFF
