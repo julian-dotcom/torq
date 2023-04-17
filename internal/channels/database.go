@@ -134,7 +134,6 @@ func GetOpenChannelsForNodeId(db *sqlx.DB, nodeId int) (channels []Channel, err 
 }
 
 func GetChannelsForTag(db *sqlx.DB) ([]ChannelForTag, error) {
-	// TODO FIXME FYI: second_node_id is not always remote_node_id
 	var channels []ChannelForTag
 	err := db.Select(&channels, `
 		SELECT c.short_channel_id, c.channel_id, c.second_node_id AS node_id, 'channel' AS type
@@ -163,8 +162,6 @@ func GetChannelsForTag(db *sqlx.DB) ([]ChannelForTag, error) {
 }
 
 func GetNodesForTag(db *sqlx.DB) ([]NodeForTag, error) {
-	// TODO FIXME FYI: first_node_id is not always torq_node_id
-	// TODO FIXME FYI: second_node_id is not always remote_node_id
 	var nodes []NodeForTag
 	err := db.Select(&nodes, `
 		SELECT DISTINCT c.second_node_id AS node_id, 'node' AS type
