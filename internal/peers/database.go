@@ -90,8 +90,11 @@ func GetPeerNodes(db *sqlx.DB, network core.Network) ([]PeerNode, error) {
 		FROM node_event
 		GROUP BY event_node_id
 	) netorq ON netorq.node_id = nch.torq_node_id
-	WHERE nch.torq_node_id IS NOT NULL AND (n.node_id = ANY($1) OR (nch.setting IS NOT NULL AND n.network = $2));`,
-		pq.Array(nodeIds), network)
+	JOIN node_connection_details as ncd ON ncd.node_id = nch.torq_node_id
+	WHERE nch.torq_node_id IS NOT NULL
+		AND ncd.status_id NOT IN ($1, $2)
+		AND (n.node_id = ANY($3) OR (nch.setting IS NOT NULL AND n.network = $4));`,
+		core.Deleted, core.Archived, pq.Array(nodeIds), network)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

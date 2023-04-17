@@ -223,6 +223,7 @@ export const torqApi = createApi({
         "channelsPending",
         "nodes",
         "nodeWalletBalance",
+        "peers",
       ],
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
