@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 
+	"github.com/cockroachdb/errors"
 	"gopkg.in/macaroon.v2"
 )
 
@@ -27,7 +28,7 @@ func (m MacaroonCredential) GetRequestMetadata(ctx context.Context,
 
 	macBytes, err := m.MarshalBinary()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "marshal of the macaroon for request metadata")
 	}
 
 	md := make(map[string]string)
@@ -46,7 +47,7 @@ func NewMacaroonCredential(m *macaroon.Macaroon) (MacaroonCredential, error) {
 	var err error
 	ms.Macaroon, err = SafeCopyMacaroon(m)
 	if err != nil {
-		return ms, err
+		return ms, errors.Wrap(err, "safe copy of the macaroon")
 	}
 
 	return ms, nil
@@ -59,12 +60,12 @@ func NewMacaroonCredential(m *macaroon.Macaroon) (MacaroonCredential, error) {
 func SafeCopyMacaroon(mac *macaroon.Macaroon) (*macaroon.Macaroon, error) {
 	macBytes, err := mac.MarshalBinary()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "marshal for safe copy of the macaroon")
 	}
 
 	newMac := &macaroon.Macaroon{}
 	if err := newMac.UnmarshalBinary(macBytes); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unmarshal for safe copy of the macaroon")
 	}
 
 	return newMac, nil
