@@ -30,16 +30,16 @@ export default function peerCellRenderer(
   }
 
   if (column.key === "connectionStatus") {
+    return <TextCell current={row.connectionStatus} key={column.key.toString() + rowIndex} totalCell={isTotalsRow} />;
+  }
+  if (column.key === "setting") {
     return (
       <TextCell
-        current={reconnect.get(row.connectionStatus) || ""}
+        current={reconnect.get(row.setting) || ""}
         key={column.key.toString() + rowIndex}
         totalCell={isTotalsRow}
       />
     );
-  }
-  if (column.key === "setting") {
-    return <TextCell current={row.setting} key={column.key.toString() + rowIndex} totalCell={isTotalsRow} />;
   }
 
   return DefaultCellRenderer(row, rowIndex, column, columnIndex, false, maxRow);
