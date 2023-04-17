@@ -48,8 +48,8 @@ func Test_prepareCloseRequest(t *testing.T) {
 		Status:                 core.Open,
 		Private:                false,
 		Capacity:               10_000_000,
-		FirstNodeId:            cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
-		SecondNodeId:           cache.GetNodeIdByPublicKey(testutil.TestPublicKey2, core.Bitcoin, core.SigNet),
+		FirstNodeId:            cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
+		SecondNodeId:           cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey2, core.Bitcoin, core.SigNet),
 		LNDShortChannelID:      &lndShortChannelId,
 		FundingOutputIndex:     FundingOutputIndex,
 		FundingTransactionHash: FundingTransactionHash,
@@ -91,7 +91,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		{
 			"Both targetConf & satPerVbyte provided",
 			CloseChannelRequest{
-				NodeId:          cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
+				NodeId:          cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           nil,
 				TargetConf:      &targetConf,
@@ -110,7 +110,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		{
 			"Just mandatory params",
 			CloseChannelRequest{
-				NodeId:    cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
+				NodeId:    cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
@@ -121,7 +121,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		{
 			"All params provide",
 			CloseChannelRequest{
-				NodeId:          cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
+				NodeId:          cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           &force,
 				TargetConf:      &targetConf,

@@ -128,20 +128,100 @@ func GetInformationRequest(nodeId int) (core.InformationResponse, error) {
 	}, nil
 }
 
-func Import(db *sqlx.DB,
-	importType core.ImportType,
+func ImportAllChannels(db *sqlx.DB,
 	force bool,
 	nodeId int) error {
 
-	request := lnd.ImportRequest{
-		CommunicationRequest: lnd.CommunicationRequest{
-			NodeId: nodeId,
+	request := lnd.ImportAllChannelsRequest{
+		ImportRequest: lnd.ImportRequest{
+			CommunicationRequest: lnd.CommunicationRequest{
+				NodeId: nodeId,
+			},
+			Db:    db,
+			Force: force,
 		},
-		ImportType: importType,
-		Db:         db,
-		Force:      force,
 	}
-	response := lnd.Import(request)
+	response := lnd.ImportAllChannels(request)
+	if response.Error != nil {
+		return response.Error
+	}
+	return nil
+}
+
+func ImportPendingChannels(db *sqlx.DB,
+	force bool,
+	nodeId int) error {
+
+	request := lnd.ImportPendingChannelsRequest{
+		ImportRequest: lnd.ImportRequest{
+			CommunicationRequest: lnd.CommunicationRequest{
+				NodeId: nodeId,
+			},
+			Db:    db,
+			Force: force,
+		},
+	}
+	response := lnd.ImportPendingChannels(request)
+	if response.Error != nil {
+		return response.Error
+	}
+	return nil
+}
+
+func ImportChannelRoutingPolicies(db *sqlx.DB,
+	force bool,
+	nodeId int) error {
+
+	request := lnd.ImportChannelRoutingPoliciesRequest{
+		ImportRequest: lnd.ImportRequest{
+			CommunicationRequest: lnd.CommunicationRequest{
+				NodeId: nodeId,
+			},
+			Db:    db,
+			Force: force,
+		},
+	}
+	response := lnd.ImportChannelRoutingPolicies(request)
+	if response.Error != nil {
+		return response.Error
+	}
+	return nil
+}
+
+func ImportNodeInformation(db *sqlx.DB,
+	force bool,
+	nodeId int) error {
+
+	request := lnd.ImportNodeInformationRequest{
+		ImportRequest: lnd.ImportRequest{
+			CommunicationRequest: lnd.CommunicationRequest{
+				NodeId: nodeId,
+			},
+			Db:    db,
+			Force: force,
+		},
+	}
+	response := lnd.ImportNodeInformation(request)
+	if response.Error != nil {
+		return response.Error
+	}
+	return nil
+}
+
+func ImportPeerStatus(db *sqlx.DB,
+	force bool,
+	nodeId int) error {
+
+	request := lnd.ImportPeerStatusRequest{
+		ImportRequest: lnd.ImportRequest{
+			CommunicationRequest: lnd.CommunicationRequest{
+				NodeId: nodeId,
+			},
+			Db:    db,
+			Force: force,
+		},
+	}
+	response := lnd.ImportPeerStatus(request)
 	if response.Error != nil {
 		return response.Error
 	}

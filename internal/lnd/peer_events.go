@@ -67,7 +67,7 @@ func SubscribePeerEvents(ctx context.Context,
 			return
 		}
 
-		eventNodeId := cache.GetNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		eventNodeId := cache.GetPeerNodeIdByPublicKey(peerEvent.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if eventNodeId != 0 {
 			err = setNodeConnectionHistory(db, peerEvent.Type, eventNodeId, nodeSettings.NodeId)
 			if err != nil {
@@ -115,7 +115,7 @@ func setNodeConnectionHistory(db *sqlx.DB,
 	return nil
 }
 
-func ImportPeerStatus(ctx context.Context,
+func ImportPeerStatusFromLnd(ctx context.Context,
 	client listPeersClient,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) error {
@@ -126,7 +126,7 @@ func ImportPeerStatus(ctx context.Context,
 	}
 
 	for _, peer := range resp.Peers {
-		peerNodeId := cache.GetNodeIdByPublicKey(peer.PubKey, nodeSettings.Chain, nodeSettings.Network)
+		peerNodeId := cache.GetPeerNodeIdByPublicKey(peer.PubKey, nodeSettings.Chain, nodeSettings.Network)
 		if peerNodeId == 0 {
 			peerNodeId, err = nodes.AddNodeWhenNew(db, nodes.Node{
 				PublicKey: peer.PubKey,

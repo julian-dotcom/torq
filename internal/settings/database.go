@@ -142,26 +142,34 @@ func GetNodeDetailsById(db *sqlx.DB, nodeId int) (string, core.Chain, core.Netwo
 	return publicKey, chain, network, nil
 }
 
+// AddNodeWhenNew partial duplication from nodes.AddNodeWhenNew (caused by cyclic dependency)
 func AddNodeWhenNew(db *sqlx.DB, publicKey string, chain core.Chain, network core.Network) (int, error) {
-	nodeId := cache.GetNodeIdByPublicKey(publicKey, chain, network)
+	nodeId := cache.GetPeerNodeIdByPublicKey(publicKey, chain, network)
 	if nodeId == 0 {
-		createdOn := time.Now().UTC()
-		err := db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
-			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
-			publicKey, chain, network, createdOn).Scan(&nodeId)
-		if err != nil {
-			if err, ok := err.(*pq.Error); ok {
-				if err.Code == "23505" {
-					err := db.Get(&nodeId, `SELECT node_id FROM node WHERE public_key=$1;`, publicKey)
-					if err != nil {
-						return 0, errors.Wrapf(err, "Obtaining existing nodeId for publicKey: %v", publicKey)
-					}
-					return nodeId, nil
-				}
-			}
+		var existingNodeId int
+		err := db.Get(&existingNodeId, `SELECT node_id FROM node WHERE public_key=$1 AND chain=$2 AND network=$3`,
+			publicKey, chain, network)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.Wrap(err, database.SqlExecutionError)
 		}
-		return nodeId, nil
+		nodeId = existingNodeId
+		if existingNodeId == 0 {
+			err = db.QueryRowx(`INSERT INTO node (public_key, chain, network, created_on)
+			VALUES ($1, $2, $3, $4) RETURNING node_id;`,
+				publicKey, chain, network, time.Now().UTC()).Scan(&nodeId)
+			if err != nil {
+				if err, ok := err.(*pq.Error); ok {
+					if err.Code == "23505" {
+						err := db.Get(&nodeId, `SELECT node_id FROM node WHERE public_key=$1;`, publicKey)
+						if err != nil {
+							return 0, errors.Wrapf(err, "Obtaining existing nodeId for publicKey: %v", publicKey)
+						}
+						return nodeId, nil
+					}
+				}
+				return 0, errors.Wrap(err, database.SqlExecutionError)
+			}
+		}
 	}
 	return nodeId, nil
 }
@@ -253,7 +261,7 @@ func InitializeNodesCache(db *sqlx.DB) error {
 		if err != nil {
 			return errors.Wrap(err, "Obtaining nodeId and publicKey from the resultSet")
 		}
-		cache.SetChannelNode(nodeId, publicKey, chain, network, channelStatus)
+		cache.SetChannelPeerNode(nodeId, publicKey, chain, network, channelStatus)
 	}
 	return nil
 }

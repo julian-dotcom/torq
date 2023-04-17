@@ -265,7 +265,7 @@ func runChannelEventTest(t *testing.T, db *sqlx.DB, channelEvent interface{}, ex
 		defer wg.Done()
 		SubscribeAndStoreChannelEvents(ctx, client, db,
 			cache.GetNodeSettingsByNodeId(
-				cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)))
+				cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)))
 	}()
 	wg.Wait()
 

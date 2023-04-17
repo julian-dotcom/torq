@@ -98,7 +98,7 @@ func TestStoreTransaction(t *testing.T) {
 		RawTxHex:          "",
 		Label:             expected.Label,
 		PreviousOutpoints: nil,
-	}, cache.GetNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet))
+	}, cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet))
 	if err != nil {
 		return
 	}

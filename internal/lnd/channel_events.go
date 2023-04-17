@@ -54,7 +54,7 @@ func storeChannelEvent(ctx context.Context,
 	case lnrpc.ChannelEventUpdate_OPEN_CHANNEL:
 		c := ce.GetOpenChannel()
 		remotePublicKey := c.RemotePubkey
-		remoteNodeId, err := addNodeWhenNew(remotePublicKey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, remotePublicKey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "OPEN_CHANNEL: Add Node When New")
 		}
@@ -75,7 +75,7 @@ func storeChannelEvent(ctx context.Context,
 		}
 
 		// This allows torq to listen to the graph for node updates
-		cache.SetChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network, channel.Status)
+		cache.SetChannelPeerNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network, channel.Status)
 
 		stateSettings := cache.ChannelStateSettingsCache{
 			NodeId:                nodeSettings.NodeId,
@@ -115,7 +115,7 @@ func storeChannelEvent(ctx context.Context,
 	case lnrpc.ChannelEventUpdate_CLOSED_CHANNEL:
 		c := ce.GetClosedChannel()
 		remotePublicKey := c.RemotePubkey
-		remoteNodeId, err := addNodeWhenNew(remotePublicKey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, remotePublicKey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "CLOSED_CHANNEL: Add Node When New")
 		}
@@ -157,7 +157,7 @@ func storeChannelEvent(ctx context.Context,
 		// This stops the graph from listening to channel updates
 		cache.SetChannelStatus(channel.ChannelID, channel.Status)
 		if len(chans) == 0 {
-			cache.SetInactiveChannelNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
+			cache.SetInactiveChannelPeerNode(remoteNodeId, remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
 		return nil
 	case lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL:
@@ -251,15 +251,16 @@ func storeChannelEvent(ctx context.Context,
 }
 
 func importPendingChannels(db *sqlx.DB, force bool, nodeSettings cache.NodeSettingsCache) error {
-	request := ImportRequest{
-		CommunicationRequest: CommunicationRequest{
-			NodeId: nodeSettings.NodeId,
+	request := ImportPendingChannelsRequest{
+		ImportRequest: ImportRequest{
+			CommunicationRequest: CommunicationRequest{
+				NodeId: nodeSettings.NodeId,
+			},
+			Db:    db,
+			Force: force,
 		},
-		Db:         db,
-		Force:      force,
-		ImportType: core.ImportPendingChannelsOnly,
 	}
-	response := Import(request)
+	response := ImportPendingChannels(request)
 	if response.Error != nil {
 		log.Error().Err(response.Error).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
 		return errors.Wrapf(response.Error, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
@@ -315,8 +316,8 @@ func addChannelOrUpdateStatus(channelPoint string, lndShortChannelId uint64, cha
 	return channel, nil
 }
 
-func addNodeWhenNew(remotePublicKey string, nodeSettings cache.NodeSettingsCache, db *sqlx.DB) (int, error) {
-	remoteNodeId := cache.GetNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
+func addNodeWhenNew(db *sqlx.DB, remotePublicKey string, nodeSettings cache.NodeSettingsCache) (int, error) {
+	remoteNodeId := cache.GetPeerNodeIdByPublicKey(remotePublicKey, nodeSettings.Chain, nodeSettings.Network)
 	if remoteNodeId == 0 {
 		newNode := nodes.Node{
 			PublicKey: remotePublicKey,
@@ -327,7 +328,6 @@ func addNodeWhenNew(remotePublicKey string, nodeSettings cache.NodeSettingsCache
 		peerConnectionHistory := &nodes.NodeConnectionHistory{
 			TorqNodeId:       nodeSettings.NodeId,
 			ConnectionStatus: core.NodeConnectionStatusConnected,
-			Setting:          core.NodeConnectionSettingAlwaysReconnect,
 		}
 
 		var err error
@@ -405,7 +405,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context,
 	}
 }
 
-func ImportPendingChannels(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
+func ImportPendingChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
 	nodeSettings cache.NodeSettingsCache) error {
 	r, err := client.PendingChannels(ctx, &lnrpc.PendingChannelsRequest{})
 	if err != nil {
@@ -516,7 +516,7 @@ func storeImportedWaitingCloseChannels(
 			return errors.Wrap(err, "ImportedWaitingCloseChannels: Add Channel Or Update Status")
 		}
 
-		cache.SetChannelNode(remoteNodeId, lndChannel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network, closing)
+		cache.SetChannelPeerNode(remoteNodeId, lndChannel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network, closing)
 	}
 	return nil
 }
@@ -529,7 +529,7 @@ func processPendingChannel(db *sqlx.DB,
 	var closingNodeId *int
 	var closeType *lnrpc.ChannelCloseSummary_ClosureType
 
-	remoteNodeId, err := addNodeWhenNew(lndChannel.RemoteNodePub, nodeSettings, db)
+	remoteNodeId, err := addNodeWhenNew(db, lndChannel.RemoteNodePub, nodeSettings)
 	if err != nil {
 		return 0, nil, nil, nil, errors.Wrap(err, "Add Node When New")
 	}
@@ -628,7 +628,7 @@ icoLoop:
 			return errors.Wrap(err, "ImportedPendingOpenChannels: Insert channel event")
 		}
 
-		cache.SetChannelNode(remoteNodeId, lndChannel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network, opening)
+		cache.SetChannelPeerNode(remoteNodeId, lndChannel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network, opening)
 	}
 	return nil
 }
@@ -664,7 +664,7 @@ func storeImportedPendingForceClosingChannels(
 			return errors.Wrap(err, "ImportedPendingForceClosingChannels: Add Channel Or Update Status")
 		}
 
-		cache.SetChannelNode(remoteNodeId, lndChannel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network, closing)
+		cache.SetChannelPeerNode(remoteNodeId, lndChannel.RemoteNodePub, nodeSettings.Chain, nodeSettings.Network, closing)
 	}
 	return nil
 }
@@ -691,7 +691,7 @@ func storeImportedOpenChannels(db *sqlx.DB, c []*lnrpc.Channel, nodeSettings cac
 icoLoop:
 	for _, lndChannel := range c {
 
-		remoteNodeId, err := addNodeWhenNew(lndChannel.RemotePubkey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, lndChannel.RemotePubkey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "ImportedOpenChannels: Add Node When New")
 		}
@@ -729,7 +729,7 @@ icoLoop:
 			return errors.Wrap(err, "ImportedOpenChannels: Insert channel event")
 		}
 
-		cache.SetChannelNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, core.Open)
+		cache.SetChannelPeerNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, core.Open)
 	}
 	return nil
 }
@@ -758,7 +758,7 @@ func storeImportedClosedChannels(db *sqlx.DB, c []*lnrpc.ChannelCloseSummary,
 icoLoop:
 	for _, lndChannel := range c {
 
-		remoteNodeId, err := addNodeWhenNew(lndChannel.RemotePubkey, nodeSettings, db)
+		remoteNodeId, err := addNodeWhenNew(db, lndChannel.RemotePubkey, nodeSettings)
 		if err != nil {
 			return errors.Wrap(err, "ImportedClosedChannels: Add Node When New")
 		}
@@ -803,7 +803,7 @@ icoLoop:
 			return errors.Wrap(err, "ImportedClosedChannels: Insert channel event")
 		}
 
-		cache.SetChannelNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, channels.GetClosureStatus(lndChannel.CloseType))
+		cache.SetChannelPeerNode(remoteNodeId, lndChannel.RemotePubkey, nodeSettings.Chain, nodeSettings.Network, channels.GetClosureStatus(lndChannel.CloseType))
 	}
 	return nil
 }

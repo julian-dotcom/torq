@@ -143,7 +143,7 @@ const (
 	ImportChannelRoutingPolicies = ImportType(iota)
 	ImportNodeInformation
 	ImportAllChannels
-	ImportPendingChannelsOnly
+	ImportPendingChannels
 	ImportPeerStatus
 )
 
