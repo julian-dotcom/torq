@@ -10,8 +10,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/settings"

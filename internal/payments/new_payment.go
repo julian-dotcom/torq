@@ -11,10 +11,11 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/settings"

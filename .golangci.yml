@@ -16,3 +16,19 @@ linters:
     - gosec
     - sqlclosecheck
     - wrapcheck
+
+issues:
+  exclude-rules:
+    - path: proto/
+      linters:
+        - errcheck
+        - staticcheck
+        - unused
+        - govet
+        - gosimple
+        - ineffassign
+        - typecheck
+        - gochecknoglobals
+        - gosec
+        - sqlclosecheck
+        - wrapcheck

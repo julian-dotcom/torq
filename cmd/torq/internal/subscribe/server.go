@@ -5,15 +5,15 @@ import (
 	"runtime/debug"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/chainrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/lnd"
+	"github.com/lncapital/torq/proto/lnrpc"
+	"github.com/lncapital/torq/proto/lnrpc/chainrpc"
+	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 
 	"google.golang.org/grpc"
 )

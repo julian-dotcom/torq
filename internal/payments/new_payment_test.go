@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/core"
 )

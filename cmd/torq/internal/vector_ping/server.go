@@ -8,9 +8,10 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/internal/cache"

@@ -1,9 +1,10 @@
 package channels
 
 import (
-	"github.com/lightningnetwork/lnd/lnrpc"
 	"reflect"
 	"testing"
+
+	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 func Test_processRequest(t *testing.T) {

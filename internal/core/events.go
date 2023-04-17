@@ -3,7 +3,7 @@ package core
 import (
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 type EventData struct {

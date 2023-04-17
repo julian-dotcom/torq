@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 func Test_prepareOpenRequest(t *testing.T) {

@@ -4,14 +4,14 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/lightningnetwork/lnd/macaroons"
+	"io"
+	"os"
+	"time"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"gopkg.in/macaroon.v2"
-	"io"
-	"os"
-	"time"
 )
 
 // Connect connects to LND using gRPC.
@@ -30,7 +30,7 @@ func Connect(host string, tlsCert []byte, macaroonBytes []byte) (*grpc.ClientCon
 		return nil, fmt.Errorf("cannot unmarshal macaroon: %v", err)
 	}
 
-	macCred, err := macaroons.NewMacaroonCredential(mac)
+	macCred, err := NewMacaroonCredential(mac)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create macaroon credentials: %v", err)
 	}
