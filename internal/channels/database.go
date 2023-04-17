@@ -137,8 +137,16 @@ func GetChannelsForTag(db *sqlx.DB) ([]ChannelForTag, error) {
 	// TODO FIXME FYI: second_node_id is not always remote_node_id
 	var channels []ChannelForTag
 	err := db.Select(&channels, `
-		SELECT short_channel_id, channel_id, second_node_id AS node_id, 'channel' AS type
-		FROM channel`)
+		SELECT c.short_channel_id, c.channel_id, c.second_node_id AS node_id, 'channel' AS type
+		FROM channel c
+		JOIN node_connection_details ncd on ncd.node_id = c.first_node_id
+		WHERE ncd.status_id != $1 AND ncd.status_id != $2
+		UNION
+		SELECT c.short_channel_id, c.channel_id, c.first_node_id AS node_id, 'channel' AS type
+		FROM channel c
+		JOIN node_connection_details ncd on ncd.node_id = c.second_node_id
+		WHERE ncd.status_id != $1 AND ncd.status_id != $2
+`, core.Deleted, core.Archived)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return channels, nil
@@ -159,8 +167,16 @@ func GetNodesForTag(db *sqlx.DB) ([]NodeForTag, error) {
 	// TODO FIXME FYI: second_node_id is not always remote_node_id
 	var nodes []NodeForTag
 	err := db.Select(&nodes, `
-		SELECT second_node_id AS node_id, 'node' AS type
-		FROM channel WHERE status_id=$1;`, core.Active)
+		SELECT DISTINCT c.second_node_id AS node_id, 'node' AS type
+		FROM channel c
+		JOIN node_connection_details ncd on ncd.node_id = c.first_node_id
+		WHERE ncd.status_id != $1 AND ncd.status_id != $2 AND c.status_id=$3
+		UNION
+		SELECT DISTINCT c.first_node_id AS node_id, 'node' AS type
+		FROM channel c
+		JOIN node_connection_details ncd on ncd.node_id = c.second_node_id
+		WHERE ncd.status_id != $1 AND ncd.status_id != $2 AND c.status_id=$3
+;`, core.Deleted, core.Archived, core.Active)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []NodeForTag{}, nil
