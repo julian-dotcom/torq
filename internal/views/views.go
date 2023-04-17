@@ -1311,6 +1311,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			valueType:  "boolean",
 			pages: map[TableViewPage]int{
 				PageInvoices: 14,
+				PageChannels: 55,
 			},
 		},
 		{

@@ -464,5 +464,6 @@
     "updatePeer": "Update Peer",
     "close": "Close",
     "setting": "Setting"
-  }
+  },
+  "privateChannelLinksUnavailable": "Channel private, links unavailable"
 }

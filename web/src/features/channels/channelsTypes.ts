@@ -87,6 +87,7 @@ export type channel = {
   peerChannelCount: number;
   peerLocalBalance: number;
   peerGauge: number;
+  private: boolean;
 };
 
 export type PolicyInterface = {

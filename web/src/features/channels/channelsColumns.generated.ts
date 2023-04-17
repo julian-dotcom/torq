@@ -338,6 +338,12 @@ export const AllChannelsColumns: ColumnMetaData<channel>[] = [
 		key: "peerGauge",
 		valueType: "number",
 	},
+	{
+		heading: "Private",
+		type: "BooleanCell",
+		key: "private",
+		valueType: "boolean",
+	},
 ];
 
 
@@ -395,6 +401,7 @@ export const ChannelsSortableColumns: Array<keyof channel> = [
 	"peerLocalBalance",
 	"remotePubkey",
 	"peerGauge",
+	"private",
 ];
 
 
@@ -453,4 +460,5 @@ export const ChannelsFilterableColumns: Array<keyof channel> = [
 	"peerLocalBalance",
 	"remotePubkey",
 	"peerGauge",
+	"private",
 ];
