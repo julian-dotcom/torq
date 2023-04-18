@@ -31,13 +31,11 @@ func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to t
 	cb := ChannelBalance{ChannelId: channelIdString}
 	q := `WITH
 		   initial_balance as (
-				select coalesce((-t.amount)-t.total_fees, 0) as initial_balance
-				from channel_event ce
-				JOIN channel c ON c.channel_id=ce.channel_id
-				left join tx t on c.funding_transaction_hash = t.tx_hash
-				where ce.event_type in (0,1) and
-					  c.channel_id = $1
-				limit 1
+				SELECT (event->>'local_balance')::bigint
+				FROM channel_event
+				WHERE channel_id = $1
+				AND event_type = 0
+				LIMIT 1
 			),
 			lnd_channel_id as (
     				select lnd_short_channel_id::text
