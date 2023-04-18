@@ -56,7 +56,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   });
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
-  const { canvasRef, blankImgRef } = useContext(CanvasContext);
+  const { canvasRef } = useContext(CanvasContext);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;
@@ -84,9 +84,6 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     }
 
     // Set the drag effect and remove the default drag image set by HTML5
-    if (blankImgRef) {
-      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
-    }
     e.dataTransfer.effectAllowed = "move";
 
     // Set the dragging state to true to allow for css changes

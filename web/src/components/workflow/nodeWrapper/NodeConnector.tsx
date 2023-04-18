@@ -16,7 +16,7 @@ export type NodeConnectorProps = {
 
 function NodeConnector(props: NodeConnectorProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const { canvasRef, blankImgRef } = useContext(CanvasContext);
+  const { canvasRef } = useContext(CanvasContext);
   const { nodeRef } = useContext(NodeContext);
 
   const connectorRef = useRef() as MutableRefObject<HTMLDivElement>;
@@ -26,11 +26,6 @@ function NodeConnector(props: NodeConnectorProps) {
   const dispatch = useAppDispatch();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
-    // Hide the drag image (silly HTML5 default)
-    if (blankImgRef) {
-      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
-    }
-
     // Set the drag effect to link
     e.dataTransfer.effectAllowed = "link";
 
