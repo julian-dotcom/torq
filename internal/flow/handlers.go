@@ -84,7 +84,7 @@ func getFlow(db *sqlx.DB, nodeIds []int, chanIdStrings []string, fromTime time.T
 
 	var channelIds []int
 	var getAll = false
-	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "all" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 		getAll = true

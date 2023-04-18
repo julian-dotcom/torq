@@ -94,13 +94,13 @@ function ChannelPage(_: ChannelPageProps) {
   const flowQueryParams: GetFlowQueryParams = {
     from: from,
     to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
-    chanIds: chanId || "1",
+    chanIds: chanId || "all",
     network: activeNetwork,
   };
   const { data, isLoading } = useGetFlowQuery(flowQueryParams);
 
   const channelHistoryQueryData: GetChannelHistoryData = {
-    params: { chanId: chanId || "1" },
+    params: { chanId: chanId || "all" },
     queryParams: {
       from: from,
       to: format(addDays(new Date(currentPeriod.to), 1), "yyyy-MM-dd"),
