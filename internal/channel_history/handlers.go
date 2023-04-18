@@ -88,7 +88,7 @@ func getChannelHistoryHandler(c *gin.Context, db *sqlx.DB) {
 
 	var channelIds []int
 	var all = false
-	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "all" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 		all = true
@@ -165,7 +165,7 @@ func getChannelEventHistoryHandler(c *gin.Context, db *sqlx.DB) {
 	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var channelIds []int
-	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "all" {
 		// TODO: Clean up Quick hack to simplify logic for fetching all channels
 		channelIds = []int{0}
 	} else {
@@ -212,7 +212,7 @@ func getChannelBalanceHandler(c *gin.Context, db *sqlx.DB) {
 	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var all = false
-	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "all" {
 		all = true
 	}
 	if !all {
@@ -264,7 +264,7 @@ func getChannelReBalancingHandler(c *gin.Context, db *sqlx.DB) {
 	networkNodeIds := cache.GetAllTorqNodeIdsByNetwork(chain, core.Network(network))
 
 	var all = false
-	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "1" {
+	if len(lndShortChannelIdStrings) == 1 && lndShortChannelIdStrings[0] == "all" {
 		all = true
 	}
 
@@ -308,7 +308,7 @@ func getTotalOnchainCostHandler(c *gin.Context, db *sqlx.DB) {
 	chanIdStrings := strings.Split(c.Param("chanIds"), ",")
 
 	var all = false
-	if len(chanIdStrings) == 1 && chanIdStrings[0] == "1" {
+	if len(chanIdStrings) == 1 && chanIdStrings[0] == "all" {
 		all = true
 	}
 
