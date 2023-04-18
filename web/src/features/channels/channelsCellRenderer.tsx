@@ -6,11 +6,17 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import ChannelCell from "components/table/cells/channelCell/ChannelCell";
 import TagsCell from "components/table/cells/tags/TagsCell";
 import LinkCell from "components/table/cells/link/LinkCell";
+import TextCell from "components/table/cells/text/TextCell";
+import useTranslations from "services/i18n/useTranslations";
+
+const MEMPOOL_SPACE = "mempoolSpace";
+const AMBOSS_SPACE = "ambossSpace";
+const ONE_ML = "oneMl";
 
 const links = new Map([
-  ["mempoolSpace", "Mempool"],
-  ["ambossSpace", "Amboss"],
-  ["oneMl", "1ML"],
+  [MEMPOOL_SPACE, "Mempool"],
+  [AMBOSS_SPACE, "Amboss"],
+  [ONE_ML, "1ML"],
 ]);
 
 export default function channelsCellRenderer(
@@ -21,6 +27,7 @@ export default function channelsCellRenderer(
   isTotalsRow?: boolean,
   maxRow?: channel
 ): JSX.Element {
+  const { t } = useTranslations();
   if (column.key === "peerAlias") {
     return (
       <ChannelCell
@@ -50,10 +57,15 @@ export default function channelsCellRenderer(
     return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} channelId={row.channelId} nodeId={row.peerNodeId} />;
   }
 
-  if (["mempoolSpace", "ambossSpace", "oneMl"].includes(column.key)) {
+  if ([MEMPOOL_SPACE, AMBOSS_SPACE, ONE_ML].includes(column.key)) {
+    if (row.private)
+      return (
+        <TextCell key={column.key + rowIndex} className={cellStyles.cell} current={t.privateChannelLinksUnavailable} />
+      );
+
     return (
       <LinkCell
-        text={links.get(column.key) || "hello"}
+        text={links.get(column.key) || ""}
         link={row[column.key] as string}
         key={column.key + rowIndex}
         totalCell={isTotalsRow}

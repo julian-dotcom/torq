@@ -89,6 +89,7 @@ type ChannelBody struct {
 	AmbossSpace                  string               `json:"ambossSpace"`
 	OneMl                        string               `json:"oneMl"`
 	PeerAlias                    string               `json:"peerAlias"`
+	Private                      bool                 `json:"private"`
 }
 
 type PendingHtlcs struct {
@@ -285,6 +286,7 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 			MempoolSpace:                 core.MEMPOOL + lndShortChannelIdString,
 			AmbossSpace:                  core.AMBOSS + channelSettings.ShortChannelId,
 			OneMl:                        core.ONEML + lndShortChannelIdString,
+			Private:                      channelSettings.Private,
 		}
 
 		if channelSettings.FundingBlockHeight != nil {
