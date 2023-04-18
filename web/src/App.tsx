@@ -8,6 +8,7 @@ import navStyles from "features/navigation/nav.module.scss";
 import LoadingApp from "./components/loading/LoadingApp";
 import { IntercomProvider } from "react-use-intercom";
 import classNames from "classnames";
+import { polyfillFFDrag } from "utils/drag";
 
 function App() {
   const INTERCOM_APP_ID = "y7n3ouse";
@@ -17,6 +18,7 @@ function App() {
 
   useEffect(() => {
     init();
+    polyfillFFDrag();
   }, []);
 
   function toggleHelp(open: boolean) {
