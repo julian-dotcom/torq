@@ -38,6 +38,8 @@ import Form from "components/forms/form/Form";
 import Note, { NoteType } from "features/note/Note";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { FormErrors, mergeServerError } from "components/errors/errors";
+import { torqApi } from "apiSlice";
+import { useAppDispatch } from "store/hooks";
 
 interface nodeProps {
   nodeId: number;
@@ -121,6 +123,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   const [formErrorState, setFormErrorState] = React.useState({} as FormErrors);
   const [toggleErrorState, setToggleErrorState] = React.useState({} as FormErrors);
 
+  const dispatch = useAppDispatch();
+
   const customSettingsSidebarData = new Map<string, importProps>([
     [importTransactions, { value: importTransactionsValue, label: t.importTransactions }],
     [importPayments, { value: importPaymentsValue, label: t.importPayments }],
@@ -202,7 +206,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       addNodeConfiguration(form)
         .unwrap()
         .then((_) => {
-          setFormErrorState({} as FormErrors)
+          setFormErrorState({} as FormErrors);
           setSaveEnabledState(true);
           setEnableEnableButtonState(true);
           toastRef?.current?.addToast("Local node added", toastCategory.success);
@@ -222,7 +226,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
       updateNodeConfiguration(form)
         .unwrap()
         .then((_) => {
-          setFormErrorState({} as FormErrors)
+          setFormErrorState({} as FormErrors);
           setSaveEnabledState(true);
           toastRef?.current?.addToast("Local node info saved", toastCategory.success);
         })
@@ -234,15 +238,19 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         });
       mixpanel.track("Update Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
+    dispatch(torqApi.util.resetApiState());
   };
 
   const submitCustomSettings = async () => {
     setCustomSettingsSaveEnabledState(false);
-    setCustomSettings({ nodeId: nodeConfigurationState.nodeId, customSettings: nodeConfigurationState.customSettings,
-      pingSystems: nodeConfigurationState.pingSystem })
+    setCustomSettings({
+      nodeId: nodeConfigurationState.nodeId,
+      customSettings: nodeConfigurationState.customSettings,
+      pingSystems: nodeConfigurationState.pingSystem,
+    })
       .unwrap()
       .then((_) => {
-        setToggleErrorState({} as FormErrors)
+        setToggleErrorState({} as FormErrors);
         setCustomSettingsSaveEnabledState(true);
         setEnableEnableButtonState(true);
         toastRef?.current?.addToast("Custom Settings Saved", toastCategory.success);
@@ -254,6 +262,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         setToggleErrorState(mergedErrors);
       });
     mixpanel.track("Save Custom Settings");
+    dispatch(torqApi.util.resetApiState());
   };
 
   React.useEffect(() => {
@@ -274,7 +283,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         importForwardsHistory:
           nodeConfigurationData.customSettings % (importForwardsHistoryValue * 2) >= importForwardsHistoryValue,
       });
-      setCustomSettingsCollapsedState(false)
+      setCustomSettingsCollapsedState(false);
     }
     if (nodeConfigurationData != undefined && nodeConfigurationData.status == 0) {
       setSaveEnabledState(true);
@@ -340,6 +349,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setDeleteEnabled(false);
     mixpanel.track("Delete Local Node", { nodeId: nodeConfigurationState.nodeId });
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: 3 });
+    dispatch(torqApi.util.resetApiState());
   };
 
   const handleDeleteConfirmationTextInputChange = (value: string) => {
@@ -366,38 +376,55 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     if (popoverRef.current) {
       (popoverRef.current as { close: () => void }).close();
     }
+    dispatch(torqApi.util.resetApiState());
   };
 
   const handleAmbossPingClick = () => {
-    setCustomSettingsSaveEnabledState(true)
+    setCustomSettingsSaveEnabledState(true);
     const pingSystem = 1;
-    if (nodeConfigurationState.pingSystem % (pingSystem*2) >= pingSystem) {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - pingSystem });
+    if (nodeConfigurationState.pingSystem % (pingSystem * 2) >= pingSystem) {
+      setNodeConfigurationState({
+        ...nodeConfigurationState,
+        pingSystem: nodeConfigurationState.pingSystem - pingSystem,
+      });
     } else {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + pingSystem });
+      setNodeConfigurationState({
+        ...nodeConfigurationState,
+        pingSystem: nodeConfigurationState.pingSystem + pingSystem,
+      });
     }
   };
 
   const handleVectorPingClick = () => {
-    setCustomSettingsSaveEnabledState(true)
-    const pingSystem = 2
-    if (nodeConfigurationState.pingSystem % (pingSystem*2) >= pingSystem) {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem - pingSystem });
+    setCustomSettingsSaveEnabledState(true);
+    const pingSystem = 2;
+    if (nodeConfigurationState.pingSystem % (pingSystem * 2) >= pingSystem) {
+      setNodeConfigurationState({
+        ...nodeConfigurationState,
+        pingSystem: nodeConfigurationState.pingSystem - pingSystem,
+      });
     } else {
-      setNodeConfigurationState({ ...nodeConfigurationState, pingSystem: nodeConfigurationState.pingSystem + pingSystem });
+      setNodeConfigurationState({
+        ...nodeConfigurationState,
+        pingSystem: nodeConfigurationState.pingSystem + pingSystem,
+      });
     }
   };
 
   const toggleCustomSettingsStateNow = (key: string) => {
-    setCustomSettingsSaveEnabledState(true)
+    setCustomSettingsSaveEnabledState(true);
     const data = customSettingsSidebarData.get(key);
     if (data !== undefined) {
       if (getCustomSettingsState(key)) {
-        setNodeConfigurationState({ ...nodeConfigurationState,
-          customSettings: nodeConfigurationState.customSettings - data.value });
+        setNodeConfigurationState({
+          ...nodeConfigurationState,
+          customSettings: nodeConfigurationState.customSettings - data.value,
+        });
       } else {
-        setNodeConfigurationState({ ...nodeConfigurationState,
-          customSettings: nodeConfigurationState.customSettings + data.value });
+        setNodeConfigurationState({
+          ...nodeConfigurationState,
+          customSettings: nodeConfigurationState.customSettings + data.value,
+        });
       }
     }
   };
@@ -518,22 +545,22 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   <Collapse collapsed={customSettingsCollapsedState} animate={true}>
                     <div className={styles.customImportSettingsBody}>
                       {Object.keys(customSettingsState).map((key) => {
-                          const k = key as keyof typeof customSettingsState;
-                          const data = customSettingsSidebarData.get(key);
-                          if (data !== undefined && data.label !== undefined) {
-                            return (
-                              <div className={styles.import} key={key}>
-                                <Switch
-                                  label={data.label}
-                                  checked={nodeConfigurationState.customSettings % (data.value * 2) >= data.value}
-                                  onChange={() => {
-                                    toggleCustomSettingsState(k);
-                                  }}
-                                />
-                              </div>
-                            );
-                          }
-                        })}
+                        const k = key as keyof typeof customSettingsState;
+                        const data = customSettingsSidebarData.get(key);
+                        if (data !== undefined && data.label !== undefined) {
+                          return (
+                            <div className={styles.import} key={key}>
+                              <Switch
+                                label={data.label}
+                                checked={nodeConfigurationState.customSettings % (data.value * 2) >= data.value}
+                                onChange={() => {
+                                  toggleCustomSettingsState(k);
+                                }}
+                              />
+                            </div>
+                          );
+                        }
+                      })}
                       <Switch
                         label={t.importFailedPayments}
                         checked={
@@ -586,26 +613,26 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   <Collapse collapsed={customSettingsCollapsedState} animate={true}>
                     <div className={styles.customImportSettingsBody}>
                       {Object.keys(customSettingsState).map((key) => {
-                          const k = key as keyof typeof customSettingsState;
-                          const data = customSettingsSidebarData.get(key);
-                          if (data !== undefined && data.label !== undefined) {
-                            return (
-                              <div className={styles.import} key={key}>
-                                <Switch
-                                  label={data.label || ""}
-                                  checked={customSettingsState[k]}
-                                  onChange={() => {
-                                    setCustomSettingsState({
-                                      ...customSettingsState,
-                                      [key]: !customSettingsState[k],
-                                    });
-                                    toggleCustomSettingsStateNow(key);
-                                  }}
-                                />
-                              </div>
-                            );
-                          }
-                        })}
+                        const k = key as keyof typeof customSettingsState;
+                        const data = customSettingsSidebarData.get(key);
+                        if (data !== undefined && data.label !== undefined) {
+                          return (
+                            <div className={styles.import} key={key}>
+                              <Switch
+                                label={data.label || ""}
+                                checked={customSettingsState[k]}
+                                onChange={() => {
+                                  setCustomSettingsState({
+                                    ...customSettingsState,
+                                    [key]: !customSettingsState[k],
+                                  });
+                                  toggleCustomSettingsStateNow(key);
+                                }}
+                              />
+                            </div>
+                          );
+                        }
+                      })}
                       <Switch
                         label={t.importFailedPayments}
                         checked={

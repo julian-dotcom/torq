@@ -1,4 +1,6 @@
 import { AddSquare20Regular as AddIcon, Save20Regular as SaveIcon } from "@fluentui/react-icons";
+import { torqApi } from "apiSlice";
+import { useAppDispatch } from "store/hooks";
 import Page from "layout/Page";
 import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import styles from "features/settings/settings.module.css";
@@ -33,6 +35,7 @@ function Settings() {
 
   const [showAddNodeState, setShowAddNodeState] = React.useState(false);
   const [settingsState, setSettingsState] = React.useState({} as settings);
+  const dispatch = useAppDispatch();
 
   React.useEffect(() => {
     if (settingsData) {
@@ -110,6 +113,7 @@ function Settings() {
     e.preventDefault();
     updateSettings(settingsState);
     setLang(settingsState?.defaultLanguage);
+    dispatch(torqApi.util.resetApiState());
     toastRef?.current?.addToast(t.toast.settingsSaved, toastCategory.success);
   };
 
@@ -183,13 +187,17 @@ function Settings() {
                   label={t.telegramHighPriorityCredentials}
                   value={settingsState?.telegramHighPriorityCredentials}
                   type={"text"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTelegramHighPriorityCredentialsChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    handleTelegramHighPriorityCredentialsChange(e.target.value)
+                  }
                 />
                 <Input
                   label={t.telegramLowPriorityCredentials}
                   value={settingsState?.telegramLowPriorityCredentials}
                   type={"text"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTelegramLowPriorityCredentialsChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    handleTelegramLowPriorityCredentialsChange(e.target.value)
+                  }
                 />
                 <Button
                   type={"submit"}
