@@ -457,7 +457,7 @@ func fixBindFailures(c *gin.Context, ncd NodeConnectionDetails) (NodeConnectionD
 
 	nodeStartDateInput := c.Request.Form.Get("nodeStartDate")
 	if nodeStartDateInput != "" {
-		nodeStartDate, err := time.Parse(time.DateOnly, nodeStartDateInput)
+		nodeStartDate, err := time.Parse("2006-01-02", nodeStartDateInput)
 		if err != nil {
 			return NodeConnectionDetails{}, errors.New("Failed to parse nodeStartDate in the request.")
 		}
