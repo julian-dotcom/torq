@@ -13,19 +13,16 @@ import styles from "./peers.module.scss";
 import { useNavigate } from "react-router";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
-import { SelectOptions } from "features/forms/Select";
-import { ActionMeta } from "react-select";
 import classNames from "classnames";
 import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
-import { Select } from "components/forms/forms";
 import mixpanel from "mixpanel-browser";
 import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { useGetPeersQuery, useUpdatePeerMutation } from "./peersApi";
 import clone from "clone";
 import { useSearchParams } from "react-router-dom";
-import { NodeConnectionSetting, NodeConnectionSettingInt, Peer } from "./peersTypes";
+import { NodeConnectionSetting, Peer } from "./peersTypes";
 import { useAppSelector } from "../../store/hooks";
 import { selectActiveNetwork } from "../network/networkSlice";
 
@@ -41,16 +38,6 @@ const updateStatusIcon = {
   SUCCEEDED: <SuccessIcon />,
   NOTE: <NoteIcon />,
 };
-
-function isOption(result: unknown): result is SelectOptions & { value: string } {
-  return (
-    result !== null &&
-    typeof result === "object" &&
-    "value" in result &&
-    "label" in result &&
-    typeof (result as SelectOptions).value === "string"
-  );
-}
 
 function PeerUpdateModal() {
   const [queryParams] = useSearchParams();
@@ -69,11 +56,6 @@ function PeerUpdateModal() {
   const peer = peersResponse?.data?.find((peer: Peer) => peer.nodeId === peerNodeId && peer.torqNodeId === torqNodeId);
 
   const { t } = useTranslations();
-
-  const settingOptions: SelectOptions[] = [
-    { value: NodeConnectionSetting.AlwaysReconnect, label: t.peersPage.AlwaysReconnect },
-    { value: NodeConnectionSetting.DisableReconnect, label: t.peersPage.DisableReconnect },
-  ];
 
   const navigate = useNavigate();
 
@@ -105,10 +87,6 @@ function PeerUpdateModal() {
     }
   }, [response]);
 
-  function handleSettingSelection(value: NodeConnectionSetting) {
-    setSelectedSetting(value);
-  }
-
   const closeAndReset = () => {
     setStepIndex(0);
     setConnectState(ProgressStepState.active);
@@ -122,9 +100,11 @@ function PeerUpdateModal() {
     mixpanel.track("Update Peer", {
       peerNodeId: peerNodeId,
       torqNodeId: torqNodeId,
-      peerSetting: selectedSetting,
     });
-    updatePeer({ nodeId: peerNodeId, torqNodeId: torqNodeId, setting: NodeConnectionSettingInt[selectedSetting] });
+    updatePeer({
+      nodeId: peerNodeId,
+      torqNodeId: torqNodeId,
+    });
   }
 
   return (
@@ -147,20 +127,6 @@ function PeerUpdateModal() {
                 <div className={classNames(styles.rowValue)}>{peer?.torqNodeAlias}</div>
               </div>
             </div>
-          </FormRow>
-          <FormRow>
-            <Select
-              label={t.peersPage.setting}
-              onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-                // Check if newValue is of type SelectOptions
-                if (isOption(newValue)) {
-                  const selectOptions = newValue as SelectOptions;
-                  handleSettingSelection(selectOptions?.value as NodeConnectionSetting);
-                }
-              }}
-              options={settingOptions}
-              value={settingOptions?.find((option) => option.value === selectedSetting)}
-            />
           </FormRow>
           <ButtonWrapper
             rightChildren={
