@@ -8,7 +8,7 @@ export enum TagSize {
   tiny = "tiny",
 }
 
-const TagSizeClasses = new Map<TagSize, string>([
+export const TagSizeClasses = new Map<TagSize, string>([
   [TagSize.normal, styles.normal],
   [TagSize.small, styles.small],
   [TagSize.tiny, styles.tiny],
@@ -25,7 +25,7 @@ export enum TagColor {
   custom = "custom",
 }
 
-const TagColorClasses = new Map<TagColor, string>([
+export const TagColorClasses = new Map<TagColor, string>([
   [TagColor.primary, styles.primary],
   [TagColor.success, styles.success],
   [TagColor.warning, styles.warning],

@@ -51,6 +51,7 @@ const TagsCell = (props: TagsCellProps) => {
             to={`/tag-channel/${props.channelId}`}
             state={{ background: location }}
             icon={<ChannelsIcon />}
+            title="Tag Channel"
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.disabled}
             onClick={() => {
@@ -64,6 +65,7 @@ const TagsCell = (props: TagsCellProps) => {
             to={`/tag-node/${props.nodeId}`}
             state={{ background: location }}
             icon={<NodeIcon />}
+            title="Tag Peer"
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.disabled}
             onClick={() => {
