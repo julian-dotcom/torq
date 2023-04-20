@@ -29,6 +29,16 @@ const (
 	PeerPinnedSync PeerSyncType = 3
 )
 
+type AddressType int32
+
+const (
+	Unknown = AddressType(iota)
+	P2WPKH  = 1
+	P2WKH   = 2
+	NP2WKH  = 3
+	P2TR    = 4
+)
+
 type FeatureEntry struct {
 	Key   uint32  `json:"key"`
 	Value Feature `json:"value"`
@@ -189,4 +199,11 @@ type WalletBalanceRequest struct {
 type ListPeersRequest struct {
 	CommunicationRequest
 	LatestError bool `json:"latestError"`
+}
+
+type NewAddressRequest struct {
+	CommunicationRequest
+	Type AddressType `json:"type"`
+	//The name of the account to generate a new address for. If empty, the default wallet account is used.
+	Account string `json:"account"`
 }

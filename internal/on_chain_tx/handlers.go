@@ -12,6 +12,8 @@ import (
 	ah "github.com/lncapital/torq/internal/api_helpers"
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning"
+	"github.com/lncapital/torq/internal/lightning_requests"
 	qp "github.com/lncapital/torq/internal/query_parser"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -130,15 +132,15 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 	c.JSON(http.StatusOK, sendCoinsResp)
 }
 
-func newAddressHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody NewAddressRequest
+func newAddressHandler(c *gin.Context) {
+	var requestBody lightning_requests.NewAddressRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	resp, err := NewAddress(db, requestBody)
+	resp, err := lightning.NewAddress(requestBody)
 	if err != nil {
 		// TODO: Improve error handling. Can't find LND errors in the codebase
 		server_errors.LogAndSendServerError(c, err)

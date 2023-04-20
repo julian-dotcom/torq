@@ -96,3 +96,9 @@ type ListPeersResponse struct {
 	CommunicationResponse
 	Peers map[string]Peer `json:"peers"`
 }
+
+type NewAddressResponse struct {
+	Request NewAddressRequest `json:"request"`
+	CommunicationResponse
+	Address string `json:"address"`
+}

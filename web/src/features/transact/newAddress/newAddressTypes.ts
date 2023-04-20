@@ -8,10 +8,3 @@ export type NewAddressRequest = {
   nodeId: number;
   type: AddressType;
 };
-
-export type NewAddressResponse = {
-  type: AddressType;
-  address: string;
-};
-
-export type NewAddressError = { id: string; type: "Error"; error: string };

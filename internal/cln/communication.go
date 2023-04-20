@@ -169,6 +169,16 @@ func ListPeers(request lightning_requests.ListPeersRequest) lightning_requests.L
 	return lightning_requests.ListPeersResponse{}
 }
 
+func NewAddress(request lightning_requests.NewAddressRequest) lightning_requests.NewAddressResponse {
+	responseChan := make(chan any)
+	process(context.Background(), 2, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_requests.NewAddressResponse); ok {
+		return res
+	}
+	return lightning_requests.NewAddressResponse{}
+}
+
 const concurrentWorkLimit = 1
 
 var service = lightningService{limit: make(chan struct{}, concurrentWorkLimit)} //nolint:gochecknoglobals
@@ -211,6 +221,9 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 		return
 	case lightning_requests.ListPeersRequest:
 		responseChan <- processListPeersRequest(ctx, r)
+		return
+	case lightning_requests.NewAddressRequest:
+		responseChan <- processNewAddressRequest(ctx, r)
 		return
 	}
 
@@ -783,5 +796,54 @@ func processListPeersRequest(ctx context.Context,
 	response.Status = lightning_requests.Active
 	response.Peers = peers
 
+	return response
+}
+
+func processNewAddressRequest(ctx context.Context,
+	request lightning_requests.NewAddressRequest) lightning_requests.NewAddressResponse {
+
+	response := lightning_requests.NewAddressResponse{
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	// TODO FIXME CLN implementation is temporary
+	clnAddressRequest := &cln.NewaddrRequest{}
+	segwit := cln.NewaddrRequest_P2SH_SEGWIT
+	bech32 := cln.NewaddrRequest_BECH32
+	switch request.Type {
+	case lightning_requests.P2WPKH:
+		clnAddressRequest.Addresstype = &segwit
+	case lightning_requests.P2WKH:
+		clnAddressRequest.Addresstype = &segwit
+	case lightning_requests.NP2WKH:
+		clnAddressRequest.Addresstype = &segwit
+	case lightning_requests.P2TR:
+		clnAddressRequest.Addresstype = &bech32
+	default:
+		response.Error = "unknown address type"
+		return response
+	}
+
+	rsp, err := cln.NewNodeClient(connection).NewAddr(ctx, clnAddressRequest)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	response.Status = lightning_requests.Active
+	if rsp.P2ShSegwit != nil {
+		response.Address = *rsp.P2ShSegwit
+	}
+	if response.Address == "" && rsp.Bech32 != nil {
+		response.Address = *rsp.Bech32
+	}
 	return response
 }

@@ -8,5 +8,5 @@ import (
 func RegisterOnChainTxsRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 	r.GET("", func(c *gin.Context) { getOnChainTxsHandler(c, db) })
 	r.POST("sendcoins", func(c *gin.Context) { sendCoinsHandler(c, db) })
-	r.POST("new-address", func(c *gin.Context) { newAddressHandler(c, db) })
+	r.POST("new-address", func(c *gin.Context) { newAddressHandler(c) })
 }

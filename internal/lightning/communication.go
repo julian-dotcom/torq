@@ -307,6 +307,33 @@ func ListPeers(nodeId int, latestError bool) (map[string]lightning_requests.Peer
 	return response.Peers, nil
 }
 
+func NewAddress(request lightning_requests.NewAddressRequest) (string, error) {
+	response := lightning_requests.NewAddressResponse{
+		Request: request,
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return "", ServiceInactiveError
+		}
+		response = lnd.NewAddress(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return "", ServiceInactiveError
+		}
+		response = cln.NewAddress(request)
+	}
+	if response.Error != "" {
+		return "", errors.New(response.Error)
+	}
+	return response.Address, nil
+}
+
 func ImportAllChannels(db *sqlx.DB,
 	force bool,
 	nodeId int) error {
