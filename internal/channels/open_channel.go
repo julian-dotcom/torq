@@ -9,14 +9,15 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/cache"
+	"github.com/lncapital/torq/pkg/cln_connect"
+	"github.com/lncapital/torq/proto/cln"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/core"
-	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 )
 
@@ -50,53 +51,85 @@ type OpenChannelResponse struct {
 	FundingOutputIndex     uint32             `json:"fundingOutputIndex,omitempty"`
 }
 
-func OpenChannel(db *sqlx.DB, req OpenChannelRequest) (response OpenChannelResponse, err error) {
-	openChanReq, err := prepareOpenRequest(req)
-	if err != nil {
-		return OpenChannelResponse{}, err
-	}
-
-	connectionDetails, err := settings.GetConnectionDetailsById(db, req.NodeId)
-	if err != nil {
-		return OpenChannelResponse{}, errors.Wrap(err, "Getting node connection details from the db")
-	}
-
-	conn, err := lnd_connect.Connect(
-		connectionDetails.GRPCAddress,
-		connectionDetails.TLSFileBytes,
-		connectionDetails.MacaroonFileBytes)
-	if err != nil {
-		return OpenChannelResponse{}, errors.Wrap(err, "Connecting to LND")
-	}
-	defer func(conn *grpc.ClientConn) {
-		err := conn.Close()
-		if err != nil {
-			log.Error().Msgf("Error closing grpc connection: %v", err)
-		}
-	}(conn)
-
-	client := lnrpc.NewLightningClient(conn)
-
+func OpenChannel(req OpenChannelRequest) (OpenChannelResponse, error) {
 	ctx := context.Background()
 
-	//If host provided - check if node is connected to peer and if not, connect peer
-	if req.NodePubKey != "" && req.Host != nil {
-		if err := checkConnectPeer(client, ctx, req.NodeId, req.NodePubKey, *req.Host); err != nil {
-			return OpenChannelResponse{}, errors.Wrap(err, "Could not connect to peer")
+	connectionDetails := cache.GetNodeConnectionDetails(req.NodeId)
+	switch connectionDetails.Implementation {
+	case core.LND:
+		openChanReq, err := prepareLndOpenRequest(req)
+		if err != nil {
+			return OpenChannelResponse{}, err
 		}
+
+		conn, err := lnd_connect.Connect(
+			connectionDetails.GRPCAddress,
+			connectionDetails.TLSFileBytes,
+			connectionDetails.MacaroonFileBytes)
+		if err != nil {
+			return OpenChannelResponse{}, errors.Wrap(err, "connecting to LND")
+		}
+		defer func(conn *grpc.ClientConn) {
+			err := conn.Close()
+			if err != nil {
+				log.Error().Msgf("Error closing grpc connection: %v", err)
+			}
+		}(conn)
+
+		client := lnrpc.NewLightningClient(conn)
+
+		//If host provided - check if node is connected to peer and if not, connect peer
+		if req.NodePubKey != "" && req.Host != nil {
+			if err := checkConnectPeer(client, ctx, req.NodeId, req.NodePubKey, *req.Host); err != nil {
+				return OpenChannelResponse{}, errors.Wrap(err, "could not connect to peer")
+			}
+		}
+
+		// Send open channel request
+		cp, err := openChannelProcess(client, openChanReq, req)
+		if err != nil {
+			return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
+		}
+
+		return cp, nil
+	case core.CLN:
+		openChanReq, err := prepareClnOpenRequest(req)
+		if err != nil {
+			return OpenChannelResponse{}, err
+		}
+
+		conn, err := cln_connect.Connect(
+			connectionDetails.GRPCAddress,
+			connectionDetails.CertificateFileBytes,
+			connectionDetails.KeyFileBytes)
+		if err != nil {
+			return OpenChannelResponse{}, errors.Wrap(err, "connecting to CLN")
+		}
+		defer func(conn *grpc.ClientConn) {
+			err := conn.Close()
+			if err != nil {
+				log.Error().Msgf("Error closing grpc connection: %v", err)
+			}
+		}(conn)
+
+		client := cln.NewNodeClient(conn)
+		channel, err := client.FundChannel(ctx, openChanReq)
+		if err != nil {
+			return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
+		}
+
+		response := OpenChannelResponse{}
+		response.ChannelPoint = fmt.Sprintf("%v:%v", hex.EncodeToString(channel.Txid), channel.Outnum)
+		response.Status = core.Opening
+		response.Request = req
+		response.FundingTransactionHash = hex.EncodeToString(channel.Txid)
+		response.FundingOutputIndex = channel.Outnum
+		return response, nil
 	}
-
-	// Send open channel request
-	cp, err := openChannelProcess(client, openChanReq, req)
-	if err != nil {
-		return OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
-	}
-
-	return cp, nil
-
+	return OpenChannelResponse{}, errors.New("implementation not supported")
 }
 
-func prepareOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
+func prepareLndOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
 	if ocReq.NodeId == 0 {
 		return &lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
 	}
@@ -154,6 +187,76 @@ func prepareOpenRequest(ocReq OpenChannelRequest) (r *lnrpc.OpenChannelRequest, 
 
 	if ocReq.CloseAddress != nil {
 		openChanReq.CloseAddress = *ocReq.CloseAddress
+	}
+	return openChanReq, nil
+}
+
+func prepareClnOpenRequest(request OpenChannelRequest) (*cln.FundchannelRequest, error) {
+	if request.NodeId == 0 {
+		return nil, errors.New("nodeId is missing")
+	}
+
+	if request.SatPerVbyte != nil && request.TargetConf != nil {
+		return nil, errors.New("Cannot set both SatPerVbyte and TargetConf")
+	}
+
+	pubKeyHex, err := hex.DecodeString(request.NodePubKey)
+	if err != nil {
+		return nil, errors.New("error decoding public key hex")
+	}
+
+	//open channel request
+	openChanReq := &cln.FundchannelRequest{
+		Id: pubKeyHex,
+
+		// This is the amount we are putting into the channel (channel size)
+		Amount: &cln.AmountOrAll{Value: &cln.AmountOrAll_Amount{Amount: &cln.Amount{Msat: uint64(request.LocalFundingAmount * 1_000)},
+		}},
+	}
+
+	// The amount to give the other node in the opening process.
+	// NB: This means you will give the other node this amount of sats
+	if request.PushSat != nil {
+		openChanReq.PushMsat = &cln.Amount{Msat: uint64((*request.PushSat) * 1_000)}
+	}
+
+	if request.SatPerVbyte != nil {
+		// TODO FIXME CLN verify
+		openChanReq.Feerate = &cln.Feerate{Style: &cln.Feerate_Perkw{Perkw: uint32(*request.SatPerVbyte)}}
+	}
+
+	if request.TargetConf != nil {
+		minDept := uint32(*request.TargetConf)
+		openChanReq.Mindepth = &minDept
+	}
+
+	if request.Private != nil {
+		announced := !*request.Private
+		openChanReq.Announce = &announced
+	}
+
+	// TODO FIXME CLN verify
+	//if request.MinHtlcMsat != nil {
+	//	openChanReq.MinHtlcMsat = int64(*request.MinHtlcMsat)
+	//}
+
+	// TODO FIXME CLN verify
+	//if request.RemoteCsvDelay != nil {
+	//	openChanReq.RemoteCsvDelay = *request.RemoteCsvDelay
+	//}
+
+	if request.MinConfs != nil {
+		minConf := uint32(*request.MinConfs)
+		openChanReq.Minconf = &minConf
+	}
+
+	// TODO FIXME CLN verify
+	//if request.SpendUnconfirmed != nil {
+	//	openChanReq.SpendUnconfirmed = *request.SpendUnconfirmed
+	//}
+
+	if request.CloseAddress != nil {
+		openChanReq.CloseTo = request.CloseAddress
 	}
 	return openChanReq, nil
 }

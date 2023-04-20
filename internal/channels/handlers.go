@@ -556,15 +556,15 @@ func openChannelHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	response, err := OpenChannel(db, openChannelRequest)
+	response, err := OpenChannel(openChannelRequest)
 	switch {
-	case err != nil && strings.Contains(err.Error(), "Connecting to LND"):
+	case err != nil && strings.Contains(err.Error(), "connecting to "):
 		serr := server_errors.ServerError{}
 		// TODO: Replace with error codes
 		serr.AddServerError("Torq could not connect to your node.")
 		server_errors.SendBadRequestFieldError(c, &serr)
 		return
-	case err != nil && strings.Contains(err.Error(), "Could not connect to peer."):
+	case err != nil && strings.Contains(err.Error(), "could not connect to peer."):
 		serr := server_errors.ServerError{}
 		// TODO: Replace with error codes
 		serr.AddServerError("Could not connect to peer node. This could be because the node is offline or the node is " +

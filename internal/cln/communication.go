@@ -527,17 +527,6 @@ func validateRoutingPolicyUpdateRequest(
 			Request: request,
 		}
 	}
-	channelSettings := cache.GetChannelSettingByChannelId(request.ChannelId)
-	if channelSettings.FundingTransactionHash == nil || *channelSettings.FundingTransactionHash == "" ||
-		channelSettings.FundingOutputIndex == nil {
-		return &lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
-				Error:  "FundingTransaction information is not known",
-			},
-			Request: request,
-		}
-	}
 	return nil
 }
 
