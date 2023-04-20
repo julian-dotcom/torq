@@ -34,7 +34,6 @@ export type DisconnectPeerResponse = {
 export type UpdatePeerRequest = {
   nodeId: number;
   torqNodeId: number;
-  setting: number;
 };
 
 export type UpdatePeerResponse = {
