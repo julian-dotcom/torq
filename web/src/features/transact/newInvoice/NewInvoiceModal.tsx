@@ -16,10 +16,11 @@ import { SectionContainer } from "features/section/SectionContainer";
 import Input from "components/forms/input/Input";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { NewInvoiceResponseStep } from "./newInvoiceResponse";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 function NewInvoiceModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
@@ -73,7 +74,7 @@ function NewInvoiceModal() {
       expiry: expirySeconds,
       memo: memo,
     });
-    mixpanel.track("Creating Invoice", {
+    track("Creating Invoice", {
       nodeId: selectedNodeId,
     });
   };

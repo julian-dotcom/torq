@@ -4,7 +4,6 @@ import {
   ArrowDownload20Regular as DownloadCsvIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -35,6 +34,7 @@ import { DefaultClosedChannelsView } from "./channelsClosedDefaults";
 import channelsClosedCellRenderer from "./channelsClosedCellRenderer";
 import { createCsvFile } from "utils/JsonTableToCsv";
 import Button, { ColorVariant } from "components/buttons/Button";
+import { userEvents } from "utils/userEvents";
 
 function useMaximums(data: Array<ChannelClosed>): ChannelClosed | undefined {
   if (!data.length) {
@@ -52,6 +52,7 @@ function useMaximums(data: Array<ChannelClosed>): ChannelClosed | undefined {
 
 function ClosedChannelsPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectClosedChannelView);
@@ -74,7 +75,7 @@ function ClosedChannelsPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "ChannelsClosed" });
+    track("Toggle Table Sidebar", { page: "ChannelsClosed" });
   };
 
   function handleNameChange(name: string) {
@@ -99,7 +100,7 @@ function ClosedChannelsPage() {
           hideMobileText={true}
           icon={<DownloadCsvIcon />}
           onClick={() => {
-            mixpanel.track("Downloads Table as CSV", {
+            track("Downloads Table as CSV", {
               downloadTablePage: "Channels Closed",
               downloadTableViewTitle: viewResponse.view?.title,
               downloadTableColumns: viewResponse.view?.columns,
@@ -113,13 +114,13 @@ function ClosedChannelsPage() {
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
-            mixpanel.track("Refresh Table", { page: "Channels Closed" });
+            track("Refresh Table", { page: "Channels Closed" });
             channelsResponse.refetch();
           }}
         />
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "Channels Closed" });
+            track("Toggle Table Sidebar", { page: "Channels Closed" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}

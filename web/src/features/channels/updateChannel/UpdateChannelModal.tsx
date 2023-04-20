@@ -20,11 +20,11 @@ import clone from "clone";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import Input from "components/forms/input/Input";
-import mixpanel from "mixpanel-browser";
 import { PolicyInterface } from "features/channels/channelsTypes";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
 import Note, { NoteType } from "features/note/Note";
+import { userEvents } from "utils/userEvents";
 
 const updateStatusClass = {
   PROCESSING: styles.processing,
@@ -41,6 +41,7 @@ const updateStatusIcon = {
 
 function UpdateChannelModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [queryParams] = useSearchParams();
   const nodeId = parseInt(queryParams.get("nodeId") || "0");
   const channelId = parseInt(queryParams.get("channelId") || "0");
@@ -89,7 +90,7 @@ function UpdateChannelModal() {
       channelId: channelId,
       nodeId: nodeId,
     };
-    mixpanel.track("Update Channel", {
+    track("Update Channel", {
       channelId: channelId,
       nodeId: nodeId,
     });

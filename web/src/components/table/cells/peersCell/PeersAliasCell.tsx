@@ -1,4 +1,3 @@
-import mixpanel from "mixpanel-browser";
 import { ConnectionStatus } from "features/peers/peersTypes";
 import * as Routes from "constants/routes";
 import Spinny from "features/spinny/Spinny";
@@ -13,6 +12,7 @@ import classNames from "classnames";
 import useTranslations from "services/i18n/useTranslations";
 import { useContext, useEffect } from "react";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
+import { userEvents } from "utils/userEvents";
 
 interface ChannelCell {
   alias: string;
@@ -24,6 +24,7 @@ interface ChannelCell {
 
 function ChannelCell(props: ChannelCell) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const location = useLocation();
   const [disconnectNodeMutation, { error: disconnectError, isLoading: disconnectIsLoading }] =
     useDisconnectPeerMutation();
@@ -58,7 +59,7 @@ function ChannelCell(props: ChannelCell) {
             disabled={reconnectIsLoading || disconnectIsLoading}
             buttonSize={SizeVariant.tiny}
             onClick={() => {
-              mixpanel.track("Connect Peer", {
+              track("Connect Peer", {
                 peerNodeId: props.peerNodeId,
                 torqNodeId: props.torqNodeId,
               });
@@ -75,7 +76,7 @@ function ChannelCell(props: ChannelCell) {
             disabled={reconnectIsLoading || disconnectIsLoading}
             buttonSize={SizeVariant.tiny}
             onClick={() => {
-              mixpanel.track("Disconnect Peer", {
+              track("Disconnect Peer", {
                 peerNodeId: props.peerNodeId,
                 torqNodeId: props.torqNodeId,
               });
@@ -98,7 +99,7 @@ function ChannelCell(props: ChannelCell) {
           buttonColor={ColorVariant.accent1}
           buttonSize={SizeVariant.tiny}
           onClick={() => {
-            mixpanel.track("Navigate to Update Peer", {
+            track("Navigate to Update Peer", {
               peerNodeId: props.peerNodeId,
               torqNodeId: props.torqNodeId,
             });

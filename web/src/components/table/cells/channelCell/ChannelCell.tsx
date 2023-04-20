@@ -1,4 +1,3 @@
-import mixpanel from "mixpanel-browser";
 import {
   EditRegular as UpdateIcon,
   Delete12Regular as CloseIcon,
@@ -11,6 +10,7 @@ import classNames from "classnames";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 import { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
+import { userEvents } from "utils/userEvents";
 
 interface ChannelCell {
   alias: string;
@@ -23,6 +23,7 @@ interface ChannelCell {
 
 function ChannelCell(props: ChannelCell) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const location = useLocation();
 
   const content = (
@@ -39,7 +40,7 @@ function ChannelCell(props: ChannelCell) {
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.accent1}
             onClick={() => {
-              mixpanel.track("Navigate to Inspect Channel", {
+              track("Navigate to Inspect Channel", {
                 channelId: props.channelId,
               });
             }}
@@ -55,7 +56,7 @@ function ChannelCell(props: ChannelCell) {
             buttonColor={ColorVariant.success}
             buttonSize={SizeVariant.tiny}
             onClick={() => {
-              mixpanel.track("Navigate to Update Channel", {
+              track("Navigate to Update Channel", {
                 nodeId: props.nodeId,
                 channelId: props.channelId,
               });
@@ -72,7 +73,7 @@ function ChannelCell(props: ChannelCell) {
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.error}
             onClick={() => {
-              mixpanel.track("Navigate to Close Channel", {
+              track("Navigate to Close Channel", {
                 nodeId: props.nodeId,
                 channelId: props.channelId,
               });

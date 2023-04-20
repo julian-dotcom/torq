@@ -11,7 +11,6 @@ import {
   Play20Regular as PlayIcon,
   Save20Regular as SaveIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import styles from "./NodeSettings.module.scss";
 import Select, { SelectOption } from "features/forms/Select";
 import Spinny from "features/spinny/Spinny";
@@ -41,6 +40,7 @@ import { FormErrors, mergeServerError } from "components/errors/errors";
 import { format } from "date-fns";
 import { torqApi } from "apiSlice";
 import { useAppDispatch } from "store/hooks";
+import { userEvents } from "utils/userEvents";
 
 interface nodeProps {
   nodeId: number;
@@ -101,6 +101,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
   ref
 ) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const toastRef = React.useContext(ToastContext);
   const popoverRef = React.useRef();
 
@@ -226,7 +227,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           const mergedErrors = mergeServerError(error.data, formErrorState);
           setFormErrorState(mergedErrors);
         });
-      mixpanel.track("Add Local Node");
+      track("Add Local Node");
       return;
     } else {
       updateNodeConfiguration(form)
@@ -242,7 +243,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           const mergedErrors = mergeServerError(error.data, formErrorState);
           setFormErrorState(mergedErrors);
         });
-      mixpanel.track("Update Local Node", { nodeId: nodeConfigurationState.nodeId });
+      track("Update Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
     dispatch(torqApi.util.resetApiState());
   };
@@ -267,7 +268,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
         const mergedErrors = mergeServerError(error.data, formErrorState);
         setToggleErrorState(mergedErrors);
       });
-    mixpanel.track("Save Custom Settings");
+    track("Save Custom Settings");
     dispatch(torqApi.util.resetApiState());
   };
 
@@ -353,7 +354,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     setShowModalState(false);
     setDeleteConfirmationTextInputState("");
     setDeleteEnabled(false);
-    mixpanel.track("Delete Local Node", { nodeId: nodeConfigurationState.nodeId });
+    track("Delete Local Node", { nodeId: nodeConfigurationState.nodeId });
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: 3 });
     dispatch(torqApi.util.resetApiState());
   };
@@ -369,9 +370,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
     let statusId = 0;
     if (nodeConfigurationState.status == 0) {
       statusId = 1;
-      mixpanel.track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId });
+      track("Enable Local Node", { nodeId: nodeConfigurationState.nodeId });
     } else {
-      mixpanel.track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId });
+      track("Disable Local Node", { nodeId: nodeConfigurationState.nodeId });
     }
     setNodeConfigurationStatus({ nodeId: nodeConfigurationState.nodeId, status: statusId })
       .unwrap()

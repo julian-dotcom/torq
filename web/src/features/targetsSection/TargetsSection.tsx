@@ -1,5 +1,4 @@
 import { useState } from "react";
-import mixpanel from "mixpanel-browser";
 import {
   ArrowRouting20Regular as ChannelsIcon,
   Molecule20Regular as NodesIcon,
@@ -19,6 +18,7 @@ import {
 } from "pages/tags/tagsApi";
 import { Select } from "components/forms/forms";
 import Target from "components/targets/Target";
+import { userEvents } from "utils/userEvents";
 
 export type SelectOptions = {
   label?: string;
@@ -35,6 +35,7 @@ type TargetsSectionProps = {
 
 export default function TargetsSection(props: TargetsSectionProps) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [collapsedNode, setCollapsedNode] = useState<boolean>(false);
   const [collapsedChannel, setCollapsedChannel] = useState<boolean>(false);
   const [tagChannel] = useTagChannelMutation();
@@ -101,7 +102,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
           label={t.tagNode}
           onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;
-            mixpanel.track("Tag", {
+            track("Tag", {
               tagId: props.tagId,
               tagName: props.tagName,
               nodeId: selectOptions?.value,
@@ -129,7 +130,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
                 return (
                   <Target
                     onDeleteTarget={() => {
-                      mixpanel.track("Untag", {
+                      track("Untag", {
                         tagId: props.tagId,
                         tagName: props.tagName,
                         nodeId: c.nodeId,
@@ -154,7 +155,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
           label={t.tagChannel}
           onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;
-            mixpanel.track("Tag", {
+            track("Tag", {
               tagId: props.tagId,
               tagName: props.tagName,
               channelId: selectOptions?.value,
@@ -182,7 +183,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
                 return (
                   <Target
                     onDeleteTarget={() => {
-                      mixpanel.track("Untag", {
+                      track("Untag", {
                         tagId: props.tagId,
                         tagName: props.tagName,
                         channelId: c.channelId,

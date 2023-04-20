@@ -26,7 +26,7 @@ import { NodeColorVariant, GetColorClass } from "components/workflow/nodes/nodeV
 import { Status } from "constants/backend";
 import { useClickOutside } from "utils/hooks";
 import useTranslations from "services/i18n/useTranslations";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -47,6 +47,7 @@ export type WorkflowNodeProps = WorkflowVersionNode & {
 
 function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [nodeIsSelected, setNodeIsSelected] = useState<boolean>(false);
 
   const [collapsed, setCollapsed] = useState(props.visibilitySettings.collapsed);
@@ -95,7 +96,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     const x = e.clientX - nodeBB.left;
     const y = e.clientY - nodeBB.top;
     setNodeBB({ left: x, top: y });
-    mixpanel.track("Workflow Drag Node", {
+    track("Workflow Drag Node", {
       workflowNodeType: props.type,
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,
@@ -140,7 +141,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const connectorId = useId();
 
   function handleCollapse() {
-    mixpanel.track("Workflow Collapse Node", {
+    track("Workflow Collapse Node", {
       workflowNodeType: props.type,
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,
@@ -219,7 +220,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                     buttonColor={ColorVariant.primary}
                     buttonSize={SizeVariant.small}
                     onClick={() => {
-                      mixpanel.track("Workflow Node Status", {
+                      track("Workflow Node Status", {
                         workflowNodeType: props.type,
                         workflowId: props.workflowId,
                         workflowVersionId: props.workflowVersionId,
@@ -244,7 +245,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                     buttonColor={ColorVariant.error}
                     buttonSize={SizeVariant.small}
                     onClick={() => {
-                      mixpanel.track("Workflow Delete Node", {
+                      track("Workflow Delete Node", {
                         workflowNodeType: props.type,
                         workflowId: props.workflowId,
                         workflowVersionId: props.workflowVersionId,

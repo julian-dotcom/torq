@@ -1,9 +1,9 @@
 import classNames from "classnames";
-import mixpanel from "mixpanel-browser";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./tag_cell.module.scss";
 import Tag, { TagProps } from "components/tags/Tag";
 import { Link, useLocation } from "react-router-dom";
+import { userEvents } from "utils/userEvents";
 
 export type TagCellProps = TagProps & {
   cellWrapperClassName?: string;
@@ -14,7 +14,7 @@ export type TagCellProps = TagProps & {
 
 const TagCell = ({ cellWrapperClassName, totalCell, editLink, ...tagProps }: TagCellProps) => {
   const location = useLocation();
-
+  const { track } = userEvents();
   function EditLinkWrapper() {
     if (editLink) {
       return (
@@ -23,7 +23,7 @@ const TagCell = ({ cellWrapperClassName, totalCell, editLink, ...tagProps }: Tag
           state={{ background: location }}
           className={classNames(cellStyles.action, styles.updateLink)}
           onClick={() => {
-            mixpanel.track("Navigate to Update Tag", {
+            track("Navigate to Update Tag", {
               tagId: tagProps.tagId,
               tagName: tagProps.label,
               tagStyle: tagProps.colorVariant,

@@ -2,13 +2,12 @@ import { Copy20Regular as CopyIcon, Link20Regular as TransactionIconModal } from
 import { useGetNodeConfigurationsQuery } from "apiSlice";
 import Button, { ButtonPosition, ColorVariant, SizeVariant } from "components/buttons/Button";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
-import {useContext, useEffect, useState} from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import styles from "features/transact/newAddress/newAddress.module.scss";
 import useTranslations from "services/i18n/useTranslations";
 import { nodeConfiguration } from "apiTypes";
 import Select from "features/forms/Select";
-import mixpanel from "mixpanel-browser";
 import { useNewAddressMutation } from "./newAddressApi";
 import { AddressType } from "./newAddressTypes";
 import Note, { NoteType } from "features/note/Note";
@@ -17,9 +16,11 @@ import { toastCategory } from "features/toast/Toasts";
 import Spinny from "features/spinny/Spinny";
 import { ServerErrorType } from "components/errors/errors";
 import ErrorSummary from "components/errors/ErrorSummary";
+import { userEvents } from "utils/userEvents";
 
 function NewAddressModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const toastRef = useContext(ToastContext);
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
@@ -47,7 +48,7 @@ function NewAddressModal() {
   useEffect(() => {
     if (nodeConfigurations) {
       if (nodeConfigurations.length == 1) {
-        setSelectedNodeId(nodeConfigurationOptions[0].value)
+        setSelectedNodeId(nodeConfigurationOptions[0].value);
       }
     }
   }, [nodeConfigurations]);
@@ -93,14 +94,14 @@ function NewAddressModal() {
           {addressTypeOptions.map((addType, index) => {
             return (
               <Button
-                disabled={isLoading|| selectedNodeId === undefined}
+                disabled={isLoading || selectedNodeId === undefined}
                 buttonColor={ColorVariant.primary}
                 key={index + addType.label}
                 icon={isLoading && <Spinny />}
                 onClick={() => {
                   if (selectedNodeId) {
                     handleClickNext(addType.value);
-                    mixpanel.track("Select Address Type", { addressType: addType.label });
+                    track("Select Address Type", { addressType: addType.label });
                   }
                 }}
               >

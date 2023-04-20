@@ -1,5 +1,4 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import mixpanel from "mixpanel-browser";
 import { RootState } from "store/store";
 import { TableResponses, ViewResponse } from "./types";
 import { viewApi } from "./viewsApiSlice";
@@ -15,6 +14,7 @@ import { ColumnMetaData } from "features/table/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { deserialiseQuery, SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 import { DefaultPeersView } from "features/peers/peersDefaults";
+import { userEvents } from "utils/userEvents";
 
 const initialState = {
   initiated: false,
@@ -76,7 +76,8 @@ export const viewsSlice = createSlice({
       const { view } = action.payload;
       const views = state.pages[view.page].views;
       state.pages[view.page].views = <Array<ViewResponse<TableResponses>>>[...views, view];
-      mixpanel.track(`View Create Draft`, {
+      const { track } = userEvents();
+      track(`View Create Draft`, {
         viewPage: view.page,
       });
     },
@@ -86,7 +87,8 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex, title } = action.payload;
       if (state.pages[page].views[viewIndex].view.title !== title) {
-        mixpanel.track(`View Update Title`, {
+        const { track } = userEvents();
+        track(`View Update Title`, {
           viewPage: page,
           viewIndex: viewIndex,
           viewNewTitle: title,
@@ -104,7 +106,8 @@ export const viewsSlice = createSlice({
       }>
     ) => {
       const { page, viewIndex } = actions.payload;
-      mixpanel.track(`View Selected`, {
+      const { track } = userEvents();
+      track(`View Selected`, {
         viewPage: page,
         newSelectedView: viewIndex,
         newSelectedViewTitle: state.pages[page].views[viewIndex].view.title,
@@ -123,7 +126,8 @@ export const viewsSlice = createSlice({
       views.splice(fromIndex, 1);
       views.splice(toIndex, 0, view);
       state.pages[page].views = views;
-      mixpanel.track(`View Update Order`, {
+      const { track } = userEvents();
+      track(`View Update Order`, {
         viewPage: page,
         viewCount: state.pages[page].views.length,
         viewName: state.pages[page].views[toIndex].view.title,
@@ -147,7 +151,8 @@ export const viewsSlice = createSlice({
         if (state.pages[page].selected === viewIndex) {
           state.pages[page].selected = 0;
         }
-        mixpanel.track(`View Deleted`, {
+        const { track } = userEvents();
+        track(`View Deleted`, {
           viewPage: page,
           viewCount: state.pages[page].views.length,
           viewIndex: viewIndex,
@@ -176,7 +181,8 @@ export const viewsSlice = createSlice({
       } else {
         state.pages[page].views[viewIndex].view.columns = [...(columns as Array<typeof newColumn>), newColumn];
       }
-      mixpanel.track(`View Add Column`, {
+      const { track } = userEvents();
+      track(`View Add Column`, {
         viewColumnCount: columns?.length || 0,
         viewColumnList: (columns || []).map((column) => column.heading),
         viewColumnName: newColumn.heading,
@@ -199,7 +205,8 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.columns[columnIndex] = { ...column, ...columnUpdate };
       }
       state.pages[page].views[viewIndex].dirty = true;
-      mixpanel.track(`View Update Column`, {
+      const { track } = userEvents();
+      track(`View Update Column`, {
         viewPage: page,
         viewIndex: viewIndex,
         viewColumnIndex: columnIndex,
@@ -221,7 +228,8 @@ export const viewsSlice = createSlice({
       const columns = state.pages[page].views[viewIndex].view.columns.slice();
       const column = columns[fromIndex];
       const columnNames = columns.map((column) => column.heading);
-      mixpanel.track(`View Update Column Order`, {
+      const { track } = userEvents();
+      track(`View Update Column Order`, {
         viewPage: page,
         viewIndex: viewIndex,
         viewTitle: state.pages[page].views[viewIndex].view.title,
@@ -247,7 +255,8 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, columnIndex } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns;
       if (columns) {
-        mixpanel.track(`View Remove Column`, {
+        const { track } = userEvents();
+        track(`View Remove Column`, {
           viewPage: page,
           viewColumnCount: columns.length,
           viewColumnList: columns.map((column) => column.heading),
@@ -271,7 +280,8 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.filters = undefined;
       }
       state.pages[page].views[viewIndex].dirty = true;
-      mixpanel.track(`View Filters Updated`, {
+      const { track } = userEvents();
+      track(`View Filters Updated`, {
         viewPage: page,
         viewIndex: viewIndex,
         viewFilterCount: q.length,
@@ -290,7 +300,8 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.sortBy = <Array<OrderBy>>[sortBy];
       }
       state.pages[page].views[viewIndex].dirty = true;
-      mixpanel.track(`View Add Sort By`, {
+      const { track } = userEvents();
+      track(`View Add Sort By`, {
         viewPage: page,
         viewIndex: viewIndex,
         viewTitle: state.pages[page].views[viewIndex].view.title,
@@ -320,7 +331,8 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
       state.pages[page].views[viewIndex].dirty = true;
-      mixpanel.track(`View Update Sort By`, {
+      const { track } = userEvents();
+      track(`View Update Sort By`, {
         viewPage: page,
         viewIndex: viewIndex,
         viewTitle: state.pages[page].views[viewIndex].view.title,
@@ -349,7 +361,8 @@ export const viewsSlice = createSlice({
         currentSortBy.splice(sortByIndex, 1);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
         state.pages[page].views[viewIndex].dirty = true;
-        mixpanel.track(`View Delete Sort By`, {
+        const { track } = userEvents();
+        track(`View Delete Sort By`, {
           viewPage: page,
           viewIndex: viewIndex,
           viewTitle: state.pages[page].views[viewIndex].view.title,
@@ -370,7 +383,8 @@ export const viewsSlice = createSlice({
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       if (currentSortBy) {
         const sortBy = currentSortBy[fromIndex];
-        mixpanel.track(`View Update Sort By Order`, {
+        const { track } = userEvents();
+        track(`View Update Sort By Order`, {
           viewPage: page,
           viewIndex: viewIndex,
           viewTitle: state.pages[page].views[viewIndex].view.title,
@@ -401,7 +415,8 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, groupByUpdate } = actions.payload;
       state.pages[page].views[viewIndex].view.groupBy = groupByUpdate;
       state.pages[page].views[viewIndex].dirty = true;
-      mixpanel.track(`View Update Group By`, {
+      const { track } = userEvents();
+      track(`View Update Group By`, {
         viewPage: page,
         viewIndex: viewIndex,
         viewTitle: state.pages[page].views[viewIndex].view.title,
@@ -457,7 +472,8 @@ export const viewsSlice = createSlice({
       const views = state.pages[meta.arg.originalArgs.page].views;
       const index = views.findIndex((view) => view.id === meta.arg.originalArgs.id);
       const view = views[index];
-      mixpanel.track(`View Deleted`, {
+      const { track } = userEvents();
+      track(`View Deleted`, {
         viewPage: meta.arg.originalArgs.page,
         viewCount: state.pages[meta.arg.originalArgs.page].views.length,
         viewId: view.id,
@@ -477,7 +493,8 @@ export const viewsSlice = createSlice({
       const views = state.pages[payload.page].views;
       const index = views.findIndex((view) => view.id === payload.id);
       const view = views[index];
-      mixpanel.track(`View Saved`, {
+      const { track } = userEvents();
+      track(`View Saved`, {
         viewPage: view.page,
         viewCount: views.length,
         viewId: view.id,
@@ -495,7 +512,8 @@ export const viewsSlice = createSlice({
 
     builder.addMatcher(viewApi.endpoints.createTableView.matchFulfilled, (state, { meta, payload }) => {
       const view = payload;
-      mixpanel.track(`View Created`, {
+      const { track } = userEvents();
+      track(`View Created`, {
         viewPage: meta.arg.originalArgs.page,
         viewCount: state.pages[meta.arg.originalArgs.page].views.length,
         viewId: view.id,

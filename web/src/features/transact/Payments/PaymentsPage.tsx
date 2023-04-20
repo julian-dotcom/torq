@@ -3,7 +3,6 @@ import {
   Options20Regular as OptionsIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import { useGetPaymentsQuery } from "./paymentsApi";
 import { NEW_PAYMENT } from "constants/routes";
 import Button, { ColorVariant } from "components/buttons/Button";
@@ -37,6 +36,7 @@ import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import useTranslations from "services/i18n/useTranslations";
 import { TableResponses, ViewResponse } from "features/viewManagement/types";
+import { userEvents } from "utils/userEvents";
 
 function useMaximums(data: Array<Payment>): Payment | undefined {
   if (!data.length) {
@@ -62,6 +62,7 @@ function useMaximums(data: Array<Payment>): Payment | undefined {
 
 function PaymentsPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,7 +106,7 @@ function PaymentsPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
+    track("Toggle Table Sidebar", { page: "Payments" });
   };
 
   function handleNameChange(name: string) {
@@ -127,7 +128,7 @@ function PaymentsPage() {
             hideMobileText={true}
             icon={<TransactionIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to New Payment");
+              track("Navigate to New Payment");
               navigate(NEW_PAYMENT, { state: { background: location } });
             }}
           >
@@ -139,14 +140,14 @@ function PaymentsPage() {
             buttonColor={ColorVariant.primary}
             icon={<RefreshIcon />}
             onClick={() => {
-              mixpanel.track("Refresh Table", { page: "Payments" });
+              track("Refresh Table", { page: "Payments" });
               paymentsResponse.refetch();
             }}
           />
           <TableControlsButton
             onClickHandler={() => {
               setSidebarExpanded(!sidebarExpanded);
-              mixpanel.track("Toggle Table Sidebar", { page: "Payments" });
+              track("Toggle Table Sidebar", { page: "Payments" });
             }}
             icon={OptionsIcon}
             id={"tableControlsButton"}

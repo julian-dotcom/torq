@@ -1,5 +1,6 @@
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 import { useIntercom } from "react-use-intercom";
 import { selectHidden, toggleNav } from "./navSlice";
 import classNames from "classnames";
@@ -39,6 +40,7 @@ function Navigation() {
   const { data: autoLogin } = useGetAutoLoginSettingQuery();
   const { t } = useTranslations();
   const { boot } = useIntercom();
+  const { track } = userEvents();
 
   useEffect(() => {
     boot({
@@ -51,7 +53,7 @@ function Navigation() {
   const hidden = useAppSelector(selectHidden);
 
   function toggleNavHandler() {
-    mixpanel.track("Toggle Navigation");
+    track("Toggle Navigation");
     mixpanel.register({ navigation_collapsed: !hidden });
     dispatch(toggleNav());
   }
@@ -78,7 +80,9 @@ function Navigation() {
             text={t.dashboard}
             icon={<DashboardIcon />}
             routeTo={"/"}
-            onClick={() => mixpanel.track("Navigate to Dashboard")}
+            onClick={() => {
+              track("Navigate to Dashboard");
+            }}
           />
         </NavCategory>
         <NavCategory text={t.analyse} collapsed={false}>
@@ -86,14 +90,18 @@ function Navigation() {
             text={t.summary}
             icon={<SummaryIcon />}
             routeTo={`/${routes.ANALYSE}/${routes.FORWARDS_SUMMARY}`}
-            onClick={() => mixpanel.track("Navigate to Summary")}
+            onClick={() => {
+              track("Navigate to Summary");
+            }}
           />
 
           <MenuItem
             text={t.forwards}
             icon={<ForwardsIcon />}
             routeTo={"/analyse/forwards"}
-            onClick={() => mixpanel.track("Navigate to Forwards")}
+            onClick={() => {
+              track("Navigate to Forwards");
+            }}
           />
         </NavCategory>
 
@@ -102,19 +110,25 @@ function Navigation() {
             text={t.openChannels}
             icon={<ChannelsIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.OPEN_CHANNELS}`}
-            onClick={() => mixpanel.track("Navigate to Open Channels")}
+            onClick={() => {
+              track("Navigate to Open Channels");
+            }}
           />
           <MenuItem
             text={t.pendingChannels}
             icon={<ChannelsPendingIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.PENDING_CHANNELS}`}
-            onClick={() => mixpanel.track("Navigate to Pending Channels")}
+            onClick={() => {
+              track("Navigate to Pending Channels");
+            }}
           />
           <MenuItem
             text={t.closedChannels}
             icon={<ChannelsClosedIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.CLOSED_CHANNELS}`}
-            onClick={() => mixpanel.track("Navigate to Closed Channels")}
+            onClick={() => {
+              track("Navigate to Closed Channels");
+            }}
           />
         </NavCategory>
 
@@ -123,19 +137,25 @@ function Navigation() {
             text={t.automation}
             icon={<WorkflowsIcon />}
             routeTo={"/manage/workflows"}
-            onClick={() => mixpanel.track("Navigate to Workflows")}
+            onClick={() => {
+              track("Navigate to Workflows");
+            }}
           />
           <MenuItem
             text={t.tags}
             icon={<TagsIcon />}
             routeTo={"/manage/tags"}
-            onClick={() => mixpanel.track("Navigate to Tags")}
+            onClick={() => {
+              track("Navigate to Tags");
+            }}
           />
           <MenuItem
             text={t.peers}
             icon={<PeersIcon />}
             routeTo={`/manage/${routes.PEERS}`}
-            onClick={() => mixpanel.track("Navigate to Peers")}
+            onClick={() => {
+              track("Navigate to Peers");
+            }}
           />
 
           <MenuItem
@@ -143,7 +163,9 @@ function Navigation() {
             icon={<MessageVerificationIcon />}
             routeTo={routes.MESSAGE_VERIFICATION}
             withBackground={true}
-            onClick={() => mixpanel.track("Navigate to Message Verification")}
+            onClick={() => {
+              track("Navigate to Message Verification");
+            }}
           />
         </NavCategory>
 
@@ -152,19 +174,25 @@ function Navigation() {
             text={t.payments}
             icon={<PaymentsIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`}
-            onClick={() => mixpanel.track("Navigate to Payments")}
+            onClick={() => {
+              track("Navigate to Payments");
+            }}
           />
           <MenuItem
             text={t.invoices}
             icon={<InvoicesIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`}
-            onClick={() => mixpanel.track("Navigate to Invoices")}
+            onClick={() => {
+              track("Navigate to Invoices");
+            }}
           />
           <MenuItem
             text={t.onChain}
             icon={<OnChainTransactionIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
-            onClick={() => mixpanel.track("Navigate to OnChain Transactions")}
+            onClick={() => {
+              track("Navigate to OnChain Transactions");
+            }}
           />
         </NavCategory>
       </div>
@@ -174,20 +202,26 @@ function Navigation() {
           text={t.helpAndBugsMenuItem}
           icon={<HelpIcon />}
           id={"intercom-launcher"}
-          onClick={() => mixpanel.track("Toggle Help")}
+          onClick={() => {
+            track("Toggle Help");
+          }}
         />
         <MenuItem
           text={t.settings}
           icon={<SettingsIcon />}
           routeTo={"/settings"}
-          onClick={() => mixpanel.track("Navigate to Settings")}
+          onClick={() => {
+            track("Navigate to Settings");
+          }}
         />
         {!autoLogin && (
           <MenuItem
             text={t.logout}
             icon={<LogoutIcon />}
             routeTo={"/logout"}
-            onClick={() => mixpanel.track("Logout")}
+            onClick={() => {
+              track("Logout");
+            }}
           />
         )}
       </div>
