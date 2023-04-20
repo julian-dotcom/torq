@@ -10,6 +10,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -98,7 +99,7 @@ type CronTriggerParams struct {
 
 func CronTriggerMonitor(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.CronService
+	serviceType := services_core.CronService
 
 	ticker := time.NewTicker(workflowTickerSeconds * time.Second)
 	defer ticker.Stop()

@@ -13,7 +13,7 @@ import (
 var TriggersCacheChannel = make(chan TriggerCache) //nolint:gochecknoglobals
 
 type TriggerCacheOperationType uint
-type workflowVersionId int
+type workflowVersionIdType int
 
 const (
 	readTimeTriggerSettings TriggerCacheOperationType = iota
@@ -54,8 +54,8 @@ type TriggerSettingsCache struct {
 }
 
 func TriggersCacheHandler(ch <-chan TriggerCache, ctx context.Context) {
-	timeTriggerCache := make(map[workflowVersionId]TriggerSettingsCache)
-	eventTriggerCache := make(map[workflowVersionId]map[int]map[int]TriggerSettingsCache)
+	timeTriggerCache := make(map[workflowVersionIdType]TriggerSettingsCache)
+	eventTriggerCache := make(map[workflowVersionIdType]map[int]map[int]TriggerSettingsCache)
 	var scheduledTriggerCache []TriggerSettingsCache
 	for {
 		select {
@@ -68,8 +68,8 @@ func TriggersCacheHandler(ch <-chan TriggerCache, ctx context.Context) {
 }
 
 func handelTriggerOperation(triggerCache TriggerCache,
-	timeTriggerCache map[workflowVersionId]TriggerSettingsCache,
-	eventTriggerCache map[workflowVersionId]map[int]map[int]TriggerSettingsCache,
+	timeTriggerCache map[workflowVersionIdType]TriggerSettingsCache,
+	eventTriggerCache map[workflowVersionIdType]map[int]map[int]TriggerSettingsCache,
 	scheduledTriggerCache []TriggerSettingsCache) []TriggerSettingsCache {
 
 	switch triggerCache.Type {
@@ -79,15 +79,15 @@ func handelTriggerOperation(triggerCache TriggerCache,
 			triggerCache.TriggerSettingsOut <- TriggerSettingsCache{}
 			return scheduledTriggerCache
 		}
-		triggerCache.TriggerSettingsOut <- timeTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)]
+		triggerCache.TriggerSettingsOut <- timeTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)]
 	case writeTimeTrigger:
 		if triggerCache.WorkflowVersionId == 0 {
 			log.Error().Msgf("No empty WorkflowVersionId (%v) allowed", triggerCache.WorkflowVersionId)
 			return scheduledTriggerCache
 		}
-		timeTriggerSettings, exists := timeTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)]
+		timeTriggerSettings, exists := timeTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)]
 		if !exists {
-			timeTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)] = TriggerSettingsCache{
+			timeTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)] = TriggerSettingsCache{
 				WorkflowVersionId:               triggerCache.WorkflowVersionId,
 				TriggeringWorkflowVersionNodeId: triggerCache.TriggeringWorkflowVersionNodeId,
 				TriggeringNodeType:              triggerCache.TriggeringNodeType,
@@ -112,7 +112,7 @@ func handelTriggerOperation(triggerCache TriggerCache,
 		timeTriggerSettings.Reference = triggerCache.Reference
 		timeTriggerSettings.Status = triggerCache.Status
 		timeTriggerSettings.CancelFunction = triggerCache.CancelFunction
-		timeTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)] = timeTriggerSettings
+		timeTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)] = timeTriggerSettings
 
 	case readEventTriggerSettings:
 		if triggerCache.WorkflowVersionId == 0 {
@@ -126,7 +126,7 @@ func handelTriggerOperation(triggerCache TriggerCache,
 		triggerReferenceId := getTriggerReferenceId(triggerCache.TriggeringEvent)
 
 		triggerCache.TriggerSettingsOut <-
-			eventTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId]
+			eventTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId]
 	case writeEventTrigger:
 		if triggerCache.WorkflowVersionId == 0 {
 			log.Error().Msgf("No empty WorkflowVersionId (%v) allowed", triggerCache.WorkflowVersionId)
@@ -136,9 +136,9 @@ func handelTriggerOperation(triggerCache TriggerCache,
 
 		triggerReferenceId := getTriggerReferenceId(triggerCache.TriggeringEvent)
 
-		triggerSettings, exists := eventTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId]
+		triggerSettings, exists := eventTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId]
 		if !exists {
-			eventTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId] = TriggerSettingsCache{
+			eventTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId] = TriggerSettingsCache{
 				WorkflowVersionId:               triggerCache.WorkflowVersionId,
 				TriggeringWorkflowVersionNodeId: triggerCache.TriggeringWorkflowVersionNodeId,
 				TriggeringNodeType:              triggerCache.TriggeringNodeType,
@@ -163,7 +163,7 @@ func handelTriggerOperation(triggerCache TriggerCache,
 		triggerSettings.Reference = triggerCache.Reference
 		triggerSettings.Status = triggerCache.Status
 		triggerSettings.CancelFunction = triggerCache.CancelFunction
-		eventTriggerCache[workflowVersionId(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId] = triggerSettings
+		eventTriggerCache[workflowVersionIdType(triggerCache.WorkflowVersionId)][triggerCache.TriggeringWorkflowVersionNodeId][triggerReferenceId] = triggerSettings
 
 	case popScheduledTrigger:
 		if len(scheduledTriggerCache) > 0 {
@@ -229,15 +229,15 @@ func getTriggerReferenceId(triggeringEvent any) int {
 }
 
 func initializeEventTriggerCache(
-	eventTriggerCache map[workflowVersionId]map[int]map[int]TriggerSettingsCache,
+	eventTriggerCache map[workflowVersionIdType]map[int]map[int]TriggerSettingsCache,
 	wfVersionId int,
 	triggeringWorkflowVersionNodeId int) {
 
-	if eventTriggerCache[workflowVersionId(wfVersionId)] == nil {
-		eventTriggerCache[workflowVersionId(wfVersionId)] = make(map[int]map[int]TriggerSettingsCache)
+	if eventTriggerCache[workflowVersionIdType(wfVersionId)] == nil {
+		eventTriggerCache[workflowVersionIdType(wfVersionId)] = make(map[int]map[int]TriggerSettingsCache)
 	}
-	if eventTriggerCache[workflowVersionId(wfVersionId)][triggeringWorkflowVersionNodeId] == nil {
-		eventTriggerCache[workflowVersionId(wfVersionId)][triggeringWorkflowVersionNodeId] = make(map[int]TriggerSettingsCache)
+	if eventTriggerCache[workflowVersionIdType(wfVersionId)][triggeringWorkflowVersionNodeId] == nil {
+		eventTriggerCache[workflowVersionIdType(wfVersionId)][triggeringWorkflowVersionNodeId] = make(map[int]TriggerSettingsCache)
 	}
 }
 

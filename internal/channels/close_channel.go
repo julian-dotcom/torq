@@ -77,13 +77,17 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 
 	channelSettings := cache.GetChannelSettingByChannelId(ccReq.ChannelId)
 
+	if channelSettings.FundingTransactionHash == nil || channelSettings.FundingOutputIndex == nil {
+		return &lnrpc.CloseChannelRequest{}, errors.New("Cannot find FundingTransactionHash or OutputIndex")
+	}
+
 	//Make the close channel request
 	closeChanReq := &lnrpc.CloseChannelRequest{
 		ChannelPoint: &lnrpc.ChannelPoint{
 			FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
-				FundingTxidStr: channelSettings.FundingTransactionHash,
+				FundingTxidStr: *channelSettings.FundingTransactionHash,
 			},
-			OutputIndex: uint32(channelSettings.FundingOutputIndex),
+			OutputIndex: uint32(*channelSettings.FundingOutputIndex),
 		},
 	}
 

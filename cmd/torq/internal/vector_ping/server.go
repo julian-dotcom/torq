@@ -3,6 +3,7 @@ package vector_ping
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"runtime/debug"
@@ -11,12 +12,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/vector"
+	"github.com/lncapital/torq/proto/cln"
 )
 
 const vectorSleepSeconds = 20
@@ -60,23 +63,25 @@ type VectorPingChain struct {
 }
 
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
-func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
+func Start(ctx context.Context, conn *grpc.ClientConn, implementation core.Implementation, nodeId int) {
 
-	serviceType := core.VectorService
+	serviceType := services_core.LndServiceVectorService
+	switch implementation {
+	case core.CLN:
+		serviceType = services_core.ClnServiceVectorService
+	}
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetActiveLndServiceState(serviceType, nodeId)
-
-	client := lnrpc.NewLightningClient(conn)
+	cache.SetActiveNodeServiceState(serviceType, nodeId)
 
 	ticker := time.NewTicker(vectorSleepSeconds * time.Second)
 	defer ticker.Stop()
@@ -84,72 +89,123 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 	for {
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeId)
 			return
 		case <-ticker.C:
-			getInfoRequest := lnrpc.GetInfoRequest{}
-			info, err := client.GetInfo(ctx, &getInfoRequest)
-			if err != nil {
-				log.Error().Err(err).Msgf("VectorService: Obtaining LND info for nodeId: %v", nodeId)
-				cache.SetFailedLndServiceState(serviceType, nodeId)
-				return
-			}
 
 			pingInfo := VectorPing{
-				PingTime:                time.Now().UTC(),
-				TorqVersion:             build.ExtendedVersion(),
-				Implementation:          "LND",
-				Version:                 info.Version,
-				PublicKey:               info.IdentityPubkey,
-				Alias:                   info.Alias,
-				Color:                   info.Color,
-				PendingChannelCount:     int(info.NumPendingChannels),
-				ActiveChannelCount:      int(info.NumActiveChannels),
-				InactiveChannelCount:    int(info.NumInactiveChannels),
-				PeerCount:               int(info.NumPeers),
-				BlockHeight:             info.BlockHeight,
-				BlockHash:               info.BlockHash,
-				BestHeaderTimestamp:     time.Unix(info.BestHeaderTimestamp, 0),
-				ChainSynced:             info.SyncedToChain,
-				GraphSynced:             info.SyncedToGraph,
-				Addresses:               info.Uris,
-				HtlcInterceptorRequired: info.RequireHtlcInterceptor,
-			}
-			for _, chain := range info.Chains {
-				pingInfo.Chains = append(pingInfo.Chains, VectorPingChain{Chain: chain.Chain, Network: chain.Network})
-			}
-			pingInfo.Features = make(map[int]VectorPingFeature)
-			for number, feature := range info.Features {
-				pingInfo.Features[int(number)] =
-					VectorPingFeature{Name: feature.Name, Required: feature.IsRequired, Known: feature.IsKnown}
+				PingTime:    time.Now().UTC(),
+				TorqVersion: build.ExtendedVersion(),
 			}
 
-			pingInfoJsonByteArray, err := json.Marshal(pingInfo)
-			if err != nil {
-				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", info)
-				cache.SetFailedLndServiceState(serviceType, nodeId)
-				return
+			var pingInfoJsonByteArray []byte
+			var signature string
+
+			switch implementation {
+			case core.LND:
+				client := lnrpc.NewLightningClient(conn)
+				getInfoRequest := lnrpc.GetInfoRequest{}
+				info, err := client.GetInfo(ctx, &getInfoRequest)
+				if err != nil {
+					log.Error().Err(err).Msgf("%v obtaining info for nodeId: %v", serviceType.String(), nodeId)
+					cache.SetFailedNodeServiceState(serviceType, nodeId)
+					return
+				}
+				pingInfo.Implementation = "LND"
+				pingInfo.Version = info.Version
+				pingInfo.PublicKey = info.IdentityPubkey
+				pingInfo.Alias = info.Alias
+				pingInfo.Color = info.Color
+				pingInfo.PendingChannelCount = int(info.NumPendingChannels)
+				pingInfo.ActiveChannelCount = int(info.NumActiveChannels)
+				pingInfo.InactiveChannelCount = int(info.NumInactiveChannels)
+				pingInfo.PeerCount = int(info.NumPeers)
+				pingInfo.BlockHeight = info.BlockHeight
+				pingInfo.BlockHash = info.BlockHash
+				pingInfo.BestHeaderTimestamp = time.Unix(info.BestHeaderTimestamp, 0)
+				pingInfo.ChainSynced = info.SyncedToChain
+				pingInfo.GraphSynced = info.SyncedToGraph
+				pingInfo.Addresses = info.Uris
+				pingInfo.HtlcInterceptorRequired = info.RequireHtlcInterceptor
+				for _, chain := range info.Chains {
+					pingInfo.Chains = append(pingInfo.Chains, VectorPingChain{Chain: chain.Chain, Network: chain.Network})
+				}
+				pingInfo.Features = make(map[int]VectorPingFeature)
+				for number, feature := range info.Features {
+					pingInfo.Features[int(number)] =
+						VectorPingFeature{Name: feature.Name, Required: feature.IsRequired, Known: feature.IsKnown}
+				}
+				pingInfoJsonByteArray, err = json.Marshal(pingInfo)
+				if err != nil {
+					log.Error().Err(err).Msgf("%v marshalling message: %v", serviceType.String(), pingInfo)
+					cache.SetFailedNodeServiceState(serviceType, nodeId)
+					return
+				}
+				signMsgReq := lnrpc.SignMessageRequest{
+					Msg: pingInfoJsonByteArray,
+				}
+				signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
+				if err != nil {
+					log.Error().Err(err).Msgf("%v Signing message: %v", serviceType.String(), string(pingInfoJsonByteArray))
+					cache.SetFailedNodeServiceState(serviceType, nodeId)
+					return
+				}
+				signature = signMsgResp.Signature
+			case core.CLN:
+				client := cln.NewNodeClient(conn)
+				info, err := client.Getinfo(ctx, &cln.GetinfoRequest{})
+				if err != nil {
+					log.Error().Err(err).Msgf("%v obtaining info for nodeId: %v", serviceType.String(), nodeId)
+					cache.SetFailedNodeServiceState(serviceType, nodeId)
+					return
+				}
+				pingInfo.Implementation = "LND"
+				pingInfo.Version = info.Version
+				pingInfo.PublicKey = hex.EncodeToString(info.Id)
+				pingInfo.Alias = info.Alias
+				pingInfo.Color = hex.EncodeToString(info.Color)
+				pingInfo.PendingChannelCount = int(info.NumPendingChannels)
+				pingInfo.ActiveChannelCount = int(info.NumActiveChannels)
+				pingInfo.InactiveChannelCount = int(info.NumInactiveChannels)
+				pingInfo.PeerCount = int(info.NumPeers)
+				pingInfo.BlockHeight = info.Blockheight
+				pingInfo.ChainSynced = info.WarningLightningdSync == nil || *info.WarningLightningdSync == ""
+				pingInfo.GraphSynced = info.WarningBitcoindSync == nil || *info.WarningBitcoindSync == ""
+				pingInfo.Chains = append(pingInfo.Chains, VectorPingChain{Chain: core.Bitcoin.String(), Network: info.Network})
+				for _, address := range info.Address {
+					if address != nil && (*address).Address != nil {
+						pingInfo.Addresses = append(pingInfo.Addresses, *address.Address)
+					}
+				}
+				pingInfoJsonByteArray, err = json.Marshal(pingInfo)
+				if err != nil {
+					log.Error().Err(err).Msgf("%v marshalling message: %v", serviceType.String(), pingInfo)
+					cache.SetFailedNodeServiceState(serviceType, nodeId)
+					return
+				}
+				signMsgReq := cln.SignmessageRequest{
+					Message: string(pingInfoJsonByteArray),
+				}
+				signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
+				if err != nil {
+					log.Error().Err(err).Msgf("%v Signing message: %v", serviceType.String(), string(pingInfoJsonByteArray))
+					cache.SetFailedNodeServiceState(serviceType, nodeId)
+					return
+				}
+				signature = string(signMsgResp.Signature)
 			}
-			signMsgReq := lnrpc.SignMessageRequest{
-				Msg: pingInfoJsonByteArray,
-			}
-			signMsgResp, err := client.SignMessage(ctx, &signMsgReq)
+
+			b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signature})
 			if err != nil {
-				log.Error().Err(err).Msgf("VectorService: Signing message: %v", string(pingInfoJsonByteArray))
-				cache.SetFailedLndServiceState(serviceType, nodeId)
-				return
-			}
-			b, err := json.Marshal(PeerEvent{Message: string(pingInfoJsonByteArray), Signature: signMsgResp.Signature})
-			if err != nil {
-				log.Error().Err(err).Msgf("VectorService: Marshalling message: %v", string(pingInfoJsonByteArray))
-				cache.SetFailedLndServiceState(serviceType, nodeId)
+				log.Error().Err(err).Msgf("%v marshalling message: %v", serviceType.String(), string(pingInfoJsonByteArray))
+				cache.SetFailedNodeServiceState(serviceType, nodeId)
 				return
 			}
 
 			req, err := http.NewRequest("POST", vector.GetVectorUrl(vectorPingUrlSuffix), bytes.NewBuffer(b))
 			if err != nil {
-				log.Error().Err(err).Msgf("VectorService: Creating new request for message: %v", string(pingInfoJsonByteArray))
-				cache.SetFailedLndServiceState(serviceType, nodeId)
+				log.Error().Err(err).Msgf("%v creating new request for message: %v", serviceType.String(), string(pingInfoJsonByteArray))
+				cache.SetFailedNodeServiceState(serviceType, nodeId)
 				return
 			}
 			req.Header.Set("Content-Type", "application/json")
@@ -158,17 +214,17 @@ func Start(ctx context.Context, conn *grpc.ClientConn, nodeId int) {
 			httpClient := &http.Client{}
 			resp, err := httpClient.Do(req)
 			if err != nil {
-				log.Error().Err(err).Msgf("VectorService: Posting message: %v", string(pingInfoJsonByteArray))
-				cache.SetFailedLndServiceState(serviceType, nodeId)
+				log.Error().Err(err).Msgf("%v posting message: %v", serviceType.String(), string(pingInfoJsonByteArray))
+				cache.SetFailedNodeServiceState(serviceType, nodeId)
 				return
 			}
 			err = resp.Body.Close()
 			if err != nil {
-				log.Error().Err(err).Msg("VectorService: Closing response body.")
-				cache.SetFailedLndServiceState(serviceType, nodeId)
+				log.Error().Err(err).Msgf("%v closing response body.", serviceType.String())
+				cache.SetFailedNodeServiceState(serviceType, nodeId)
 				return
 			}
-			log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signMsgResp)
+			log.Debug().Msgf("Vector Ping Service %v (%v)", string(pingInfoJsonByteArray), signature)
 		}
 	}
 }

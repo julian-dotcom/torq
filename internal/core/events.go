@@ -46,22 +46,6 @@ type ChannelBalanceEventData struct {
 	PeerLocalBalancePerMilleRatio int   `json:"peerLocalBalancePerMilleRatio"`
 }
 
-type ServiceStatus int
-
-const (
-	// ServiceInactive is the initial state of a service
-	ServiceInactive = ServiceStatus(Inactive)
-	// ServiceActive is the state when the service is fully operational
-	// (so not bootstrapping but working with live data)
-	ServiceActive = ServiceStatus(Active)
-	// ServicePending is when the service is booted but waiting for some connection to become active
-	// (not all services have this state)
-	ServicePending = ServiceStatus(Pending)
-	// ServiceInitializing is when a service is operational but it's performing an initialization task
-	// (an example here would be importing historic data before starting to process live data)
-	ServiceInitializing = ServiceStatus(Initializing)
-)
-
 type NodeGraphEvent struct {
 	GraphEventData
 	NodeGraphEventData
@@ -288,95 +272,4 @@ type BatchOpenResponse struct {
 
 type PendingChannel struct {
 	PendingChannelPoint string `json:"pendingChannelPoint"`
-}
-
-type InformationResponse struct {
-	NodeId                  int            `json:"nodeId"`
-	Implementation          Implementation `json:"implementation"`
-	Version                 string         `json:"version"`
-	PublicKey               string         `json:"publicKey"`
-	Alias                   string         `json:"alias"`
-	Color                   string         `json:"color"`
-	PendingChannelCount     int            `json:"pendingChannelCount"`
-	ActiveChannelCount      int            `json:"activeChannelCount"`
-	InactiveChannelCount    int            `json:"inactiveChannelCount"`
-	PeerCount               int            `json:"peerCount"`
-	BlockHeight             uint32         `json:"blockHeight"`
-	BlockHash               string         `json:"blockHash"`
-	BestHeaderTimestamp     time.Time      `json:"bestHeaderTimestamp"`
-	ChainSynced             bool           `json:"chainSynced"`
-	GraphSynced             bool           `json:"graphSynced"`
-	Addresses               []string       `json:"addresses"`
-	HtlcInterceptorRequired bool           `json:"htlcInterceptorRequired"`
-}
-
-type FeatureEntry struct {
-	Key   uint32  `json:"key"`
-	Value Feature `json:"value"`
-}
-
-type Feature struct {
-	Name       string `json:"name"`
-	IsRequired bool   `json:"isRequired"`
-	IsKnown    bool   `json:"isKnown"`
-}
-
-type TimeStampedError struct {
-	Timestamp uint64 `json:"timestamp"`
-	Error     string `json:"error"`
-}
-
-type Peer struct {
-	PubKey          string             `json:"pubKey"`
-	Address         string             `json:"address"`
-	BytesSent       uint64             `json:"bytesSent"`
-	BytesRecv       uint64             `json:"bytesRecv"`
-	SatSent         int64              `json:"satSent"`
-	SatRecv         int64              `json:"satRecv"`
-	Inbound         bool               `json:"inbound"`
-	PingTime        int64              `json:"pingTime"`
-	SyncType        PeerSyncType       `json:"syncType"`
-	Features        []FeatureEntry     `json:"features"`
-	Errors          []TimeStampedError `json:"errors"`
-	FlapCount       int32              `json:"flapCount"`
-	LastFlapNS      int64              `json:"lastFlapNs"`
-	LastPingPayload []byte             `json:"lastPingPayload"`
-}
-
-type CommunicationRequest struct {
-	NodeId int `json:"nodeId"`
-}
-
-type CommunicationResponse struct {
-	Status  Status `json:"status"`
-	Message string `json:"message"`
-	Error   string `json:"error"`
-}
-
-type RebalanceRequests struct {
-	CommunicationRequest
-	Requests []RebalanceRequest
-}
-
-type RebalanceRequest struct {
-	Origin RebalanceRequestOrigin `json:"origin"`
-	// Either manually generated number for manual rebalance or
-	// WorkflowVersionNodeId for rebalance originating from workflows
-	OriginId        int    `json:"originId"`
-	OriginReference string `json:"originReference"`
-	// Either IncomingChannelId is populated or OutgoingChannelId is.
-	IncomingChannelId int `json:"incomingChannelId"`
-	// Either OutgoingChannelId is populated or IncomingChannelId is.
-	OutgoingChannelId int `json:"outgoingChannelIds"`
-	// ONLY used for previous success rerun validation!
-	ChannelIds            []int       `json:"channelIds"`
-	AmountMsat            uint64      `json:"amountMsat"`
-	MaximumCostMsat       uint64      `json:"maximumCostMsat"`
-	MaximumConcurrency    int         `json:"maximumConcurrency"`
-	WorkflowUnfocusedPath interface{} `json:"-"`
-}
-
-type RebalanceResponse struct {
-	Request RebalanceRequest `json:"request"`
-	CommunicationResponse
 }

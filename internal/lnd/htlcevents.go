@@ -7,6 +7,8 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -99,7 +101,7 @@ func storeFullEvent(db *sqlx.DB, h *routerrpc.HtlcEvent, nodeId int, eventType s
 func getChannelIdByLndShortChannelId(lndShortChannelId uint64) *int {
 	var channelId *int
 	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
-	tempChannelId := cache.GetChannelIdByShortChannelId(shortChannelId)
+	tempChannelId := cache.GetChannelIdByShortChannelId(&shortChannelId)
 	if tempChannelId != 0 {
 		channelId = &tempChannelId
 	}
@@ -156,26 +158,26 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := core.LndServiceHtlcEventStream
+	serviceType := services_core.LndServiceHtlcEventStream
 
 	stream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		log.Error().Err(err).Msgf(
 			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+	cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -183,12 +185,12 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 		htlcEvent, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf(
 				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
-			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 

@@ -8,9 +8,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/cache"
-	"github.com/lncapital/torq/internal/core"
+	cln2 "github.com/lncapital/torq/internal/cln"
 	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/lnd"
+	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/proto/cln"
 	"github.com/lncapital/torq/proto/lnrpc"
 	"github.com/lncapital/torq/proto/lnrpc/chainrpc"
 	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
@@ -20,38 +22,38 @@ import (
 
 func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceChannelEventStream
+	serviceType := services_core.LndServiceChannelEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	err := lightning.ImportAllChannels(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channels for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
 	err = lightning.ImportChannelRoutingPolicies(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channel routing policies for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
 	err = lightning.ImportNodeInformation(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Node Information for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
@@ -60,38 +62,38 @@ func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sql
 
 func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceGraphEventStream
+	serviceType := services_core.LndServiceGraphEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	err := lightning.ImportAllChannels(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channels for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
 	err = lightning.ImportChannelRoutingPolicies(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channel routing policies for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
 	err = lightning.ImportNodeInformation(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Node Information for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
@@ -100,83 +102,64 @@ func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 func StartHtlcEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceHtlcEventStream
+	serviceType := services_core.LndServiceHtlcEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	lnd.SubscribeAndStoreHtlcEvents(ctx, routerrpc.NewRouterClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }
 
 func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServicePeerEventStream
+	serviceType := services_core.LndServicePeerEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	err := lightning.ImportPeerStatus(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import peer status for nodeId: %v", nodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
 	lnd.SubscribePeerEvents(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }
 
-func StartChannelBalanceCacheMaintenance(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
-
-	serviceType := core.LndServiceChannelBalanceCacheStream
-
-	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
-
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
-			return
-		}
-	}()
-
-	cache.SetPendingLndServiceState(serviceType, nodeId)
-
-	lnd.ChannelBalanceCacheMaintenance(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
-}
-
 func StartTransactionStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceTransactionStream
+	serviceType := services_core.LndServiceTransactionStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	lnd.SubscribeAndStoreTransactions(ctx,
 		lnrpc.NewLightningClient(conn),
@@ -185,78 +168,176 @@ func StartTransactionStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx
 		cache.GetNodeSettingsByNodeId(nodeId))
 }
 
-func StartForwardStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+func StartForwardsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceForwardStream
+	serviceType := services_core.LndServiceForwardsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	lnd.SubscribeForwardingEvents(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId), nil)
 }
 
-func StartPaymentStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+func StartPaymentsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServicePaymentStream
+	serviceType := services_core.LndServicePaymentsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	lnd.SubscribeAndStorePayments(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId), nil)
 }
 
 func StartInvoiceStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceInvoiceStream
+	serviceType := services_core.LndServiceInvoiceStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	lnd.SubscribeAndStoreInvoices(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }
 
-func StartInFlightPaymentStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+func StartInFlightPaymentsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.LndServiceInFlightPaymentStream
+	serviceType := services_core.LndServiceInFlightPaymentsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetPendingLndServiceState(serviceType, nodeId)
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
 	lnd.UpdateInFlightPayments(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId), nil)
+}
+
+func StartPeersService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	serviceType := services_core.ClnServicePeersService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
+			return
+		}
+	}()
+
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
+
+	cln2.SubscribeAndStorePeers(ctx, cln.NewNodeClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
+}
+
+func StartChannelsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	serviceType := services_core.ClnServiceChannelsService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
+			return
+		}
+	}()
+
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
+
+	cln2.SubscribeAndStoreChannels(ctx, cln.NewNodeClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
+}
+
+func StartFundsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	serviceType := services_core.ClnServiceFundsService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
+			return
+		}
+	}()
+
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
+
+	cln2.SubscribeAndStoreFunds(ctx, cln.NewNodeClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
+}
+
+func StartNodesService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	serviceType := services_core.ClnServiceNodesService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
+			return
+		}
+	}()
+
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
+
+	cln2.SubscribeAndStoreNodes(ctx, cln.NewNodeClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
+}
+
+func StartChannelBalanceCacheMaintenance(ctx context.Context,
+	conn *grpc.ClientConn,
+	db *sqlx.DB,
+	nodeId int) {
+
+	serviceType := services_core.LndServiceChannelBalanceCacheService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
+			return
+		}
+	}()
+
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
+
+	lnd.ChannelBalanceCacheMaintenance(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }

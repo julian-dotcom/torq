@@ -224,7 +224,26 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 		// Force Response because we don't care about balance accuracy
 		channel := cache.GetChannelState(nodeId, channelId, true)
 		channelSettings := cache.GetChannelSettingByChannelId(channel.ChannelId)
-		lndShortChannelIdString := strconv.FormatUint(channelSettings.LndShortChannelId, 10)
+		var lndShortChannelIdString string
+		if channelSettings.LndShortChannelId != nil {
+			lndShortChannelIdString = strconv.FormatUint(*channelSettings.LndShortChannelId, 10)
+		}
+		var shortChannelIdString string
+		if channelSettings.ShortChannelId != nil {
+			shortChannelIdString = *channelSettings.ShortChannelId
+		}
+		var channelPoint string
+		if channelSettings.FundingTransactionHash != nil && channelSettings.FundingOutputIndex != nil {
+			channelPoint = core.CreateChannelPoint(*channelSettings.FundingTransactionHash, *channelSettings.FundingOutputIndex)
+		}
+		var fundingTransactionHash string
+		if channelSettings.FundingTransactionHash != nil {
+			fundingTransactionHash = *channelSettings.FundingTransactionHash
+		}
+		var fundingOutputIndex int
+		if channelSettings.FundingOutputIndex != nil {
+			fundingOutputIndex = *channelSettings.FundingOutputIndex
+		}
 
 		pendingHTLCs := calculateHTLCs(channel.PendingHtlcs)
 
@@ -236,19 +255,19 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 			NodeName:                     *cache.GetNodeSettingsByNodeId(nodeId).Name,
 			Active:                       !channel.LocalDisabled,
 			RemoteActive:                 !channel.RemoteDisabled,
-			ChannelPoint:                 core.CreateChannelPoint(channelSettings.FundingTransactionHash, channelSettings.FundingOutputIndex),
+			ChannelPoint:                 channelPoint,
 			Gauge:                        (float64(channel.LocalBalance) / float64(channelSettings.Capacity)) * 100,
 			RemotePubkey:                 cache.GetNodeSettingsByNodeId(channel.RemoteNodeId).PublicKey,
 			PeerAlias:                    cache.GetNodeAlias(channel.RemoteNodeId),
-			FundingTransactionHash:       channelSettings.FundingTransactionHash,
-			FundingOutputIndex:           channelSettings.FundingOutputIndex,
+			FundingTransactionHash:       fundingTransactionHash,
+			FundingOutputIndex:           fundingOutputIndex,
 			CurrentBlockHeight:           cache.GetBlockHeight(),
 			FundingBlockHeight:           channelSettings.FundingBlockHeight,
 			FundedOn:                     channelSettings.FundedOn,
 			ClosingBlockHeight:           channelSettings.ClosingBlockHeight,
 			ClosedOn:                     channelSettings.ClosedOn,
 			LNDShortChannelId:            lndShortChannelIdString,
-			ShortChannelId:               channelSettings.ShortChannelId,
+			ShortChannelId:               shortChannelIdString,
 			Capacity:                     channelSettings.Capacity,
 			PeerChannelCapacity:          channel.PeerChannelCapacity,
 			PeerChannelCount:             channel.PeerChannelCount,
@@ -283,9 +302,9 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 			ChanStatusFlags:              channel.ChanStatusFlags,
 			CommitmentType:               channel.CommitmentType,
 			Lifetime:                     channel.Lifetime,
-			MempoolSpace:                 core.MEMPOOL + lndShortChannelIdString,
-			AmbossSpace:                  core.AMBOSS + channelSettings.ShortChannelId,
-			OneMl:                        core.ONEML + lndShortChannelIdString,
+			MempoolSpace:                 core.MEMPOOL + shortChannelIdString,
+			AmbossSpace:                  core.AMBOSS + shortChannelIdString,
+			OneMl:                        core.ONEML + shortChannelIdString,
 			Private:                      channelSettings.Private,
 		}
 
@@ -355,11 +374,16 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 			peerNodeId = channel.FirstNodeId
 		}
 
+		var fundingTransactionHash string
+		if channel.FundingTransactionHash != nil {
+			fundingTransactionHash = *channel.FundingTransactionHash
+		}
+
 		closedChannels[i] = ClosedChannel{
 			ChannelID:              channel.ChannelID,
 			Tags:                   channel.Tags,
 			ShortChannelID:         channel.ShortChannelID,
-			FundingTransactionHash: channel.FundingTransactionHash,
+			FundingTransactionHash: fundingTransactionHash,
 			ClosingTransactionHash: channel.ClosingTransactionHash,
 			Capacity:               channel.Capacity,
 			FirstNodeId:            channel.FirstNodeId,
@@ -431,11 +455,16 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 			peerNodeId = channel.FirstNodeId
 		}
 
+		var fundingTransactionHash string
+		if channel.FundingTransactionHash != nil {
+			fundingTransactionHash = *channel.FundingTransactionHash
+		}
+
 		closedChannels[i] = PendingChannel{
 			ChannelID:              channel.ChannelID,
 			Tags:                   channel.Tags,
 			ShortChannelID:         channel.ShortChannelID,
-			FundingTransactionHash: channel.FundingTransactionHash,
+			FundingTransactionHash: fundingTransactionHash,
 			ClosingTransactionHash: channel.ClosingTransactionHash,
 			Capacity:               channel.Capacity,
 			FirstNodeId:            channel.FirstNodeId,

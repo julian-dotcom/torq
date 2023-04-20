@@ -272,8 +272,10 @@ func getTagChannels(tagId int) ([]TaggedChannels, error) {
 		channelSettings := cache.GetChannelSettingByChannelId(channelId)
 		nodeAlias := cache.GetNodeAlias(channelSettings.SecondNodeId)
 		taggedChannel := TaggedChannels{
-			ShortChannelId: channelSettings.ShortChannelId,
-			ChannelId:      channelId,
+			ChannelId: channelId,
+		}
+		if channelSettings.ShortChannelId != nil {
+			taggedChannel.ShortChannelId = *channelSettings.ShortChannelId
 		}
 		if nodeAlias != "" {
 			taggedChannel.Name = &nodeAlias

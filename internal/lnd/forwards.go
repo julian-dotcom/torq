@@ -11,6 +11,7 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -35,7 +36,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 		}
 		for _, event := range fwh {
 			incomingShortChannelId := core.ConvertLNDShortChannelID(event.ChanIdIn)
-			incomingChannelId := cache.GetChannelIdByShortChannelId(incomingShortChannelId)
+			incomingChannelId := cache.GetChannelIdByShortChannelId(&incomingShortChannelId)
 			incomingChannelIdP := &incomingChannelId
 			if incomingChannelId == 0 {
 				log.Error().Msgf("Forward received for a non existing channel (incomingChannelIdP: %v)",
@@ -43,7 +44,7 @@ func storeForwardingHistory(db *sqlx.DB, fwh []*lnrpc.ForwardingEvent, nodeId in
 				incomingChannelIdP = nil
 			}
 			outgoingShortChannelId := core.ConvertLNDShortChannelID(event.ChanIdOut)
-			outgoingChannelId := cache.GetChannelIdByShortChannelId(outgoingShortChannelId)
+			outgoingChannelId := cache.GetChannelIdByShortChannelId(&outgoingShortChannelId)
 			outgoingChannelIdP := &outgoingChannelId
 			if outgoingChannelId == 0 {
 				log.Error().Msgf("Forward received for a non existing channel (outgoingShortChannelId: %v)",
@@ -123,7 +124,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	nodeSettings cache.NodeSettingsCache,
 	opt *FwhOptions) {
 
-	serviceType := core.LndServiceForwardStream
+	serviceType := services_core.LndServiceForwardsService
 
 	maxEvents := streamLndMaxForwards
 	bootStrapping := true
@@ -148,7 +149,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	importHistoricForwards := cache.HasCustomSetting(nodeSettings.NodeId, core.ImportHistoricForwards)
 	if !importHistoricForwards {
 		log.Info().Msgf("Import of historic forwards is disabled for nodeId: %v", nodeSettings.NodeId)
-		cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 		enforcedReferenceDateO := time.Now()
 		enforcedReferenceDate = &enforcedReferenceDateO
 		bootStrapping = false
@@ -160,7 +161,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	for {
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-tickerChannel:
 			importCounter := 0
@@ -172,7 +173,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 				lastNs, err := fetchLastForwardTime(db, nodeSettings.NodeId)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to obtain last know forward for nodeId: %v", nodeSettings.NodeId)
-					cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 					return
 				}
 				if enforcedReferenceDate != nil && lastNs == 0 {
@@ -194,16 +195,16 @@ func SubscribeForwardingEvents(ctx context.Context,
 				fwh, err := client.ForwardingHistory(ctx, fwhReq)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
-						cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
 					log.Error().Err(err).Msgf("Failed to obtain forwards for nodeId: %v", nodeSettings.NodeId)
-					cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 					return
 				}
 
 				if bootStrapping {
-					cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 				}
 				// Store the forwarding history
 				err = storeForwardingHistory(db, fwh.ForwardingEvents, nodeSettings.NodeId, bootStrapping)
@@ -217,7 +218,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 				if len(fwh.ForwardingEvents) < maxEvents {
 					if bootStrapping {
 						log.Info().Msgf("Bulk import of forward done (%v)", importCounter)
-						cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 					}
 					bootStrapping = false
 					break

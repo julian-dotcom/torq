@@ -1,35 +1,5 @@
 package core
 
-type ServiceType int
-
-// When adding here also add to GetServiceTypes
-const (
-	RootService = ServiceType(iota)
-	MaintenanceService
-	AutomationIntervalTriggerService
-	AutomationChannelEventTriggerService
-	AutomationChannelBalanceEventTriggerService
-	AutomationScheduledTriggerService
-	CronService
-	VectorService
-	AmbossService
-	RebalanceService
-	SlackService
-	TelegramHighService
-	TelegramLowService
-	NotifierService
-	LndServiceChannelEventStream
-	LndServiceGraphEventStream
-	LndServiceTransactionStream
-	LndServiceHtlcEventStream
-	LndServiceForwardStream
-	LndServiceInvoiceStream
-	LndServicePaymentStream
-	LndServicePeerEventStream
-	LndServiceInFlightPaymentStream
-	LndServiceChannelBalanceCacheStream
-)
-
 const UnknownEnumString = "Unknown"
 
 type Status int
@@ -212,13 +182,6 @@ type WorkflowNodeTypeParameters struct {
 	OptionalOutputs  map[WorkflowParameterLabel]WorkflowParameterType
 }
 
-type RebalanceRequestOrigin int
-
-const (
-	RebalanceRequestWorkflowNode = RebalanceRequestOrigin(iota)
-	RebalanceRequestManual
-)
-
 type BalanceUpdateEventOrigin int
 
 const (
@@ -231,19 +194,6 @@ type NotificationType int
 
 const (
 	NodeDetails NotificationType = iota
-)
-
-type PeerSyncType int32
-
-const (
-	// PeerUnknownSync Denotes that we cannot determine the peer's current sync type.
-	PeerUnknownSync PeerSyncType = 0
-	// PeerActiveSync Denotes that we are actively receiving new graph updates from the peer.
-	PeerActiveSync PeerSyncType = 1
-	// PeerPassiveSync Denotes that we are not receiving new graph updates from the peer.
-	PeerPassiveSync PeerSyncType = 2
-	// PeerPinnedSync Denotes that this peer is pinned into an active sync.
-	PeerPinnedSync PeerSyncType = 3
 )
 
 type NodeConnectionSetting int

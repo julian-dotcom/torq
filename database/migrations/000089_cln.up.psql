@@ -1,0 +1,8 @@
+
+ALTER TABLE node_connection_details ADD COLUMN certificate_file_name TEXT;
+ALTER TABLE node_connection_details ADD COLUMN certificate_data BYTEA;
+ALTER TABLE node_connection_details ADD COLUMN key_file_name TEXT;
+ALTER TABLE node_connection_details ADD COLUMN key_data BYTEA;
+
+ALTER TABLE channel ALTER COLUMN funding_transaction_hash DROP NOT NULL;
+ALTER TABLE channel ALTER COLUMN funding_output_index DROP NOT NULL;

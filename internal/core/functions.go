@@ -11,8 +11,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
-
-	"github.com/lncapital/torq/proto/lnrpc"
 )
 
 func (s Network) String() string {
@@ -118,16 +116,16 @@ func ConvertShortChannelIDToLND(ShortChannelID string) (uint64, error) {
 		(uint64(txPosition)), nil
 }
 
-func ParseChannelPoint(channelPoint string) (string, int) {
+func ParseChannelPoint(channelPoint string) (*string, *int) {
 	parts := strings.Split(channelPoint, ":")
 	if channelPoint != "" && strings.Contains(channelPoint, ":") && len(parts) == 2 {
 		outputIndex, err := strconv.Atoi(parts[1])
 		if err == nil {
-			return parts[0], outputIndex
+			return &parts[0], &outputIndex
 		}
 		log.Debug().Err(err).Msgf("Failed to parse channelPoint %v", channelPoint)
 	}
-	return "", 0
+	return nil, nil
 }
 
 func CreateChannelPoint(fundingTransactionHash string, fundingOutputIndex int) string {
@@ -187,23 +185,6 @@ func (s *Status) String() string {
 	return UnknownEnumString
 }
 
-func (s *ServiceStatus) String() string {
-	if s == nil {
-		return UnknownEnumString
-	}
-	switch *s {
-	case ServiceInactive:
-		return "Inactive"
-	case ServiceActive:
-		return "Active"
-	case ServicePending:
-		return "Pending"
-	case ServiceInitializing:
-		return "Initializing"
-	}
-	return UnknownEnumString
-}
-
 func (ps PingSystem) AddPingSystem(pingSystem PingSystem) PingSystem {
 	return ps | pingSystem
 }
@@ -212,19 +193,6 @@ func (ps PingSystem) HasPingSystem(pingSystem PingSystem) bool {
 }
 func (ps PingSystem) RemovePingSystem(pingSystem PingSystem) PingSystem {
 	return ps & ^pingSystem
-}
-func (ps PingSystem) GetServiceType() *ServiceType {
-	switch {
-	case ps.HasPingSystem(Vector):
-		vectorService := VectorService
-		return &vectorService
-	case ps.HasPingSystem(Amboss):
-		ambossService := AmbossService
-		return &ambossService
-	default:
-		log.Error().Msgf("DEVELOPMENT ERROR: PingSystem not supported")
-		return nil
-	}
 }
 
 func (cs NodeConnectionDetailCustomSettings) AddNodeConnectionDetailCustomSettings(
@@ -242,30 +210,6 @@ func (cs NodeConnectionDetailCustomSettings) RemoveNodeConnectionDetailCustomSet
 
 	return cs & ^customSettings
 }
-func (cs NodeConnectionDetailCustomSettings) GetServiceType() *ServiceType {
-	switch {
-	case cs.HasNodeConnectionDetailCustomSettings(ImportFailedPayments),
-		cs.HasNodeConnectionDetailCustomSettings(ImportPayments):
-		lndServicePaymentStream := LndServicePaymentStream
-		return &lndServicePaymentStream
-	case cs.HasNodeConnectionDetailCustomSettings(ImportHtlcEvents):
-		lndServiceHtlcEventStream := LndServiceHtlcEventStream
-		return &lndServiceHtlcEventStream
-	case cs.HasNodeConnectionDetailCustomSettings(ImportTransactions):
-		lndServiceTransactionStream := LndServiceTransactionStream
-		return &lndServiceTransactionStream
-	case cs.HasNodeConnectionDetailCustomSettings(ImportInvoices):
-		lndServiceInvoiceStream := LndServiceInvoiceStream
-		return &lndServiceInvoiceStream
-	case cs.HasNodeConnectionDetailCustomSettings(ImportForwards),
-		cs.HasNodeConnectionDetailCustomSettings(ImportHistoricForwards):
-		lndServiceForwardStream := LndServiceForwardStream
-		return &lndServiceForwardStream
-	default:
-		log.Error().Msgf("DEVELOPMENT ERROR: NodeConnectionDetailCustomSettings not supported")
-		return nil
-	}
-}
 
 func (cf ChannelFlags) AddChannelFlag(channelFlags ChannelFlags) ChannelFlags {
 	return cf | channelFlags
@@ -277,37 +221,10 @@ func (cf ChannelFlags) RemoveChannelFlag(channelFlags ChannelFlags) ChannelFlags
 	return cf & ^channelFlags
 }
 
-func GetCoreServiceTypes() []ServiceType {
-	return []ServiceType{
-		RootService,
-		MaintenanceService,
-		AutomationIntervalTriggerService,
-		AutomationChannelBalanceEventTriggerService,
-		AutomationChannelEventTriggerService,
-		AutomationScheduledTriggerService,
-		CronService,
-		NotifierService,
-		SlackService,
-		TelegramHighService,
-		TelegramLowService,
-	}
-}
-
-func GetLndServiceTypes() []ServiceType {
-	return []ServiceType{
-		VectorService,
-		AmbossService,
-		RebalanceService,
-		LndServiceChannelEventStream,
-		LndServiceGraphEventStream,
-		LndServiceTransactionStream,
-		LndServiceHtlcEventStream,
-		LndServiceForwardStream,
-		LndServiceInvoiceStream,
-		LndServicePaymentStream,
-		LndServicePeerEventStream,
-		LndServiceInFlightPaymentStream,
-		LndServiceChannelBalanceCacheStream,
+func GetImplementations() []Implementation {
+	return []Implementation{
+		LND,
+		CLN,
 	}
 }
 
@@ -320,132 +237,6 @@ func GetNodeConnectionDetailCustomSettings() []NodeConnectionDetailCustomSetting
 		ImportInvoices,
 		ImportForwards,
 		ImportHistoricForwards,
-	}
-}
-
-func (st *ServiceType) String() string {
-	if st == nil {
-		return UnknownEnumString
-	}
-	switch *st {
-	case VectorService:
-		return "VectorService"
-	case AmbossService:
-		return "AmbossService"
-	case RootService:
-		return "RootService"
-	case AutomationChannelBalanceEventTriggerService:
-		return "AutomationChannelBalanceEventTriggerService"
-	case AutomationChannelEventTriggerService:
-		return "AutomationChannelEventTriggerService"
-	case AutomationIntervalTriggerService:
-		return "AutomationIntervalTriggerService"
-	case AutomationScheduledTriggerService:
-		return "AutomationScheduledTriggerService"
-	case RebalanceService:
-		return "RebalanceService"
-	case MaintenanceService:
-		return "MaintenanceService"
-	case CronService:
-		return "CronService"
-	case NotifierService:
-		return "NotifierService"
-	case SlackService:
-		return "SlackService"
-	case TelegramHighService:
-		return "TelegramHighService"
-	case TelegramLowService:
-		return "TelegramLowService"
-	case LndServiceChannelEventStream:
-		return "LndServiceChannelEventStream"
-	case LndServiceGraphEventStream:
-		return "LndServiceGraphEventStream"
-	case LndServiceTransactionStream:
-		return "LndServiceTransactionStream"
-	case LndServiceHtlcEventStream:
-		return "LndServiceHtlcEventStream"
-	case LndServiceForwardStream:
-		return "LndServiceForwardStream"
-	case LndServiceInvoiceStream:
-		return "LndServiceInvoiceStream"
-	case LndServicePaymentStream:
-		return "LndServicePaymentStream"
-	case LndServicePeerEventStream:
-		return "LndServicePeerEventStream"
-	case LndServiceInFlightPaymentStream:
-		return "LndServiceInFlightPaymentStream"
-	case LndServiceChannelBalanceCacheStream:
-		return "LndServiceChannelBalanceCacheStream"
-	}
-	return UnknownEnumString
-}
-
-func (st *ServiceType) IsChannelBalanceCache() bool {
-	if st != nil && (*st == LndServiceForwardStream ||
-		*st == LndServiceInvoiceStream ||
-		*st == LndServicePaymentStream ||
-		*st == LndServicePeerEventStream ||
-		*st == LndServiceChannelEventStream ||
-		*st == LndServiceGraphEventStream) {
-		return true
-	}
-	return false
-}
-
-func (st *ServiceType) IsLndService() bool {
-	if st != nil && (*st == VectorService ||
-		*st == AmbossService ||
-		*st == RebalanceService ||
-		*st == LndServiceChannelEventStream ||
-		*st == LndServiceGraphEventStream ||
-		*st == LndServiceTransactionStream ||
-		*st == LndServiceHtlcEventStream ||
-		*st == LndServiceForwardStream ||
-		*st == LndServiceInvoiceStream ||
-		*st == LndServicePaymentStream ||
-		*st == LndServicePeerEventStream ||
-		*st == LndServiceInFlightPaymentStream ||
-		*st == LndServiceChannelBalanceCacheStream) {
-		return true
-	}
-	return false
-}
-
-func (st *ServiceType) GetNodeConnectionDetailCustomSettings() []NodeConnectionDetailCustomSettings {
-	if st == nil {
-		return nil
-	}
-	switch *st {
-	case LndServicePaymentStream:
-		return []NodeConnectionDetailCustomSettings{ImportFailedPayments, ImportPayments}
-	case LndServiceHtlcEventStream:
-		return []NodeConnectionDetailCustomSettings{ImportHtlcEvents}
-	case LndServiceTransactionStream:
-		return []NodeConnectionDetailCustomSettings{ImportTransactions}
-	case LndServiceInvoiceStream:
-		return []NodeConnectionDetailCustomSettings{ImportInvoices}
-	case LndServiceForwardStream:
-		return []NodeConnectionDetailCustomSettings{ImportForwards, ImportHistoricForwards}
-	default:
-		log.Error().Msgf("DEVELOPMENT ERROR: ServiceType not supported")
-		return nil
-	}
-}
-
-func (st *ServiceType) GetPingSystem() *PingSystem {
-	if st == nil {
-		return nil
-	}
-	switch *st {
-	case AmbossService:
-		amboss := Amboss
-		return &amboss
-	case VectorService:
-		vector := Vector
-		return &vector
-	default:
-		log.Error().Msgf("DEVELOPMENT ERROR: ServiceType not supported")
-		return nil
 	}
 }
 
@@ -493,46 +284,6 @@ func GetWorkflowParameterLabelsEnforced() []WorkflowParameterLabel {
 		WorkflowParameterLabelRebalanceSettings,
 		WorkflowParameterLabelStatus,
 	}
-}
-
-func GetPeer(peer *lnrpc.Peer) Peer {
-	p := Peer{
-		PubKey:          peer.PubKey,
-		Address:         peer.Address,
-		BytesSent:       peer.BytesSent,
-		BytesRecv:       peer.BytesRecv,
-		SatSent:         peer.SatSent,
-		SatRecv:         peer.SatRecv,
-		Inbound:         peer.Inbound,
-		PingTime:        peer.PingTime,
-		SyncType:        PeerSyncType(peer.SyncType),
-		FlapCount:       peer.FlapCount,
-		LastFlapNS:      peer.LastFlapNs,
-		LastPingPayload: peer.LastPingPayload,
-	}
-
-	features := make([]FeatureEntry, len(peer.Features))
-	for key, feature := range peer.Features {
-		features = append(features, FeatureEntry{
-			Key: key,
-			Value: Feature{
-				Name:       feature.Name,
-				IsRequired: feature.IsRequired,
-				IsKnown:    feature.IsKnown,
-			},
-		})
-	}
-	p.Features = features
-
-	timeStampedErrors := make([]TimeStampedError, len(peer.Errors))
-	for _, tse := range peer.Errors {
-		timeStampedErrors = append(timeStampedErrors, TimeStampedError{
-			Timestamp: tse.Timestamp,
-			Error:     tse.Error,
-		})
-	}
-	p.Errors = timeStampedErrors
-	return p
 }
 
 func GetWorkflowNodes() map[WorkflowNodeType]WorkflowNodeTypeParameters {

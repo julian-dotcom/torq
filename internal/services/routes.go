@@ -10,6 +10,7 @@ import (
 	"github.com/lncapital/torq/build"
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -21,7 +22,7 @@ func RegisterUnauthenticatedRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	result := Services{}
 	var bitcoinNetworks []core.Network
-	for _, coreServiceType := range core.GetCoreServiceTypes() {
+	for _, coreServiceType := range services_core.GetCoreServiceTypes() {
 		torqService := cache.GetCurrentCoreServiceState(coreServiceType)
 		desiredState := cache.GetDesiredCoreServiceState(coreServiceType)
 		if desiredState.Status != torqService.Status {
@@ -35,7 +36,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 				FailureTime:         cache.GetCoreFailedAttemptTime(coreServiceType),
 			})
 		}
-		if coreServiceType == core.RootService {
+		if coreServiceType == services_core.RootService {
 			result.MainService = CoreService{
 				CommonService: CommonService{
 					ServiceType:       coreServiceType,
@@ -60,9 +61,9 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 	for _, lndNodeId := range cache.GetLndNodeIds() {
 		nodeId := lndNodeId
 		bitcoinNetwork := cache.GetNodeSettingsByNodeId(nodeId).Network
-		for _, lndServiceType := range core.GetLndServiceTypes() {
-			lndService := cache.GetCurrentLndServiceState(lndServiceType, nodeId)
-			desiredState := cache.GetDesiredLndServiceState(lndServiceType, nodeId)
+		for _, lndServiceType := range services_core.GetLndServiceTypes() {
+			lndService := cache.GetCurrentNodeServiceState(lndServiceType, nodeId)
+			desiredState := cache.GetDesiredNodeServiceState(lndServiceType, nodeId)
 			if desiredState.Status != lndService.Status {
 				result.ServiceMismatches = append(result.ServiceMismatches, ServiceMismatch{
 					ServiceType:         lndServiceType,
@@ -73,7 +74,7 @@ func getServicesHandler(c *gin.Context, db *sqlx.DB) {
 					DesiredStatusString: desiredState.Status.String(),
 					NodeId:              &nodeId,
 					BitcoinNetwork:      &bitcoinNetwork,
-					FailureTime:         cache.GetLndFailedAttemptTime(lndServiceType, nodeId),
+					FailureTime:         cache.GetNodeFailedAttemptTime(lndServiceType, nodeId),
 				})
 			}
 			result.LndServices = append(result.LndServices, LndService{
@@ -103,8 +104,8 @@ func getLndServicesHandler(c *gin.Context, db *sqlx.DB) {
 
 	var lndServices []LndService
 	bitcoinNetwork := cache.GetNodeSettingsByNodeId(nodeId).Network
-	for _, lndServiceType := range core.GetCoreServiceTypes() {
-		lndService := cache.GetCurrentLndServiceState(lndServiceType, nodeId)
+	for _, lndServiceType := range services_core.GetCoreServiceTypes() {
+		lndService := cache.GetCurrentNodeServiceState(lndServiceType, nodeId)
 		lndServices = append(lndServices, LndService{
 			CommonService: CommonService{
 				ServiceType:       lndServiceType,

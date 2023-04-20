@@ -17,6 +17,8 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
+	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/services_core"
 )
 
 type MessageForBot struct {
@@ -104,7 +106,7 @@ var PublicKeys = map[CommunicationTargetType]map[string]string{ //nolint:gocheck
 }
 
 type Menu string
-type nodeIdInt int
+type nodeIdType int
 
 const (
 	MenuMain    Menu = "main"
@@ -130,13 +132,13 @@ func getButtons() [7]string {
 
 func Notify(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.NotifierService
+	serviceType := services_core.NotifierService
 
-	informationResponses := make(map[nodeIdInt]core.InformationResponse)
-	graphInSyncTime := make(map[nodeIdInt]time.Time)
-	graphErrorState := make(map[nodeIdInt]bool)
-	chainInSyncTime := make(map[nodeIdInt]time.Time)
-	chainErrorState := make(map[nodeIdInt]bool)
+	informationResponses := make(map[nodeIdType]lightning_requests.InformationResponse)
+	graphInSyncTime := make(map[nodeIdType]time.Time)
+	graphErrorState := make(map[nodeIdType]bool)
+	chainInSyncTime := make(map[nodeIdType]time.Time)
+	chainErrorState := make(map[nodeIdType]bool)
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -162,33 +164,30 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 						torqNodeSettings.NodeId)
 					continue
 				}
-				var newInformation core.InformationResponse
-				if cache.IsLndServiceActive(torqNodeSettings.NodeId) {
-					newInformation, err = lightning.GetInformationRequest(torqNodeSettings.NodeId)
-					if err != nil {
+				newInformation, err := lightning.GetInformation(torqNodeSettings.NodeId)
+				if err != nil {
+					if errors.Is(err, lightning.ServiceInactiveError) {
+						_, exists := informationResponses[nodeIdType(torqNodeSettings.NodeId)]
+						if !exists {
+							continue
+						}
+						delete(informationResponses, nodeIdType(torqNodeSettings.NodeId))
+					}
+					if !errors.Is(err, lightning.ServiceInactiveError) {
 						log.Error().Err(err).Msgf(
 							"Failed to obtain node information from: %v or publicKey: %v",
 							torqNodeSettings.NodeId, torqNodeSettings.PublicKey)
 					}
-				} else {
-					_, exists := informationResponses[nodeIdInt(torqNodeSettings.NodeId)]
-					if !exists {
-						continue
-					}
-					err = errors.New("LndService is offline")
-					delete(informationResponses, nodeIdInt(torqNodeSettings.NodeId))
-				}
-				if err != nil {
-					message := fmt.Sprintf("Could not connect to LND (%v)", torqNodeSettings.PublicKey)
+					message := fmt.Sprintf("Could not connect (%v)", torqNodeSettings.PublicKey)
 					if torqNodeSettings.Name != nil && *torqNodeSettings.Name != "" {
-						message = fmt.Sprintf("Could not connect to LND (%v)", *torqNodeSettings.Name)
+						message = fmt.Sprintf("Could not connect (%v)", *torqNodeSettings.Name)
 					}
 					sendBotMessages(message, communications)
 					continue
 				}
-				previousInformation, exists := informationResponses[nodeIdInt(torqNodeSettings.NodeId)]
+				previousInformation, exists := informationResponses[nodeIdType(torqNodeSettings.NodeId)]
 				if !exists {
-					informationResponses[nodeIdInt(torqNodeSettings.NodeId)] = newInformation
+					informationResponses[nodeIdType(torqNodeSettings.NodeId)] = newInformation
 					message := fmt.Sprintf("Connected to LND (%v)", torqNodeSettings.PublicKey)
 					if torqNodeSettings.Name != nil && *torqNodeSettings.Name != "" {
 						message = fmt.Sprintf("Connected to LND (%v)", *torqNodeSettings.Name)
@@ -205,7 +204,7 @@ func Notify(ctx context.Context, db *sqlx.DB) {
 				message = comparePendingChannelCount(previousInformation, newInformation, message)
 				message = compareChannelCount(previousInformation, newInformation, message)
 				message = compareVersion(previousInformation, newInformation, message)
-				informationResponses[nodeIdInt(torqNodeSettings.NodeId)] = newInformation
+				informationResponses[nodeIdType(torqNodeSettings.NodeId)] = newInformation
 				if message != "" {
 					sendBotMessages(message, communications)
 				}
@@ -255,52 +254,52 @@ func HandleNotification(db *sqlx.DB, notifierEvent core.NotifierEvent) {
 	}
 }
 
-func compareGraphSyncTime(previousInformation core.InformationResponse,
-	newInformation core.InformationResponse,
-	graphInSyncTime map[nodeIdInt]time.Time,
-	graphErrorState map[nodeIdInt]bool,
+func compareGraphSyncTime(previousInformation lightning_requests.InformationResponse,
+	newInformation lightning_requests.InformationResponse,
+	graphInSyncTime map[nodeIdType]time.Time,
+	graphErrorState map[nodeIdType]bool,
 	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.GraphSynced {
-		graphInSyncTime[nodeIdInt(torqNodeSettings.NodeId)] = time.Now()
-		if !previousInformation.GraphSynced && graphErrorState[nodeIdInt(torqNodeSettings.NodeId)] {
+		graphInSyncTime[nodeIdType(torqNodeSettings.NodeId)] = time.Now()
+		if !previousInformation.GraphSynced && graphErrorState[nodeIdType(torqNodeSettings.NodeId)] {
 			message = message + "Graph is synced\n"
-			graphErrorState[nodeIdInt(torqNodeSettings.NodeId)] = false
+			graphErrorState[nodeIdType(torqNodeSettings.NodeId)] = false
 		}
 	}
-	lastGraphInSyncTime, lastGraphInSyncTimeExists := graphInSyncTime[nodeIdInt(torqNodeSettings.NodeId)]
+	lastGraphInSyncTime, lastGraphInSyncTimeExists := graphInSyncTime[nodeIdType(torqNodeSettings.NodeId)]
 	if lastGraphInSyncTimeExists && int(time.Since(lastGraphInSyncTime).Seconds()) > 60 {
 		message = message + "Graph is out of sync\n"
-		graphErrorState[nodeIdInt(torqNodeSettings.NodeId)] = true
+		graphErrorState[nodeIdType(torqNodeSettings.NodeId)] = true
 	}
 	return message
 }
 
-func compareChainSyncTime(previousInformation core.InformationResponse,
-	newInformation core.InformationResponse,
-	chainInSyncTime map[nodeIdInt]time.Time,
-	chainErrorState map[nodeIdInt]bool,
+func compareChainSyncTime(previousInformation lightning_requests.InformationResponse,
+	newInformation lightning_requests.InformationResponse,
+	chainInSyncTime map[nodeIdType]time.Time,
+	chainErrorState map[nodeIdType]bool,
 	torqNodeSettings cache.NodeSettingsCache,
 	message string) string {
 
 	if newInformation.ChainSynced {
-		chainInSyncTime[nodeIdInt(torqNodeSettings.NodeId)] = time.Now()
-		if !previousInformation.ChainSynced && chainErrorState[nodeIdInt(torqNodeSettings.NodeId)] {
+		chainInSyncTime[nodeIdType(torqNodeSettings.NodeId)] = time.Now()
+		if !previousInformation.ChainSynced && chainErrorState[nodeIdType(torqNodeSettings.NodeId)] {
 			message = message + "Chain is synced\n"
-			chainErrorState[nodeIdInt(torqNodeSettings.NodeId)] = false
+			chainErrorState[nodeIdType(torqNodeSettings.NodeId)] = false
 		}
 	}
-	lastChainInSyncTime, lastChainInSyncTimeExists := chainInSyncTime[nodeIdInt(torqNodeSettings.NodeId)]
+	lastChainInSyncTime, lastChainInSyncTimeExists := chainInSyncTime[nodeIdType(torqNodeSettings.NodeId)]
 	if lastChainInSyncTimeExists && int(time.Since(lastChainInSyncTime).Seconds()) > 60 {
 		message = message + "Chain is out of sync\n"
-		chainErrorState[nodeIdInt(torqNodeSettings.NodeId)] = true
+		chainErrorState[nodeIdType(torqNodeSettings.NodeId)] = true
 	}
 	return message
 }
 
-func comparePendingChannelCount(previousInformation core.InformationResponse,
-	newInformation core.InformationResponse,
+func comparePendingChannelCount(previousInformation lightning_requests.InformationResponse,
+	newInformation lightning_requests.InformationResponse,
 	message string) string {
 
 	if previousInformation.PendingChannelCount != newInformation.PendingChannelCount {
@@ -314,8 +313,8 @@ func comparePendingChannelCount(previousInformation core.InformationResponse,
 	return message
 }
 
-func compareChannelCount(previousInformation core.InformationResponse,
-	newInformation core.InformationResponse,
+func compareChannelCount(previousInformation lightning_requests.InformationResponse,
+	newInformation lightning_requests.InformationResponse,
 	message string) string {
 
 	previousNonPendingCount := previousInformation.InactiveChannelCount + previousInformation.ActiveChannelCount
@@ -330,8 +329,8 @@ func compareChannelCount(previousInformation core.InformationResponse,
 	return message
 }
 
-func compareVersion(previousInformation core.InformationResponse,
-	newInformation core.InformationResponse,
+func compareVersion(previousInformation lightning_requests.InformationResponse,
+	newInformation lightning_requests.InformationResponse,
 	message string) string {
 
 	if previousInformation.Version != newInformation.Version {
@@ -637,12 +636,15 @@ func processStatusRequest(db *sqlx.DB,
 		return messageForBot
 	}
 	for _, nodeId := range nodeIds {
-		information, err := lightning.GetInformationRequest(nodeId)
+		information, err := lightning.GetInformation(nodeId)
 		if err != nil {
-			log.Error().Err(err).Msgf(
-				"Failed to obtain node information from: %v or publicKey: %v", messageForBot.GetChannelIdentifier(), publicKey)
-			messageForBot.Message = "Something went wrong (gnvpe)."
 			messageForBot.Error = err.Error()
+			messageForBot.Message = "Lightning node is offline."
+			if !errors.Is(err, lightning.ServiceInactiveError) {
+				log.Error().Err(err).Msgf(
+					"Failed to obtain node information from: %v or publicKey: %v", messageForBot.GetChannelIdentifier(), publicKey)
+				messageForBot.Message = "Something went wrong (gnvpe)."
+			}
 			return messageForBot
 		}
 		inputText = inputText + "Block Height: " + strconv.Itoa(int(information.BlockHeight)) + "\n" +

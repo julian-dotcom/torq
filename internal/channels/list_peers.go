@@ -5,20 +5,19 @@ import (
 
 	"github.com/cockroachdb/errors"
 
+	"github.com/lncapital/torq/internal/lightning_requests"
 	"github.com/lncapital/torq/proto/lnrpc"
-
-	"github.com/lncapital/torq/internal/core"
 )
 
-func ListPeers(client lnrpc.LightningClient, ctx context.Context, latestErr bool) ([]core.Peer, error) {
+func ListPeers(client lnrpc.LightningClient, ctx context.Context, latestErr bool) ([]lightning_requests.Peer, error) {
 	resp, err := client.ListPeers(ctx, &lnrpc.ListPeersRequest{LatestError: latestErr})
 	if err != nil {
-		return []core.Peer{}, errors.Wrap(err, "Listing peers")
+		return []lightning_requests.Peer{}, errors.Wrap(err, "Listing peers")
 	}
 
-	var peers []core.Peer
+	var peers []lightning_requests.Peer
 	for _, peer := range resp.Peers {
-		peers = append(peers, core.GetPeer(peer))
+		peers = append(peers, lightning_requests.GetPeerLND(peer))
 	}
 	return peers, nil
 }

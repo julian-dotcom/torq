@@ -7,13 +7,14 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning_requests"
 )
 
 var RebalancesCacheChannel = make(chan RebalanceCache) //nolint:gochecknoglobals
 
 type RebalanceCacheOperationType uint
-type originIdInt int
-type channelIdInt int
+type originIdType int
+type channelIdType int
 
 const (
 	readRebalancerOperation RebalanceCacheOperationType = iota
@@ -27,7 +28,7 @@ const (
 
 type RebalanceCache struct {
 	Type              RebalanceCacheOperationType
-	Origin            core.RebalanceRequestOrigin
+	Origin            lightning_requests.RebalanceOrigin
 	OriginId          int
 	OriginReference   string
 	IncomingChannelId int
@@ -42,7 +43,7 @@ type RebalanceCache struct {
 }
 
 func RebalanceCacheHandler(ch <-chan RebalanceCache, ctx context.Context) {
-	rebalancers := make(map[core.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer)
+	rebalancers := make(map[lightning_requests.RebalanceOrigin]map[originIdType]map[channelIdType]*Rebalancer)
 
 	for {
 		select {
@@ -110,7 +111,7 @@ func RebalanceCacheHandler(ch <-chan RebalanceCache, ctx context.Context) {
 					log.Debug().Msgf("Cancelling rebalancer for channelId: %v, origin: %v, originId: %v",
 						rebalanceCache.ChannelIds[0], rebalanceCache.Origin, rebalanceCache.OriginId)
 					rebalancer.RebalanceCancel()
-					delete(rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)], channelIdInt(rebalanceCache.ChannelIds[0]))
+					delete(rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)], channelIdType(rebalanceCache.ChannelIds[0]))
 				}
 			case cancelRebalancersOperation:
 				if rebalanceCache.OriginId == 0 {
@@ -124,7 +125,7 @@ func RebalanceCacheHandler(ch <-chan RebalanceCache, ctx context.Context) {
 					log.Debug().Msgf("Cancelling rebalancer for channelId: %v, origin: %v, originId: %v",
 						channelId, rebalanceCache.Origin, rebalanceCache.OriginId)
 					rebalancer.RebalanceCancel()
-					delete(rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)], channelId)
+					delete(rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)], channelId)
 				}
 			case cancelRebalancersByOriginIdOperation:
 				if rebalanceCache.OriginId == 0 {
@@ -135,7 +136,7 @@ func RebalanceCacheHandler(ch <-chan RebalanceCache, ctx context.Context) {
 				if !exists {
 					continue
 				}
-				rebalancersForOriginId, exists := rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)]
+				rebalancersForOriginId, exists := rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)]
 				if !exists {
 					continue
 				}
@@ -143,7 +144,7 @@ func RebalanceCacheHandler(ch <-chan RebalanceCache, ctx context.Context) {
 					log.Debug().Msgf("Cancelling rebalancer for channelId: %v, origin: %v, originId: %v",
 						channelId, rebalanceCache.Origin, rebalanceCache.OriginId)
 					rebalancer.RebalanceCancel()
-					delete(rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)], channelId)
+					delete(rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)], channelId)
 				}
 			}
 		}
@@ -160,50 +161,50 @@ func copyFromRebalancer(rebalanceCache RebalanceCache) RebalanceCache {
 }
 
 func removeRebalancersCache(rebalanceCache RebalanceCache,
-	rebalancers map[core.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) {
+	rebalancers map[lightning_requests.RebalanceOrigin]map[originIdType]map[channelIdType]*Rebalancer) {
 
-	_, exists := rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)]
+	_, exists := rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)]
 	if exists {
 		if rebalanceCache.Rebalancer.Request.IncomingChannelId != 0 {
-			delete(rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)], channelIdInt(rebalanceCache.Rebalancer.Request.IncomingChannelId))
+			delete(rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)], channelIdType(rebalanceCache.Rebalancer.Request.IncomingChannelId))
 		}
 		if rebalanceCache.Rebalancer.Request.OutgoingChannelId != 0 {
-			delete(rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)], channelIdInt(rebalanceCache.Rebalancer.Request.OutgoingChannelId))
+			delete(rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)], channelIdType(rebalanceCache.Rebalancer.Request.OutgoingChannelId))
 		}
-		if len(rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)]) == 0 {
-			delete(rebalancers[rebalanceCache.Origin], originIdInt(rebalanceCache.OriginId))
+		if len(rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)]) == 0 {
+			delete(rebalancers[rebalanceCache.Origin], originIdType(rebalanceCache.OriginId))
 		}
 	}
 }
 
 func setRebalancersCache(rebalanceCache RebalanceCache,
-	rebalancers map[core.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) {
+	rebalancers map[lightning_requests.RebalanceOrigin]map[originIdType]map[channelIdType]*Rebalancer) {
 
-	_, exists := rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)]
+	_, exists := rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)]
 	if !exists {
-		rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)] = make(map[channelIdInt]*Rebalancer)
+		rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)] = make(map[channelIdType]*Rebalancer)
 	}
 	if rebalanceCache.Rebalancer.Request.IncomingChannelId != 0 {
-		rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)][channelIdInt(rebalanceCache.Rebalancer.Request.IncomingChannelId)] = rebalanceCache.Rebalancer
+		rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)][channelIdType(rebalanceCache.Rebalancer.Request.IncomingChannelId)] = rebalanceCache.Rebalancer
 	}
 	if rebalanceCache.Rebalancer.Request.OutgoingChannelId != 0 {
-		rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)][channelIdInt(rebalanceCache.Rebalancer.Request.OutgoingChannelId)] = rebalanceCache.Rebalancer
+		rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)][channelIdType(rebalanceCache.Rebalancer.Request.OutgoingChannelId)] = rebalanceCache.Rebalancer
 	}
 }
 
 func getRebalancersCache(rebalanceCache RebalanceCache,
-	rebalancers map[core.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) map[channelIdInt]*Rebalancer {
+	rebalancers map[lightning_requests.RebalanceOrigin]map[originIdType]map[channelIdType]*Rebalancer) map[channelIdType]*Rebalancer {
 
 	_, exists := rebalancers[rebalanceCache.Origin]
 	if !exists {
 		return nil
 	}
-	_, exists = rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)]
+	_, exists = rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)]
 	if !exists {
 		return nil
 	}
-	results := make(map[channelIdInt]*Rebalancer)
-	for channelId, rebalancer := range rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)] {
+	results := make(map[channelIdType]*Rebalancer)
+	for channelId, rebalancer := range rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)] {
 		results[channelId] = rebalancer
 	}
 	return results
@@ -211,25 +212,25 @@ func getRebalancersCache(rebalanceCache RebalanceCache,
 }
 
 func getRebalancerCache(rebalanceCache RebalanceCache,
-	rebalancers map[core.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) *Rebalancer {
+	rebalancers map[lightning_requests.RebalanceOrigin]map[originIdType]map[channelIdType]*Rebalancer) *Rebalancer {
 
 	_, exists := rebalancers[rebalanceCache.Origin]
 	if !exists {
 		return nil
 	}
-	_, exists = rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)]
+	_, exists = rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)]
 	if !exists {
 		return nil
 	}
 	var rebalancer *Rebalancer
 	if rebalanceCache.IncomingChannelId != 0 {
-		rebalancer, exists = rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)][channelIdInt(rebalanceCache.IncomingChannelId)]
+		rebalancer, exists = rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)][channelIdType(rebalanceCache.IncomingChannelId)]
 		if !exists {
 			return nil
 		}
 	}
 	if rebalanceCache.OutgoingChannelId != 0 {
-		rebalancer, exists = rebalancers[rebalanceCache.Origin][originIdInt(rebalanceCache.OriginId)][channelIdInt(rebalanceCache.OutgoingChannelId)]
+		rebalancer, exists = rebalancers[rebalanceCache.Origin][originIdType(rebalanceCache.OriginId)][channelIdType(rebalanceCache.OutgoingChannelId)]
 		if !exists {
 			return nil
 		}
@@ -239,10 +240,10 @@ func getRebalancerCache(rebalanceCache RebalanceCache,
 }
 
 func initializeRebalancersCache(rebalanceCache RebalanceCache,
-	rebalancers map[core.RebalanceRequestOrigin]map[originIdInt]map[channelIdInt]*Rebalancer) {
+	rebalancers map[lightning_requests.RebalanceOrigin]map[originIdType]map[channelIdType]*Rebalancer) {
 
 	if rebalancers[rebalanceCache.Origin] == nil {
-		rebalancers[rebalanceCache.Origin] = make(map[originIdInt]map[channelIdInt]*Rebalancer)
+		rebalancers[rebalanceCache.Origin] = make(map[originIdType]map[channelIdType]*Rebalancer)
 	}
 }
 
@@ -255,7 +256,7 @@ func isValidRequest(rebalanceCache RebalanceCache) bool {
 	return true
 }
 
-func CancelRebalancersExcept(origin core.RebalanceRequestOrigin, originId int, activeChannelIds []int) {
+func CancelRebalancersExcept(origin lightning_requests.RebalanceOrigin, originId int, activeChannelIds []int) {
 	rebalanceCache := RebalanceCache{
 		Origin:     origin,
 		OriginId:   originId,
@@ -265,7 +266,7 @@ func CancelRebalancersExcept(origin core.RebalanceRequestOrigin, originId int, a
 	RebalancesCacheChannel <- rebalanceCache
 }
 
-func CancelRebalancer(origin core.RebalanceRequestOrigin, originId int, channelId int) {
+func CancelRebalancer(origin lightning_requests.RebalanceOrigin, originId int, channelId int) {
 	rebalanceCache := RebalanceCache{
 		Origin:     origin,
 		OriginId:   originId,
@@ -275,7 +276,7 @@ func CancelRebalancer(origin core.RebalanceRequestOrigin, originId int, channelI
 	RebalancesCacheChannel <- rebalanceCache
 }
 
-func cancelRebalancersByOriginIds(origin core.RebalanceRequestOrigin, originIds []int) {
+func cancelRebalancersByOriginIds(origin lightning_requests.RebalanceOrigin, originIds []int) {
 	for _, originId := range originIds {
 		rebalanceCache := RebalanceCache{
 			Origin:   origin,
@@ -297,7 +298,7 @@ func getRebalancers(status *core.Status) []*Rebalancer {
 	return <-responseChannel
 }
 
-func getRebalancer(origin core.RebalanceRequestOrigin, originId int,
+func getRebalancer(origin lightning_requests.RebalanceOrigin, originId int,
 	incomingChannelId int,
 	outgoingChannelId int) *Rebalancer {
 

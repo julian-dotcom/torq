@@ -19,6 +19,8 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -177,7 +179,7 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 				"Could not get the workflow version nodes to cancel the rebalances associated with it for workflowId: %v",
 				req.WorkflowId)
 		}
-		cancelRebalancersByOriginIds(core.RebalanceRequestWorkflowNode, wfvnIds)
+		cancelRebalancersByOriginIds(lightning_requests.RebalanceWorkflowNode, wfvnIds)
 	}
 	storedWorkflow, err := updateWorkflow(db, req)
 	if err != nil {
@@ -198,9 +200,9 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		if slices.Contains(workflowIds, req.WorkflowId) {
 			ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 			defer cancel()
-			success := cache.InactivateCoreService(ctxWithTimeout, core.CronService)
+			success := cache.InactivateCoreService(ctxWithTimeout, services_core.CronService)
 			if success {
-				success = cache.ActivateCoreService(ctxWithTimeout, core.CronService)
+				success = cache.ActivateCoreService(ctxWithTimeout, services_core.CronService)
 			}
 			if !success {
 				server_errors.WrapLogAndSendServerError(c, err, "Could not restart CronService.")

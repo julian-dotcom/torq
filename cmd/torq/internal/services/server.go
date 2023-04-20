@@ -10,13 +10,13 @@ import (
 
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/cache"
-	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/internal/workflows"
 )
 
 func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.AutomationIntervalTriggerService
+	serviceType := services_core.AutomationIntervalTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -37,7 +37,7 @@ func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 
 func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.AutomationChannelBalanceEventTriggerService
+	serviceType := services_core.AutomationChannelBalanceEventTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -58,7 +58,7 @@ func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 
 func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.AutomationChannelEventTriggerService
+	serviceType := services_core.AutomationChannelEventTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -79,7 +79,7 @@ func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 
 func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.AutomationScheduledTriggerService
+	serviceType := services_core.AutomationScheduledTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -100,28 +100,28 @@ func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := core.RebalanceService
+	serviceType := services_core.LndServiceRebalanceService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
-			cache.SetFailedLndServiceState(serviceType, nodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return
 		}
 	}()
 
-	cache.SetActiveLndServiceState(serviceType, nodeId)
+	cache.SetActiveNodeServiceState(serviceType, nodeId)
 
 	workflows.RebalanceServiceStart(ctx, conn, db, nodeId)
 
-	cache.SetInactiveLndServiceState(serviceType, nodeId)
+	cache.SetInactiveNodeServiceState(serviceType, nodeId)
 }
 
 func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.MaintenanceService
+	serviceType := services_core.MaintenanceService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -142,7 +142,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
 func StartCronService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.CronService
+	serviceType := services_core.CronService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 

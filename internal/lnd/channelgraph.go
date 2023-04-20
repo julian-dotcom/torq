@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -37,26 +38,26 @@ func SubscribeAndStoreChannelGraph(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := core.LndServiceGraphEventStream
+	serviceType := services_core.LndServiceGraphEventStream
 
 	stream, err := client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		log.Error().Err(err).Msgf(
 			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+	cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -64,12 +65,12 @@ func SubscribeAndStoreChannelGraph(ctx context.Context,
 		gpu, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf(
 				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
-			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 

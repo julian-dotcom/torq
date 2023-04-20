@@ -182,9 +182,9 @@ type ChannelBalanceStateSettingsCache struct {
 
 // ChannelStatesCacheHandler parameter Context is for test cases...
 func ChannelStatesCacheHandler(ch <-chan ChannelStateCache, ctx context.Context) {
-	channelStateSettingsByChannelIdCache := make(map[nodeId]map[channelId]ChannelStateSettingsCache, 0)
-	channelStateSettingsStatusCache := make(map[nodeId]core.Status, 0)
-	channelStateSettingsDeactivationTimeCache := make(map[nodeId]time.Time, 0)
+	channelStateSettingsByChannelIdCache := make(map[nodeIdType]map[channelIdType]ChannelStateSettingsCache, 0)
+	channelStateSettingsStatusCache := make(map[nodeIdType]core.Status, 0)
+	channelStateSettingsDeactivationTimeCache := make(map[nodeIdType]time.Time, 0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -198,9 +198,9 @@ func ChannelStatesCacheHandler(ch <-chan ChannelStateCache, ctx context.Context)
 }
 
 func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
-	channelStateSettingsStatusCache map[nodeId]core.Status,
-	channelStateSettingsByChannelIdCache map[nodeId]map[channelId]ChannelStateSettingsCache,
-	channelStateSettingsDeactivationTimeCache map[nodeId]time.Time) {
+	channelStateSettingsStatusCache map[nodeIdType]core.Status,
+	channelStateSettingsByChannelIdCache map[nodeIdType]map[channelIdType]ChannelStateSettingsCache,
+	channelStateSettingsDeactivationTimeCache map[nodeIdType]time.Time) {
 	switch channelStateCache.Type {
 	case readChannelState:
 		if channelStateCache.ChannelId == 0 || channelStateCache.NodeId == 0 {
@@ -210,12 +210,12 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		}
 		if isNodeReady(channelStateSettingsStatusCache, channelStateCache.NodeId,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
-			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if !exists {
 				channelStateCache.StateOut <- nil
 				break
 			}
-			settings, exists := settingsByChannel[channelId(channelStateCache.ChannelId)]
+			settings, exists := settingsByChannel[channelIdType(channelStateCache.ChannelId)]
 			if !exists {
 				channelStateCache.StateOut <- nil
 				break
@@ -232,7 +232,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		}
 		if isNodeReady(channelStateSettingsStatusCache, channelStateCache.NodeId,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
-			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if !exists {
 				channelStateCache.StatesOut <- nil
 				break
@@ -253,7 +253,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		}
 		if isNodeReady(channelStateSettingsStatusCache, channelStateCache.NodeId,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
-			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if !exists {
 				channelStateCache.ChannelIdsOut <- nil
 				break
@@ -274,7 +274,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		}
 		if isNodeReady(channelStateSettingsStatusCache, channelStateCache.NodeId,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
-			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if !exists {
 				channelStateCache.ChannelIdsOut <- nil
 				break
@@ -297,12 +297,12 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		}
 		if isNodeReady(channelStateSettingsStatusCache, channelStateCache.NodeId,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
-			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if !exists {
 				channelStateCache.BalanceStateOut <- nil
 				break
 			}
-			settings, exists := settingsByChannel[channelId(channelStateCache.ChannelId)]
+			settings, exists := settingsByChannel[channelIdType(channelStateCache.ChannelId)]
 			if !exists {
 				channelStateCache.BalanceStateOut <- nil
 				break
@@ -321,7 +321,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		}
 		if isNodeReady(channelStateSettingsStatusCache, channelStateCache.NodeId,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
-			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			settingsByChannel, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if !exists {
 				channelStateCache.BalanceStatesOut <- nil
 				break
@@ -331,7 +331,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 				if channelSetting.Status != core.Open {
 					continue
 				}
-				settings, exists := settingsByChannel[channelId(channelSetting.ChannelId)]
+				settings, exists := settingsByChannel[channelIdType(channelSetting.ChannelId)]
 				if !exists {
 					log.Error().Msgf("Channel from channel cache that doesn't exist in channelState cache.")
 					continue
@@ -354,25 +354,25 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 			log.Error().Msgf("No empty NodeId (%v) allowed", channelStateCache.NodeId)
 			break
 		}
-		settingsByChannel := make(map[channelId]ChannelStateSettingsCache)
+		settingsByChannel := make(map[channelIdType]ChannelStateSettingsCache)
 		eventTime := time.Now()
-		aggregateChannels := make(map[nodeId]int)
-		aggregateCapacity := make(map[nodeId]int64)
-		aggregateLocalBalance := make(map[nodeId]int64)
+		aggregateChannels := make(map[nodeIdType]int)
+		aggregateCapacity := make(map[nodeIdType]int64)
+		aggregateLocalBalance := make(map[nodeIdType]int64)
 		for _, channelStateSetting := range channelStateCache.ChannelStateSettings {
 			channelSettings := GetChannelSettingByChannelId(channelStateSetting.ChannelId)
 			capacity := channelSettings.Capacity
-			_, aggregateExists := aggregateChannels[nodeId(channelStateSetting.RemoteNodeId)]
+			_, aggregateExists := aggregateChannels[nodeIdType(channelStateSetting.RemoteNodeId)]
 			if !aggregateExists {
 				channelCountAggregate, capacityAggregate, localBalanceAggregate := getAggregate(channelStateCache.ChannelStateSettings, channelStateSetting.RemoteNodeId)
-				aggregateChannels[nodeId(channelStateSetting.RemoteNodeId)] = channelCountAggregate
-				aggregateCapacity[nodeId(channelStateSetting.RemoteNodeId)] = capacityAggregate
-				aggregateLocalBalance[nodeId(channelStateSetting.RemoteNodeId)] = localBalanceAggregate
+				aggregateChannels[nodeIdType(channelStateSetting.RemoteNodeId)] = channelCountAggregate
+				aggregateCapacity[nodeIdType(channelStateSetting.RemoteNodeId)] = capacityAggregate
+				aggregateLocalBalance[nodeIdType(channelStateSetting.RemoteNodeId)] = localBalanceAggregate
 			}
-			channelStateSetting.PeerChannelCount = aggregateChannels[nodeId(channelStateSetting.RemoteNodeId)]
-			channelStateSetting.PeerChannelCapacity = aggregateCapacity[nodeId(channelStateSetting.RemoteNodeId)]
-			channelStateSetting.PeerLocalBalance = aggregateLocalBalance[nodeId(channelStateSetting.RemoteNodeId)]
-			settingsByChannel[channelId(channelStateSetting.ChannelId)] = channelStateSetting
+			channelStateSetting.PeerChannelCount = aggregateChannels[nodeIdType(channelStateSetting.RemoteNodeId)]
+			channelStateSetting.PeerChannelCapacity = aggregateCapacity[nodeIdType(channelStateSetting.RemoteNodeId)]
+			channelStateSetting.PeerLocalBalance = aggregateLocalBalance[nodeIdType(channelStateSetting.RemoteNodeId)]
+			settingsByChannel[channelIdType(channelStateSetting.ChannelId)] = channelStateSetting
 			channelBalanceEvent := core.ChannelBalanceEvent{
 				EventData: core.EventData{
 					EventTime: eventTime,
@@ -385,24 +385,24 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 					LocalBalance:                  channelStateSetting.LocalBalance,
 					RemoteBalance:                 channelStateSetting.RemoteBalance,
 					LocalBalancePerMilleRatio:     int(channelStateSetting.LocalBalance / capacity * 1000),
-					PeerChannelCapacity:           aggregateCapacity[nodeId(channelStateSetting.RemoteNodeId)],
-					PeerChannelCount:              aggregateChannels[nodeId(channelStateSetting.RemoteNodeId)],
-					PeerLocalBalance:              aggregateLocalBalance[nodeId(channelStateSetting.RemoteNodeId)],
-					PeerLocalBalancePerMilleRatio: int(aggregateLocalBalance[nodeId(channelStateSetting.RemoteNodeId)] / aggregateCapacity[nodeId(channelStateSetting.RemoteNodeId)] * 1000),
+					PeerChannelCapacity:           aggregateCapacity[nodeIdType(channelStateSetting.RemoteNodeId)],
+					PeerChannelCount:              aggregateChannels[nodeIdType(channelStateSetting.RemoteNodeId)],
+					PeerLocalBalance:              aggregateLocalBalance[nodeIdType(channelStateSetting.RemoteNodeId)],
+					PeerLocalBalancePerMilleRatio: int(aggregateLocalBalance[nodeIdType(channelStateSetting.RemoteNodeId)] / aggregateCapacity[nodeIdType(channelStateSetting.RemoteNodeId)] * 1000),
 				},
 				ChannelId: channelStateSetting.ChannelId,
 			}
-			existingChannelStateSettings, existingChannelSettingsExists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+			existingChannelStateSettings, existingChannelSettingsExists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 			if existingChannelSettingsExists {
-				existingState, existingStateExists := existingChannelStateSettings[channelId(channelStateSetting.ChannelId)]
+				existingState, existingStateExists := existingChannelStateSettings[channelIdType(channelStateSetting.ChannelId)]
 				if existingStateExists {
 					channelBalanceEvent.PreviousEventData = &core.ChannelBalanceEventData{
 						Capacity:                      capacity,
 						LocalBalance:                  existingState.LocalBalance,
 						RemoteBalance:                 existingState.RemoteBalance,
 						LocalBalancePerMilleRatio:     int(existingState.LocalBalance / capacity * 1000),
-						PeerChannelCapacity:           aggregateCapacity[nodeId(channelStateSetting.RemoteNodeId)],
-						PeerChannelCount:              aggregateChannels[nodeId(channelStateSetting.RemoteNodeId)],
+						PeerChannelCapacity:           aggregateCapacity[nodeIdType(channelStateSetting.RemoteNodeId)],
+						PeerChannelCount:              aggregateChannels[nodeIdType(channelStateSetting.RemoteNodeId)],
 						PeerLocalBalance:              existingState.PeerLocalBalance,
 						PeerLocalBalancePerMilleRatio: int(existingState.PeerLocalBalance / existingState.PeerChannelCapacity * 1000),
 					}
@@ -417,7 +417,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 				}
 			}
 		}
-		channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = settingsByChannel
+		channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = settingsByChannel
 	case writeInitialChannelState:
 		if channelStateCache.ChannelId == 0 || channelStateCache.NodeId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", channelStateCache.ChannelId, channelStateCache.NodeId)
@@ -427,7 +427,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		var peerChannelCount int
 		var peerChannelCapacity int64
 		var peerLocalBalance int64
-		for _, channelState := range channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] {
+		for _, channelState := range channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] {
 			if channelState.RemoteNodeId == channelStateSetting.RemoteNodeId {
 				peerChannelCount++
 				peerChannelCapacity += GetChannelSettingByChannelId(channelState.ChannelId).Capacity
@@ -437,36 +437,36 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 		channelStateSetting.PeerChannelCount = peerChannelCount + 1
 		channelStateSetting.PeerChannelCapacity = peerChannelCapacity + GetChannelSettingByChannelId(channelStateSetting.ChannelId).Capacity
 		channelStateSetting.PeerLocalBalance = peerLocalBalance + channelStateSetting.LocalBalance
-		_, exists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+		_, exists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 		if !exists {
-			channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = make(map[channelId]ChannelStateSettingsCache)
+			channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = make(map[channelIdType]ChannelStateSettingsCache)
 		}
-		for _, existingChannelStateSetting := range channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] {
+		for _, existingChannelStateSetting := range channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] {
 			if existingChannelStateSetting.RemoteNodeId == channelStateSetting.RemoteNodeId {
 				existingChannelStateSetting.PeerChannelCapacity = channelStateSetting.PeerChannelCapacity
 				existingChannelStateSetting.PeerChannelCount = channelStateSetting.PeerChannelCount
 				existingChannelStateSetting.PeerLocalBalance = channelStateSetting.PeerLocalBalance
 			}
-			channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)][channelId(existingChannelStateSetting.ChannelId)] = existingChannelStateSetting
+			channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)][channelIdType(existingChannelStateSetting.ChannelId)] = existingChannelStateSetting
 		}
 
-		channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)][channelId(channelStateCache.ChannelId)] = channelStateSetting
+		channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)][channelIdType(channelStateCache.ChannelId)] = channelStateSetting
 	case writeChannelStateNodeStatus:
 		if channelStateCache.NodeId == 0 {
 			log.Error().Msgf("No empty NodeId (%v) allowed", channelStateCache.NodeId)
 			break
 		}
-		currentStatus, exists := channelStateSettingsStatusCache[nodeId(channelStateCache.NodeId)]
+		currentStatus, exists := channelStateSettingsStatusCache[nodeIdType(channelStateCache.NodeId)]
 		if exists {
 			if channelStateCache.Status != currentStatus {
-				channelStateSettingsStatusCache[nodeId(channelStateCache.NodeId)] = channelStateCache.Status
+				channelStateSettingsStatusCache[nodeIdType(channelStateCache.NodeId)] = channelStateCache.Status
 			}
 			if channelStateCache.Status != core.Active && currentStatus == core.Active {
-				channelStateSettingsDeactivationTimeCache[nodeId(channelStateCache.NodeId)] = time.Now()
+				channelStateSettingsDeactivationTimeCache[nodeIdType(channelStateCache.NodeId)] = time.Now()
 			}
 		} else {
-			channelStateSettingsStatusCache[nodeId(channelStateCache.NodeId)] = channelStateCache.Status
-			channelStateSettingsDeactivationTimeCache[nodeId(channelStateCache.NodeId)] = time.Now()
+			channelStateSettingsStatusCache[nodeIdType(channelStateCache.NodeId)] = channelStateCache.Status
+			channelStateSettingsDeactivationTimeCache[nodeIdType(channelStateCache.NodeId)] = time.Now()
 		}
 	case writeChannelStateChannelStatus:
 		if channelStateCache.ChannelId == 0 || channelStateCache.NodeId == 0 {
@@ -477,21 +477,21 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
 			break
 		}
-		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 		if nodeExists {
-			channelSetting, channelExists := nodeChannels[channelId(channelStateCache.ChannelId)]
+			channelSetting, channelExists := nodeChannels[channelIdType(channelStateCache.ChannelId)]
 			if channelExists {
 				switch channelStateCache.Status {
 				case core.Active:
 					channelSetting.LocalDisabled = false
-					nodeChannels[channelId(channelStateCache.ChannelId)] = channelSetting
+					nodeChannels[channelIdType(channelStateCache.ChannelId)] = channelSetting
 				case core.Inactive:
 					channelSetting.LocalDisabled = true
-					nodeChannels[channelId(channelStateCache.ChannelId)] = channelSetting
+					nodeChannels[channelIdType(channelStateCache.ChannelId)] = channelSetting
 				case core.Deleted:
-					delete(nodeChannels, channelId(channelStateCache.ChannelId))
+					delete(nodeChannels, channelIdType(channelStateCache.ChannelId))
 				}
-				channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = nodeChannels
+				channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = nodeChannels
 			} else {
 				channelSettings := GetChannelSettingByChannelId(channelStateCache.ChannelId)
 				if channelSettings.Status == core.Open {
@@ -506,9 +506,9 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 			channelStateSettingsDeactivationTimeCache, channelStateCache.ForceResponse) {
 			break
 		}
-		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 		if nodeExists {
-			channelSetting, channelExists := nodeChannels[channelId(channelStateCache.ChannelId)]
+			channelSetting, channelExists := nodeChannels[channelIdType(channelStateCache.ChannelId)]
 			if channelExists {
 				if channelStateCache.Local {
 					channelSetting.LocalDisabled = channelStateCache.Disabled
@@ -517,7 +517,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 					channelSetting.LocalMaxHtlcMsat = channelStateCache.MaxHtlcMsat
 					channelSetting.LocalFeeBaseMsat = channelStateCache.FeeBaseMsat
 					channelSetting.LocalFeeRateMilliMsat = channelStateCache.FeeRateMilliMsat
-					nodeChannels[channelId(channelStateCache.ChannelId)] = channelSetting
+					nodeChannels[channelIdType(channelStateCache.ChannelId)] = channelSetting
 				} else {
 					channelSetting.RemoteDisabled = channelStateCache.Disabled
 					channelSetting.RemoteTimeLockDelta = channelStateCache.TimeLockDelta
@@ -525,9 +525,9 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 					channelSetting.RemoteMaxHtlcMsat = channelStateCache.MaxHtlcMsat
 					channelSetting.RemoteFeeBaseMsat = channelStateCache.FeeBaseMsat
 					channelSetting.RemoteFeeRateMilliMsat = channelStateCache.FeeRateMilliMsat
-					nodeChannels[channelId(channelStateCache.ChannelId)] = channelSetting
+					nodeChannels[channelIdType(channelStateCache.ChannelId)] = channelSetting
 				}
-				channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = nodeChannels
+				channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = nodeChannels
 			} else {
 				channelSettings := GetChannelSettingByChannelId(channelStateCache.ChannelId)
 				if channelSettings.Status == core.Open {
@@ -542,9 +542,9 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 			log.Error().Msgf("No empty ChannelId (%v) nor NodeId (%v) allowed", channelStateCache.ChannelId, channelStateCache.NodeId)
 			break
 		}
-		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)]
+		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)]
 		if nodeExists {
-			channelStateSetting, channelExists := nodeChannels[channelId(channelStateCache.ChannelId)]
+			channelStateSetting, channelExists := nodeChannels[channelIdType(channelStateCache.ChannelId)]
 			if channelExists {
 				eventTime := time.Now()
 				channelSettings := GetChannelSettingByChannelId(channelStateSetting.ChannelId)
@@ -574,13 +574,13 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 				channelStateSetting.NumUpdates = channelStateSetting.NumUpdates + 1
 				channelStateSetting.LocalBalance = channelStateSetting.LocalBalance + channelStateCache.Amount
 				channelStateSetting.RemoteBalance = channelStateSetting.LocalBalance - channelStateCache.Amount
-				nodeChannels[channelId(channelStateCache.ChannelId)] = channelStateSetting
+				nodeChannels[channelIdType(channelStateCache.ChannelId)] = channelStateSetting
 				for _, nc := range nodeChannels {
 					if nc.RemoteNodeId == channelStateSetting.RemoteNodeId {
 						nc.PeerLocalBalance = nc.PeerLocalBalance + channelStateCache.Amount
 					}
 				}
-				channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = nodeChannels
+				channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = nodeChannels
 				channelBalanceEvent.ChannelBalanceEventData = core.ChannelBalanceEventData{
 					Capacity:                      channelSettings.Capacity,
 					LocalBalance:                  channelStateSetting.LocalBalance,
@@ -609,10 +609,10 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 				channelStateCache.HtlcEvent.NodeId, channelStateCache.HtlcEvent.IncomingChannelId, channelStateCache.HtlcEvent.OutgoingChannelId)
 			break
 		}
-		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeId(channelStateCache.HtlcEvent.NodeId)]
+		nodeChannels, nodeExists := channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.HtlcEvent.NodeId)]
 		if nodeExists {
 			if channelStateCache.HtlcEvent.IncomingChannelId != nil && *channelStateCache.HtlcEvent.IncomingChannelId != 0 {
-				channelSetting, channelExists := nodeChannels[channelId(*channelStateCache.HtlcEvent.IncomingChannelId)]
+				channelSetting, channelExists := nodeChannels[channelIdType(*channelStateCache.HtlcEvent.IncomingChannelId)]
 				if channelExists && channelStateCache.HtlcEvent.IncomingAmtMsat != nil && channelStateCache.HtlcEvent.IncomingHtlcId != nil {
 					foundIt := false
 					var pendingHtlc []Htlc
@@ -634,8 +634,8 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance + int64(*channelStateCache.HtlcEvent.IncomingAmtMsat/1000)
 					}
 					channelSetting.PendingHtlcs = pendingHtlc
-					nodeChannels[channelId(*channelStateCache.HtlcEvent.IncomingChannelId)] = channelSetting
-					channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = nodeChannels
+					nodeChannels[channelIdType(*channelStateCache.HtlcEvent.IncomingChannelId)] = channelSetting
+					channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = nodeChannels
 				} else {
 					if !channelExists {
 						channelSettings := GetChannelSettingByChannelId(*channelStateCache.HtlcEvent.IncomingChannelId)
@@ -646,7 +646,7 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 				}
 			}
 			if channelStateCache.HtlcEvent.OutgoingChannelId != nil && *channelStateCache.HtlcEvent.OutgoingChannelId != 0 {
-				channelSetting, channelExists := nodeChannels[channelId(*channelStateCache.HtlcEvent.OutgoingChannelId)]
+				channelSetting, channelExists := nodeChannels[channelIdType(*channelStateCache.HtlcEvent.OutgoingChannelId)]
 				if channelExists && channelStateCache.HtlcEvent.OutgoingAmtMsat != nil && channelStateCache.HtlcEvent.OutgoingHtlcId != nil {
 					foundIt := false
 					var pendingHtlc []Htlc
@@ -668,8 +668,8 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 						channelSetting.UnsettledBalance = channelSetting.UnsettledBalance - int64(*channelStateCache.HtlcEvent.IncomingAmtMsat/1000)
 					}
 					channelSetting.PendingHtlcs = pendingHtlc
-					nodeChannels[channelId(*channelStateCache.HtlcEvent.OutgoingChannelId)] = channelSetting
-					channelStateSettingsByChannelIdCache[nodeId(channelStateCache.NodeId)] = nodeChannels
+					nodeChannels[channelIdType(*channelStateCache.HtlcEvent.OutgoingChannelId)] = channelSetting
+					channelStateSettingsByChannelIdCache[nodeIdType(channelStateCache.NodeId)] = nodeChannels
 				} else {
 					if !channelExists {
 						channelSettings := GetChannelSettingByChannelId(*channelStateCache.HtlcEvent.OutgoingChannelId)
@@ -685,13 +685,13 @@ func handleChannelStateSettingsOperation(channelStateCache ChannelStateCache,
 	case removeChannelStateFromCache:
 		for nodeId := range channelStateSettingsByChannelIdCache {
 			nodeChannels := channelStateSettingsByChannelIdCache[nodeId]
-			delete(nodeChannels, channelId(channelStateCache.ChannelId))
+			delete(nodeChannels, channelIdType(channelStateCache.ChannelId))
 			channelStateSettingsByChannelIdCache[nodeId] = nodeChannels
 		}
 	case removeChannelStatesFromCache:
-		delete(channelStateSettingsDeactivationTimeCache, nodeId(channelStateCache.NodeId))
-		delete(channelStateSettingsByChannelIdCache, nodeId(channelStateCache.NodeId))
-		delete(channelStateSettingsStatusCache, nodeId(channelStateCache.NodeId))
+		delete(channelStateSettingsDeactivationTimeCache, nodeIdType(channelStateCache.NodeId))
+		delete(channelStateSettingsByChannelIdCache, nodeIdType(channelStateCache.NodeId))
+		delete(channelStateSettingsStatusCache, nodeIdType(channelStateCache.NodeId))
 	}
 }
 
@@ -895,14 +895,14 @@ func SetChannelStateBalanceHtlcEvent(htlcEvent core.HtlcEvent, eventOrigin core.
 	}
 }
 
-func isNodeReady(channelStateSettingsStatusCache map[nodeId]core.Status, nId int,
-	channelStateSettingsDeactivationTimeCache map[nodeId]time.Time, forceResponse bool) bool {
+func isNodeReady(channelStateSettingsStatusCache map[nodeIdType]core.Status, nodeId int,
+	channelStateSettingsDeactivationTimeCache map[nodeIdType]time.Time, forceResponse bool) bool {
 
 	// Channel states not initialized yet
-	if channelStateSettingsStatusCache[nodeId(nId)] != core.Active {
-		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeId(nId)]
+	if channelStateSettingsStatusCache[nodeIdType(nodeId)] != core.Active {
+		deactivationTime, exists := channelStateSettingsDeactivationTimeCache[nodeIdType(nodeId)]
 		if exists && time.Since(deactivationTime).Seconds() < toleratedSubscriptionDowntimeSeconds {
-			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nId)
+			log.Debug().Msgf("Node flagged as active even tough subscription is temporary down for nodeId: %v", nodeId)
 		} else if !forceResponse {
 			return false
 		}

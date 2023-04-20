@@ -4,22 +4,23 @@ import (
 	"time"
 
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning_requests"
 )
 
 type Rebalance struct {
-	RebalanceId        int                         `json:"rebalanceId" db:"rebalance_id"`
-	OutgoingChannelId  *int                        `json:"outgoingChannelId" db:"outgoing_channel_id"`
-	IncomingChannelId  *int                        `json:"incomingChannelId" db:"incoming_channel_id"`
-	Status             core.Status                 `json:"status" db:"status"`
-	Origin             core.RebalanceRequestOrigin `json:"origin" db:"origin"`
-	OriginId           int                         `json:"originId" db:"origin_id"`
-	OriginReference    string                      `json:"originReference" db:"origin_reference"`
-	AmountMsat         uint64                      `json:"amountMsat" db:"amount_msat"`
-	MaximumConcurrency int                         `json:"maximumConcurrency" db:"maximum_concurrency"`
-	MaximumCostMsat    uint64                      `json:"maximumCostMsat" db:"maximum_costmsat"`
-	ScheduleTarget     time.Time                   `json:"scheduleTarget" db:"schedule_target"`
-	CreatedOn          time.Time                   `json:"createdOn" db:"created_on"`
-	UpdateOn           time.Time                   `json:"updatedOn" db:"updated_on"`
+	RebalanceId        int                                `json:"rebalanceId" db:"rebalance_id"`
+	OutgoingChannelId  *int                               `json:"outgoingChannelId" db:"outgoing_channel_id"`
+	IncomingChannelId  *int                               `json:"incomingChannelId" db:"incoming_channel_id"`
+	Status             core.Status                        `json:"status" db:"status"`
+	Origin             lightning_requests.RebalanceOrigin `json:"origin" db:"origin"`
+	OriginId           int                                `json:"originId" db:"origin_id"`
+	OriginReference    string                             `json:"originReference" db:"origin_reference"`
+	AmountMsat         uint64                             `json:"amountMsat" db:"amount_msat"`
+	MaximumConcurrency int                                `json:"maximumConcurrency" db:"maximum_concurrency"`
+	MaximumCostMsat    uint64                             `json:"maximumCostMsat" db:"maximum_costmsat"`
+	ScheduleTarget     time.Time                          `json:"scheduleTarget" db:"schedule_target"`
+	CreatedOn          time.Time                          `json:"createdOn" db:"created_on"`
+	UpdateOn           time.Time                          `json:"updatedOn" db:"updated_on"`
 }
 
 type RebalanceChannel struct {

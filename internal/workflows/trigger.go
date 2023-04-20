@@ -17,23 +17,25 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
+	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/internal/tags"
 )
 
-type workflowVersionNodeIdInt int
-type stageInt int
+type workflowVersionNodeIdType int
+type stageType int
 
 func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode WorkflowNode,
 	reference string,
 	events []any) error {
 
-	workflowNodeInputCache := make(map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string)
-	workflowNodeInputByReferenceIdCache := make(map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string)
-	workflowNodeOutputCache := make(map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string)
-	workflowNodeOutputByReferenceIdCache := make(map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string)
-	workflowStageOutputCache := make(map[stageInt]map[core.WorkflowParameterLabel]string)
-	workflowStageOutputByReferenceIdCache := make(map[stageInt]map[channelIdInt]map[core.WorkflowParameterLabel]string)
+	workflowNodeInputCache := make(map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string)
+	workflowNodeInputByReferenceIdCache := make(map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string)
+	workflowNodeOutputCache := make(map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string)
+	workflowNodeOutputByReferenceIdCache := make(map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string)
+	workflowStageOutputCache := make(map[stageType]map[core.WorkflowParameterLabel]string)
+	workflowStageOutputByReferenceIdCache := make(map[stageType]map[channelIdType]map[core.WorkflowParameterLabel]string)
 
 	select {
 	case <-ctx.Done():
@@ -100,15 +102,15 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	case core.WorkflowNodeChannelBalanceEventTrigger:
 		log.Debug().Msgf("Channel Balance Event Trigger Fired for WorkflowVersionNodeId: %v",
 			workflowTriggerNode.WorkflowVersionNodeId)
-		workflowNodeOutputCache[workflowVersionNodeIdInt(workflowTriggerNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
+		workflowNodeOutputCache[workflowVersionNodeIdType(workflowTriggerNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
 	case core.WorkflowNodeChannelOpenEventTrigger:
 		log.Debug().Msgf("Channel Open Event Trigger Fired for WorkflowVersionNodeId: %v",
 			workflowTriggerNode.WorkflowVersionNodeId)
-		workflowNodeOutputCache[workflowVersionNodeIdInt(workflowTriggerNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
+		workflowNodeOutputCache[workflowVersionNodeIdType(workflowTriggerNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
 	case core.WorkflowNodeChannelCloseEventTrigger:
 		log.Debug().Msgf("Channel Close Event Trigger Fired for WorkflowVersionNodeId: %v",
 			workflowTriggerNode.WorkflowVersionNodeId)
-		workflowNodeOutputCache[workflowVersionNodeIdInt(workflowTriggerNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
+		workflowNodeOutputCache[workflowVersionNodeIdType(workflowTriggerNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelChannels] = string(marshalledEventChannelIdsFromEvents)
 	case core.WorkflowTrigger:
 		log.Debug().Msgf("Trigger Fired for WorkflowVersionNodeId: %v",
 			workflowTriggerNode.WorkflowVersionNodeId)
@@ -149,10 +151,10 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 	}
 
 	for _, workflowStageTriggerNode := range workflowStageTriggerNodes {
-		workflowNodeInputCache = make(map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string)
-		workflowNodeInputByReferenceIdCache = make(map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string)
-		workflowNodeOutputCache = make(map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string)
-		workflowNodeOutputByReferenceIdCache = make(map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string)
+		workflowNodeInputCache = make(map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string)
+		workflowNodeInputByReferenceIdCache = make(map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string)
+		workflowNodeOutputCache = make(map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string)
+		workflowNodeOutputByReferenceIdCache = make(map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string)
 
 		workflowVersionNodes, err = GetWorkflowVersionNodesByStage(db, workflowTriggerNode.WorkflowVersionId, workflowStageTriggerNode.Stage)
 		if err != nil {
@@ -191,56 +193,56 @@ func ProcessWorkflow(ctx context.Context, db *sqlx.DB,
 }
 
 func initializeInputCache(workflowVersionNodes []WorkflowNode,
-	workflowNodeInputCache map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string,
-	workflowNodeInputByReferenceIdCache map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string,
-	workflowNodeOutputCache map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string,
-	workflowNodeOutputByReferenceIdCache map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string,
+	workflowNodeInputCache map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string,
+	workflowNodeInputByReferenceIdCache map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string,
+	workflowNodeOutputCache map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string,
+	workflowNodeOutputByReferenceIdCache map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string,
 	allChannelIds []int,
 	marshalledChannelIdsFromEvents []byte,
 	marshalledAllChannelIds []byte,
 	marshalledEvents []byte,
 	workflowStageTriggerNode WorkflowNode,
-	workflowStageOutputCache map[stageInt]map[core.WorkflowParameterLabel]string,
-	workflowStageOutputByReferenceIdCache map[stageInt]map[channelIdInt]map[core.WorkflowParameterLabel]string) {
+	workflowStageOutputCache map[stageType]map[core.WorkflowParameterLabel]string,
+	workflowStageOutputByReferenceIdCache map[stageType]map[channelIdType]map[core.WorkflowParameterLabel]string) {
 
 	for _, workflowVersionNode := range workflowVersionNodes {
-		if workflowNodeInputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] == nil {
-			workflowNodeInputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] = make(map[core.WorkflowParameterLabel]string)
+		if workflowNodeInputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] == nil {
+			workflowNodeInputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] = make(map[core.WorkflowParameterLabel]string)
 		}
-		if workflowNodeOutputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] == nil {
-			workflowNodeOutputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] = make(map[core.WorkflowParameterLabel]string)
+		if workflowNodeOutputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] == nil {
+			workflowNodeOutputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] = make(map[core.WorkflowParameterLabel]string)
 		}
-		workflowNodeInputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
-		workflowNodeInputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
-		workflowNodeInputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelEvents] = string(marshalledEvents)
+		workflowNodeInputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
+		workflowNodeInputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
+		workflowNodeInputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][core.WorkflowParameterLabelEvents] = string(marshalledEvents)
 
-		if workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] == nil {
-			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] = make(map[channelIdInt]map[core.WorkflowParameterLabel]string)
+		if workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] == nil {
+			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] = make(map[channelIdType]map[core.WorkflowParameterLabel]string)
 		}
-		if workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] == nil {
-			workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)] = make(map[channelIdInt]map[core.WorkflowParameterLabel]string)
+		if workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] == nil {
+			workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)] = make(map[channelIdType]map[core.WorkflowParameterLabel]string)
 		}
 		for _, channelId := range allChannelIds {
-			if workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)] == nil {
-				workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)] = make(map[core.WorkflowParameterLabel]string)
+			if workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)] == nil {
+				workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)] = make(map[core.WorkflowParameterLabel]string)
 			}
-			if workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)] == nil {
-				workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)] = make(map[core.WorkflowParameterLabel]string)
+			if workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)] == nil {
+				workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)] = make(map[core.WorkflowParameterLabel]string)
 			}
-			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)][core.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
-			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)][core.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
-			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelIdInt(channelId)][core.WorkflowParameterLabelEvents] = string(marshalledEvents)
+			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)][core.WorkflowParameterLabelEventChannels] = string(marshalledChannelIdsFromEvents)
+			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)][core.WorkflowParameterLabelAllChannels] = string(marshalledAllChannelIds)
+			workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelIdType(channelId)][core.WorkflowParameterLabelEvents] = string(marshalledEvents)
 		}
 		if workflowStageTriggerNode.Stage > 0 {
-			for label, value := range workflowStageOutputCache[stageInt(workflowStageTriggerNode.Stage-1)] {
-				workflowNodeInputCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][label] = value
+			for label, value := range workflowStageOutputCache[stageType(workflowStageTriggerNode.Stage-1)] {
+				workflowNodeInputCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][label] = value
 			}
-			for channelId, labelValueMap := range workflowStageOutputByReferenceIdCache[stageInt(workflowStageTriggerNode.Stage-1)] {
-				if workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelId] == nil {
-					workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelId] = make(map[core.WorkflowParameterLabel]string)
+			for channelId, labelValueMap := range workflowStageOutputByReferenceIdCache[stageType(workflowStageTriggerNode.Stage-1)] {
+				if workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelId] == nil {
+					workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelId] = make(map[core.WorkflowParameterLabel]string)
 				}
 				for label, value := range labelValueMap {
-					workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowVersionNode.WorkflowVersionNodeId)][channelId][label] = value
+					workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowVersionNode.WorkflowVersionNodeId)][channelId][label] = value
 				}
 			}
 		}
@@ -257,12 +259,12 @@ func processWorkflowNode(ctx context.Context, db *sqlx.DB,
 	workflowTriggerNode WorkflowNode,
 	workflowNodeStatus map[int]core.Status,
 	reference string,
-	workflowNodeInputCache map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string,
-	workflowNodeInputByReferenceIdCache map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string,
-	workflowNodeOutputCache map[workflowVersionNodeIdInt]map[core.WorkflowParameterLabel]string,
-	workflowNodeOutputByReferenceIdCache map[workflowVersionNodeIdInt]map[channelIdInt]map[core.WorkflowParameterLabel]string,
-	workflowStageOutputCache map[stageInt]map[core.WorkflowParameterLabel]string,
-	workflowStageOutputByReferenceIdCache map[stageInt]map[channelIdInt]map[core.WorkflowParameterLabel]string) (core.Status, error) {
+	workflowNodeInputCache map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string,
+	workflowNodeInputByReferenceIdCache map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string,
+	workflowNodeOutputCache map[workflowVersionNodeIdType]map[core.WorkflowParameterLabel]string,
+	workflowNodeOutputByReferenceIdCache map[workflowVersionNodeIdType]map[channelIdType]map[core.WorkflowParameterLabel]string,
+	workflowStageOutputCache map[stageType]map[core.WorkflowParameterLabel]string,
+	workflowStageOutputByReferenceIdCache map[stageType]map[channelIdType]map[core.WorkflowParameterLabel]string) (core.Status, error) {
 
 	select {
 	case <-ctx.Done():
@@ -302,19 +304,19 @@ linkedInputLoop:
 		return core.Pending, nil
 	}
 
-	inputs := workflowNodeInputCache[workflowVersionNodeIdInt(workflowNode.WorkflowVersionNodeId)]
-	inputsByReferenceId := workflowNodeInputByReferenceIdCache[workflowVersionNodeIdInt(workflowNode.WorkflowVersionNodeId)]
-	outputs := workflowNodeOutputCache[workflowVersionNodeIdInt(workflowNode.WorkflowVersionNodeId)]
-	outputsByReferenceId := workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdInt(workflowNode.WorkflowVersionNodeId)]
+	inputs := workflowNodeInputCache[workflowVersionNodeIdType(workflowNode.WorkflowVersionNodeId)]
+	inputsByReferenceId := workflowNodeInputByReferenceIdCache[workflowVersionNodeIdType(workflowNode.WorkflowVersionNodeId)]
+	outputs := workflowNodeOutputCache[workflowVersionNodeIdType(workflowNode.WorkflowVersionNodeId)]
+	outputsByReferenceId := workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdType(workflowNode.WorkflowVersionNodeId)]
 
 	for parentWorkflowNodeLinkId, parentWorkflowNode := range workflowNode.ParentNodes {
 		parentLink := workflowNode.LinkDetails[parentWorkflowNodeLinkId]
-		parentOutputValue, labelExists := workflowNodeOutputCache[workflowVersionNodeIdInt(parentWorkflowNode.WorkflowVersionNodeId)][parentLink.ParentOutput]
+		parentOutputValue, labelExists := workflowNodeOutputCache[workflowVersionNodeIdType(parentWorkflowNode.WorkflowVersionNodeId)][parentLink.ParentOutput]
 		if labelExists {
 			inputs[parentLink.ChildInput] = parentOutputValue
 			outputs[parentLink.ChildInput] = parentOutputValue
 		}
-		for referencId, labelValueMap := range workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdInt(parentWorkflowNode.WorkflowVersionNodeId)] {
+		for referencId, labelValueMap := range workflowNodeOutputByReferenceIdCache[workflowVersionNodeIdType(parentWorkflowNode.WorkflowVersionNodeId)] {
 			parentOutputValueByReferenceId, labelByReferenceIdExists := labelValueMap[parentLink.ParentOutput]
 			if labelByReferenceIdExists {
 				inputsByReferenceId[referencId][parentLink.ChildInput] = parentOutputValueByReferenceId
@@ -330,7 +332,7 @@ linkedInputLoop:
 		}
 	}
 
-	updateReferencIds := make(map[channelIdInt]bool)
+	updateReferencIds := make(map[channelIdType]bool)
 
 	switch workflowNode.Type {
 	case core.WorkflowNodeDataSourceTorqChannels:
@@ -725,7 +727,7 @@ linkedInputLoop:
 			return core.Inactive, errors.Wrapf(err, "Obtaining eventChannelIds for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 		}
 
-		var responses []core.RebalanceResponse
+		var responses []lightning_requests.RebalanceResponse
 		responses, err = processRebalanceRun(db, eventChannelIds, rebalanceConfigurations, workflowNode, reference)
 		if err != nil {
 			return core.Inactive, errors.Wrapf(err, "Processing Rebalance for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
@@ -801,23 +803,23 @@ linkedInputLoop:
 	}
 	workflowNodeStatus[workflowNode.WorkflowVersionNodeId] = core.Active
 
-	if workflowStageOutputCache[stageInt(workflowNode.Stage)] == nil {
-		workflowStageOutputCache[stageInt(workflowNode.Stage)] = make(map[core.WorkflowParameterLabel]string)
+	if workflowStageOutputCache[stageType(workflowNode.Stage)] == nil {
+		workflowStageOutputCache[stageType(workflowNode.Stage)] = make(map[core.WorkflowParameterLabel]string)
 	}
 	for label, value := range outputs {
-		workflowStageOutputCache[stageInt(workflowNode.Stage)][label] = value
+		workflowStageOutputCache[stageType(workflowNode.Stage)][label] = value
 	}
 
-	if workflowStageOutputByReferenceIdCache[stageInt(workflowNode.Stage)] == nil {
-		workflowStageOutputByReferenceIdCache[stageInt(workflowNode.Stage)] = make(map[channelIdInt]map[core.WorkflowParameterLabel]string)
+	if workflowStageOutputByReferenceIdCache[stageType(workflowNode.Stage)] == nil {
+		workflowStageOutputByReferenceIdCache[stageType(workflowNode.Stage)] = make(map[channelIdType]map[core.WorkflowParameterLabel]string)
 	}
 	for channelId, labelValueMap := range outputsByReferenceId {
-		if workflowStageOutputByReferenceIdCache[stageInt(workflowNode.Stage)][channelId] == nil {
-			workflowStageOutputByReferenceIdCache[stageInt(workflowNode.Stage)][channelId] = make(map[core.WorkflowParameterLabel]string)
+		if workflowStageOutputByReferenceIdCache[stageType(workflowNode.Stage)][channelId] == nil {
+			workflowStageOutputByReferenceIdCache[stageType(workflowNode.Stage)][channelId] = make(map[core.WorkflowParameterLabel]string)
 		}
 		if updateReferencIds[channelId] {
 			for label, value := range labelValueMap {
-				workflowStageOutputByReferenceIdCache[stageInt(workflowNode.Stage)][channelId][label] = value
+				workflowStageOutputByReferenceIdCache[stageType(workflowNode.Stage)][channelId][label] = value
 			}
 		}
 	}
@@ -969,10 +971,10 @@ func setChannelIds(outputs map[core.WorkflowParameterLabel]string, label core.Wo
 
 func processRebalanceConfigurator(
 	rebalanceConfiguration RebalanceConfiguration,
-	channelId channelIdInt,
+	channelId channelIdType,
 	incomingChannelIds []int,
 	outgoingChannelIds []int,
-	inputsByReferenceId map[channelIdInt]map[core.WorkflowParameterLabel]string,
+	inputsByReferenceId map[channelIdType]map[core.WorkflowParameterLabel]string,
 	workflowNode WorkflowNode) (RebalanceConfiguration, error) {
 
 	var rebalanceInputConfiguration RebalanceConfiguration
@@ -1020,9 +1022,9 @@ func processRebalanceRun(
 	eventChannelIds []int,
 	rebalanceSettings []RebalanceConfiguration,
 	workflowNode WorkflowNode,
-	reference string) ([]core.RebalanceResponse, error) {
+	reference string) ([]lightning_requests.RebalanceResponse, error) {
 
-	requestsMap := make(map[int]*core.RebalanceRequests)
+	requestsMap := make(map[int]*lightning_requests.RebalanceRequests)
 	for _, rebalanceSetting := range rebalanceSettings {
 		var maxCostMsat uint64
 		if rebalanceSetting.MaximumCostMsat != nil {
@@ -1056,14 +1058,14 @@ func processRebalanceRun(
 						}
 						_, exists := requestsMap[nodeId]
 						if !exists {
-							requestsMap[nodeId] = &core.RebalanceRequests{
-								CommunicationRequest: core.CommunicationRequest{
+							requestsMap[nodeId] = &lightning_requests.RebalanceRequests{
+								CommunicationRequest: lightning_requests.CommunicationRequest{
 									NodeId: nodeId,
 								},
 							}
 						}
-						requestsMap[nodeId].Requests = append(requestsMap[nodeId].Requests, core.RebalanceRequest{
-							Origin:                core.RebalanceRequestWorkflowNode,
+						requestsMap[nodeId].Requests = append(requestsMap[nodeId].Requests, lightning_requests.RebalanceRequest{
+							Origin:                lightning_requests.RebalanceWorkflowNode,
 							OriginId:              workflowNode.WorkflowVersionNodeId,
 							OriginReference:       reference,
 							IncomingChannelId:     incomingChannelId,
@@ -1093,14 +1095,14 @@ func processRebalanceRun(
 						}
 						_, exists := requestsMap[nodeId]
 						if !exists {
-							requestsMap[nodeId] = &core.RebalanceRequests{
-								CommunicationRequest: core.CommunicationRequest{
+							requestsMap[nodeId] = &lightning_requests.RebalanceRequests{
+								CommunicationRequest: lightning_requests.CommunicationRequest{
 									NodeId: nodeId,
 								},
 							}
 						}
-						requestsMap[nodeId].Requests = append(requestsMap[nodeId].Requests, core.RebalanceRequest{
-							Origin:                core.RebalanceRequestWorkflowNode,
+						requestsMap[nodeId].Requests = append(requestsMap[nodeId].Requests, lightning_requests.RebalanceRequest{
+							Origin:                lightning_requests.RebalanceWorkflowNode,
 							OriginId:              workflowNode.WorkflowVersionNodeId,
 							OriginReference:       reference,
 							IncomingChannelId:     0,
@@ -1117,9 +1119,9 @@ func processRebalanceRun(
 		}
 	}
 	var activeChannelIds []int
-	var responses []core.RebalanceResponse
+	var responses []lightning_requests.RebalanceResponse
 	for nodeId, requests := range requestsMap {
-		if cache.GetCurrentLndServiceState(core.RebalanceService, nodeId).Status != core.ServiceActive {
+		if cache.GetCurrentNodeServiceState(services_core.LndServiceRebalanceService, nodeId).Status != services_core.Active {
 			return nil, errors.New(fmt.Sprintf("Rebalance service is not active for nodeId: %v", nodeId))
 		}
 		reqs := *requests
@@ -1135,12 +1137,12 @@ func processRebalanceRun(
 		responses = append(responses, resp...)
 	}
 	if len(eventChannelIds) == 0 {
-		CancelRebalancersExcept(core.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
+		CancelRebalancersExcept(lightning_requests.RebalanceWorkflowNode, workflowNode.WorkflowVersionNodeId,
 			activeChannelIds)
 	} else {
 		for _, eventChannelId := range eventChannelIds {
 			if !slices.Contains(activeChannelIds, eventChannelId) {
-				CancelRebalancer(core.RebalanceRequestWorkflowNode, workflowNode.WorkflowVersionNodeId,
+				CancelRebalancer(lightning_requests.RebalanceWorkflowNode, workflowNode.WorkflowVersionNodeId,
 					eventChannelId)
 			}
 		}
@@ -1149,8 +1151,8 @@ func processRebalanceRun(
 }
 
 func processRoutingPolicyConfigurator(
-	channelId channelIdInt,
-	inputsByChannelId map[channelIdInt]map[core.WorkflowParameterLabel]string,
+	channelId channelIdType,
+	inputsByChannelId map[channelIdType]map[core.WorkflowParameterLabel]string,
 	workflowNode WorkflowNode) (ChannelPolicyConfiguration, error) {
 
 	var channelPolicyInputConfiguration ChannelPolicyConfiguration

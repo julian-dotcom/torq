@@ -9,7 +9,7 @@ import (
 var TagsCacheChannel = make(chan TagCache) //nolint:gochecknoglobals
 
 type TagCacheOperationType uint
-type tagId int
+type tagIdType int
 
 const (
 	readTag TagCacheOperationType = iota
@@ -28,7 +28,7 @@ type TagCache struct {
 }
 
 func TagsCacheHandler(ch <-chan TagCache, ctx context.Context) {
-	tagsByIdCache := make(map[tagId]Tag, 0)
+	tagsByIdCache := make(map[tagIdType]Tag, 0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -39,7 +39,7 @@ func TagsCacheHandler(ch <-chan TagCache, ctx context.Context) {
 	}
 }
 
-func handleTagOperation(tagCache TagCache, tagsByIdCache map[tagId]Tag) {
+func handleTagOperation(tagCache TagCache, tagsByIdCache map[tagIdType]Tag) {
 	switch tagCache.Type {
 	case readTag:
 		if tagCache.TagId == 0 {
@@ -47,7 +47,7 @@ func handleTagOperation(tagCache TagCache, tagsByIdCache map[tagId]Tag) {
 			close(tagCache.Out)
 			break
 		}
-		tag, exists := tagsByIdCache[tagId(tagCache.TagId)]
+		tag, exists := tagsByIdCache[tagIdType(tagCache.TagId)]
 		if exists {
 			tagCache.Out <- tag
 			close(tagCache.Out)
@@ -63,7 +63,7 @@ func handleTagOperation(tagCache TagCache, tagsByIdCache map[tagId]Tag) {
 		}
 		var tags []Tag
 		for _, tId := range tagCache.TagIds {
-			tag, exists := tagsByIdCache[tagId(tId)]
+			tag, exists := tagsByIdCache[tagIdType(tId)]
 			if exists {
 				tags = append(tags, tag)
 			}
@@ -74,18 +74,18 @@ func handleTagOperation(tagCache TagCache, tagsByIdCache map[tagId]Tag) {
 		if tagCache.Tag.TagId == 0 {
 			log.Error().Msgf("No empty Tag.TagId allowed")
 		} else {
-			tagsByIdCache[tagId(tagCache.Tag.TagId)] = tagCache.Tag
+			tagsByIdCache[tagIdType(tagCache.Tag.TagId)] = tagCache.Tag
 		}
 	case removeTag:
 		if tagCache.TagId == 0 && len(tagCache.TagIds) == 0 {
 			log.Error().Msgf("No empty TagId and TagIds allowed")
 		} else {
 			if tagCache.TagId != 0 {
-				delete(tagsByIdCache, tagId(tagCache.TagId))
+				delete(tagsByIdCache, tagIdType(tagCache.TagId))
 			}
 			if len(tagCache.TagIds) != 0 {
 				for _, tId := range tagCache.TagIds {
-					delete(tagsByIdCache, tagId(tId))
+					delete(tagsByIdCache, tagIdType(tId))
 				}
 			}
 		}

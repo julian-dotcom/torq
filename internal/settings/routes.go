@@ -2,6 +2,7 @@ package settings
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,12 +16,15 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/services_core"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/pkg/cln_connect"
 	"github.com/lncapital/torq/pkg/lnd_connect"
 	"github.com/lncapital/torq/pkg/server_errors"
+	"github.com/lncapital/torq/proto/cln"
 )
 
 type settings struct {
@@ -65,17 +69,17 @@ func setAllLndServices(nodeId int,
 	if lndActive {
 		return cache.ActivateLndService(ctxWithTimeout, nodeId, customSettings, pingSystem)
 	}
-	return cache.InactivateLndService(ctxWithTimeout, nodeId)
+	return cache.InactivateNodeService(ctxWithTimeout, nodeId)
 }
 
-func setService(serviceType core.ServiceType, nodeId int, active bool) bool {
+func setService(serviceType services_core.ServiceType, nodeId int, active bool) bool {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
 	if active {
-		return cache.ActivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
+		return cache.ActivateNodeServiceState(ctxWithTimeout, serviceType, nodeId)
 	}
-	return cache.InactivateLndServiceState(ctxWithTimeout, serviceType, nodeId)
+	return cache.InactivateNodeServiceState(ctxWithTimeout, serviceType, nodeId)
 }
 
 func RegisterSettingRoutes(r *gin.RouterGroup, db *sqlx.DB) {
@@ -132,16 +136,16 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	if setts.SlackBotAppToken != nil && *setts.SlackBotAppToken != "" &&
 		setts.SlackOAuthToken != nil && *setts.SlackOAuthToken != "" {
-		cache.SetDesiredCoreServiceState(core.SlackService, core.ServiceActive)
-		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(services_core.SlackService, services_core.Active)
+		cache.SetDesiredCoreServiceState(services_core.NotifierService, services_core.Active)
 	}
 	if setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "" {
-		cache.SetDesiredCoreServiceState(core.TelegramHighService, core.ServiceActive)
-		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(services_core.TelegramHighService, services_core.Active)
+		cache.SetDesiredCoreServiceState(services_core.NotifierService, services_core.Active)
 	}
 	if setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "" {
-		cache.SetDesiredCoreServiceState(core.TelegramLowService, core.ServiceActive)
-		cache.SetDesiredCoreServiceState(core.NotifierService, core.ServiceActive)
+		cache.SetDesiredCoreServiceState(services_core.TelegramLowService, services_core.Active)
+		cache.SetDesiredCoreServiceState(services_core.NotifierService, services_core.Active)
 	}
 	c.JSON(http.StatusOK, setts)
 }
@@ -560,7 +564,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	done := setService(*ps.GetServiceType(), nodeId, s == core.Active)
+	done := setService(*services_core.GetPingSystemServiceType(ps), nodeId, s == core.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -598,7 +602,7 @@ func setNodeConnectionDetailsCustomSettingHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	done := setService(*cs.GetServiceType(), nodeId, s == core.Active)
+	done := setService(*services_core.GetNodeConnectionDetailServiceType(cs), nodeId, s == core.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -642,7 +646,7 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 		return
 	}
 
-	services := make(map[bool][]core.ServiceType)
+	services := make(map[bool][]services_core.ServiceType)
 	appendPingSystemServiceType(ps, services, core.Vector)
 	appendPingSystemServiceType(ps, services, core.Amboss)
 	appendCustomSettingServiceType(cs, services, core.ImportFailedPayments, core.ImportPayments)
@@ -675,24 +679,24 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 }
 
 func appendPingSystemServiceType(ps core.PingSystem,
-	services map[bool][]core.ServiceType,
+	services map[bool][]services_core.ServiceType,
 	referencePingSystem core.PingSystem) {
 
 	if ps.HasPingSystem(referencePingSystem) {
-		services[true] = append(services[true], *referencePingSystem.GetServiceType())
+		services[true] = append(services[true], *services_core.GetPingSystemServiceType(referencePingSystem))
 	} else {
-		services[false] = append(services[false], *referencePingSystem.GetServiceType())
+		services[false] = append(services[false], *services_core.GetPingSystemServiceType(referencePingSystem))
 	}
 }
 
 func appendCustomSettingServiceType(cs core.NodeConnectionDetailCustomSettings,
-	services map[bool][]core.ServiceType,
+	services map[bool][]services_core.ServiceType,
 	referenceCustomSettings ...core.NodeConnectionDetailCustomSettings) {
 
 	active := false
-	var serviceType *core.ServiceType
+	var serviceType *services_core.ServiceType
 	for ix, referenceCustomSetting := range referenceCustomSettings {
-		st := referenceCustomSettings[ix].GetServiceType()
+		st := services_core.GetNodeConnectionDetailServiceType(referenceCustomSettings[ix])
 		if serviceType == nil {
 			serviceType = st
 		}
@@ -781,6 +785,47 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 		return "", 0, 0, errors.Wrapf(err, "Obtaining network from LND %v", info.Chains[0].Network)
 	}
 	return info.IdentityPubkey, chain, network, nil
+}
+
+func getInformationFromClnNode(grpcAddress string, certificate []byte, key []byte) (
+	string, core.Chain, core.Network, error) {
+	conn, err := cln_connect.Connect(grpcAddress, certificate, key)
+	if err != nil {
+		return "", 0, 0, errors.Wrap(err,
+			"Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to close gRPC connection.")
+		}
+	}(conn)
+
+	client := cln.NewNodeClient(conn)
+	ctx := context.Background()
+	info, err := client.Getinfo(ctx, &cln.GetinfoRequest{})
+	if err != nil {
+		return "", 0, 0, errors.Wrap(err, "Obtaining information from LND")
+	}
+
+	chain := core.Bitcoin
+
+	var network core.Network
+	switch info.Network {
+	case "mainnet":
+		network = core.MainNet
+	case "testnet":
+		network = core.TestNet
+	case "signet":
+		network = core.SigNet
+	case "simnet":
+		network = core.SimNet
+	case "regtest":
+		network = core.RegTest
+	default:
+		return "", 0, 0, errors.Wrapf(err, "Obtaining network from LND %v", info.Network)
+	}
+	return hex.EncodeToString(info.Id), chain, network, nil
 }
 
 func getSignMessagesPermissionFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile []byte) (bool, error) {

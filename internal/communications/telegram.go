@@ -13,6 +13,7 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/services_core"
 )
 
 // parseMode == ModeHTML
@@ -122,10 +123,10 @@ func getTelegramLowPriority() (*Telegram, error) {
 }
 
 func SubscribeTelegram(ctx context.Context, db *sqlx.DB, highPriority bool) {
-	serviceType := core.TelegramHighService
+	serviceType := services_core.TelegramHighService
 	communicationTargetType := CommunicationTelegramHighPriority
 	if !highPriority {
-		serviceType = core.TelegramLowService
+		serviceType = services_core.TelegramLowService
 		communicationTargetType = CommunicationTelegramLowPriority
 	}
 

@@ -85,7 +85,7 @@ func processMissingChannelData(db *sqlx.DB) {
 				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
 			if hasMissingFundingDetails(channelSetting) {
-				transactionDetails := vector.GetTransactionDetailsFromVector(channelSetting.FundingTransactionHash, nodeSettings)
+				transactionDetails := vector.GetTransactionDetailsFromVector(*channelSetting.FundingTransactionHash, nodeSettings)
 				err := updateFundingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
@@ -128,7 +128,7 @@ func updateClosingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, trans
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
-		cache.SetChannel(channel.ChannelId, &channel.ShortChannelId, &channel.LndShortChannelId, channel.Status,
+		cache.SetChannel(channel.ChannelId, channel.ShortChannelId, channel.LndShortChannelId, channel.Status,
 			channel.FundingTransactionHash, channel.FundingOutputIndex,
 			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,
@@ -149,7 +149,7 @@ func hasMissingFundingDetails(channelSetting cache.ChannelSettingsCache) bool {
 	if channelSetting.Status == core.AbandonedClosed {
 		return false
 	}
-	if channelSetting.FundingTransactionHash != "" {
+	if channelSetting.FundingTransactionHash != nil && *channelSetting.FundingTransactionHash != "" {
 		return !channelSetting.HasChannelFlags(core.FundedOn)
 	}
 	return false
@@ -168,7 +168,7 @@ func updateFundingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, trans
 		if err != nil {
 			return errors.Wrap(err, database.SqlExecutionError)
 		}
-		cache.SetChannel(channel.ChannelId, &channel.ShortChannelId, &channel.LndShortChannelId, channel.Status,
+		cache.SetChannel(channel.ChannelId, channel.ShortChannelId, channel.LndShortChannelId, channel.Status,
 			channel.FundingTransactionHash, channel.FundingOutputIndex,
 			channel.FundingBlockHeight, channel.FundedOn,
 			channel.Capacity, channel.Private, channel.FirstNodeId, channel.SecondNodeId,

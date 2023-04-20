@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/core"
@@ -13,9 +14,9 @@ import (
 var ChannelsCacheChannel = make(chan ChannelCache) //nolint:gochecknoglobals
 
 type ChannelCacheOperationType uint
-type channelId int
-type channelPoint string
-type shortChannelId string
+type channelIdType int
+type channelPointType string
+type shortChannelIdType string
 
 const (
 	// readActiveChannelIdByShortchannelId please provide ShortChannelId and Out
@@ -44,10 +45,10 @@ const (
 type ChannelCache struct {
 	Type                   ChannelCacheOperationType
 	ChannelId              int
-	ShortChannelId         string
-	LndShortChannelId      uint64
-	FundingTransactionHash string
-	FundingOutputIndex     int
+	ShortChannelId         *string
+	LndShortChannelId      *uint64
+	FundingTransactionHash *string
+	FundingOutputIndex     *int
 	FundingBlockHeight     *uint32
 	FundedOn               *time.Time
 	Capacity               int64
@@ -71,10 +72,10 @@ type ChannelCache struct {
 
 type ChannelSettingsCache struct {
 	ChannelId              int
-	ShortChannelId         string
-	LndShortChannelId      uint64
-	FundingTransactionHash string
-	FundingOutputIndex     int
+	ShortChannelId         *string
+	LndShortChannelId      *uint64
+	FundingTransactionHash *string
+	FundingOutputIndex     *int
 	FundingBlockHeight     *uint32
 	FundedOn               *time.Time
 	Capacity               int64
@@ -102,12 +103,12 @@ func (channel *ChannelSettingsCache) RemoveChannelFlags(flags core.ChannelFlags)
 }
 
 func ChannelsCacheHandler(ch <-chan ChannelCache, ctx context.Context) {
-	allChannelSettingsByChannelIdCache := make(map[channelId]ChannelSettingsCache, 0)
-	shortChannelIdCache := make(map[shortChannelId]channelId, 0)
-	allShortChannelIdCache := make(map[shortChannelId]channelId, 0)
-	channelPointCache := make(map[channelPoint]channelId, 0)
-	allChannelPointCache := make(map[channelPoint]channelId, 0)
-	allChannelStatusCache := make(map[channelId]core.ChannelStatus, 0)
+	allChannelSettingsByChannelIdCache := make(map[channelIdType]ChannelSettingsCache, 0)
+	shortChannelIdCache := make(map[shortChannelIdType]channelIdType, 0)
+	allShortChannelIdCache := make(map[shortChannelIdType]channelIdType, 0)
+	channelPointCache := make(map[channelPointType]channelIdType, 0)
+	allChannelPointCache := make(map[channelPointType]channelIdType, 0)
+	allChannelStatusCache := make(map[channelIdType]core.ChannelStatus, 0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -121,26 +122,42 @@ func ChannelsCacheHandler(ch <-chan ChannelCache, ctx context.Context) {
 }
 
 func handleChannelOperation(channelCache ChannelCache,
-	shortChannelIdCache map[shortChannelId]channelId, allShortChannelIdCache map[shortChannelId]channelId,
-	channelPointCache map[channelPoint]channelId, allChannelPointCache map[channelPoint]channelId,
-	allChannelStatusCache map[channelId]core.ChannelStatus, allChannelSettingsByChannelIdCache map[channelId]ChannelSettingsCache) {
+	shortChannelIdCache map[shortChannelIdType]channelIdType, allShortChannelIdCache map[shortChannelIdType]channelIdType,
+	channelPointCache map[channelPointType]channelIdType, allChannelPointCache map[channelPointType]channelIdType,
+	allChannelStatusCache map[channelIdType]core.ChannelStatus, allChannelSettingsByChannelIdCache map[channelIdType]ChannelSettingsCache) {
 	switch channelCache.Type {
 	case readActiveChannelIdByShortchannelId:
-		channelCache.ChannelId = int(shortChannelIdCache[shortChannelId(channelCache.ShortChannelId)])
+		if channelCache.ShortChannelId == nil || *channelCache.ShortChannelId == "" {
+			channelCache.ChannelId = 0
+		} else {
+			channelCache.ChannelId = int(shortChannelIdCache[shortChannelIdType(*channelCache.ShortChannelId)])
+		}
 		channelCache.Out <- channelCache
 	case readChannelIdByShortchannelId:
-		channelCache.ChannelId = int(allShortChannelIdCache[shortChannelId(channelCache.ShortChannelId)])
+		if channelCache.ShortChannelId == nil || *channelCache.ShortChannelId == "" {
+			channelCache.ChannelId = 0
+		} else {
+			channelCache.ChannelId = int(allShortChannelIdCache[shortChannelIdType(*channelCache.ShortChannelId)])
+		}
 		channelCache.Out <- channelCache
 	case readActiveChannelIdByFundingTransaction:
-		channelCache.ChannelId =
-			int(channelPointCache[createChannelPoint(channelCache.FundingTransactionHash, channelCache.FundingOutputIndex)])
+		channelPoint, err := createChannelPoint(channelCache.FundingTransactionHash, channelCache.FundingOutputIndex)
+		if err != nil {
+			channelCache.ChannelId = 0
+		} else {
+			channelCache.ChannelId = int(channelPointCache[channelPoint])
+		}
 		channelCache.Out <- channelCache
 	case readChannelIdByFundingTransaction:
-		channelCache.ChannelId =
-			int(allChannelPointCache[createChannelPoint(channelCache.FundingTransactionHash, channelCache.FundingOutputIndex)])
+		channelPoint, err := createChannelPoint(channelCache.FundingTransactionHash, channelCache.FundingOutputIndex)
+		if err != nil {
+			channelCache.ChannelId = 0
+		} else {
+			channelCache.ChannelId = int(allChannelPointCache[channelPoint])
+		}
 		channelCache.Out <- channelCache
 	case readStatusIdByChannelId:
-		channelCache.Status = allChannelStatusCache[channelId(channelCache.ChannelId)]
+		channelCache.Status = allChannelStatusCache[channelIdType(channelCache.ChannelId)]
 		channelCache.Out <- channelCache
 	case readChannelIdsByNodeId:
 		var channelIds []int
@@ -165,88 +182,109 @@ func handleChannelOperation(channelCache ChannelCache,
 		}
 		channelCache.ChannelSettingsOut <- channelSettings
 	case readChannelSettings:
-		channelCache.ChannelSettingOut <- allChannelSettingsByChannelIdCache[channelId(channelCache.ChannelId)]
+		channelCache.ChannelSettingOut <- allChannelSettingsByChannelIdCache[channelIdType(channelCache.ChannelId)]
 	case writeChannel:
-		if channelCache.ChannelId == 0 || channelCache.FundingTransactionHash == "" {
-			log.Error().Msgf("No empty ChannelId (%v) or FundingTransactionHash (%v) allowed",
-				channelCache.ChannelId, channelCache.FundingTransactionHash)
+		if channelCache.ChannelId == 0 {
+			log.Error().Msgf("No empty ChannelId allowed")
+			break
+		}
+		cp, err := createChannelPoint(channelCache.FundingTransactionHash, channelCache.FundingOutputIndex)
+		if err != nil {
+			cp = ""
+		}
+		parseAndConvertShortIds(channelCache)
+		if channelCache.Status < core.CooperativeClosed {
+			if channelCache.ShortChannelId != nil && *channelCache.ShortChannelId != "" {
+				shortChannelIdCache[shortChannelIdType(*channelCache.ShortChannelId)] = channelIdType(channelCache.ChannelId)
+			}
+			if cp != "" {
+				channelPointCache[cp] = channelIdType(channelCache.ChannelId)
+			}
 		} else {
-			cp := createChannelPoint(channelCache.FundingTransactionHash, channelCache.FundingOutputIndex)
-			parseAndConvertShortIds(channelCache)
-			if channelCache.Status < core.CooperativeClosed {
-				if channelCache.ShortChannelId != "" {
-					shortChannelIdCache[shortChannelId(channelCache.ShortChannelId)] = channelId(channelCache.ChannelId)
-				}
-				channelPointCache[cp] = channelId(channelCache.ChannelId)
-			} else {
-				if channelCache.ShortChannelId != "" {
-					delete(shortChannelIdCache, shortChannelId(channelCache.ShortChannelId))
-				}
+			if channelCache.ShortChannelId != nil && *channelCache.ShortChannelId != "" {
+				delete(shortChannelIdCache, shortChannelIdType(*channelCache.ShortChannelId))
+			}
+			if cp != "" {
 				delete(channelPointCache, cp)
 			}
-			if channelCache.ShortChannelId != "" {
-				allShortChannelIdCache[shortChannelId(channelCache.ShortChannelId)] = channelId(channelCache.ChannelId)
-			}
-			allChannelPointCache[cp] = channelId(channelCache.ChannelId)
-			allChannelStatusCache[channelId(channelCache.ChannelId)] = channelCache.Status
-			allChannelSettingsByChannelIdCache[channelId(channelCache.ChannelId)] = ChannelSettingsCache{
-				ChannelId:              channelCache.ChannelId,
-				ShortChannelId:         channelCache.ShortChannelId,
-				LndShortChannelId:      channelCache.LndShortChannelId,
-				Status:                 channelCache.Status,
-				FundingTransactionHash: channelCache.FundingTransactionHash,
-				FundingOutputIndex:     channelCache.FundingOutputIndex,
-				FundingBlockHeight:     channelCache.FundingBlockHeight,
-				FundedOn:               channelCache.FundedOn,
-				Capacity:               channelCache.Capacity,
-				FirstNodeId:            channelCache.FirstNodeId,
-				SecondNodeId:           channelCache.SecondNodeId,
-				InitiatingNodeId:       channelCache.InitiatingNodeId,
-				AcceptingNodeId:        channelCache.AcceptingNodeId,
-				Private:                channelCache.Private,
-				ClosingTransactionHash: channelCache.ClosingTransactionHash,
-				ClosingNodeId:          channelCache.ClosingNodeId,
-				ClosingBlockHeight:     channelCache.ClosingBlockHeight,
-				ClosedOn:               channelCache.ClosedOn,
-				Flags:                  channelCache.Flags,
-			}
+		}
+		if channelCache.ShortChannelId != nil && *channelCache.ShortChannelId != "" {
+			allShortChannelIdCache[shortChannelIdType(*channelCache.ShortChannelId)] = channelIdType(channelCache.ChannelId)
+		}
+		if cp != "" {
+			allChannelPointCache[cp] = channelIdType(channelCache.ChannelId)
+		}
+		allChannelStatusCache[channelIdType(channelCache.ChannelId)] = channelCache.Status
+		allChannelSettingsByChannelIdCache[channelIdType(channelCache.ChannelId)] = ChannelSettingsCache{
+			ChannelId:              channelCache.ChannelId,
+			ShortChannelId:         channelCache.ShortChannelId,
+			LndShortChannelId:      channelCache.LndShortChannelId,
+			Status:                 channelCache.Status,
+			FundingTransactionHash: channelCache.FundingTransactionHash,
+			FundingOutputIndex:     channelCache.FundingOutputIndex,
+			FundingBlockHeight:     channelCache.FundingBlockHeight,
+			FundedOn:               channelCache.FundedOn,
+			Capacity:               channelCache.Capacity,
+			FirstNodeId:            channelCache.FirstNodeId,
+			SecondNodeId:           channelCache.SecondNodeId,
+			InitiatingNodeId:       channelCache.InitiatingNodeId,
+			AcceptingNodeId:        channelCache.AcceptingNodeId,
+			Private:                channelCache.Private,
+			ClosingTransactionHash: channelCache.ClosingTransactionHash,
+			ClosingNodeId:          channelCache.ClosingNodeId,
+			ClosingBlockHeight:     channelCache.ClosingBlockHeight,
+			ClosedOn:               channelCache.ClosedOn,
+			Flags:                  channelCache.Flags,
 		}
 	case writeChannelStatusId:
 		if channelCache.ChannelId == 0 {
 			log.Error().Msgf("No empty ChannelId (%v) allowed", channelCache.ChannelId)
-		} else {
-			settings := allChannelSettingsByChannelIdCache[channelId(channelCache.ChannelId)]
-			if channelCache.Status >= core.CooperativeClosed {
-				if settings.ShortChannelId != "" {
-					delete(shortChannelIdCache, shortChannelId(settings.ShortChannelId))
-				}
-				delete(channelPointCache, createChannelPoint(settings.FundingTransactionHash, settings.FundingOutputIndex))
-			}
-			allChannelStatusCache[channelId(channelCache.ChannelId)] = channelCache.Status
-			settings.Status = channelCache.Status
-			allChannelSettingsByChannelIdCache[channelId(channelCache.ChannelId)] = settings
+			break
 		}
+		settings := allChannelSettingsByChannelIdCache[channelIdType(channelCache.ChannelId)]
+		if channelCache.Status >= core.CooperativeClosed {
+			if settings.ShortChannelId != nil || *settings.ShortChannelId != "" {
+				delete(shortChannelIdCache, shortChannelIdType(*settings.ShortChannelId))
+			}
+			cp, err := createChannelPoint(settings.FundingTransactionHash, settings.FundingOutputIndex)
+			if err == nil {
+				delete(channelPointCache, cp)
+			}
+		}
+		allChannelStatusCache[channelIdType(channelCache.ChannelId)] = channelCache.Status
+		settings.Status = channelCache.Status
+		allChannelSettingsByChannelIdCache[channelIdType(channelCache.ChannelId)] = settings
 	}
 }
 
 func parseAndConvertShortIds(channelCache ChannelCache) {
-	if channelCache.ShortChannelId == "" && channelCache.LndShortChannelId != 0 {
-		channelCache.ShortChannelId = core.ConvertLNDShortChannelID(channelCache.LndShortChannelId)
+	if (channelCache.ShortChannelId == nil || *channelCache.ShortChannelId == "") &&
+		channelCache.LndShortChannelId != nil && *channelCache.LndShortChannelId != 0 {
+		scId := core.ConvertLNDShortChannelID(*channelCache.LndShortChannelId)
+		channelCache.ShortChannelId = &scId
 	}
-	if channelCache.LndShortChannelId == 0 && channelCache.ShortChannelId != "" {
-		var err error
-		channelCache.LndShortChannelId, err = core.ConvertShortChannelIDToLND(channelCache.ShortChannelId)
+	if (channelCache.LndShortChannelId == nil || *channelCache.LndShortChannelId == 0) &&
+		channelCache.ShortChannelId != nil && *channelCache.ShortChannelId != "" && *channelCache.ShortChannelId != "0x0x0" {
+		scId, err := core.ConvertShortChannelIDToLND(*channelCache.ShortChannelId)
 		if err != nil {
 			log.Error().Msgf("Could not convert ShortChannelId (%v) into LndShortChannelId", channelCache.ShortChannelId)
+			return
 		}
+		channelCache.LndShortChannelId = &scId
 	}
 }
 
-func createChannelPoint(fundingTransactionHash string, fundingOutputIndex int) channelPoint {
-	return channelPoint(fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex))
+func createChannelPoint(fundingTransactionHash *string, fundingOutputIndex *int) (channelPointType, error) {
+	if fundingTransactionHash == nil || *fundingTransactionHash == "" || fundingOutputIndex == nil {
+		return "", errors.New("Could not find funding transaction information")
+	}
+	return channelPointType(fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)), nil
 }
 
-func GetActiveChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
+func GetActiveChannelIdByFundingTransaction(fundingTransactionHash *string, fundingOutputIndex *int) int {
+	if fundingTransactionHash == nil || *fundingTransactionHash == "" || fundingOutputIndex == nil {
+		return 0
+	}
 	channelResponseChannel := make(chan ChannelCache)
 	channelCache := ChannelCache{
 		FundingTransactionHash: fundingTransactionHash,
@@ -273,7 +311,10 @@ func GetChannelIdByChannelPoint(channelPoint string) int {
 	return channelResponse.ChannelId
 }
 
-func GetChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutputIndex int) int {
+func GetChannelIdByFundingTransaction(fundingTransactionHash *string, fundingOutputIndex *int) int {
+	if fundingTransactionHash == nil || *fundingTransactionHash == "" || fundingOutputIndex == nil {
+		return 0
+	}
 	channelResponseChannel := make(chan ChannelCache)
 	channelCache := ChannelCache{
 		FundingTransactionHash: fundingTransactionHash,
@@ -286,8 +327,8 @@ func GetChannelIdByFundingTransaction(fundingTransactionHash string, fundingOutp
 	return channelResponse.ChannelId
 }
 
-func GetActiveChannelIdByShortChannelId(shortChannelId string) int {
-	if shortChannelId == "" || shortChannelId == "0x0x0" {
+func GetActiveChannelIdByShortChannelId(shortChannelId *string) int {
+	if shortChannelId == nil || *shortChannelId == "" || *shortChannelId == "0x0x0" {
 		return 0
 	}
 	channelResponseChannel := make(chan ChannelCache)
@@ -301,8 +342,8 @@ func GetActiveChannelIdByShortChannelId(shortChannelId string) int {
 	return channelResponse.ChannelId
 }
 
-func GetChannelIdByShortChannelId(shortChannelId string) int {
-	if shortChannelId == "" || shortChannelId == "0x0x0" {
+func GetChannelIdByShortChannelId(shortChannelId *string) int {
+	if shortChannelId == nil || *shortChannelId == "" || *shortChannelId == "0x0x0" {
 		return 0
 	}
 	channelResponseChannel := make(chan ChannelCache)
@@ -316,14 +357,14 @@ func GetChannelIdByShortChannelId(shortChannelId string) int {
 	return channelResponse.ChannelId
 }
 
-func GetChannelIdByLndShortChannelId(lndShortChannelId uint64) int {
-	if lndShortChannelId == 0 {
+func GetChannelIdByLndShortChannelId(lndShortChannelId *uint64) int {
+	if lndShortChannelId == nil || *lndShortChannelId == 0 {
 		return 0
 	}
-	scId := core.ConvertLNDShortChannelID(lndShortChannelId)
+	scId := core.ConvertLNDShortChannelID(*lndShortChannelId)
 	channelResponseChannel := make(chan ChannelCache)
 	channelCache := ChannelCache{
-		ShortChannelId: scId,
+		ShortChannelId: &scId,
 		Type:           readChannelIdByShortchannelId,
 		Out:            channelResponseChannel,
 	}
@@ -387,7 +428,7 @@ func GetChannelSettingByChannelId(channelId int) ChannelSettingsCache {
 }
 
 func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64, status core.ChannelStatus,
-	fundingTransactionHash string, fundingOutputIndex int,
+	fundingTransactionHash *string, fundingOutputIndex *int,
 	fundingBlockHeight *uint32, fundedOn *time.Time,
 	capacity int64, private bool, firstNodeId int, secondNodeId int,
 	initiatingNodeId *int, acceptingNodeId *int,
@@ -415,10 +456,10 @@ func SetChannel(channelId int, shortChannelId *string, lndShortChannelId *uint64
 		Type:                   writeChannel,
 	}
 	if shortChannelId != nil && *shortChannelId != "" {
-		channelCache.ShortChannelId = *shortChannelId
+		channelCache.ShortChannelId = shortChannelId
 	}
 	if lndShortChannelId != nil && *lndShortChannelId != 0 {
-		channelCache.LndShortChannelId = *lndShortChannelId
+		channelCache.LndShortChannelId = lndShortChannelId
 	}
 	ChannelsCacheChannel <- channelCache
 }

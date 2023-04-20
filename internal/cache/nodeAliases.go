@@ -23,7 +23,7 @@ type NodeAliasCache struct {
 }
 
 func NodeAliasesCacheHandler(ch <-chan NodeAliasCache, ctx context.Context) {
-	nodeAliasesByNodeIdCache := make(map[nodeId]string, 0)
+	nodeAliasesByNodeIdCache := make(map[nodeIdType]string, 0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -34,7 +34,7 @@ func NodeAliasesCacheHandler(ch <-chan NodeAliasCache, ctx context.Context) {
 	}
 }
 
-func handleNodeAliasOperation(nodeAliasCache NodeAliasCache, nodeAliasesByNodeIdCache map[nodeId]string) {
+func handleNodeAliasOperation(nodeAliasCache NodeAliasCache, nodeAliasesByNodeIdCache map[nodeIdType]string) {
 	switch nodeAliasCache.Type {
 	case readAlias:
 		if nodeAliasCache.NodeId == 0 {
@@ -42,7 +42,7 @@ func handleNodeAliasOperation(nodeAliasCache NodeAliasCache, nodeAliasesByNodeId
 			nodeAliasCache.Out <- ""
 			break
 		}
-		nodeAlias, exists := nodeAliasesByNodeIdCache[nodeId(nodeAliasCache.NodeId)]
+		nodeAlias, exists := nodeAliasesByNodeIdCache[nodeIdType(nodeAliasCache.NodeId)]
 		if exists {
 			nodeAliasCache.Out <- nodeAlias
 			break
@@ -57,7 +57,7 @@ func handleNodeAliasOperation(nodeAliasCache NodeAliasCache, nodeAliasesByNodeId
 			log.Debug().Msgf("No empty Alias allowed (nodeId: %v)", nodeAliasCache.NodeId)
 			break
 		}
-		nodeAliasesByNodeIdCache[nodeId(nodeAliasCache.NodeId)] = nodeAliasCache.Alias
+		nodeAliasesByNodeIdCache[nodeIdType(nodeAliasCache.NodeId)] = nodeAliasCache.Alias
 	}
 }
 
