@@ -122,6 +122,10 @@ function NodeConnector(props: NodeConnectorProps) {
     return { x, y };
   }
 
+  useEffect(() => {
+    updater();
+  });
+
   // Add a listener to the node card to update the position of the connector when the node is moved.
   useEffect(() => {
     const observer = new MutationObserver(updatePosition);
@@ -135,14 +139,6 @@ function NodeConnector(props: NodeConnectorProps) {
       }
     };
   }, [canvasRef?.current, nodeRef?.current, connectorRef?.current]);
-
-  // run updater every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      updater();
-    }, 10);
-    return () => clearInterval(interval);
-  });
 
   return (
     <div
