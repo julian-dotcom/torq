@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import React, {MutableRefObject, useContext, useEffect, useRef, useState} from "react";
+import React, { MutableRefObject, useContext, useEffect, useRef, useState } from "react";
 import { WarningRegular as WarningIcon, ErrorCircleRegular as ErrorIcon } from "@fluentui/react-icons";
 import styles from "./socket_input.module.scss";
 import { GetColorClass, GetSizeClass, InputColorVaraint } from "components/forms/input/variants";
@@ -134,11 +134,8 @@ function Socket(props: SocketProps) {
   }, [canvasRef?.current, nodeRef?.current, connectorRef?.current]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      updater();
-    }, 10);
-    return () => clearInterval(interval);
-  });
+    updater();
+  }, [props.selectedNodes]);
 
   return (
     <div
