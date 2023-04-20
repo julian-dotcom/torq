@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { DismissCircle24Regular as DeleteLinkIcon } from "@fluentui/react-icons";
 import { SelectWorkflowLinks, useDeleteNodeLinkMutation } from "pages/WorkflowPage/workflowApi";
@@ -186,6 +186,30 @@ function WorkflowLinks(props: WorkflowLinkProps) {
   );
 
   const displayPreviewLink = useSelector(selectDisplayPreviewLink);
+  const [scale, setScale] = useState(1 / window.devicePixelRatio || 1);
+
+  const handleResize = () => {
+    const scale = window.devicePixelRatio || 1;
+
+    if (scale < 1.5) setScale(1 / scale);
+
+    // TODO: Due to retina this if buggy on some zoom levels. Not sure what is happening.
+    //   Could be caused by the preserveAspectRatio.
+    //   the problem is that when we manipulate the initial scale
+    if (scale >= 1.5 && scale < 2) setScale(2 / scale);
+    if (scale == 2) setScale(2 / scale);
+    if (scale >= 2.5 && scale < 3) setScale(2 / scale);
+    if (scale == 3) setScale(3 / scale);
+    if (scale == 4) setScale(4 / scale);
+  };
+
+  useEffect(() => {
+    window.addEventListener("resize", handleResize, false);
+  }, []);
+
+  useEffect(() => {
+    handleResize();
+  }, []);
 
   return (
     <div
@@ -202,6 +226,7 @@ function WorkflowLinks(props: WorkflowLinkProps) {
     >
       <svg
         className={classNames(styles.workflowLinks, { [styles.active]: props.selectedStage })}
+        viewBox={`0 0 ${scale} ${scale}`}
         overflow={"visible"}
         style={props.style}
       >
