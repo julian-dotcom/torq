@@ -1091,38 +1091,25 @@ func prepareCloseRequest(request lightning_helpers.CloseChannelRequest) (*cln.Cl
 	if request.SatPerVbyte != nil && request.TargetConf != nil {
 		return nil, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
-
 	channel := cache.GetChannelSettingByChannelId(request.ChannelId)
-	peerNodeId := channel.FirstNodeId
-	if peerNodeId == request.NodeId {
-		peerNodeId = channel.SecondNodeId
-	}
-	peerNode := cache.GetNodeSettingsByNodeId(peerNodeId)
-
-	//open channel request
 	closeChanReq := &cln.CloseRequest{
-		Id: peerNode.PublicKey,
+		Id: *channel.ShortChannelId,
 	}
-
 	if request.Force != nil {
 		closeChanReq.ForceLeaseClosed = request.Force
 	}
-
 	// TODO FIXME CLN verify
 	//if request.TargetConf != nil {
 	//	closeChanReq.TargetConf = *ccReq.TargetConf
 	//}
-
 	if request.SatPerVbyte != nil {
 		closeChanReq.Feerange = append(closeChanReq.Feerange, &cln.Feerate{Style: &cln.Feerate_Perkb{Perkb: uint32(*request.SatPerVbyte)}})
 		closeChanReq.Feerange = append(closeChanReq.Feerange, &cln.Feerate{Style: &cln.Feerate_Perkb{Perkb: uint32(*request.SatPerVbyte)}})
 	}
-
 	// TODO FIXME CLN verify
 	//if request.DeliveryAddress != nil {
 	//	closeChanReq.DeliveryAddress = *ccReq.DeliveryAddress
 	//}
-
 	return closeChanReq, nil
 }
 

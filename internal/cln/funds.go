@@ -88,6 +88,14 @@ func storeChannelFunds(db *sqlx.DB,
 	var channelStateSettingsList []cache.ChannelStateSettingsCache
 	for _, clnChannel := range clnChannelFunds {
 		channelId := 0
+		if clnChannel.State == cln.ChannelState_ChanneldShuttingDown ||
+			clnChannel.State == cln.ChannelState_ClosingdSigexchange ||
+			clnChannel.State == cln.ChannelState_ClosingdComplete ||
+			clnChannel.State == cln.ChannelState_AwaitingUnilateral ||
+			clnChannel.State == cln.ChannelState_FundingSpendSeen ||
+			clnChannel.State == cln.ChannelState_Onchain {
+			continue
+		}
 		if clnChannel.ShortChannelId != nil {
 			channelId = cache.GetChannelIdByShortChannelId(clnChannel.ShortChannelId)
 		}

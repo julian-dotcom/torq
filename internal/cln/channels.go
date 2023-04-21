@@ -67,6 +67,15 @@ func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_List
 	nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool) error {
 
+	currentChannels := cache.GetChannelSettingsByNodeId(nodeSettings.NodeId)
+	var openChannelIds []int
+	for _, currentChannel := range currentChannels {
+		if currentChannel.Status < core.CooperativeClosed {
+			openChannelIds = append(openChannelIds, currentChannel.ChannelId)
+		}
+	}
+	processedChannelIds := make(map[int]bool, len(currentChannels))
+
 	publicKey, err := hex.DecodeString(nodeSettings.PublicKey)
 	if err != nil {
 		return errors.Wrapf(err, "decoding public key for nodeId: %v", nodeSettings.NodeId)
@@ -78,7 +87,7 @@ func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_List
 		return errors.Wrapf(err, "listing source channels for nodeId: %v", nodeSettings.NodeId)
 	}
 
-	err = storeChannels(db, clnChannels.Channels, nodeSettings)
+	err = storeChannels(db, clnChannels.Channels, nodeSettings, processedChannelIds)
 	if err != nil {
 		return errors.Wrapf(err, "storing source channels for nodeId: %v", nodeSettings.NodeId)
 	}
@@ -90,9 +99,27 @@ func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_List
 		return errors.Wrapf(err, "listing destination channels for nodeId: %v", nodeSettings.NodeId)
 	}
 
-	err = storeChannels(db, clnChannels.Channels, nodeSettings)
+	err = storeChannels(db, clnChannels.Channels, nodeSettings, processedChannelIds)
 	if err != nil {
 		return errors.Wrapf(err, "storing destination channels for nodeId: %v", nodeSettings.NodeId)
+	}
+
+	for _, openChannelId := range openChannelIds {
+		if !processedChannelIds[openChannelId] {
+			log.Info().Msgf("Channel with channelId: %v got dropped from the list for nodeId: %v",
+				openChannelId, nodeSettings.NodeId)
+			channel, err := channels.GetChannel(db, openChannelId)
+			if err != nil {
+				return errors.Wrapf(err, "obtaining dropped channel with channelId: %v for nodeId: %v",
+					openChannelId, nodeSettings.NodeId)
+			}
+			channel.Status = core.CooperativeClosed
+			_, err = channels.AddChannelOrUpdateChannelStatus(db, nodeSettings, channel)
+			if err != nil {
+				return errors.Wrapf(err, "persisting dropped channel with channelId: %v for nodeId: %v",
+					openChannelId, nodeSettings.NodeId)
+			}
+		}
 	}
 
 	if bootStrapping {
@@ -102,7 +129,11 @@ func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_List
 	return nil
 }
 
-func storeChannels(db *sqlx.DB, clnChannels []*cln.ListchannelsChannels, nodeSettings cache.NodeSettingsCache) error {
+func storeChannels(db *sqlx.DB,
+	clnChannels []*cln.ListchannelsChannels,
+	nodeSettings cache.NodeSettingsCache,
+	processedChannelIds map[int]bool,
+) error {
 	processedShortChannelIds := make(map[string]bool)
 	for _, clnChannel := range clnChannels {
 		if clnChannel != nil {
@@ -133,6 +164,7 @@ func storeChannels(db *sqlx.DB, clnChannels []*cln.ListchannelsChannels, nodeSet
 				return errors.Wrapf(err, "process channel for nodeId: %v", nodeSettings.NodeId)
 			}
 			processedShortChannelIds[clnChannel.ShortChannelId] = true
+			processedChannelIds[channelId] = true
 
 			announcingNodeId := cache.GetPeerNodeIdByPublicKey(
 				sourcePublicKey, nodeSettings.Chain, nodeSettings.Network)
