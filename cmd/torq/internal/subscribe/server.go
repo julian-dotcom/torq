@@ -9,7 +9,6 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	cln2 "github.com/lncapital/torq/internal/cln"
-	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/lnd"
 	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/cln"
@@ -36,21 +35,21 @@ func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sql
 
 	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
-	err := lightning.ImportAllChannels(db, false, nodeId)
+	err := lnd.ImportAllChannels(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channels for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
-	err = lightning.ImportChannelRoutingPolicies(db, false, nodeId)
+	err = lnd.ImportChannelRoutingPolicies(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channel routing policies for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
-	err = lightning.ImportNodeInformation(db, false, nodeId)
+	err = lnd.ImportNodeInformation(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Node Information for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)
@@ -76,21 +75,21 @@ func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
-	err := lightning.ImportAllChannels(db, false, nodeId)
+	err := lnd.ImportAllChannels(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channels for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
-	err = lightning.ImportChannelRoutingPolicies(db, false, nodeId)
+	err = lnd.ImportChannelRoutingPolicies(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Channel routing policies for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)
 		return
 	}
 
-	err = lightning.ImportNodeInformation(db, false, nodeId)
+	err = lnd.ImportNodeInformation(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import Node Information for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)
@@ -135,7 +134,7 @@ func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 	cache.SetPendingNodeServiceState(serviceType, nodeId)
 
-	err := lightning.ImportPeerStatus(db, false, nodeId)
+	err := lnd.ImportPeerStatus(db, false, nodeId)
 	if err != nil {
 		log.Error().Err(err).Msgf("LND import peer status for nodeId: %v", nodeId)
 		cache.SetFailedNodeServiceState(serviceType, nodeId)

@@ -125,12 +125,12 @@ func storeChannels(db *sqlx.DB, clnChannels []*cln.ListchannelsChannels, nodeSet
 					Network:   nodeSettings.Network,
 				}, nil)
 				if err != nil {
-					return err
+					return errors.Wrapf(err, "add new peer node for nodeId: %v", nodeSettings.NodeId)
 				}
 			}
 			channelId, err := processChannel(db, clnChannel, nodeSettings, peerNodeId)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "process channel for nodeId: %v", nodeSettings.NodeId)
 			}
 			processedShortChannelIds[clnChannel.ShortChannelId] = true
 
@@ -159,7 +159,7 @@ func storeChannels(db *sqlx.DB, clnChannels []*cln.ListchannelsChannels, nodeSet
 			channelEvent.TimeLockDelta = clnChannel.Delay
 			err = insertRoutingPolicy(db, channelEvent, nodeSettings)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "process routing policy for nodeId: %v", nodeSettings.NodeId)
 			}
 		}
 	}
@@ -209,7 +209,8 @@ func processChannel(db *sqlx.DB,
 	channel.Private = !clnChannel.Public
 	channelId, err := channels.AddChannelOrUpdateChannelStatus(db, nodeSettings, channel)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "update channel data for channelId: %v, nodeId: %v",
+			channelId, nodeSettings.NodeId)
 	}
 	return channelId, nil
 }

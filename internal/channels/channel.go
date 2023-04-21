@@ -263,7 +263,7 @@ func createWhenNonExisting(db *sqlx.DB, channel Channel) (Channel, int, error) {
 			}
 		}
 		if existingChannelId == 0 {
-			storedChannel, err := addChannel(db, channel)
+			storedChannel, err := AddChannel(db, channel)
 			if err != nil {
 				return Channel{}, 0,
 					errors.Wrapf(err, "adding channel ShortChannelId %v", *channel.ShortChannelID)
@@ -283,7 +283,7 @@ func createWhenNonExisting(db *sqlx.DB, channel Channel) (Channel, int, error) {
 			}
 		}
 		if existingChannelId == 0 {
-			storedChannel, err := addChannel(db, channel)
+			storedChannel, err := AddChannel(db, channel)
 			if err != nil {
 				return Channel{}, 0,
 					errors.Wrapf(err, "Adding channel FundingTransactionHash %v, FundingOutputIndex %v",

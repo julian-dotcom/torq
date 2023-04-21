@@ -253,19 +253,10 @@ func storeChannelEvent(ctx context.Context,
 }
 
 func importPendingChannels(db *sqlx.DB, force bool, nodeSettings cache.NodeSettingsCache) error {
-	request := ImportPendingChannelsRequest{
-		ImportRequest: ImportRequest{
-			CommunicationRequest: CommunicationRequest{
-				NodeId: nodeSettings.NodeId,
-			},
-			Db:    db,
-			Force: force,
-		},
-	}
-	response := ImportPendingChannels(request)
-	if response.Error != nil {
-		log.Error().Err(response.Error).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
-		return errors.Wrapf(response.Error, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
+	err := ImportPendingChannels(db, force, nodeSettings.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(err, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
 	}
 	return nil
 }

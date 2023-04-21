@@ -22,6 +22,7 @@ func Connect(host string, certificate []byte, key []byte) (*grpc.ClientConn, err
 		return nil, errors.New("CLN credentials: failed to create X509 KeyPair")
 	}
 	tlsConfig := &tls.Config{}
+	tlsConfig.MinVersion = tls.VersionTLS12
 	tlsConfig.Certificates = []tls.Certificate{clientCrt}
 	tlsConfig.ClientAuth = tls.RequestClientCert
 	tlsConfig.InsecureSkipVerify = true

@@ -278,7 +278,7 @@ func createChannelPoint(fundingTransactionHash *string, fundingOutputIndex *int)
 	if fundingTransactionHash == nil || *fundingTransactionHash == "" || fundingOutputIndex == nil {
 		return "", errors.New("Could not find funding transaction information")
 	}
-	return channelPointType(fmt.Sprintf("%s:%v", fundingTransactionHash, fundingOutputIndex)), nil
+	return channelPointType(fmt.Sprintf("%s:%v", *fundingTransactionHash, fundingOutputIndex)), nil
 }
 
 func GetActiveChannelIdByFundingTransaction(fundingTransactionHash *string, fundingOutputIndex *int) int {

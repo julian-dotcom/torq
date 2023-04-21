@@ -747,6 +747,11 @@ func processDisconnectPeerRequest(ctx context.Context,
 	}
 
 	publicKey, err := hex.DecodeString(cache.GetNodeSettingsByNodeId(request.PeerNodeId).PublicKey)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
 	force := true
 	disconnectPeerRequest := cln.DisconnectRequest{
 		Id:    publicKey,
@@ -754,7 +759,6 @@ func processDisconnectPeerRequest(ctx context.Context,
 	}
 
 	_, err = cln.NewNodeClient(connection).Disconnect(ctx, &disconnectPeerRequest)
-
 	if err != nil {
 		response.Error = err.Error()
 		return response

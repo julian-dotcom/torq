@@ -215,7 +215,7 @@ func CloseChannel(request lightning_helpers.CloseChannelRequest) lightning_helpe
 	return lightning_helpers.CloseChannelResponse{}
 }
 
-func ChannelStatusUpdate(request ChannelStatusUpdateRequest) ChannelStatusUpdateResponse {
+func ChannelStatusUpdateUnshared(request ChannelStatusUpdateRequest) ChannelStatusUpdateResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
@@ -225,7 +225,7 @@ func ChannelStatusUpdate(request ChannelStatusUpdateRequest) ChannelStatusUpdate
 	return ChannelStatusUpdateResponse{}
 }
 
-func ImportAllChannels(request ImportAllChannelsRequest) ImportAllChannelsResponse {
+func ImportAllChannelsUnshared(request ImportAllChannelsRequest) ImportAllChannelsResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
@@ -235,7 +235,7 @@ func ImportAllChannels(request ImportAllChannelsRequest) ImportAllChannelsRespon
 	return ImportAllChannelsResponse{}
 }
 
-func ImportPendingChannels(request ImportPendingChannelsRequest) ImportPendingChannelsResponse {
+func ImportPendingChannelsUnshared(request ImportPendingChannelsRequest) ImportPendingChannelsResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
@@ -245,7 +245,7 @@ func ImportPendingChannels(request ImportPendingChannelsRequest) ImportPendingCh
 	return ImportPendingChannelsResponse{}
 }
 
-func ImportChannelRoutingPolicies(request ImportChannelRoutingPoliciesRequest) ImportChannelRoutingPoliciesResponse {
+func ImportChannelRoutingPoliciesUnshared(request ImportChannelRoutingPoliciesRequest) ImportChannelRoutingPoliciesResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
@@ -255,7 +255,7 @@ func ImportChannelRoutingPolicies(request ImportChannelRoutingPoliciesRequest) I
 	return ImportChannelRoutingPoliciesResponse{}
 }
 
-func ImportNodeInformation(request ImportNodeInformationRequest) ImportNodeInformationResponse {
+func ImportNodeInformationUnshared(request ImportNodeInformationRequest) ImportNodeInformationResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
@@ -265,7 +265,7 @@ func ImportNodeInformation(request ImportNodeInformationRequest) ImportNodeInfor
 	return ImportNodeInformationResponse{}
 }
 
-func ImportPeerStatus(request ImportPeerStatusRequest) ImportPeerStatusResponse {
+func ImportPeerStatusUnshared(request ImportPeerStatusRequest) ImportPeerStatusResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
@@ -408,25 +408,15 @@ const (
 	Active   = ResponseStatus(core.Active)
 )
 
-type CommunicationRequest struct {
-	NodeId int
-}
-
-type CommunicationResponse struct {
-	Status  ResponseStatus
-	Message string
-	Error   string
-}
-
 type ChannelStatusUpdateRequest struct {
-	CommunicationRequest
+	lightning_helpers.CommunicationRequest
 	Db            *sqlx.DB
 	ChannelId     int
 	ChannelStatus core.Status
 }
 
 type ChannelStatusUpdateResponse struct {
-	CommunicationResponse
+	lightning_helpers.CommunicationResponse
 	Request ChannelStatusUpdateRequest
 }
 
@@ -436,13 +426,13 @@ type FailedRequest struct {
 }
 
 type ImportRequest struct {
-	CommunicationRequest
+	lightning_helpers.CommunicationRequest
 	Db    *sqlx.DB
 	Force bool
 }
 
 type ImportResponse struct {
-	CommunicationResponse
+	lightning_helpers.CommunicationResponse
 	Error error
 }
 
@@ -1189,8 +1179,8 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportAllChann
 	response := ImportAllChannelsResponse{
 		Request: request,
 		ImportResponse: ImportResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 		},
 	}
@@ -1239,7 +1229,7 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportAllChann
 	}
 
 	setSuccessTime(request.NodeId, successTimes, importType)
-	response.Status = Active
+	response.Status = lightning_helpers.Active
 	return response
 }
 
@@ -1252,8 +1242,8 @@ func processImportPendingChannelsRequest(ctx context.Context,
 	response := ImportPendingChannelsResponse{
 		Request: request,
 		ImportResponse: ImportResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 		},
 	}
@@ -1285,7 +1275,7 @@ func processImportPendingChannelsRequest(ctx context.Context,
 	}
 
 	setSuccessTime(request.NodeId, successTimes, importType)
-	response.Status = Active
+	response.Status = lightning_helpers.Active
 	return response
 }
 
@@ -1298,8 +1288,8 @@ func processImportChannelRoutingPoliciesRequest(ctx context.Context,
 	response := ImportChannelRoutingPoliciesResponse{
 		Request: request,
 		ImportResponse: ImportResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 		},
 	}
@@ -1323,7 +1313,7 @@ func processImportChannelRoutingPoliciesRequest(ctx context.Context,
 		return response
 	}
 	setSuccessTime(request.NodeId, successTimes, importType)
-	response.Status = Active
+	response.Status = lightning_helpers.Active
 	return response
 }
 
@@ -1336,8 +1326,8 @@ func processImportNodeInformationRequest(ctx context.Context,
 	response := ImportNodeInformationResponse{
 		Request: request,
 		ImportResponse: ImportResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 		},
 	}
@@ -1361,7 +1351,7 @@ func processImportNodeInformationRequest(ctx context.Context,
 		return response
 	}
 	setSuccessTime(request.NodeId, successTimes, importType)
-	response.Status = Active
+	response.Status = lightning_helpers.Active
 	return response
 }
 
@@ -1372,8 +1362,8 @@ func processImportPeerStatusRequest(ctx context.Context, request ImportPeerStatu
 	response := ImportPeerStatusResponse{
 		Request: request,
 		ImportResponse: ImportResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 		},
 	}
@@ -1397,7 +1387,7 @@ func processImportPeerStatusRequest(ctx context.Context, request ImportPeerStatu
 		return response
 	}
 	setSuccessTime(request.NodeId, successTimes, importType)
-	response.Status = Active
+	response.Status = lightning_helpers.Active
 	return response
 }
 
@@ -1591,8 +1581,8 @@ func processChannelStatusUpdateRequest(ctx context.Context,
 
 	if !channelStatusUpdateRequestContainsUpdates(request) {
 		return ChannelStatusUpdateResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Active,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Active,
 			},
 			Request: request,
 		}
@@ -1615,16 +1605,16 @@ func processChannelStatusUpdateRequest(ctx context.Context,
 		log.Error().Err(err).Msgf("Failed to update channel status for channelId: %v on nodeId: %v",
 			request.ChannelId, request.NodeId)
 		return ChannelStatusUpdateResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  err.Error(),
 			},
 			Request: request,
 		}
 	}
 	return ChannelStatusUpdateResponse{
-		CommunicationResponse: CommunicationResponse{
-			Status: Active,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Active,
 		},
 		Request: request,
 	}
@@ -1649,8 +1639,8 @@ func channelStatusUpdateRequestIsRepeated(request ChannelStatusUpdateRequest) *C
 	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(request.Db, request.ChannelId, &secondsAgo)
 	if err != nil {
 		return &ChannelStatusUpdateResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  err.Error(),
 			},
 			Request: request,
@@ -1668,8 +1658,8 @@ func channelStatusUpdateRequestIsRepeated(request ChannelStatusUpdateRequest) *C
 		}
 		if disabledCounter > 2 {
 			return &ChannelStatusUpdateResponse{
-				CommunicationResponse: CommunicationResponse{
-					Status: Inactive,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Inactive,
 				},
 				Request: request,
 			}
@@ -1692,8 +1682,8 @@ func channelStatusUpdateRequestContainsUpdates(request ChannelStatusUpdateReques
 func validateChannelStatusUpdateRequest(request ChannelStatusUpdateRequest) *ChannelStatusUpdateResponse {
 	if request.ChannelId == 0 {
 		return &ChannelStatusUpdateResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "ChannelId is 0",
 			},
 			Request: request,
@@ -1702,8 +1692,8 @@ func validateChannelStatusUpdateRequest(request ChannelStatusUpdateRequest) *Cha
 	if request.ChannelStatus != core.Active &&
 		request.ChannelStatus != core.Inactive {
 		return &ChannelStatusUpdateResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "ChannelStatus is not Active nor Inactive",
 			},
 			Request: request,
@@ -1713,8 +1703,8 @@ func validateChannelStatusUpdateRequest(request ChannelStatusUpdateRequest) *Cha
 	if channelSettings.FundingTransactionHash == nil || *channelSettings.FundingTransactionHash == "" ||
 		channelSettings.FundingOutputIndex == nil {
 		return &ChannelStatusUpdateResponse{
-			CommunicationResponse: CommunicationResponse{
-				Status: Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "FundingTransaction information is not known",
 			},
 			Request: request,

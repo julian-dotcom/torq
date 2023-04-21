@@ -1,12 +1,11 @@
-package lightning
+package lnd
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
-
-	"github.com/lncapital/torq/internal/core"
 )
 
 func Test_checkPrepareReq(t *testing.T) {
@@ -14,7 +13,6 @@ func Test_checkPrepareReq(t *testing.T) {
 	var tgConf int32 = 12
 	var pushSat int64 = 12
 	var private = true
-	var minHtlcMsat uint64 = 12
 	bobPKbyte := []byte{2, 190, 169, 250, 229, 164, 252, 104, 90, 205,
 		95, 89, 4, 113, 105, 9, 71, 116, 213, 31, 173, 13, 47, 59, 70, 193, 190, 225, 220, 35, 166, 206, 45}
 	davePKbyte := []byte{3, 0, 58, 60, 77, 240, 60, 90, 152, 5, 137, 98,
@@ -22,16 +20,16 @@ func Test_checkPrepareReq(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   core.BatchOpenRequest
+		input   lightning_helpers.BatchOpenChannelRequest
 		want    *lnrpc.BatchOpenChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID is missing",
-			core.BatchOpenRequest{
-				Channels: []core.BatchOpenChannel{
-					{NodePubkey: "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d", LocalFundingAmount: 250000},
-					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
+			lightning_helpers.BatchOpenChannelRequest{
+				Channels: []lightning_helpers.BatchOpenChannel{
+					{NodePublicKey: "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d", LocalFundingAmount: 250000},
+					{NodePublicKey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
 				},
 			},
 			&lnrpc.BatchOpenChannelRequest{Channels: []*lnrpc.BatchOpenChannel{
@@ -42,21 +40,21 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"Channels array empty",
-			core.BatchOpenRequest{
-				NodeId:      1,
-				Channels:    []core.BatchOpenChannel{},
-				TargetConf:  nil,
-				SatPerVbyte: nil,
+			lightning_helpers.BatchOpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Channels:             []lightning_helpers.BatchOpenChannel{},
+				TargetConf:           nil,
+				SatPerVbyte:          nil,
 			},
 			&lnrpc.BatchOpenChannelRequest{},
 			true,
 		},
 		{
 			"Both satpervbyte and targetconf set",
-			core.BatchOpenRequest{
-				NodeId: 1,
-				Channels: []core.BatchOpenChannel{
-					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0"},
+			lightning_helpers.BatchOpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Channels: []lightning_helpers.BatchOpenChannel{
+					{NodePublicKey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0"},
 				},
 				TargetConf:  &tgConf,
 				SatPerVbyte: &satpvb,
@@ -66,10 +64,10 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"LocalFundingAmount 0",
-			core.BatchOpenRequest{
-				NodeId: 1,
-				Channels: []core.BatchOpenChannel{
-					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 0},
+			lightning_helpers.BatchOpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Channels: []lightning_helpers.BatchOpenChannel{
+					{NodePublicKey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 0},
 				},
 				TargetConf: &tgConf,
 			},
@@ -78,11 +76,11 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"Only mandatory params",
-			core.BatchOpenRequest{
-				NodeId: 1,
-				Channels: []core.BatchOpenChannel{
-					{NodePubkey: "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d", LocalFundingAmount: 250000},
-					{NodePubkey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
+			lightning_helpers.BatchOpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Channels: []lightning_helpers.BatchOpenChannel{
+					{NodePublicKey: "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d", LocalFundingAmount: 250000},
+					{NodePublicKey: "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0", LocalFundingAmount: 250000},
 				},
 			},
 			&lnrpc.BatchOpenChannelRequest{Channels: []*lnrpc.BatchOpenChannel{
@@ -93,22 +91,20 @@ func Test_checkPrepareReq(t *testing.T) {
 		},
 		{
 			"All optional params",
-			core.BatchOpenRequest{
-				NodeId: 1,
-				Channels: []core.BatchOpenChannel{
+			lightning_helpers.BatchOpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Channels: []lightning_helpers.BatchOpenChannel{
 					{
-						NodePubkey:         "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d",
+						NodePublicKey:      "02bea9fae5a4fc685acd5f59047169094774d51fad0d2f3b46c1bee1dc23a6ce2d",
 						LocalFundingAmount: 250000,
 						PushSat:            &pushSat,
 						Private:            &private,
-						MinHtlcMsat:        &minHtlcMsat,
 					},
 					{
-						NodePubkey:         "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0",
+						NodePublicKey:      "03003a3c4df03c5a980589626a69c955126c828d51a58f700ef1c64e03bf3030b0",
 						LocalFundingAmount: 250000,
 						PushSat:            &pushSat,
 						Private:            &private,
-						MinHtlcMsat:        &minHtlcMsat,
 					},
 				},
 				TargetConf: &tgConf,
@@ -158,12 +154,12 @@ func Test_processBocResponse(t *testing.T) {
 		115, 136, 49, 172, 219, 164, 121, 189, 10, 158, 184, 57, 176, 187, 21, 210, 113, 102}
 	test := struct {
 		name  string
-		req   core.BatchOpenRequest
+		req   lightning_helpers.BatchOpenChannelRequest
 		input lnrpc.BatchOpenChannelResponse
-		want  core.BatchOpenResponse
+		want  lightning_helpers.BatchOpenChannelResponse
 	}{
 		"Test response",
-		core.BatchOpenRequest{},
+		lightning_helpers.BatchOpenChannelRequest{},
 		lnrpc.BatchOpenChannelResponse{
 			PendingChannels: []*lnrpc.PendingUpdate{
 				{
@@ -176,16 +172,16 @@ func Test_processBocResponse(t *testing.T) {
 				},
 			},
 		},
-		core.BatchOpenResponse{
-			PendingChannels: []core.PendingChannel{
-				{PendingChannelPoint: "6671d215bbb039b89e0abd79a4dbac3188732f74f7bbc9962007c175da701005:0"},
-				{PendingChannelPoint: "6671d215bbb039b89e0abd79a4dbac3188732f74f7bbc9962007c175da701005:1"},
+		lightning_helpers.BatchOpenChannelResponse{
+			PendingChannelPoints: []string{
+				"6671d215bbb039b89e0abd79a4dbac3188732f74f7bbc9962007c175da701005:0",
+				"6671d215bbb039b89e0abd79a4dbac3188732f74f7bbc9962007c175da701005:1",
 			},
 		},
 	}
 
 	t.Run(test.name, func(t *testing.T) {
-		got, err := processBocResponse(&test.input)
+		got, err := processBatchOpenChannelResponse(&test.input)
 
 		if err != nil {
 			t.Errorf("checkPrepareReq: %v", err)

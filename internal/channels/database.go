@@ -218,7 +218,7 @@ func getChannelIdByFundingTransaction(db *sqlx.DB, fundingTransactionHash string
 	return channelId, nil
 }
 
-func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
+func AddChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	channel.CreatedOn = time.Now().UTC()
 	channel.UpdateOn = &channel.CreatedOn
 	if channel.FundingTransactionHash != nil && *channel.FundingTransactionHash == "" {
