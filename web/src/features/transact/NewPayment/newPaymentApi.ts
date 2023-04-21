@@ -6,11 +6,11 @@ import { queryParamsBuilder } from "utils/queryParamsBuilder";
 export const NewPaymentApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     getDecodedInvoice: builder.query<DecodedInvoice, GetDecodedInvoiceQueryParams>({
-      query: (params) => "invoices/decode" + queryParamsBuilder(params),
+      query: (params) => "lightning/decode" + queryParamsBuilder(params),
     }),
     sendOnChain: builder.mutation<SendOnChainResponse, SendOnChainRequest>({
       query: (data: SendOnChainRequest) => ({
-        url: "on-chain-tx/sendcoins",
+        url: "lightning/sendcoins",
         method: "POST",
         body: data,
       }),

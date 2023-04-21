@@ -6,7 +6,7 @@ export const newAddressApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     newAddress: builder.mutation<string, NewAddressRequest>({
       query: (body) => ({
-        url: "/on-chain-tx/new-address",
+        url: "/lightning/new-address",
         method: "POST",
         body,
       }),
