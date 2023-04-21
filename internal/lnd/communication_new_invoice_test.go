@@ -1,4 +1,4 @@
-package invoices
+package lnd
 
 import (
 	"reflect"

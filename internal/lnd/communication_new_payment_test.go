@@ -1,28 +1,25 @@
-package payments
+package lnd
 
 import (
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/proto/lnrpc"
-
-	"github.com/lncapital/torq/internal/core"
 )
 
 func Test_processResponse(t *testing.T) {
 	tests := []struct {
-		name      string
-		requestId string
-		req       core.NewPaymentRequest
-		input     *lnrpc.Payment
-		want      core.NewPaymentResponse
-		wantErr   bool
+		name    string
+		req     lightning_helpers.NewPaymentRequest
+		input   *lnrpc.Payment
+		want    lightning_helpers.NewPaymentResponse
+		wantErr bool
 	}{{
-		name:      "Successful payment",
-		requestId: "Unique ID here",
+		name: "Successful payment",
 		input: &lnrpc.Payment{
 			PaymentHash:     "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
 			PaymentPreimage: "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
@@ -64,9 +61,8 @@ func Test_processResponse(t *testing.T) {
 			PaymentIndex:  234,
 			FailureReason: lnrpc.PaymentFailureReason_FAILURE_REASON_NONE,
 		},
-		want: core.NewPaymentResponse{
-			RequestId:      "Unique ID here",
-			Status:         "SUCCEEDED",
+		want: lightning_helpers.NewPaymentResponse{
+			PaymentStatus:  "SUCCEEDED",
 			FailureReason:  "FAILURE_REASON_NONE",
 			Hash:           "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
 			Preimage:       "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
@@ -74,18 +70,18 @@ func Test_processResponse(t *testing.T) {
 			AmountMsat:     12000,
 			CreationDate:   time.Unix(1661252258, 0),
 			FeePaidMsat:    100,
-			Attempt: core.Attempt{
+			Attempt: lightning_helpers.Attempt{
 				AttemptId: 1234,
 				Status:    "SUCCEEDED",
-				Route: core.Route{
+				Route: lightning_helpers.Route{
 					TotalTimeLock: 10,
-					Hops: []core.Hops{
+					Hops: []lightning_helpers.Hops{
 						{
 							ChanId:           "708152x2971x1",
 							Expiry:           0,
 							AmtToForwardMsat: 0,
 							PubKey:           "",
-							MppRecord: core.MppRecord{
+							MppRecord: lightning_helpers.MppRecord{
 								PaymentAddr:  "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
 								TotalAmtMsat: 1200,
 							},
@@ -96,13 +92,12 @@ func Test_processResponse(t *testing.T) {
 				AttemptTimeNs: time.Unix(1661252259, 0),
 				ResolveTimeNs: time.Unix(1661252260, 0),
 				Preimage:      "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
-				Failure:       core.FailureDetails{},
+				Failure:       lightning_helpers.FailureDetails{},
 			},
 		},
 	},
 		{
-			name:      "Failed payment",
-			requestId: "Unique ID here",
+			name: "Failed payment",
 			input: &lnrpc.Payment{
 				PaymentHash:     "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
 				PaymentPreimage: "00000",
@@ -148,9 +143,8 @@ func Test_processResponse(t *testing.T) {
 				PaymentIndex:  234,
 				FailureReason: 0,
 			},
-			want: core.NewPaymentResponse{
-				RequestId:      "Unique ID here",
-				Status:         "FAILED",
+			want: lightning_helpers.NewPaymentResponse{
+				PaymentStatus:  "FAILED",
 				FailureReason:  "FAILURE_REASON_NONE",
 				Hash:           "4552e8bd1a8c5d0fe490c33a15a5a6946912d3c50fafc2106549f702965f6d8c",
 				Preimage:       "00000",
@@ -158,18 +152,18 @@ func Test_processResponse(t *testing.T) {
 				AmountMsat:     12000,
 				CreationDate:   time.Unix(1661252258, 0),
 				FeePaidMsat:    100,
-				Attempt: core.Attempt{
+				Attempt: lightning_helpers.Attempt{
 					AttemptId: 12345,
 					Status:    "FAILED",
-					Route: core.Route{
+					Route: lightning_helpers.Route{
 						TotalTimeLock: 10,
-						Hops: []core.Hops{
+						Hops: []lightning_helpers.Hops{
 							{
 								ChanId:           "708152x2971x1",
 								Expiry:           0,
 								AmtToForwardMsat: 0,
 								PubKey:           "",
-								MppRecord: core.MppRecord{
+								MppRecord: lightning_helpers.MppRecord{
 									PaymentAddr:  "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
 									TotalAmtMsat: 1200,
 								},
@@ -180,7 +174,7 @@ func Test_processResponse(t *testing.T) {
 					AttemptTimeNs: time.Unix(1661252259, 0),
 					ResolveTimeNs: time.Unix(0, 0),
 					Preimage:      "fee347b7a00b3247b48312b0a16ad4ab46de2ba30bb61269caeff43c0798e87e",
-					Failure: core.FailureDetails{
+					Failure: lightning_helpers.FailureDetails{
 						Reason:             "INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS",
 						FailureSourceIndex: 1,
 						Height:             11,
@@ -192,7 +186,7 @@ func Test_processResponse(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := processResponse(test.input, test.req, test.requestId)
+			got := processResponse(test.input, test.req)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("%d: processResponse()\nGot:\n%v\nWant:\n%v\n", i, got, test.want)
 			}
@@ -207,14 +201,13 @@ func Test_newSendPaymentRequest(t *testing.T) {
 	var feeLimitMsat int64 = 100
 	var destination = "abcd"
 	tests := []struct {
-		name      string
-		requestId string
-		input     core.NewPaymentRequest
-		want      *routerrpc.SendPaymentRequest
+		name  string
+		input lightning_helpers.NewPaymentRequest
+		want  *routerrpc.SendPaymentRequest
 	}{
 		{
 			name: "with allow self and fee limit",
-			input: core.NewPaymentRequest{
+			input: lightning_helpers.NewPaymentRequest{
 				Invoice:          &destination,
 				TimeOutSecs:      3600,
 				Dest:             nil,
@@ -233,7 +226,7 @@ func Test_newSendPaymentRequest(t *testing.T) {
 		},
 		{
 			name: "with out any optional params",
-			input: core.NewPaymentRequest{
+			input: lightning_helpers.NewPaymentRequest{
 				Invoice:     &destination,
 				TimeOutSecs: 3600,
 			},

@@ -1211,10 +1211,23 @@ func processRoutingPolicyRun(db *sqlx.DB,
 		rateLimitSeconds = 1
 		rateLimitCount = 10
 	}
-	_, _, err := lightning.SetRoutingPolicy(db, nodeId, rateLimitSeconds, rateLimitCount, routingPolicySettings.ChannelId,
-		routingPolicySettings.FeeRateMilliMsat, routingPolicySettings.FeeBaseMsat,
-		routingPolicySettings.MaxHtlcMsat, routingPolicySettings.MinHtlcMsat,
-		routingPolicySettings.TimeLockDelta)
+
+	request := lightning_helpers.RoutingPolicyUpdateRequest{
+		CommunicationRequest: lightning_helpers.CommunicationRequest{
+			NodeId: nodeId,
+		},
+		Db:               db,
+		RateLimitSeconds: rateLimitSeconds,
+		RateLimitCount:   rateLimitCount,
+		ChannelId:        routingPolicySettings.ChannelId,
+		FeeRateMilliMsat: routingPolicySettings.FeeRateMilliMsat,
+		FeeBaseMsat:      routingPolicySettings.FeeBaseMsat,
+		MaxHtlcMsat:      routingPolicySettings.MaxHtlcMsat,
+		MinHtlcMsat:      routingPolicySettings.MinHtlcMsat,
+		TimeLockDelta:    routingPolicySettings.TimeLockDelta,
+	}
+
+	_, err := lightning.SetRoutingPolicy(request)
 	if err != nil {
 		log.Error().Err(err).Msgf("Workflow Trigger Fired for WorkflowVersionNodeId: %v", workflowNode.WorkflowVersionNodeId)
 	}

@@ -113,7 +113,6 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
             intercomTarget={"payment-confirm-button"}
             onClick={() => {
               props.sendJsonMessage({
-                requestId: "randId",
                 type: "newPayment",
                 NewPaymentRequest: {
                   nodeId: props.selectedNodeId,

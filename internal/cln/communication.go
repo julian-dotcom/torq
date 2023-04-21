@@ -204,6 +204,36 @@ func CloseChannel(request lightning_helpers.CloseChannelRequest) lightning_helpe
 	return lightning_helpers.CloseChannelResponse{}
 }
 
+func NewInvoice(request lightning_helpers.NewInvoiceRequest) lightning_helpers.NewInvoiceResponse {
+	responseChan := make(chan any)
+	processSequential(context.Background(), 2, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_helpers.NewInvoiceResponse); ok {
+		return res
+	}
+	return lightning_helpers.NewInvoiceResponse{}
+}
+
+func OnChainPayment(request lightning_helpers.OnChainPaymentRequest) lightning_helpers.OnChainPaymentResponse {
+	responseChan := make(chan any)
+	processSequential(context.Background(), 2, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_helpers.OnChainPaymentResponse); ok {
+		return res
+	}
+	return lightning_helpers.OnChainPaymentResponse{}
+}
+
+func NewPayment(request lightning_helpers.NewPaymentRequest) lightning_helpers.NewPaymentResponse {
+	responseChan := make(chan any)
+	processConcurrent(context.Background(), 120, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_helpers.NewPaymentResponse); ok {
+		return res
+	}
+	return lightning_helpers.NewPaymentResponse{}
+}
+
 const concurrentWorkLimit = 10
 
 var serviceSequential = lightningService{limit: make(chan struct{}, 1)}                   //nolint:gochecknoglobals
@@ -303,6 +333,15 @@ func processRequestByType(ctx context.Context, req any, responseChan chan<- any)
 		return
 	case lightning_helpers.CloseChannelRequest:
 		responseChan <- processCloseChannelRequest(ctx, r)
+		return
+	case lightning_helpers.NewInvoiceRequest:
+		responseChan <- processNewInvoiceRequest(ctx, r)
+		return
+	case lightning_helpers.OnChainPaymentRequest:
+		responseChan <- processOnChainPaymentRequest(ctx, r)
+		return
+	case lightning_helpers.NewPaymentRequest:
+		responseChan <- processNewPaymentRequest(ctx, r)
 		return
 	}
 
@@ -941,7 +980,6 @@ func processOpenChannelRequest(ctx context.Context,
 
 	response.ChannelPoint = fmt.Sprintf("%v:%v", hex.EncodeToString(channel.Txid), channel.Outnum)
 	response.ChannelStatus = core.Opening
-	response.Request = request
 	response.FundingTransactionHash = hex.EncodeToString(channel.Txid)
 	response.FundingOutputIndex = channel.Outnum
 	response.Status = lightning_helpers.Active
@@ -949,10 +987,6 @@ func processOpenChannelRequest(ctx context.Context,
 }
 
 func prepareOpenRequest(request lightning_helpers.OpenChannelRequest) (*cln.FundchannelRequest, error) {
-	if request.NodeId == 0 {
-		return nil, errors.New("nodeId is missing")
-	}
-
 	if request.SatPerVbyte != nil && request.TargetConf != nil {
 		return nil, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
@@ -1048,17 +1082,12 @@ func processCloseChannelRequest(ctx context.Context,
 	}
 
 	response.ChannelStatus = core.Closing
-	response.Request = request
 	response.ClosingTransactionHash = hex.EncodeToString(channel.Txid)
 	response.Status = lightning_helpers.Active
 	return response
 }
 
 func prepareCloseRequest(request lightning_helpers.CloseChannelRequest) (*cln.CloseRequest, error) {
-	if request.NodeId == 0 {
-		return nil, errors.New("nodeId is missing")
-	}
-
 	if request.SatPerVbyte != nil && request.TargetConf != nil {
 		return nil, errors.New("Cannot set both SatPerVbyte and TargetConf")
 	}
@@ -1095,4 +1124,172 @@ func prepareCloseRequest(request lightning_helpers.CloseChannelRequest) (*cln.Cl
 	//}
 
 	return closeChanReq, nil
+}
+
+func processNewInvoiceRequest(ctx context.Context,
+	request lightning_helpers.NewInvoiceRequest) lightning_helpers.NewInvoiceResponse {
+
+	response := lightning_helpers.NewInvoiceResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+		Request: request,
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	invoiceRequest, err := prepareInvoiceRequest(request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	resp, err := cln.NewNodeClient(connection).Invoice(ctx, invoiceRequest)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	response.PaymentAddress = hex.EncodeToString(resp.PaymentHash)
+	response.PaymentRequest = resp.Bolt11
+	response.Status = lightning_helpers.Active
+	return response
+}
+
+func prepareInvoiceRequest(request lightning_helpers.NewInvoiceRequest) (*cln.InvoiceRequest, error) {
+	req := &cln.InvoiceRequest{}
+	if request.Memo != nil && *request.Memo != "" {
+		req.Description = *request.Memo
+	}
+	if request.Expiry != nil {
+		expiry := uint64(*request.Expiry)
+		req.Expiry = &expiry
+	}
+	if request.FallBackAddress != nil && *request.FallBackAddress != "" {
+		req.Fallbacks = append(req.Fallbacks, *request.FallBackAddress)
+	}
+	if request.RPreImage != nil && *request.RPreImage != "" {
+		preimage, err := hex.DecodeString(*request.RPreImage)
+		if err != nil {
+			return nil, errors.New("decoding pre image")
+		}
+		req.Preimage = preimage
+	}
+	if request.ValueMsat != nil {
+		amountMsat := uint64(*request.ValueMsat)
+		req.AmountMsat = &cln.AmountOrAny{Value: &cln.AmountOrAny_Amount{Amount: &cln.Amount{Msat: amountMsat}}}
+	}
+	// TODO FIXME CLN is this even accurate?
+	if request.Private != nil {
+		req.Exposeprivatechannels = request.Private
+	}
+	// TODO FIXME CLN AMP?
+	return req, nil
+}
+
+func processOnChainPaymentRequest(ctx context.Context,
+	request lightning_helpers.OnChainPaymentRequest) lightning_helpers.OnChainPaymentResponse {
+
+	response := lightning_helpers.OnChainPaymentResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+		Request: request,
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	wr := &cln.WithdrawRequest{
+		Destination: request.Address,
+	}
+	if request.SendAll != nil && *request.SendAll {
+		wr.Satoshi = &cln.AmountOrAll{Value: &cln.AmountOrAll_All{All: true}}
+	} else {
+		wr.Satoshi = &cln.AmountOrAll{Value: &cln.AmountOrAll_Amount{Amount: &cln.Amount{Msat: uint64(request.AmountSat)}}}
+	}
+	// TODO FIXME CLN: Incorporate target conf / send unconfirmed / Label
+	if request.SatPerVbyte != nil {
+		wr.Feerate = &cln.Feerate{Style: &cln.Feerate_Perkb{Perkb: uint32(*request.SatPerVbyte)}}
+	}
+	if request.MinConfs != nil {
+		minConfs := uint32(*request.MinConfs)
+		wr.Minconf = &minConfs
+	}
+
+	resp, err := cln.NewNodeClient(connection).Withdraw(ctx, wr)
+
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	response.TxId = hex.EncodeToString(resp.Txid)
+	response.Status = lightning_helpers.Active
+	return response
+}
+
+func processNewPaymentRequest(ctx context.Context,
+	request lightning_helpers.NewPaymentRequest) lightning_helpers.NewPaymentResponse {
+
+	response := lightning_helpers.NewPaymentResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+		Request: request,
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	p := &cln.PayRequest{
+		Bolt11:        "",
+		AmountMsat:    nil,
+		Label:         nil,
+		Riskfactor:    nil,
+		Maxfeepercent: nil,
+		RetryFor:      nil,
+		Maxdelay:      nil,
+		Exemptfee:     nil,
+		Localinvreqid: nil,
+		Exclude:       nil,
+		Maxfee:        nil,
+		Description:   nil,
+	}
+
+	resp, err := cln.NewNodeClient(connection).Pay(ctx, p)
+
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	response.Hash = hex.EncodeToString(resp.PaymentHash)
+	response.PaymentStatus = resp.Status.String()
+	response.Preimage = hex.EncodeToString(resp.PaymentPreimage)
+	response.CreationDate = time.Unix(int64(resp.CreatedAt), 0)
+	if resp.AmountMsat != nil {
+		response.AmountMsat = int64((*resp.AmountMsat).Msat)
+	}
+	if resp.AmountSentMsat != nil && resp.AmountMsat != nil {
+		response.FeePaidMsat = int64((*resp.AmountSentMsat).Msat - (*resp.AmountMsat).Msat)
+	}
+	if resp.WarningPartialCompletion != nil {
+		response.FailureReason = *resp.WarningPartialCompletion
+	}
+	response.Status = lightning_helpers.Active
+	return response
 }

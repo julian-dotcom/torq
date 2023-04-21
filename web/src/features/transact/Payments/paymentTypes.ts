@@ -37,7 +37,6 @@ type attempt = {
 export type InvoiceStatusType = "SUCCEEDED" | "FAILED" | "IN_FLIGHT";
 
 export type NewPaymentResponse = {
-  requestId: string;
   type: string;
   status: InvoiceStatusType;
   hash: string;

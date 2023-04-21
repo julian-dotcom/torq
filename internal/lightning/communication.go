@@ -2,7 +2,6 @@ package lightning
 
 import (
 	"github.com/cockroachdb/errors"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/cln"
@@ -117,31 +116,8 @@ func SignatureVerification(nodeId int, message string, signature string) (string
 	return response.PublicKey, response.Valid, nil
 }
 
-func SetRoutingPolicy(db *sqlx.DB,
-	nodeId int,
-	rateLimitSeconds int,
-	rateLimitCount int,
-	channelId int,
-	feeRateMilliMsat *int64,
-	feeBaseMsat *int64,
-	maxHtlcMsat *uint64,
-	minHtlcMsat *uint64,
-	timeLockDelta *uint32) (core.Status, string, error) {
-
-	request := lightning_helpers.RoutingPolicyUpdateRequest{
-		CommunicationRequest: lightning_helpers.CommunicationRequest{
-			NodeId: nodeId,
-		},
-		Db:               db,
-		RateLimitSeconds: rateLimitSeconds,
-		RateLimitCount:   rateLimitCount,
-		ChannelId:        channelId,
-		FeeRateMilliMsat: feeRateMilliMsat,
-		FeeBaseMsat:      feeBaseMsat,
-		MaxHtlcMsat:      maxHtlcMsat,
-		MinHtlcMsat:      minHtlcMsat,
-		TimeLockDelta:    timeLockDelta,
-	}
+func SetRoutingPolicy(
+	request lightning_helpers.RoutingPolicyUpdateRequest) (lightning_helpers.RoutingPolicyUpdateResponse, error) {
 
 	response := lightning_helpers.RoutingPolicyUpdateResponse{
 		Request: request,
@@ -150,23 +126,23 @@ func SetRoutingPolicy(db *sqlx.DB,
 		},
 	}
 
-	nodeConnectionDetails := cache.GetNodeConnectionDetails(nodeId)
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
 	switch nodeConnectionDetails.Implementation {
 	case core.LND:
-		if !cache.IsLndServiceActive(nodeId) {
-			return core.Inactive, "", ServiceInactiveError
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return lightning_helpers.RoutingPolicyUpdateResponse{}, ServiceInactiveError
 		}
 		response = lnd.RoutingPolicyUpdate(request)
 	case core.CLN:
-		if !cache.IsClnServiceActive(nodeId) {
-			return core.Inactive, "", ServiceInactiveError
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return lightning_helpers.RoutingPolicyUpdateResponse{}, ServiceInactiveError
 		}
 		response = cln.RoutingPolicyUpdate(request)
 	}
 	if response.Error != "" {
-		return core.Status(response.Status), response.Message, errors.New(response.Error)
+		return lightning_helpers.RoutingPolicyUpdateResponse{}, errors.New(response.Error)
 	}
-	return core.Status(response.Status), response.Message, nil
+	return response, nil
 }
 
 func ConnectPeer(nodeId int, publicKey string, host string) (bool, error) {
@@ -238,9 +214,7 @@ func DisconnectPeer(nodeId int, peerNodeId int) (bool, error) {
 	return response.RequestFailedCurrentlyDisconnected, nil
 }
 
-func GetWalletBalance(nodeId int) (totalBalance int64, confirmedBalance int64, unconfirmedBalance int64,
-	lockedBalance int64, reservedBalanceAnchorChan int64, err error) {
-
+func GetWalletBalance(nodeId int) (lightning_helpers.WalletBalanceResponse, error) {
 	request := lightning_helpers.WalletBalanceRequest{
 		CommunicationRequest: lightning_helpers.CommunicationRequest{
 			NodeId: nodeId,
@@ -258,20 +232,19 @@ func GetWalletBalance(nodeId int) (totalBalance int64, confirmedBalance int64, u
 	switch nodeConnectionDetails.Implementation {
 	case core.LND:
 		if !cache.IsLndServiceActive(nodeId) {
-			return 0, 0, 0, 0, 0, ServiceInactiveError
+			return lightning_helpers.WalletBalanceResponse{}, ServiceInactiveError
 		}
 		response = lnd.WalletBalance(request)
 	case core.CLN:
 		if !cache.IsClnServiceActive(nodeId) {
-			return 0, 0, 0, 0, 0, ServiceInactiveError
+			return lightning_helpers.WalletBalanceResponse{}, ServiceInactiveError
 		}
 		response = cln.WalletBalance(request)
 	}
 	if response.Error != "" {
-		return 0, 0, 0, 0, 0, errors.New(response.Error)
+		return lightning_helpers.WalletBalanceResponse{}, errors.New(response.Error)
 	}
-	return response.TotalBalance, response.ConfirmedBalance, response.UnconfirmedBalance, response.LockedBalance,
-		response.ReservedBalanceAnchorChan, nil
+	return response, nil
 }
 
 func ListPeers(nodeId int, latestError bool) (map[string]lightning_helpers.Peer, error) {
@@ -362,7 +335,9 @@ func OpenChannel(request lightning_helpers.OpenChannelRequest) (lightning_helper
 	return response, nil
 }
 
-func BatchOpenChannel(request lightning_helpers.BatchOpenChannelRequest) (lightning_helpers.BatchOpenChannelResponse, error) {
+func BatchOpenChannel(
+	request lightning_helpers.BatchOpenChannelRequest) (lightning_helpers.BatchOpenChannelResponse, error) {
+
 	response := lightning_helpers.BatchOpenChannelResponse{
 		Request: request,
 		CommunicationResponse: lightning_helpers.CommunicationResponse{
@@ -414,4 +389,139 @@ func CloseChannel(request lightning_helpers.CloseChannelRequest) (lightning_help
 		return lightning_helpers.CloseChannelResponse{}, errors.New(response.Error)
 	}
 	return response, nil
+}
+
+func NewInvoice(request lightning_helpers.NewInvoiceRequest) (lightning_helpers.NewInvoiceResponse, error) {
+	response := lightning_helpers.NewInvoiceResponse{
+		Request: request,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return lightning_helpers.NewInvoiceResponse{}, ServiceInactiveError
+		}
+		response = lnd.NewInvoice(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return lightning_helpers.NewInvoiceResponse{}, ServiceInactiveError
+		}
+		response = cln.NewInvoice(request)
+	}
+	if response.Error != "" {
+		return lightning_helpers.NewInvoiceResponse{}, errors.New(response.Error)
+	}
+	return response, nil
+}
+
+func OnChainPayment(request lightning_helpers.OnChainPaymentRequest) (string, error) {
+	response := lightning_helpers.OnChainPaymentResponse{
+		Request: request,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return "", ServiceInactiveError
+		}
+		response = lnd.OnChainPayment(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return "", ServiceInactiveError
+		}
+		response = cln.OnChainPayment(request)
+	}
+	if response.Error != "" {
+		return "", errors.New(response.Error)
+	}
+	return response.TxId, nil
+}
+
+func NewPayment(request lightning_helpers.NewPaymentRequest) (lightning_helpers.NewPaymentResponse, error) {
+	response := lightning_helpers.NewPaymentResponse{
+		Request: request,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return lightning_helpers.NewPaymentResponse{}, ServiceInactiveError
+		}
+		response = lnd.NewPayment(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return lightning_helpers.NewPaymentResponse{}, ServiceInactiveError
+		}
+		response = cln.NewPayment(request)
+	}
+	if response.Error != "" {
+		return lightning_helpers.NewPaymentResponse{}, errors.New(response.Error)
+	}
+	return response, nil
+}
+
+func DecodeInvoice(request lightning_helpers.DecodeInvoiceRequest) (lightning_helpers.DecodeInvoiceResponse, error) {
+	response := lightning_helpers.DecodeInvoiceResponse{
+		Request: request,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return lightning_helpers.DecodeInvoiceResponse{}, ServiceInactiveError
+		}
+		response = lnd.DecodeInvoice(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return lightning_helpers.DecodeInvoiceResponse{}, ServiceInactiveError
+		}
+		return lightning_helpers.DecodeInvoiceResponse{}, UnsupportedOperationError
+	}
+	if response.Error != "" {
+		return lightning_helpers.DecodeInvoiceResponse{}, errors.New(response.Error)
+	}
+	return response, nil
+}
+
+func ChannelStatusUpdate(request lightning_helpers.ChannelStatusUpdateRequest) error {
+	response := lightning_helpers.ChannelStatusUpdateResponse{
+		Request: request,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return ServiceInactiveError
+		}
+		response = lnd.ChannelStatusUpdate(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return ServiceInactiveError
+		}
+		return UnsupportedOperationError
+	}
+	if response.Error != "" {
+		return errors.New(response.Error)
+	}
+	return nil
 }

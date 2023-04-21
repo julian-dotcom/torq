@@ -5,6 +5,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/proto/cln"
 	"github.com/lncapital/torq/proto/lnrpc"
 )
@@ -170,15 +171,15 @@ type SignatureVerificationRequest struct {
 
 type RoutingPolicyUpdateRequest struct {
 	CommunicationRequest
-	Db               *sqlx.DB
-	RateLimitSeconds int     `json:"rateLimitSeconds"`
-	RateLimitCount   int     `json:"rateLimitCount"`
-	ChannelId        int     `json:"channelId"`
-	FeeRateMilliMsat *int64  `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *int64  `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32 `json:"timeLockDelta"`
+	Db               *sqlx.DB `json:"-"`
+	RateLimitSeconds int      `json:"rateLimitSeconds"`
+	RateLimitCount   int      `json:"rateLimitCount"`
+	ChannelId        int      `json:"channelId"`
+	FeeRateMilliMsat *int64   `json:"feeRateMilliMsat"`
+	FeeBaseMsat      *int64   `json:"feeBaseMsat"`
+	MaxHtlcMsat      *uint64  `json:"maxHtlcMsat"`
+	MinHtlcMsat      *uint64  `json:"minHtlcMsat"`
+	TimeLockDelta    *uint32  `json:"timeLockDelta"`
 }
 
 type ConnectPeerRequest struct {
@@ -240,10 +241,56 @@ type BatchOpenChannelRequest struct {
 
 type CloseChannelRequest struct {
 	CommunicationRequest
-	Db              *sqlx.DB
-	ChannelId       int     `json:"channelId"`
-	Force           *bool   `json:"force"`
-	TargetConf      *int32  `json:"targetConf"`
-	DeliveryAddress *string `json:"deliveryAddress"`
-	SatPerVbyte     *uint64 `json:"satPerVbyte"`
+	Db              *sqlx.DB `json:"-"`
+	ChannelId       int      `json:"channelId"`
+	Force           *bool    `json:"force"`
+	TargetConf      *int32   `json:"targetConf"`
+	DeliveryAddress *string  `json:"deliveryAddress"`
+	SatPerVbyte     *uint64  `json:"satPerVbyte"`
+}
+
+type NewInvoiceRequest struct {
+	CommunicationRequest
+	Memo            *string `json:"memo"`
+	RPreImage       *string `json:"rPreImage"`
+	ValueMsat       *int64  `json:"valueMsat"`
+	Expiry          *int64  `json:"expiry"`
+	FallBackAddress *string `json:"fallBackAddress"`
+	Private         *bool   `json:"private"`
+	IsAmp           *bool   `json:"isAmp"`
+}
+
+type ChannelStatusUpdateRequest struct {
+	CommunicationRequest
+	Db            *sqlx.DB `json:"-"`
+	ChannelId     int
+	ChannelStatus core.Status
+}
+
+type OnChainPaymentRequest struct {
+	CommunicationRequest
+	Address          string  `json:"address"`
+	AmountSat        int64   `json:"amountSat"`
+	TargetConf       *int32  `json:"targetConf"`
+	SatPerVbyte      *uint64 `json:"satPerVbyte"`
+	SendAll          *bool   `json:"sendAll"`
+	Label            *string `json:"label"`
+	MinConfs         *int32  `json:"minConfs"`
+	SpendUnconfirmed *bool   `json:"spendUnconfirmed"`
+}
+
+type NewPaymentRequest struct {
+	CommunicationRequest
+	ProgressReportChannel chan<- interface{} `json:"-"`
+	Invoice               *string            `json:"invoice"`
+	TimeOutSecs           int32              `json:"timeoutSecs"`
+	Dest                  *string            `json:"dest"`
+	AmtMSat               *int64             `json:"amtMSat"`
+	FeeLimitMsat          *int64             `json:"feeLimitMsat"`
+	AllowSelfPayment      *bool              `json:"allowSelfPayment"`
+}
+
+type DecodeInvoiceRequest struct {
+	CommunicationRequest
+	Invoice string `json:"invoice"`
 }

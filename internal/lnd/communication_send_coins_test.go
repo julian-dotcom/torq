@@ -1,4 +1,4 @@
-package on_chain_tx
+package lnd
 
 import (
 	"reflect"

@@ -19,27 +19,6 @@ import (
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
-type routingPolicyUpdateRequest struct {
-	NodeId           int     `json:"nodeId"`
-	RateLimitSeconds int     `json:"rateLimitSeconds"`
-	RateLimitCount   int     `json:"rateLimitCount"`
-	ChannelId        int     `json:"channelId"`
-	FeeRateMilliMsat *int64  `json:"feeRateMilliMsat"`
-	FeeBaseMsat      *int64  `json:"feeBaseMsat"`
-	MaxHtlcMsat      *uint64 `json:"maxHtlcMsat"`
-	MinHtlcMsat      *uint64 `json:"minHtlcMsat"`
-	TimeLockDelta    *uint32 `json:"timeLockDelta"`
-}
-
-type nodeWalletBalance struct {
-	NodeId                    int   `json:"nodeId"`
-	TotalBalance              int64 `json:"totalBalance"`
-	ConfirmedBalance          int64 `json:"confirmedBalance"`
-	UnconfirmedBalance        int64 `json:"unconfirmedBalance"`
-	LockedBalance             int64 `json:"lockedBalance"`
-	ReservedBalanceAnchorChan int64 `json:"reservedBalanceAnchorChan"`
-}
-
 func batchOpenHandler(c *gin.Context) {
 	var batchOpnReq lightning_helpers.BatchOpenChannelRequest
 	if err := c.BindJSON(&batchOpnReq); err != nil {
@@ -150,7 +129,7 @@ func closeChannelHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func updateRoutingPolicyHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody routingPolicyUpdateRequest
+	var requestBody lightning_helpers.RoutingPolicyUpdateRequest
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
@@ -158,13 +137,9 @@ func updateRoutingPolicyHandler(c *gin.Context, db *sqlx.DB) {
 	// DISABLE the rate limiter
 	requestBody.RateLimitSeconds = 1
 	requestBody.RateLimitCount = 10
+	requestBody.Db = db
 
-	_, responseMessage, err := SetRoutingPolicy(db, requestBody.NodeId,
-		requestBody.RateLimitSeconds, requestBody.RateLimitCount,
-		requestBody.ChannelId,
-		requestBody.FeeRateMilliMsat, requestBody.FeeBaseMsat,
-		requestBody.MaxHtlcMsat, requestBody.MinHtlcMsat,
-		requestBody.TimeLockDelta)
+	response, err := SetRoutingPolicy(requestBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, server_errors.SingleServerError(err.Error()))
 		err = errors.Wrap(err, "Problem when setting routing policy")
@@ -172,10 +147,10 @@ func updateRoutingPolicyHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	c.JSON(http.StatusOK, responseMessage)
+	c.JSON(http.StatusOK, response)
 }
 
-func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB) {
+func getNodesWalletBalancesHandler(c *gin.Context) {
 	network, err := strconv.Atoi(c.Param("network"))
 	if err != nil {
 		server_errors.SendBadRequest(c, "Can't process network")
@@ -187,29 +162,102 @@ func getNodesWalletBalancesHandler(c *gin.Context, db *sqlx.DB) {
 		server_errors.WrapLogAndSendServerError(c, err, "Unable to get nodes")
 		return
 	}
-	walletBalances := make([]nodeWalletBalance, 0)
+	walletBalances := make([]lightning_helpers.WalletBalanceResponse, 0)
 	for _, activeTorqNode := range activeTorqNodes {
 		if activeTorqNode.Network != core.Network(network) {
 			continue
 		}
-		totalBalance, confirmedBalance, unconfirmedBalance, lockedBalance, reservedBalanceAnchorChan, err :=
-			GetWalletBalance(activeTorqNode.NodeId)
+		resp, err := GetWalletBalance(activeTorqNode.NodeId)
 		if err != nil {
 			errorMsg := fmt.Sprintf("Error retrieving wallet balance for nodeId: %v", activeTorqNode.NodeId)
 			server_errors.WrapLogAndSendServerError(c, err, errorMsg)
 			log.Error().Msg(errorMsg)
 			return
 		}
-		walletBalances = append(walletBalances, nodeWalletBalance{
-			NodeId:                    activeTorqNode.NodeId,
-			TotalBalance:              totalBalance,
-			ConfirmedBalance:          confirmedBalance,
-			UnconfirmedBalance:        unconfirmedBalance,
-			LockedBalance:             lockedBalance,
-			ReservedBalanceAnchorChan: reservedBalanceAnchorChan,
-		})
+		walletBalances = append(walletBalances, resp)
 	}
 
 	c.JSON(http.StatusOK, walletBalances)
+}
 
+func newInvoiceHandler(c *gin.Context) {
+	var requestBody lightning_helpers.NewInvoiceRequest
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+
+	resp, err := NewInvoice(requestBody)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Creating new invoice")
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func decodeInvoiceHandler(c *gin.Context) {
+	invoice := c.Query("invoice")
+
+	nodeId, err := strconv.Atoi(c.Query("nodeId"))
+	if err != nil {
+		server_errors.SendBadRequest(c, "Failed to find/parse nodeId in the request.")
+		return
+	}
+
+	di, err := DecodeInvoice(lightning_helpers.DecodeInvoiceRequest{
+		CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: nodeId},
+		Invoice:              invoice,
+	})
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Error decoding invoice: %v", err)
+
+		if strings.Contains(err.Error(), "checksum failed") {
+			//errResponse := server_errors.SingleFieldError("invoice", "CHECKSUM_FAILED")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "CHECKSUM_FAILED"})
+			return
+		}
+		//server_errors.WrapLogAndSendServerError(c, err, "could not decode invoice")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "COULD_NOT_DECODE_INVOICE"})
+		return
+	}
+
+	c.JSON(http.StatusOK, di)
+}
+
+func sendCoinsHandler(c *gin.Context) {
+	var requestBody lightning_helpers.OnChainPaymentRequest
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+
+	resp, err := OnChainPayment(requestBody)
+	if err != nil {
+		server_errors.WrapLogAndSendServerError(c, err, "Sending on-chain payment")
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func newAddressHandler(c *gin.Context) {
+	var requestBody lightning_helpers.NewAddressRequest
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
+		return
+	}
+
+	resp, err := NewAddress(requestBody)
+	if err != nil {
+		// TODO: Improve error handling. Can't find LND errors in the codebase
+		server_errors.LogAndSendServerError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
