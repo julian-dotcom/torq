@@ -164,6 +164,10 @@ func main() {
 			Name:  "cln.key-path",
 			Usage: "Path on disk to CLN client key file",
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "cln.ca-certificate-path",
+			Usage: "Path on disk to CLN ca certificate file",
+		}),
 	}
 
 	start := &cli.Command{
@@ -350,7 +354,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 					"Node specified in config is not in DB, obtaining public key from GRPC: %v", grpcAddress)
 				var nodeConnectionDetails settings.NodeConnectionDetails
 				for {
-					nodeConnectionDetails, err = settings.AddNodeToDB(db, core.LND, grpcAddress, tlsFile, macaroonFile)
+					nodeConnectionDetails, err = settings.AddNodeToDB(db, core.LND, grpcAddress, tlsFile, macaroonFile, nil)
 					if err == nil && nodeConnectionDetails.NodeId != 0 {
 						break
 					} else {
@@ -380,7 +384,8 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 		// if node specified on cmd flags then check if we already know about it
 		if c.String("cln.url") != "" &&
 			c.String("cln.certificate-path") != "" &&
-			c.String("cln.key-path") != "" {
+			c.String("cln.key-path") != "" &&
+			c.String("cln.ca-certificate-path") != "" {
 
 			certificate, err := os.ReadFile(c.String("cln.certificate-path"))
 			if err != nil {
@@ -392,6 +397,13 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 			key, err := os.ReadFile(c.String("cln.key-path"))
 			if err != nil {
 				log.Error().Err(err).Msg("Reading key file from disk path from config")
+				log.Error().Err(err).Msg("CLN is probably not ready (will retry in 10 seconds)")
+				time.Sleep(10 * time.Second)
+				continue
+			}
+			caCertificate, err := os.ReadFile(c.String("cln.ca-certificate-path"))
+			if err != nil {
+				log.Error().Err(err).Msg("Reading ca certificate file from disk path from config")
 				log.Error().Err(err).Msg("CLN is probably not ready (will retry in 10 seconds)")
 				time.Sleep(10 * time.Second)
 				continue
@@ -409,7 +421,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 					"Node specified in config is not in DB, obtaining public key from GRPC: %v", grpcAddress)
 				var nodeConnectionDetails settings.NodeConnectionDetails
 				for {
-					nodeConnectionDetails, err = settings.AddNodeToDB(db, core.CLN, grpcAddress, certificate, key)
+					nodeConnectionDetails, err = settings.AddNodeToDB(db, core.CLN, grpcAddress, certificate, key, caCertificate)
 					if err == nil && nodeConnectionDetails.NodeId != 0 {
 						break
 					} else {
@@ -553,16 +565,17 @@ func processTorqInitialBoot(db *sqlx.DB) {
 		var tls []byte
 		var macaroon []byte
 		var certificate []byte
+		var caCertificate []byte
 		var key []byte
 		var pingSystem core.PingSystem
 		var customSettings core.NodeConnectionDetailCustomSettings
 		err := db.QueryRow(`
 					SELECT implementation, grpc_address,
-					       tls_data, macaroon_data, certificate_data, key_data,
+					       tls_data, macaroon_data, certificate_data, key_data, ca_certificate_data,
 					       ping_system, custom_settings
 					FROM node_connection_details
 					WHERE node_id=$1`, torqNode.NodeId).Scan(&implementation, &grpcAddress,
-			&tls, &macaroon, &certificate, &key,
+			&tls, &macaroon, &certificate, &key, &caCertificate,
 			&pingSystem, &customSettings)
 		if err != nil {
 			log.Error().Err(err).Msgf("Could not obtain desired state for nodeId: %v", torqNode.NodeId)
@@ -611,13 +624,14 @@ func processTorqInitialBoot(db *sqlx.DB) {
 			}
 		}
 		cache.SetNodeConnectionDetails(torqNode.NodeId, cache.NodeConnectionDetails{
-			Implementation:       implementation,
-			GRPCAddress:          grpcAddress,
-			TLSFileBytes:         tls,
-			MacaroonFileBytes:    macaroon,
-			CertificateFileBytes: certificate,
-			KeyFileBytes:         key,
-			CustomSettings:       customSettings,
+			Implementation:         implementation,
+			GRPCAddress:            grpcAddress,
+			TLSFileBytes:           tls,
+			MacaroonFileBytes:      macaroon,
+			CertificateFileBytes:   certificate,
+			KeyFileBytes:           key,
+			CaCertificateFileBytes: caCertificate,
+			CustomSettings:         customSettings,
 		})
 	}
 	cache.SetActiveCoreServiceState(services_helpers.RootService)
@@ -753,7 +767,8 @@ func bootService(db *sqlx.DB, serviceType services_helpers.ServiceType, nodeId i
 			conn, err = cln_connect.Connect(
 				nodeConnectionDetails.GRPCAddress,
 				nodeConnectionDetails.CertificateFileBytes,
-				nodeConnectionDetails.KeyFileBytes)
+				nodeConnectionDetails.KeyFileBytes,
+				nodeConnectionDetails.CaCertificateFileBytes)
 			if err != nil {
 				log.Error().Err(err).Msgf("%v failed to connect for node id: %v", serviceType.String(), nodeId)
 				cache.SetFailedNodeServiceState(serviceType, nodeId)
@@ -863,7 +878,9 @@ func isBootable(serviceType services_helpers.ServiceType, nodeId int) bool {
 				nodeConnectionDetails.CertificateFileBytes == nil ||
 				len(nodeConnectionDetails.CertificateFileBytes) == 0 ||
 				nodeConnectionDetails.KeyFileBytes == nil ||
-				len(nodeConnectionDetails.KeyFileBytes) == 0) {
+				len(nodeConnectionDetails.KeyFileBytes) == 0 ||
+				nodeConnectionDetails.CaCertificateFileBytes == nil ||
+				len(nodeConnectionDetails.CaCertificateFileBytes) == 0) {
 			log.Error().Msgf("%v failed to get connection details for node id: %v", serviceType.String(), nodeId)
 			cache.SetFailedNodeServiceState(serviceType, nodeId)
 			return false

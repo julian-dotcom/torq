@@ -137,13 +137,14 @@ func (ss *ServiceState) Failure() ServiceState {
 }
 
 type NodeConnectionDetails struct {
-	Implementation       core.Implementation
-	GRPCAddress          string
-	TLSFileBytes         []byte
-	MacaroonFileBytes    []byte
-	CertificateFileBytes []byte
-	KeyFileBytes         []byte
-	CustomSettings       core.NodeConnectionDetailCustomSettings
+	Implementation         core.Implementation
+	GRPCAddress            string
+	TLSFileBytes           []byte
+	MacaroonFileBytes      []byte
+	CertificateFileBytes   []byte
+	KeyFileBytes           []byte
+	CaCertificateFileBytes []byte
+	CustomSettings         core.NodeConnectionDetailCustomSettings
 }
 
 func ServiceCacheHandler(ch <-chan ServiceCache, ctx context.Context) {

@@ -787,9 +787,9 @@ func getInformationFromLndNode(grpcAddress string, tlsCert []byte, macaroonFile 
 	return info.IdentityPubkey, chain, network, nil
 }
 
-func getInformationFromClnNode(grpcAddress string, certificate []byte, key []byte) (
+func getInformationFromClnNode(grpcAddress string, certificate []byte, key []byte, caCertificate []byte) (
 	string, core.Chain, core.Network, error) {
-	conn, err := cln_connect.Connect(grpcAddress, certificate, key)
+	conn, err := cln_connect.Connect(grpcAddress, certificate, key, caCertificate)
 	if err != nil {
 		return "", 0, 0, errors.Wrap(err,
 			"Can't connect to node to verify public key, check all details including TLS Cert and Macaroon")

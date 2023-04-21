@@ -3,9 +3,11 @@ package cln_connect
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -14,18 +16,29 @@ import (
 )
 
 // Connect connects to CLN using gRPC.
-func Connect(host string, certificate []byte, key []byte) (*grpc.ClientConn, error) {
+func Connect(host string, certificate []byte, key []byte, caCertificate []byte) (*grpc.ClientConn, error) {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, os.Stderr, os.Stderr))
 
 	clientCrt, err := tls.X509KeyPair(certificate, key)
 	if err != nil {
 		return nil, errors.New("CLN credentials: failed to create X509 KeyPair")
 	}
-	tlsConfig := &tls.Config{}
-	tlsConfig.MinVersion = tls.VersionTLS12
-	tlsConfig.Certificates = []tls.Certificate{clientCrt}
-	tlsConfig.ClientAuth = tls.RequestClientCert
-	tlsConfig.InsecureSkipVerify = true
+
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(caCertificate)
+
+	serverName := "localhost"
+	if strings.Contains(host, "cln") {
+		serverName = "cln"
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		ClientAuth:   tls.RequestClientCert,
+		Certificates: []tls.Certificate{clientCrt},
+		RootCAs:      certPool,
+		ServerName:   serverName,
+	}
 
 	opts := []grpc.DialOption{
 		grpc.WithReturnConnectionError(),

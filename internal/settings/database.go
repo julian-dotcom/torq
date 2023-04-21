@@ -498,12 +498,14 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 		SET implementation = $1, name = $2, grpc_address = $3,
 		    tls_file_name = $4, tls_data = $5, macaroon_file_name = $6, macaroon_data = $7,
 		    certificate_file_name = $8, certificate_data = $9, key_file_name = $10, key_data = $11,
-		    status_id = $12, ping_system = $13, updated_on = $14,
-			custom_settings = $15, node_start_date = $16
-		WHERE node_id = $17;`,
+			ca_certificate_file_name = $12, ca_certificate_data = $13,
+		    status_id = $14, ping_system = $15, updated_on = $16,
+			custom_settings = $17, node_start_date = $18
+		WHERE node_id = $19;`,
 		ncd.Implementation, ncd.Name, ncd.GRPCAddress,
 		ncd.TLSFileName, ncd.TLSDataBytes, ncd.MacaroonFileName, ncd.MacaroonDataBytes,
 		ncd.CertificateFileName, ncd.CertificateDataBytes, ncd.KeyFileName, ncd.KeyDataBytes,
+		ncd.CaCertificateFileName, ncd.CaCertificateDataBytes,
 		ncd.Status, ncd.PingSystem, ncd.UpdatedOn,
 		ncd.CustomSettings, ncd.NodeStartDate, ncd.NodeId)
 	if err != nil {
@@ -511,13 +513,14 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	}
 	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
 		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
-			Implementation:       ncd.Implementation,
-			GRPCAddress:          *ncd.GRPCAddress,
-			TLSFileBytes:         ncd.TLSDataBytes,
-			MacaroonFileBytes:    ncd.MacaroonDataBytes,
-			CertificateFileBytes: ncd.CertificateDataBytes,
-			KeyFileBytes:         ncd.KeyDataBytes,
-			CustomSettings:       ncd.CustomSettings,
+			Implementation:         ncd.Implementation,
+			GRPCAddress:            *ncd.GRPCAddress,
+			TLSFileBytes:           ncd.TLSDataBytes,
+			MacaroonFileBytes:      ncd.MacaroonDataBytes,
+			CertificateFileBytes:   ncd.CertificateDataBytes,
+			KeyFileBytes:           ncd.KeyDataBytes,
+			CaCertificateFileBytes: ncd.CaCertificateDataBytes,
+			CustomSettings:         ncd.CustomSettings,
 		})
 	}
 	return ncd, nil
@@ -561,11 +564,13 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 		    (node_id, name, implementation, grpc_address,
 		     tls_file_name, tls_data, macaroon_file_name, macaroon_data,
 		     certificate_file_name, certificate_data, key_file_name, key_data,
+		     ca_certificate_file_name, ca_certificate_data,
 		     status_id, ping_system, custom_settings, node_start_date, created_on, updated_on)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18);`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20);`,
 		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress,
 		ncd.TLSFileName, ncd.TLSDataBytes, ncd.MacaroonFileName, ncd.MacaroonDataBytes,
 		ncd.CertificateFileName, ncd.CertificateDataBytes, ncd.KeyFileName, ncd.KeyDataBytes,
+		ncd.CaCertificateFileName, ncd.CaCertificateDataBytes,
 		ncd.Status, ncd.PingSystem, ncd.CustomSettings, ncd.NodeStartDate,
 		ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
@@ -578,6 +583,17 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 			TLSFileBytes:      ncd.TLSDataBytes,
 			MacaroonFileBytes: ncd.MacaroonDataBytes,
 			CustomSettings:    ncd.CustomSettings,
+		})
+	}
+	if ncd.GRPCAddress != nil &&
+		len(ncd.CertificateDataBytes) != 0 && len(ncd.KeyDataBytes) != 0 && len(ncd.CaCertificateDataBytes) != 0 {
+		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
+			Implementation:         ncd.Implementation,
+			GRPCAddress:            *ncd.GRPCAddress,
+			CertificateFileBytes:   ncd.CertificateDataBytes,
+			KeyFileBytes:           ncd.KeyDataBytes,
+			CaCertificateFileBytes: ncd.CaCertificateDataBytes,
+			CustomSettings:         ncd.CustomSettings,
 		})
 	}
 	return ncd, nil

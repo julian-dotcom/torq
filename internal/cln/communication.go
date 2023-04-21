@@ -30,22 +30,24 @@ var (
 )
 
 type connectionsWrapper struct {
-	mu               sync.Mutex
-	connections      map[int]*grpc.ClientConn
-	grpcAddresses    map[int]string
-	certificateBytes map[int][]byte
-	keyBytes         map[int][]byte
+	mu                 sync.Mutex
+	connections        map[int]*grpc.ClientConn
+	grpcAddresses      map[int]string
+	certificateBytes   map[int][]byte
+	keyBytes           map[int][]byte
+	caCertificateBytes map[int][]byte
 }
 
 func getConnection(nodeId int) (*grpc.ClientConn, error) {
 	connectionWrapperOnce.Do(func() {
 		log.Debug().Msg("Loading Connection Wrapper.")
 		connectionWrapper = &connectionsWrapper{
-			mu:               sync.Mutex{},
-			connections:      make(map[int]*grpc.ClientConn),
-			grpcAddresses:    make(map[int]string),
-			certificateBytes: make(map[int][]byte),
-			keyBytes:         make(map[int][]byte),
+			mu:                 sync.Mutex{},
+			connections:        make(map[int]*grpc.ClientConn),
+			grpcAddresses:      make(map[int]string),
+			certificateBytes:   make(map[int][]byte),
+			keyBytes:           make(map[int][]byte),
+			caCertificateBytes: make(map[int][]byte),
 		}
 	})
 
@@ -58,9 +60,11 @@ func getConnection(nodeId int) (*grpc.ClientConn, error) {
 	if !exists ||
 		connectionWrapper.grpcAddresses[nodeId] != ncd.GRPCAddress ||
 		!bytes.Equal(connectionWrapper.certificateBytes[nodeId], ncd.CertificateFileBytes) ||
-		!bytes.Equal(connectionWrapper.keyBytes[nodeId], ncd.KeyFileBytes) {
+		!bytes.Equal(connectionWrapper.keyBytes[nodeId], ncd.KeyFileBytes) ||
+		!bytes.Equal(connectionWrapper.caCertificateBytes[nodeId], ncd.CaCertificateFileBytes) {
 
-		conn, err := cln_connect.Connect(ncd.GRPCAddress, ncd.CertificateFileBytes, ncd.KeyFileBytes)
+		conn, err := cln_connect.Connect(ncd.GRPCAddress, ncd.CertificateFileBytes, ncd.KeyFileBytes,
+			ncd.CaCertificateFileBytes)
 		if err != nil {
 			log.Error().Err(err).Msgf("GRPC connection Failed for node id: %v", nodeId)
 			return nil, errors.Wrapf(err, "Connecting to GRPC.")
@@ -69,6 +73,7 @@ func getConnection(nodeId int) (*grpc.ClientConn, error) {
 		connectionWrapper.grpcAddresses[nodeId] = ncd.GRPCAddress
 		connectionWrapper.certificateBytes[nodeId] = ncd.CertificateFileBytes
 		connectionWrapper.keyBytes[nodeId] = ncd.KeyFileBytes
+		connectionWrapper.caCertificateBytes[nodeId] = ncd.CaCertificateFileBytes
 		if exists && existingConnection != nil {
 			err = existingConnection.Close()
 			if err != nil {
@@ -705,7 +710,7 @@ func processConnectPeerRequest(ctx context.Context,
 	var port *uint32
 	if strings.Contains(request.Host, ":") {
 		host = request.Host[:strings.Index(request.Host, ":")]
-		portInt, err := strconv.ParseUint(request.Host[strings.Index(request.Host, ":")+1:], 10, 64)
+		portInt, err := strconv.ParseUint(request.Host[strings.Index(request.Host, ":")+1:], 10, 32)
 		if err == nil {
 			p := uint32(portInt)
 			port = &p

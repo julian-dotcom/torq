@@ -13,28 +13,31 @@ import (
 )
 
 type NodeConnectionDetails struct {
-	NodeId               int                                     `json:"nodeId" form:"nodeId" db:"node_id"`
-	Name                 string                                  `json:"name" form:"name" db:"name"`
-	Implementation       core.Implementation                     `json:"implementation" form:"implementation" db:"implementation"`
-	GRPCAddress          *string                                 `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
-	TLSFileName          *string                                 `json:"tlsFileName" db:"tls_file_name"`
-	TLSDataBytes         []byte                                  `db:"tls_data"`
-	TLSFile              *multipart.FileHeader                   `form:"tlsFile"`
-	MacaroonFileName     *string                                 `json:"macaroonFileName" db:"macaroon_file_name"`
-	MacaroonDataBytes    []byte                                  `db:"macaroon_data"`
-	MacaroonFile         *multipart.FileHeader                   `form:"macaroonFile"`
-	CertificateFileName  *string                                 `json:"certificateFileName" db:"certificate_file_name"`
-	CertificateDataBytes []byte                                  `db:"certificate_data"`
-	CertificateFile      *multipart.FileHeader                   `form:"certificateFile"`
-	KeyFileName          *string                                 `json:"KeyFileName" db:"key_file_name"`
-	KeyDataBytes         []byte                                  `db:"key_data"`
-	KeyFile              *multipart.FileHeader                   `form:"keyFile"`
-	Status               core.Status                             `json:"status" db:"status_id"`
-	PingSystem           core.PingSystem                         `json:"pingSystem" db:"ping_system"`
-	CustomSettings       core.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
-	NodeStartDate        *time.Time                              `json:"nodeStartDate"  db:"node_start_date"`
-	CreateOn             time.Time                               `json:"createdOn" db:"created_on"`
-	UpdatedOn            *time.Time                              `json:"updatedOn"  db:"updated_on"`
+	NodeId                 int                                     `json:"nodeId" form:"nodeId" db:"node_id"`
+	Name                   string                                  `json:"name" form:"name" db:"name"`
+	Implementation         core.Implementation                     `json:"implementation" form:"implementation" db:"implementation"`
+	GRPCAddress            *string                                 `json:"grpcAddress" form:"grpcAddress" db:"grpc_address"`
+	TLSFileName            *string                                 `json:"tlsFileName" db:"tls_file_name"`
+	TLSDataBytes           []byte                                  `db:"tls_data"`
+	TLSFile                *multipart.FileHeader                   `form:"tlsFile"`
+	MacaroonFileName       *string                                 `json:"macaroonFileName" db:"macaroon_file_name"`
+	MacaroonDataBytes      []byte                                  `db:"macaroon_data"`
+	MacaroonFile           *multipart.FileHeader                   `form:"macaroonFile"`
+	CertificateFileName    *string                                 `json:"certificateFileName" db:"certificate_file_name"`
+	CertificateDataBytes   []byte                                  `db:"certificate_data"`
+	CertificateFile        *multipart.FileHeader                   `form:"certificateFile"`
+	KeyFileName            *string                                 `json:"KeyFileName" db:"key_file_name"`
+	KeyDataBytes           []byte                                  `db:"key_data"`
+	KeyFile                *multipart.FileHeader                   `form:"keyFile"`
+	CaCertificateFileName  *string                                 `json:"caCertificateFileName" db:"ca_certificate_file_name"`
+	CaCertificateDataBytes []byte                                  `db:"ca_certificate_data"`
+	CaCertificateFile      *multipart.FileHeader                   `form:"caCertificateFile"`
+	Status                 core.Status                             `json:"status" db:"status_id"`
+	PingSystem             core.PingSystem                         `json:"pingSystem" db:"ping_system"`
+	CustomSettings         core.NodeConnectionDetailCustomSettings `json:"customSettings" db:"custom_settings"`
+	NodeStartDate          *time.Time                              `json:"nodeStartDate"  db:"node_start_date"`
+	CreateOn               time.Time                               `json:"createdOn" db:"created_on"`
+	UpdatedOn              *time.Time                              `json:"updatedOn"  db:"updated_on"`
 }
 
 func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
@@ -52,7 +55,7 @@ func GetNodeIdByGRPC(db *sqlx.DB, grpcAddress string) (int, error) {
 }
 
 func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
-	grpcAddress string, certificate []byte, authentication []byte) (NodeConnectionDetails, error) {
+	grpcAddress string, certificate []byte, authentication []byte, caCertificate []byte) (NodeConnectionDetails, error) {
 	var publicKey string
 	var chain core.Chain
 	var network core.Network
@@ -64,7 +67,7 @@ func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 			return NodeConnectionDetails{}, errors.Wrap(err, "Getting public key from LND node")
 		}
 	case core.CLN:
-		publicKey, chain, network, err = getInformationFromClnNode(grpcAddress, certificate, authentication)
+		publicKey, chain, network, err = getInformationFromClnNode(grpcAddress, certificate, authentication, caCertificate)
 		if err != nil {
 			return NodeConnectionDetails{}, errors.Wrap(err, "Getting public key from CLN node")
 		}

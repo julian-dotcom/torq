@@ -169,8 +169,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 
 		expected := routingPolicyData{
 			Ts:                     time.Now(),
-			FundingTransactionHash: fundingTransactionHash,
-			FundingOutputIndex:     fundingOutputIndex,
+			FundingTransactionHash: *fundingTransactionHash,
+			FundingOutputIndex:     *fundingOutputIndex,
 			LNDShortChannelId:      &updateEvent.ChannelUpdates[0].ChanId,
 			AnnouncingPubKey:       updateEvent.ChannelUpdates[0].AdvertisingNode,
 			FeeRateMillMsat:        updateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,
@@ -269,8 +269,8 @@ func TestSubscribeChannelGraphUpdates(t *testing.T) {
 
 		e3 := routingPolicyData{
 			Ts:                     time.Now(),
-			FundingTransactionHash: fundingTransactionHash,
-			FundingOutputIndex:     fundingOutputIndex,
+			FundingTransactionHash: *fundingTransactionHash,
+			FundingOutputIndex:     *fundingOutputIndex,
 			LNDShortChannelId:      &secondUpdateEvent.ChannelUpdates[0].ChanId,
 			AnnouncingPubKey:       testutil.TestPublicKey1,
 			FeeRateMillMsat:        secondUpdateEvent.ChannelUpdates[0].RoutingPolicy.FeeRateMilliMsat,

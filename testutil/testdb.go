@@ -15,6 +15,7 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/internal/tags"
 )
 
@@ -232,7 +233,7 @@ func (srv *Server) NewTestDatabase(migrate bool) (*sqlx.DB, context.CancelFunc, 
 	cache.InitStates(true)
 	_, cancelTorq := context.WithCancel(ctx)
 	cache.InitRootService(cancelTorq)
-	cache.SetActiveCoreServiceState(core.RootService)
+	cache.SetActiveCoreServiceState(services_helpers.RootService)
 
 	return db, cancel, nil
 }
