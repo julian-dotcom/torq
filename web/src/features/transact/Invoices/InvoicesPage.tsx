@@ -32,8 +32,8 @@ import { useAppSelector } from "store/hooks";
 import { selectInvoicesView, selectViews } from "features/viewManagement/viewSlice";
 import ViewsSidebar from "features/viewManagement/ViewsSidebar";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import mixpanel from "mixpanel-browser";
-import { TableResponses, ViewResponse } from "../../viewManagement/types";
+import { TableResponses, ViewResponse } from "features/viewManagement/types";
+import { userEvents } from "utils/userEvents";
 
 function useMaximums(data: Array<Invoice>): Invoice | undefined {
   if (!data.length) {
@@ -66,6 +66,7 @@ function InvoicesPage() {
   const { t } = useTranslations();
   const navigate = useNavigate();
   const location = useLocation();
+  const { track } = userEvents();
 
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectInvoicesView);
@@ -105,7 +106,7 @@ function InvoicesPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Invoices" });
+    track("Toggle Table Sidebar", { page: "Invoices" });
   };
 
   function handleNameChange(name: string) {
@@ -128,7 +129,7 @@ function InvoicesPage() {
             icon={<InvoiceIcon />}
             onClick={() => {
               navigate(NEW_INVOICE, { state: { background: location } });
-              mixpanel.track("Navigate to New Invoice");
+              track("Navigate to New Invoice");
             }}
           >
             {t.header.newInvoice}
@@ -139,14 +140,14 @@ function InvoicesPage() {
             buttonColor={ColorVariant.primary}
             icon={<RefreshIcon />}
             onClick={() => {
-              mixpanel.track("Refresh Table", { page: "Invoices" });
+              track("Refresh Table", { page: "Invoices" });
               invoicesResponse.refetch();
             }}
           />
           <TableControlsButton
             onClickHandler={() => {
               setSidebarExpanded(!sidebarExpanded);
-              mixpanel.track("Toggle Table Sidebar", {
+              track("Toggle Table Sidebar", {
                 page: "Invoices",
               });
             }}

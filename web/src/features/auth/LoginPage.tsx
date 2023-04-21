@@ -1,5 +1,4 @@
 import React from "react";
-import mixpanel from "mixpanel-browser";
 import { ReactComponent as TorqLogo } from "icons/torq-logo.svg";
 import { LockOpen20Regular as UnlockIcon } from "@fluentui/react-icons";
 import "./login_page.scss";
@@ -11,9 +10,11 @@ import type { LoginResponse } from "types/api";
 import Input from "components/forms/input/Input";
 import Button, { ColorVariant } from "components/buttons/Button";
 import useTranslations from "services/i18n/useTranslations";
+import { userEvents } from "utils/userEvents";
 
 function LoginPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [login] = useLoginMutation();
 
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ function LoginPage() {
       navigate(from, { replace: true });
     }
     if (process.env.REACT_APP_E2E_TEST !== "true") {
-      mixpanel.track("Login");
+      track("Login");
     }
   };
 

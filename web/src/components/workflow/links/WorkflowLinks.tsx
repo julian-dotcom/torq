@@ -6,7 +6,7 @@ import { SelectWorkflowLinks, useDeleteNodeLinkMutation } from "pages/WorkflowPa
 import { selectDisplayPreviewLink } from "pages/WorkflowPage/WorkflowSlice";
 import { WorkflowVersionNodeLink } from "pages/WorkflowPage/workflowTypes";
 import styles from "./workflow_link.module.scss";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 type WorkflowLinkProp = {
   link: WorkflowVersionNodeLink;
@@ -64,6 +64,7 @@ function PreviewWorkflowLink() {
 }
 
 function WorkflowLink(props: WorkflowLinkProp) {
+  const { track } = userEvents();
   const { link } = props;
   const shadowLinkRef = useRef<SVGLineElement>(null);
   const linkRef = useRef<SVGLineElement>(null);
@@ -77,7 +78,7 @@ function WorkflowLink(props: WorkflowLinkProp) {
   const [deleteLink] = useDeleteNodeLinkMutation();
 
   function handleDeleteLink() {
-    mixpanel.track("Workflow Delete link", {
+    track("Workflow Delete link", {
       workflowVersionId: link.workflowVersionId,
       workflowStageNumber: link.stage,
       workflowParentOutput: link.parentOutput,

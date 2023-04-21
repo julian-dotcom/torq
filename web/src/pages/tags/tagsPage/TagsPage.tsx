@@ -12,10 +12,11 @@ import useTranslations from "services/i18n/useTranslations";
 import { useGetTagsQuery } from "../tagsApi";
 import { DefaultTagsView } from "./tagsDefaults";
 import tagsCellRenderer from "./tagsCellRenderer";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 function TagsPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,7 +31,7 @@ function TagsPage() {
             icon={<NewTagIcon />}
             hideMobileText={true}
             onClick={() => {
-              mixpanel.track("Navigate to Create Tag");
+              track("Navigate to Create Tag");
               navigate("/create-tag", { state: { background: location } });
             }}
           >

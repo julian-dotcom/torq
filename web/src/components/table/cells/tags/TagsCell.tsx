@@ -1,5 +1,4 @@
 import { MoleculeRegular as NodeIcon, ArrowRoutingRegular as ChannelsIcon } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import { Link, useLocation } from "react-router-dom";
 import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./tags_cell.module.scss";
@@ -7,6 +6,8 @@ import { Tag as TagType } from "pages/tags/tagsTypes";
 import Tag, { TagSize } from "components/tags/Tag";
 import { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import classNames from "classnames";
+import { userEvents } from "utils/userEvents";
+import { track } from "mixpanel-browser";
 
 export type TagsCellProps = {
   channelId: number;
@@ -17,14 +18,14 @@ export type TagsCellProps = {
 
 function EditTag(props: { tag: TagType }) {
   const location = useLocation();
-
+  const { track } = userEvents();
   return (
     <Link
       to={`/update-tag/${props.tag.tagId}`}
       state={{ background: location }}
       className={classNames(cellStyles.action, styles.updateLink)}
       onClick={() => {
-        mixpanel.track("Navigate to Update Tag", {
+        track("Navigate to Update Tag", {
           tagId: props.tag.tagId,
           tagName: props.tag.name,
           tagStyle: props.tag.style,
@@ -52,7 +53,7 @@ const TagsCell = (props: TagsCellProps) => {
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.disabled}
             onClick={() => {
-              mixpanel.track("Navigate to Tag Channel", {
+              track("Navigate to Tag Channel", {
                 channelId: props.channelId,
               });
             }}
@@ -64,7 +65,7 @@ const TagsCell = (props: TagsCellProps) => {
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.disabled}
             onClick={() => {
-              mixpanel.track("Navigate to Tag Node", {
+              track("Navigate to Tag Node", {
                 nodeId: props.nodeId,
               });
             }}

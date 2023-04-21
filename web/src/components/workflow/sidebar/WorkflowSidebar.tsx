@@ -28,7 +28,7 @@ import {
   DataSourceTorqChannelsNodeButton,
   ChannelBalanceEventFilterNodeButton,
 } from "components/workflow/nodes/nodes";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 export type WorkflowSidebarProps = {
   expanded: boolean;
@@ -36,11 +36,11 @@ export type WorkflowSidebarProps = {
 };
 
 export default function WorkflowSidebar(props: WorkflowSidebarProps) {
+  const { track } = userEvents();
   const { expanded, setExpanded } = props;
-
   const { t } = useTranslations();
   const closeSidebarHandler = () => {
-    mixpanel.track("Workflow Toggle Sidebar");
+    track("Workflow Toggle Sidebar");
     setExpanded(false);
   };
 

@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 type keyOption = { value: "revenue" | "amount" | "count"; label: string };
 
@@ -24,19 +24,23 @@ export const channelSlice = createSlice({
 
   reducers: {
     updateFlowKey: (state, action) => {
-      mixpanel.track("Update FlowChart Key", { key: action.payload.flowKey });
+      const { track } = userEvents();
+      track("Update FlowChart Key", { key: action.payload.flowKey });
       state.flowKey = action.payload.flowKey;
     },
     updateProfitChartKey: (state, action) => {
-      mixpanel.track("Update ProfitChart Key", { key: action.payload.key });
+      const { track } = userEvents();
+      track("Update ProfitChart Key", { key: action.payload.key });
       state.profitChartKey = action.payload.key;
     },
     updateEventChartKey: (state, action) => {
-      mixpanel.track("Update EventChart Key", { key: action.payload.key });
+      const { track } = userEvents();
+      track("Update EventChart Key", { key: action.payload.key });
       state.eventChartKey = action.payload.key;
     },
     updateBalanceChanID: (state, action) => {
-      mixpanel.track("Update Balance Channel ID", {
+      const { track } = userEvents();
+      track("Update Balance Channel ID", {
         channel_id: action.payload.balanceChanID,
       });
       state.balanceChanID = action.payload.key;

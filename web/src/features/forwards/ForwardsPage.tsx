@@ -27,11 +27,11 @@ import Table from "features/table/Table";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import styles from "./forwards_table.module.scss";
-import mixpanel from "mixpanel-browser";
 import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import { createCsvFile } from "utils/JsonTableToCsv";
 import Button, { ColorVariant } from "components/buttons/Button";
 import { TableResponses, ViewResponse } from "features/viewManagement/types";
+import { userEvents } from "utils/userEvents";
 
 function useForwardsTotals(data: Array<Forward>): Forward | undefined {
   if (!data.length) {
@@ -88,7 +88,7 @@ function useForwardsMaximums(data: Array<Forward>): Forward | undefined {
 
 function ForwardsPage() {
   const { t } = useTranslations();
-
+  const { track } = userEvents();
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const [updateTableView] = useUpdateTableViewMutation();
 
@@ -129,7 +129,7 @@ function ForwardsPage() {
 
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Forwards" });
+    track("Toggle Table Sidebar", { page: "Forwards" });
   };
 
   const tableControls = (
@@ -177,7 +177,7 @@ function ForwardsPage() {
             hideMobileText={true}
             icon={<DownloadCsvIcon />}
             onClick={() => {
-              mixpanel.track("Downloads Table as CSV", {
+              track("Downloads Table as CSV", {
                 downloadTablePage: "Forwards",
                 downloadTableViewTitle: viewResponse.view.title,
                 downloadTableColumns: viewResponse.view.columns,
@@ -190,7 +190,7 @@ function ForwardsPage() {
           <TableControlsButton
             onClickHandler={() => {
               setSidebarExpanded(!sidebarExpanded);
-              mixpanel.track("Toggle Table Sidebar", { page: "Forwards" });
+              track("Toggle Table Sidebar", { page: "Forwards" });
             }}
             icon={OptionsIcon}
             id={"tableControlsButton"}

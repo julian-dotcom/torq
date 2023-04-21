@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft24Regular as LeftIcon, ChevronRight24Regular as RightIcon } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import "./interval_select.scss";
 import { addDays, differenceInDays, format, startOfDay, subDays } from "date-fns";
 import { DateRangePicker, RangeKeyDict } from "react-date-range";
-
 import { defaultStaticRangesFn } from "./customRanges";
-
 import Popover from "features/popover/Popover";
 import classNames from "classnames";
 import Button, { ButtonPosition, ColorVariant } from "components/buttons/Button";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import { selectTimeInterval, updateInterval } from "./timeIntervalSlice";
 import { useGetSettingsQuery } from "apiSlice";
+import { userEvents } from "utils/userEvents";
 
 interface selection {
   startDate: Date;
@@ -21,6 +19,7 @@ interface selection {
 }
 
 function TimeIntervalSelect(props: { className?: string }) {
+  const { track } = userEvents();
   // triggers RTK Query to get settings which are intercepted in the timeIntervalSlice as an extra reducer
   useGetSettingsQuery();
 
@@ -44,7 +43,7 @@ function TimeIntervalSelect(props: { className?: string }) {
         from: item.selection1.startDate.toString(),
         to: item.selection1.endDate.toString(),
       };
-      mixpanel.track("Time Interval Change", {
+      track("Time Interval Change", {
         timeIntervalCurrentFrom: currentPeriod.from,
         timeIntervalCurrentTo: currentPeriod.to,
         timeIntervalNewFrom: interval.from,
@@ -82,7 +81,7 @@ function TimeIntervalSelect(props: { className?: string }) {
       from: startOfDay(subDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(subDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
-    mixpanel.track("Time Interval Change", {
+    track("Time Interval Change", {
       timeIntervalCurrentFrom: currentPeriod.from,
       timeIntervalCurrentTo: currentPeriod.to,
       timeIntervalNewFrom: interval.from,
@@ -99,7 +98,7 @@ function TimeIntervalSelect(props: { className?: string }) {
       from: startOfDay(addDays(new Date(currentPeriod.from), diff + 1)).toISOString(),
       to: startOfDay(addDays(new Date(currentPeriod.to), diff + 1)).toISOString(),
     };
-    mixpanel.track("Time Interval Change", {
+    track("Time Interval Change", {
       timeIntervalCurrentFrom: currentPeriod.from,
       timeIntervalCurrentTo: currentPeriod.to,
       timeIntervalNewFrom: interval.from,

@@ -7,10 +7,10 @@ import { ReactComponent as StageArrowFront } from "pages/WorkflowPage/stageArrow
 import { useAddNodeMutation } from "pages/WorkflowPage/workflowApi";
 import { WorkflowNodeType } from "pages/WorkflowPage/constants";
 import useTranslations from "services/i18n/useTranslations";
-import mixpanel from "mixpanel-browser";
 import React from "react";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
+import { userEvents } from "utils/userEvents";
 
 type StageSelectorProps = {
   stageNumbers: Array<number>;
@@ -73,6 +73,7 @@ type SelectStageButtonProps = {
 function SelectStageButton(props: SelectStageButtonProps) {
   const { stage, stageNumbers, selectedStage, setSelectedStage, buttonIndex, workflowId, version } = props;
   const { t } = useTranslations();
+  const { track } = userEvents();
   const toastRef = React.useContext(ToastContext);
   const [deleteStage] = useDeleteStageMutation();
 
@@ -85,7 +86,7 @@ function SelectStageButton(props: SelectStageButtonProps) {
     if (!confirm(t.deleteStageConfirm)) {
       return;
     }
-    mixpanel.track("Workflow Delete Stage", {
+    track("Workflow Delete Stage", {
       workflowId: workflowId,
       workflowVersion: version,
       workflowStage: stage,
@@ -129,6 +130,7 @@ type AddStageButtonProps = {
 
 function AddStageButton(props: AddStageButtonProps) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const toastRef = React.useContext(ToastContext);
   const [addNode] = useAddNodeMutation();
   const nextStage = Math.max(...props.stageNumbers) + 1;
@@ -139,7 +141,7 @@ function AddStageButton(props: AddStageButtonProps) {
       return;
     }
 
-    mixpanel.track("Workflow Add Stage", {
+    track("Workflow Add Stage", {
       workflowVersionId: props.workflowVersionId,
       workflowCurrentStage: props.selectedStage,
       workflowNextStage: nextStage,

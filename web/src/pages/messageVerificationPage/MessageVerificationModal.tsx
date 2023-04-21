@@ -15,10 +15,11 @@ import { useSignMessageMutation, useVerifyMessageMutation } from "./messageVerif
 import { ActionMeta } from "react-select";
 import { useGetNodeConfigurationsQuery } from "apiSlice";
 import { IsNumericOption } from "utils/typeChecking";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 export default function MessageVerificationModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
 
   const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
@@ -55,7 +56,7 @@ export default function MessageVerificationModal() {
     if (currentAction === "sign") {
       setEmptyMessageSignField(false);
       signMessage({ nodeId: selectedNodeId, message: formRef.current?.signMessage?.value });
-      mixpanel.track("Sign Message", { nodeId: selectedNodeId });
+      track("Sign Message", { nodeId: selectedNodeId });
     } else {
       setEmptySignatureField(false);
       setEmptyMessageField(false);
@@ -64,14 +65,14 @@ export default function MessageVerificationModal() {
         message: formRef.current?.message?.value,
         signature: formRef.current?.signature?.value && formRef.current.signature.value.trim(),
       });
-      mixpanel.track("Verify Message", { nodeId: selectedNodeId });
+      track("Verify Message", { nodeId: selectedNodeId });
     }
   }
 
   function handleRadioChange(event: React.ChangeEvent<HTMLInputElement>) {
     if (event.target.id === "sign" || event.target.id === "verify") {
       setCurrentAction(event.target.id);
-      mixpanel.track(event.target.id === "sign" ? "Select Sign Message" : "Select Verify Message");
+      track(event.target.id === "sign" ? "Select Sign Message" : "Select Verify Message");
     }
   }
 

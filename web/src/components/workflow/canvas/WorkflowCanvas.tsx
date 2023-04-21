@@ -7,7 +7,7 @@ import { TriggerNodeTypes } from "pages/WorkflowPage/constants";
 import ToastContext from "features/toast/context";
 import { toastCategory } from "features/toast/Toasts";
 import useTranslations from "services/i18n/useTranslations";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 type WorkflowCanvasProps = {
   workflowVersionId: number;
@@ -29,6 +29,7 @@ export const CanvasContext = React.createContext<{
 
 function WorkflowCanvas(props: WorkflowCanvasProps) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const toastRef = useContext(ToastContext);
 
   const [addNode] = useAddNodeMutation();
@@ -61,7 +62,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     // Set the isDragging and canvasPositionBB state variables
     setIsDragging(true);
     setCanvasPositionBB({ left: x, top: y });
-    mixpanel.track("Workflow Drag Canvas", {
+    track("Workflow Drag Canvas", {
       workflowId: props.workflowId,
       workflowVersionId: props.workflowVersionId,
       workflowVersion: props.version,
@@ -111,7 +112,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
         return;
       }
 
-      mixpanel.track("Workflow Add New Node", {
+      track("Workflow Add New Node", {
         workflowId: props.workflowId,
         workflowVersionId: props.workflowVersionId,
         workflowVersion: props.version,

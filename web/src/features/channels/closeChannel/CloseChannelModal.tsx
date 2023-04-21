@@ -22,10 +22,10 @@ import Switch from "components/forms/switch/Switch";
 import FormRow from "features/forms/FormWrappers";
 import { useSearchParams } from "react-router-dom";
 import Note, { NoteType } from "features/note/Note";
-import mixpanel from "mixpanel-browser";
 import { useCloseChannelMutation } from "./closeChannelApi";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { RtqToServerError } from "components/errors/errors";
+import { userEvents } from "utils/userEvents";
 
 const closeStatusClass = {
   PROCESSING: styles.processing,
@@ -42,6 +42,7 @@ const closeStatusIcon = {
 
 function closeChannelModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const [queryParams] = useSearchParams();
   const nodeId = parseInt(queryParams.get("nodeId") || "0");
@@ -79,7 +80,7 @@ function closeChannelModal() {
   function handleCloseChannel() {
     setStepIndex(1);
     setDetailState(ProgressStepState.completed);
-    mixpanel.track("Close Channel", {
+    track("Close Channel", {
       nodeId: nodeId,
       channelId: channelId,
       closeChannelUseSatPerVbyte: satPerVbyte !== 0,

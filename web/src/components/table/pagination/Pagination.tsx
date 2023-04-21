@@ -1,10 +1,11 @@
 import React, { useMemo } from "react";
 import classNames from "classnames";
 import { ChevronLeft20Filled as LeftIcon, ChevronRight20Filled as RightIcon } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import styles from "./pagination.module.scss";
 import PaginationSelect from "./PaginationSelect";
 import { IsNumericOption } from "utils/typeChecking";
+import { userEvents } from "utils/userEvents";
+import { track } from "mixpanel-browser";
 
 export type PaginationProps = {
   limit: number;
@@ -33,13 +34,14 @@ function renderPages(
   pageSelectOptions: Array<{ value: number; label: number | string }>,
   offsetHandler: (offset: number) => void
 ) {
+  const { track } = userEvents();
   return (
     <div className={styles.paginationButtons}>
       <button
         className={classNames(styles.pageButton, { [styles.disabled]: !(offset >= limit) })}
         onClick={() => {
           if (offset >= limit) {
-            mixpanel.track("Paginate", {
+            track("Paginate", {
               paginationOffset: offset - limit,
               paginationDirection: "previous",
               paginationLimit: limit,
@@ -57,7 +59,7 @@ function renderPages(
         value={{ value: offset / limit, label: `Page ${offset / limit + 1} of ${pages}` }}
         onChange={(item: unknown) => {
           if (IsNumericOption(item)) {
-            mixpanel.track("Paginate", {
+            track("Paginate", {
               paginationOffset: item.value * limit,
               paginationDirection: "select",
               paginationLimit: limit,
@@ -71,7 +73,7 @@ function renderPages(
         className={classNames(styles.pageButton, { [styles.disabled]: !(pages > currentPage + 1) })}
         onClick={() => {
           if (pages > currentPage + 1) {
-            mixpanel.track("Paginate", {
+            track("Paginate", {
               paginationOffset: currentPage + 1,
               paginationDirection: "next",
               paginationLimit: limit,
@@ -109,7 +111,7 @@ function Pagination(props: PaginationProps) {
           value={limitOptions.find(({ value }) => value === props.limit)}
           onChange={(item: unknown) => {
             if (IsNumericOption(item)) {
-              mixpanel.track("Paginate Change Limit", { paginationLimit: item.value });
+              track("Paginate Change Limit", { paginationLimit: item.value });
               props.perPageHandler(item.value);
               props.offsetHandler(0);
             }

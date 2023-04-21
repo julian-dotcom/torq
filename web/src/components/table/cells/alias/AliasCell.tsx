@@ -9,7 +9,7 @@ import { ButtonPosition, ColorVariant, LinkButton, SizeVariant } from "component
 import useTranslations from "services/i18n/useTranslations";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 import { useLocation } from "react-router-dom";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 interface AliasCell {
   current: string;
@@ -23,6 +23,7 @@ interface AliasCell {
 function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }: AliasCell) {
   const { t } = useTranslations();
   const location = useLocation();
+  const { track } = userEvents();
   const content = (
     <div className={styles.alias}>
       <div className={classNames(styles.current, styles.text)}>{current}</div>
@@ -38,7 +39,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
           buttonColor={ColorVariant.accent1}
           buttonPosition={ButtonPosition.center}
           onClick={() => {
-            mixpanel.track("Navigate to Inspect Channel", {
+            track("Navigate to Inspect Channel", {
               channelId: channelId,
             });
           }}
@@ -58,7 +59,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   hideMobileText={true}
                   icon={<EditIcon />}
                   onClick={() => {
-                    mixpanel.track("Navigate to Update Channel", {
+                    track("Navigate to Update Channel", {
                       nodeId: nodeId,
                       channelId: channelId,
                     });
@@ -76,7 +77,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                   hideMobileText={true}
                   icon={<CloseIcon />}
                   onClick={() => {
-                    mixpanel.track("Navigate to Close Channel", {
+                    track("Navigate to Close Channel", {
                       nodeId: nodeId,
                       channelId: channelId,
                     });

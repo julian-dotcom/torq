@@ -4,7 +4,6 @@ import {
   ArrowSync20Regular as RefreshIcon,
   Add20Regular as NewPeerIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -37,6 +36,7 @@ import peerCellRenderer from "./peersCellRenderer";
 import * as Routes from "constants/routes";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
+import { userEvents } from "utils/userEvents";
 
 function PeersPage() {
   const { t } = useTranslations();
@@ -48,6 +48,7 @@ function PeersPage() {
   const [updateTableView] = useUpdateTableViewMutation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { track } = userEvents();
 
   const peersResponse = useGetPeersQuery<{
     data: Array<Peer>;
@@ -63,7 +64,7 @@ function PeersPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Peers" });
+    track("Toggle Table Sidebar", { page: "Peers" });
   };
 
   function handleNameChange(name: string) {
@@ -85,7 +86,7 @@ function PeersPage() {
             hideMobileText={true}
             icon={<NewPeerIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to Connect Peer");
+              track("Navigate to Connect Peer");
               navigate(Routes.CONNECT_PEER, { state: { background: location } });
             }}
           >
@@ -100,7 +101,7 @@ function PeersPage() {
           hideMobileText={true}
           icon={<DownloadCsvIcon />}
           onClick={() => {
-            mixpanel.track("Downloads Table as CSV", {
+            track("Downloads Table as CSV", {
               downloadTablePage: "Peers",
               downloadTableViewTitle: viewResponse.view?.title,
               downloadTableColumns: viewResponse.view?.columns,
@@ -114,13 +115,13 @@ function PeersPage() {
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
-            mixpanel.track("Refresh Table", { page: "Peers" });
+            track("Refresh Table", { page: "Peers" });
             peersResponse.refetch();
           }}
         />
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "Peers" });
+            track("Toggle Table Sidebar", { page: "Peers" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}

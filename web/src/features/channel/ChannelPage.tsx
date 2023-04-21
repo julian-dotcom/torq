@@ -48,8 +48,8 @@ import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPage
 import PageTitle from "features/templates/PageTitle";
 import useTranslations from "services/i18n/useTranslations";
 import Tag, { TagColor } from "components/tags/Tag";
-import mixpanel from "mixpanel-browser";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
+import { userEvents } from "utils/userEvents";
 
 const ft = d3.format(",.0f");
 
@@ -68,6 +68,7 @@ type ChannelPageProps = {
 
 function ChannelPage(_: ChannelPageProps) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const location = useLocation();
   const currentPeriod = useAppSelector(selectTimeInterval);
@@ -241,7 +242,7 @@ function ChannelPage(_: ChannelPageProps) {
                   buttonColor={ColorVariant.success}
                   buttonSize={SizeVariant.small}
                   onClick={() => {
-                    mixpanel.track("Navigate to Update Channel", {
+                    track("Navigate to Update Channel", {
                       nodeId: channelDetail?.nodeId,
                       channelId: channelDetail?.channelId,
                     });
@@ -258,7 +259,7 @@ function ChannelPage(_: ChannelPageProps) {
                   buttonSize={SizeVariant.small}
                   buttonColor={ColorVariant.error}
                   onClick={() => {
-                    mixpanel.track("Navigate to Close Channel", {
+                    track("Navigate to Close Channel", {
                       nodeId: channelDetail?.nodeId,
                       channelId: channelDetail?.channelId,
                     });
@@ -279,7 +280,7 @@ function ChannelPage(_: ChannelPageProps) {
                   to={`/tag-channel/${chanId}`}
                   state={{ background: location }}
                   onClick={() => {
-                    mixpanel.track("Navigate to Tag Channel", {
+                    track("Navigate to Tag Channel", {
                       channelId: chanId,
                     });
                   }}
@@ -291,7 +292,7 @@ function ChannelPage(_: ChannelPageProps) {
                   to={`/tag-node/${channelDetail?.peerNodeId}`}
                   state={{ background: location }}
                   onClick={() => {
-                    mixpanel.track("Navigate to Tag Node", {
+                    track("Navigate to Tag Node", {
                       nodeId: channelDetail?.peerNodeId,
                     });
                   }}

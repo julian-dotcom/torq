@@ -16,7 +16,7 @@ import useTranslations from "services/i18n/useTranslations";
 import classNames from "classnames";
 import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { useGetPeersQuery, useUpdatePeerMutation } from "./peersApi";
@@ -40,6 +40,7 @@ const updateStatusIcon = {
 };
 
 function PeerUpdateModal() {
+  const { track } = userEvents();
   const [queryParams] = useSearchParams();
   const peerNodeId = parseInt(queryParams.get("peerNodeId") || "0");
   const torqNodeId = parseInt(queryParams.get("torqNodeId") || "0");
@@ -97,7 +98,7 @@ function PeerUpdateModal() {
   function handleConnectPeer() {
     if (selectedSetting === undefined) return;
 
-    mixpanel.track("Update Peer", {
+    track("Update Peer", {
       peerNodeId: peerNodeId,
       torqNodeId: torqNodeId,
     });

@@ -1,8 +1,8 @@
 import { Link16Regular as LinkIcon } from "@fluentui/react-icons";
 import classNames from "classnames";
-import mixpanel from "mixpanel-browser";
 import { ColorVariant, ExternalLinkButton, SizeVariant } from "components/buttons/Button";
 import styles from "components/table/cells/cell.module.scss";
+import { userEvents } from "utils/userEvents";
 
 interface LinkCell {
   text: string;
@@ -12,6 +12,7 @@ interface LinkCell {
 }
 
 function LinkCell(props: LinkCell) {
+  const { track } = userEvents();
   return (
     <div className={classNames(styles.cell, styles.numericCell, styles.linkCell, props.className)}>
       {!props.totalCell && (
@@ -21,7 +22,7 @@ function LinkCell(props: LinkCell) {
             href={props.link}
             target="_blank"
             onClick={() => {
-              mixpanel.track("Link Cell Clicked", { href: props.link });
+              track("Link Cell Clicked", { href: props.link });
             }}
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.success}

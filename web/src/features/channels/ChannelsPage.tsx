@@ -5,7 +5,6 @@ import {
   ArrowDownload20Regular as DownloadCsvIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -38,6 +37,7 @@ import { selectActiveNetwork } from "features/network/networkSlice";
 import { TableResponses, ViewResponse } from "features/viewManagement/types";
 import * as Routes from "constants/routes";
 import { createCsvFile } from "utils/JsonTableToCsv";
+import { userEvents } from "utils/userEvents";
 
 function useMaximums(data: Array<channel>): channel | undefined {
   if (!data || !data.length) {
@@ -94,6 +94,7 @@ function useMaximums(data: Array<channel>): channel | undefined {
 
 function ChannelsPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -118,7 +119,7 @@ function ChannelsPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+    track("Toggle Table Sidebar", { page: "Channels" });
   };
 
   function handleNameChange(name: string) {
@@ -140,7 +141,7 @@ function ChannelsPage() {
             hideMobileText={true}
             icon={<ChannelsIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to Open Channel");
+              track("Navigate to Open Channel");
               navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
             }}
           >
@@ -155,7 +156,7 @@ function ChannelsPage() {
           hideMobileText={true}
           icon={<DownloadCsvIcon />}
           onClick={() => {
-            mixpanel.track("Downloads Table as CSV", {
+            track("Downloads Table as CSV", {
               downloadTablePage: "Channels Open",
               downloadTableViewTitle: viewResponse.view.title,
               downloadTableColumns: viewResponse.view.columns,
@@ -169,13 +170,13 @@ function ChannelsPage() {
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
-            mixpanel.track("Refresh Table", { page: "Channels" });
+            track("Refresh Table", { page: "Channels" });
             channelsResponse.refetch();
           }}
         />
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "Channels" });
+            track("Toggle Table Sidebar", { page: "Channels" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}

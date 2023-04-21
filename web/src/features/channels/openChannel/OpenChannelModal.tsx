@@ -29,10 +29,10 @@ import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
 import { Select, TextArea } from "components/forms/forms";
 import { InputSizeVariant } from "components/forms/input/variants";
-import mixpanel from "mixpanel-browser";
 import { useOpenChannelMutation } from "./openChannelApi";
 import { RtqToServerError } from "components/errors/errors";
 import ErrorSummary from "components/errors/ErrorSummary";
+import { userEvents } from "utils/userEvents";
 
 const openStatusClass = {
   PROCESSING: styles.processing,
@@ -59,6 +59,7 @@ function isOption(result: unknown): result is SelectOptions & { value: number } 
 
 function OpenChannelModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const [resultState, setResultState] = useState(ProgressStepState.disabled);
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
@@ -137,7 +138,7 @@ function OpenChannelModal() {
     setStepIndex(2);
     setDetailState(ProgressStepState.completed);
     setResultState(ProgressStepState.processing);
-    mixpanel.track("Open Channel", {
+    track("Open Channel", {
       nodeId: selectedNodeId,
       openChannelUseSatPerVbyte: satPerVbyte !== 0,
       openChannelUsePushAmount: pushSat !== 0,

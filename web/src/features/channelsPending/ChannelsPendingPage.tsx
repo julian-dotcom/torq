@@ -4,7 +4,6 @@ import {
   ArrowDownload20Regular as DownloadCsvIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButton,
@@ -35,6 +34,7 @@ import channelsPendingCellRenderer from "features/channelsPending/channelsPendin
 import { AllChannelPendingColumns } from "features/channelsPending/channelsPendingColumns.generated";
 import { createCsvFile } from "utils/JsonTableToCsv";
 import Button, { ColorVariant } from "components/buttons/Button";
+import { userEvents } from "utils/userEvents";
 
 function useMaximums(data: Array<ChannelPending>): ChannelPending | undefined {
   if (!data.length) {
@@ -52,6 +52,7 @@ function useMaximums(data: Array<ChannelPending>): ChannelPending | undefined {
 
 function ChannelsPendingPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
   const { viewResponse, selectedViewIndex } = useAppSelector(selectPendingChannelView);
@@ -74,7 +75,7 @@ function ChannelsPendingPage() {
   // Logic for toggling the sidebar
   const closeSidebarHandler = () => {
     setSidebarExpanded(false);
-    mixpanel.track("Toggle Table Sidebar", { page: "ChannelsPending" });
+    track("Toggle Table Sidebar", { page: "ChannelsPending" });
   };
 
   function handleNameChange(name: string) {
@@ -99,7 +100,7 @@ function ChannelsPendingPage() {
           hideMobileText={true}
           icon={<DownloadCsvIcon />}
           onClick={() => {
-            mixpanel.track("Downloads Table as CSV", {
+            track("Downloads Table as CSV", {
               downloadTablePage: "Channels Pending",
               downloadTableViewTitle: viewResponse.view.title,
               downloadTableColumns: viewResponse.view.columns,
@@ -113,13 +114,13 @@ function ChannelsPendingPage() {
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
-            mixpanel.track("Refresh Table", { page: "Channels Pending" });
+            track("Refresh Table", { page: "Channels Pending" });
             channelsResponse.refetch();
           }}
         />
         <TableControlsButton
           onClickHandler={() => {
-            mixpanel.track("Toggle Table Sidebar", { page: "Channels Pending" });
+            track("Toggle Table Sidebar", { page: "Channels Pending" });
             setSidebarExpanded(!sidebarExpanded);
           }}
           icon={OptionsIcon}

@@ -7,12 +7,11 @@ import { TagColor } from "components/tags/Tag";
 import CellWrapper from "components/table/cells/cellWrapper/CellWrapper";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import { MoleculeRegular as NodeIcon, ArrowRoutingRegular as ChannelIcon } from "@fluentui/react-icons";
-
 import { useDeleteTagMutation } from "../tagsApi";
 import useTranslations from "services/i18n/useTranslations";
 import { useLocation } from "react-router-dom";
 import NumericDoubleCell from "components/table/cells/numeric/NumericDoubleCell";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 const color = new Map<string, TagColor>([
   ["error", TagColor.error],
@@ -39,6 +38,7 @@ export default function tagsCellRenderer(
   maxRow?: ExpandedTag
 ): JSX.Element {
   const location = useLocation();
+  const { track } = userEvents();
   const [deleteTagMutation] = useDeleteTagMutation();
   const { t } = useTranslations();
 
@@ -63,7 +63,7 @@ export default function tagsCellRenderer(
           disabled={!(row.tagId !== undefined && row.tagId >= 0)}
           buttonSize={SizeVariant.small}
           onClick={() => {
-            mixpanel.track("Delete Tag", {
+            track("Delete Tag", {
               tagId: row.tagId,
               tagName: row.name,
               tagStyle: row.style,
@@ -98,7 +98,7 @@ export default function tagsCellRenderer(
           state={{ background: location }}
           to={`/update-tag/${row.tagId}`}
           onClick={() => {
-            mixpanel.track("Navigate to Update Tag", {
+            track("Navigate to Update Tag", {
               tagId: row.tagId,
               tagName: row.name,
               tagStyle: row.style,

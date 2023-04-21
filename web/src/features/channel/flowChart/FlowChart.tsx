@@ -2,12 +2,12 @@
 import { useD3 } from "features/charts/useD3";
 import { useEffect } from "react";
 import { Selection } from "d3";
-import mixpanel from "mixpanel-browser";
 import FlowChartCanvas from "features/charts/flowChartCanvas";
 import { FlowData } from "features/channel/channelTypes";
 import { useAppSelector } from "store/hooks";
 import { selectFlowKeys } from "../channelSlice";
 import { useLocation, useNavigate } from "react-router-dom";
+import { userEvents } from "utils/userEvents";
 
 type FlowChart = {
   data: Array<FlowData>;
@@ -19,10 +19,11 @@ function FlowChart({ data }: FlowChart) {
   const flowKey = useAppSelector(selectFlowKeys);
   const navigate = useNavigate();
   const location = useLocation();
+  const { track } = userEvents();
 
   function handleNodeClick(channelId: number) {
     const state = location?.state?.background || location || {};
-    mixpanel.track("FlowChart Navigation", { channel_id: channelId, background: state?.pathname });
+    track("FlowChart Navigation", { channel_id: channelId, background: state?.pathname });
     navigate(`/analyse/inspect/${channelId}`, { state: { background: state } });
   }
 

@@ -5,7 +5,6 @@ import {
   Filter20Regular as FilterIcon,
   TableMultipleRegular as ViewsIcon,
 } from "@fluentui/react-icons";
-import mixpanel from "mixpanel-browser";
 import Sidebar from "features/sidebar/Sidebar";
 import ViewsPopover from "./ViewSection";
 import ColumnsSection from "features/sidebar/sections/columns/ColumnsSection";
@@ -18,6 +17,7 @@ import GroupBySection from "features/sidebar/sections/group/GroupBySection";
 import SortSection, { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import useTranslations from "services/i18n/useTranslations";
 import { AndClause, deserialiseQuery, OrClause } from "features/sidebar/sections/filter/filter";
+import { userEvents } from "utils/userEvents";
 
 type ViewSidebarProps<T> = {
   expanded: boolean;
@@ -35,6 +35,7 @@ type ViewSidebarProps<T> = {
 
 export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
   const { t } = useTranslations();
+  const { track } = userEvents();
   // General logic for toggling the sidebar sections
   const initialSectionState = {
     views: true,
@@ -48,7 +49,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
 
   const sidebarSectionHandler = (section: keyof typeof initialSectionState) => {
     return () => {
-      mixpanel.track(`Toggle Sidebar Section`, {
+      track(`Toggle Sidebar Section`, {
         section: section,
         expanded: !activeSidebarSections[section],
       });

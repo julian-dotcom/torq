@@ -11,13 +11,13 @@ import { WorkflowCanvases } from "components/workflow/canvas/WorkflowCanvasStage
 import { StageSelector } from "components/workflow/stages/WorkflowStageSelector";
 import WorkflowControls from "./WorkflowControls";
 import { Status } from "constants/backend";
-import mixpanel from "mixpanel-browser";
 import { WorkflowContext } from "components/workflow/WorkflowContext";
 import Note, { NoteType } from "features/note/Note";
+import { userEvents } from "utils/userEvents";
 
 function WorkflowPage() {
   const { t } = useTranslations();
-
+  const { track } = userEvents();
   // Fetch the workflow data
   const { workflowId, version } = useParams();
   const { workflow, workflowVersion, stageNumbers } = useWorkflowData(workflowId, version);
@@ -26,7 +26,7 @@ function WorkflowPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
 
   function selectStage(stage: number) {
-    mixpanel.track("Workflow Select Stage", {
+    track("Workflow Select Stage", {
       workflowId: workflowId,
       workflowVersion: version,
       workflowStage: stage,
@@ -37,7 +37,7 @@ function WorkflowPage() {
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
   function handleWorkflowNameChange(name: string) {
-    mixpanel.track("Workflow Update Name", {
+    track("Workflow Update Name", {
       workflowId: workflow?.workflowId,
       workflowVersionId: workflowVersion?.workflowVersionId,
       workflowName: workflow?.name,

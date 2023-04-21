@@ -22,11 +22,11 @@ import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
 import { Select, TextArea } from "components/forms/forms";
 import { InputSizeVariant } from "components/forms/input/variants";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 import { FormErrors, mergeServerError, ServerErrorType } from "components/errors/errors";
 import ErrorSummary from "components/errors/ErrorSummary";
 import { useConnectPeerMutation } from "./peersApi";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "../network/networkSlice";
 import clone from "clone";
 
@@ -54,6 +54,7 @@ function isOption(result: unknown): result is SelectOptions & { value: number } 
 
 function ConnectPeerModal() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
 
   const [nodeConfigurationOptions, setNodeConfigurationOptions] = useState<Array<SelectOptions>>();
@@ -114,7 +115,7 @@ function ConnectPeerModal() {
 
     setStepIndex(1);
     setResultState(ProgressStepState.processing);
-    mixpanel.track("Connect Peer", {
+    track("Connect Peer", {
       torqNodeId: selectedNodeId,
     });
     connectPeer({

@@ -7,7 +7,6 @@ import {
   TableControlsTabsGroup,
 } from "../templates/tablePageTemplate/TablePageTemplate";
 import Button, { ButtonPosition, ColorVariant, SizeVariant } from "components/buttons/Button";
-import mixpanel from "mixpanel-browser";
 import { useNavigate } from "react-router-dom";
 import * as Routes from "constants/routes";
 import { NEW_ADDRESS, NEW_INVOICE, NEW_PAYMENT } from "constants/routes";
@@ -37,10 +36,11 @@ import { nodeAddress, nodeStatus, nodeWalletBalances } from "apiTypes";
 import { ChannelPending } from "../channelsPending/channelsPendingTypes";
 import classNames from "classnames";
 import React, { useEffect, useState } from "react";
-import ToastContext from "../toast/context";
-import { copyToClipboard } from "../../utils/copyToClipboard";
-import { toastCategory } from "../toast/Toasts";
-import Modal from "../modal/Modal";
+import ToastContext from "features/toast/context";
+import { copyToClipboard } from "utils/copyToClipboard";
+import { toastCategory } from "features/toast/Toasts";
+import Modal from "features/modal/Modal";
+import { userEvents } from "utils/userEvents";
 
 interface nodeSummary {
   nodeId: number;
@@ -91,6 +91,7 @@ function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSumm
 }
 function DashboardPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const toastRef = React.useContext(ToastContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,7 +130,7 @@ function DashboardPage() {
   };
 
   const handleConfirmationModalClose = () => {
-    mixpanel.track("No Local Node", {
+    track("No Local Node", {
       source: location?.pathname,
       "Go to settings": false,
     });
@@ -138,7 +139,7 @@ function DashboardPage() {
 
   const handleModalSettingsClick = () => {
     setShowNodeSetupModal(false);
-    mixpanel.track("No Local Node", {
+    track("No Local Node", {
       source: location?.pathname,
       "Go to settings": true,
     });
@@ -230,7 +231,7 @@ function DashboardPage() {
             hideMobileText={true}
             icon={<ChannelsIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to Open Channel");
+              track("Navigate to Open Channel");
               navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
             }}
           >
@@ -241,7 +242,7 @@ function DashboardPage() {
             hideMobileText={true}
             icon={<TransactionIcon />}
             onClick={() => {
-              mixpanel.track("Navigate to New Payment");
+              track("Navigate to New Payment");
               navigate(NEW_PAYMENT, { state: { background: location } });
             }}
           >
@@ -253,7 +254,7 @@ function DashboardPage() {
             icon={<InvoiceIcon />}
             onClick={() => {
               navigate(NEW_INVOICE, { state: { background: location } });
-              mixpanel.track("Navigate to New Invoice");
+              track("Navigate to New Invoice");
             }}
           >
             {t.header.newInvoice}
@@ -265,7 +266,7 @@ function DashboardPage() {
             hideMobileText={true}
             onClick={() => {
               navigate(NEW_ADDRESS, { state: { background: location } });
-              mixpanel.track("Navigate to New OnChain Address");
+              track("Navigate to New OnChain Address");
             }}
           >
             {t.newAddress}

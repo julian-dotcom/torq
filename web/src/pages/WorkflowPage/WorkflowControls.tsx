@@ -12,7 +12,7 @@ import {
 import Button, { ColorVariant } from "components/buttons/Button";
 import { useUpdateWorkflowMutation } from "./workflowApi";
 import { Status } from "constants/backend";
-import mixpanel from "mixpanel-browser";
+import { userEvents } from "utils/userEvents";
 
 type WorkflowControlsProps = {
   sidebarExpanded: boolean;
@@ -23,7 +23,7 @@ type WorkflowControlsProps = {
 
 export default function WorkflowControls(props: WorkflowControlsProps) {
   const { t } = useTranslations();
-
+  const { track } = userEvents();
   const [updateWorkflow] = useUpdateWorkflowMutation();
 
   return (
@@ -35,7 +35,7 @@ export default function WorkflowControls(props: WorkflowControlsProps) {
             hideMobileText={true}
             icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
             onClick={() => {
-              mixpanel.track("Workflow Toggle Status", {
+              track("Workflow Toggle Status", {
                 workflowStatus: props.status === Status.Active ? "Inactive" : "Active",
                 workflowId: props.workflowId,
               });
@@ -60,7 +60,7 @@ export default function WorkflowControls(props: WorkflowControlsProps) {
           id={"tableControlsButton"}
           icon={<NodesIcon />}
           onClick={() => {
-            mixpanel.track("Workflow Toggle Sidebar");
+            track("Workflow Toggle Sidebar");
             props.setSidebarExpanded(!props.sidebarExpanded);
           }}
         >
