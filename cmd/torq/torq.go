@@ -373,7 +373,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 			} else {
 				log.Info().Msg("Node specified in config is present, updating Macaroon and TLS files")
 				err = settings.SetNodeConnectionDetailsByConnectionDetails(
-					db, nodeId, core.Active, core.LND, grpcAddress, tlsFile, macaroonFile)
+					db, nodeId, core.Active, core.LND, grpcAddress, tlsFile, macaroonFile, nil)
 				if err != nil {
 					log.Error().Err(err).Msg("Problem updating node files")
 					cache.CancelCoreService(services_helpers.RootService)
@@ -440,7 +440,7 @@ func migrateAndProcessArguments(db *sqlx.DB, c *cli.Context) {
 			} else {
 				log.Info().Msg("Node specified in config is present, updating Certificate and Key files")
 				err = settings.SetNodeConnectionDetailsByConnectionDetails(
-					db, nodeId, core.Active, core.CLN, grpcAddress, certificate, key)
+					db, nodeId, core.Active, core.CLN, grpcAddress, certificate, key, caCertificate)
 				if err != nil {
 					log.Error().Err(err).Msg("Problem updating node files")
 					cache.CancelCoreService(services_helpers.RootService)

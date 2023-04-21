@@ -533,7 +533,8 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	implementation core.Implementation,
 	grpcAddress string,
 	certificate []byte,
-	authentication []byte) error {
+	authentication []byte,
+	caCertificate []byte) error {
 
 	ncd, err := getNodeConnectionDetails(db, nodeId)
 	if err != nil {
@@ -549,6 +550,7 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	case core.CLN:
 		ncd.CertificateDataBytes = certificate
 		ncd.KeyDataBytes = authentication
+		ncd.CaCertificateDataBytes = caCertificate
 	}
 	ncd.GRPCAddress = &grpcAddress
 	ncd.Status = status
