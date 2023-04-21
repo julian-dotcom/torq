@@ -142,6 +142,7 @@ function NodeConnector(props: NodeConnectorProps) {
 
   return (
     <div
+      data-intercom-target="node-connector"
       className={classNames(styles.nodeConnector)}
       draggable="true"
       onDrag={handleDrag}

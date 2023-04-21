@@ -83,10 +83,11 @@ export default function TagsModal() {
   return (
     <PopoutPageTemplate title={t.tags} show={true} icon={<TagHeaderIcon />} onClose={closeAndReset}>
       <div className={styles.activeColumns}>
-        <Form onSubmit={handleSubmit} name={"tagForm"}>
+        <Form onSubmit={handleSubmit} name={"tagForm"} data-intercom-target={"tag-form"}>
           <div className={styles.updateChannelTableDouble}>
             <div className={styles.input}>
               <Input
+                data-intercom-target={"tag-name"}
                 autoFocus={true}
                 disabled={isLocked}
                 label={"Name"}
@@ -98,6 +99,7 @@ export default function TagsModal() {
           </div>
           <InputRow>
             <Select
+              data-intercom-target={"tag-color"}
               key={"input-row-item-a"}
               label={t.tagsModal.color}
               name={inputNames.style}
@@ -111,6 +113,7 @@ export default function TagsModal() {
               }}
             />
             <Select
+              data-intercom-target={"tag-category"}
               key={"input-row-item-b"}
               isDisabled={isLocked}
               placeholder={t.noCategory}
@@ -129,7 +132,12 @@ export default function TagsModal() {
           <ButtonWrapper
             className={styles.customButtonWrapperStyles}
             rightChildren={
-              <Button disabled={isLocked} type={"submit"} buttonColor={ColorVariant.primary}>
+              <Button
+                disabled={isLocked}
+                type={"submit"}
+                buttonColor={ColorVariant.primary}
+                data-intercom-target={"tag-form-submit"}
+              >
                 {tag.tagId ? t.tagsModal.update : t.tagsModal.create}
               </Button>
             }

@@ -23,6 +23,7 @@ export type TableProps<T> = {
   cellRenderer: CellRendererFunction<T>;
   selectable?: boolean;
   selectedRowIds?: Array<number>;
+  intercomTarget?: string;
 };
 
 export type CellRendererFunction<T> = (

@@ -11,7 +11,7 @@
     "TableControls Sidebar"
     "Table Sidebar"
     "Pagination Sidebar";
-  grid-column-gap: 32px;
+  column-gap: 32px;
   grid-row-gap: 0;
   @media only screen and (max-width: 900px) {
     padding-right: 12px;
@@ -29,7 +29,7 @@
 }
 @media only screen and (max-width: 900px) {
   .contentWrapper {
-    grid-column-gap: 0;
+    column-gap: 0;
   }
 }
 .leftWrapper {
@@ -84,7 +84,7 @@
   align-items: end;
   grid-auto-columns: min-content;
   grid-template-columns: auto;
-  grid-column-gap: 16px;
+  column-gap: 4px;
   grid-area: TableControls;
 }
 .tableExpander {
@@ -105,19 +105,17 @@
 .tableControlsButtonGroup {
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: auto min-content;
-  grid-column-gap: 4px;
+  column-gap: 4px;
+  grid-auto-columns: min-content;
 }
 .tableControlsButtonWrapper {
   height: 40px;
-  width: 40px;
   display: grid;
   align-items: center;
   justify-items: center;
 }
 .tableControlsButtonIcon {
   height: 40px;
-  width: 40px;
   display: grid;
   align-items: center;
   justify-items: center;
@@ -137,6 +135,6 @@
 .tableControlsTabsGroup {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: min-content;
-  grid-column-gap: 8px;
+  //grid-auto-columns: min-content;
+  column-gap: 8px;
 }

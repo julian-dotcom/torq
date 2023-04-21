@@ -29,7 +29,7 @@ function Table<T>(props: TableProps<T>) {
     rowGridStyle(numRows) +
     "}";
   return (
-    <div className={styles.tableWrapper}>
+    <div className={styles.tableWrapper} data-intercom-target={props.intercomTarget}>
       <style>{customStyle}</style>
 
       <div className={tableClass}>

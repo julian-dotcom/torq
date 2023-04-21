@@ -10,6 +10,7 @@ function MenuItem(props: {
   routeTo: string;
   withBackground?: boolean;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => void;
+  intercomTarget?: string;
 }) {
   const resolvedPath = useResolvedPath(props.routeTo);
   const hasMatch = useMatch({ path: resolvedPath.pathname, end: true });
@@ -19,7 +20,7 @@ function MenuItem(props: {
   const resolvedClassNames = classNames(styles.title, { [styles.selected]: hasMatch });
 
   return (
-    <div className={classNames(styles.item)}>
+    <div className={classNames(styles.item)} data-intercom-target={props.intercomTarget}>
       <div className={classNames(styles.contentWrapper)}>
         <Link
           onClick={props.onClick}

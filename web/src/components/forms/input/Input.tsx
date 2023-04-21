@@ -23,6 +23,7 @@ export type FormattedInputProps = {
   errorText?: string;
   warningText?: string;
   helpText?: string;
+  intercomTarget?: string;
 } & NumberFormatProps;
 
 function Input({
@@ -34,6 +35,7 @@ function Input({
   errorText,
   warningText,
   helpText,
+  intercomTarget,
   ...inputProps
 }: InputProps | FormattedInputProps) {
   const inputId = React.useId();
@@ -69,7 +71,10 @@ function Input({
   }
 
   return (
-    <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
+    <div
+      className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}
+      data-intercom-target={intercomTarget}
+    >
       {label && (
         <div className={labelStyles.labelWrapper}>
           <label htmlFor={inputProps.id || inputId} className={styles.label} title={"Something"}>

@@ -6,7 +6,6 @@ import {
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
@@ -95,6 +94,7 @@ function ClosedChannelsPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
+          data-intercom-target="download-table"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -111,6 +111,7 @@ function ClosedChannelsPage() {
           }}
         />
         <Button
+          data-intercom-target="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -118,14 +119,17 @@ function ClosedChannelsPage() {
             channelsResponse.refetch();
           }}
         />
-        <TableControlsButton
-          onClickHandler={() => {
+        <Button
+          data-intercom-target="table-settings"
+          onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels Closed" });
             setSidebarExpanded(!sidebarExpanded);
           }}
-          icon={OptionsIcon}
+          icon={<OptionsIcon />}
           id={"tableControlsButton"}
-        />
+        >
+          {t.Options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -164,6 +168,7 @@ function ClosedChannelsPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"closed-channels-table"}
         cellRenderer={channelsClosedCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}

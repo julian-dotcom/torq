@@ -99,7 +99,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} data-intercom-target={"channel-filter-content"}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
@@ -120,6 +120,7 @@ export function ChannelFilterNode({ ...wrapperProps }: FilterChannelsNodeProps) 
           />
         )}
         <Button
+          data-intercom-target={"channel-filter-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

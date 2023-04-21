@@ -187,6 +187,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
         ref={nodeRef}
       >
         <div
+          data-intercom-target="workflow-node-header"
           className={classNames(styles.workflowNodeHeader, { [styles.headerCollapsed]: collapsed })}
           draggable="true"
           onDrag={handleDrag}
@@ -202,11 +203,16 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
             isVisible={nameInputVisible}
             setVisible={setNameInputVisible}
           />
-          <div className={classNames(styles.icon, styles.collapseIcon)} onClick={handleCollapse}>
+          <div
+            className={classNames(styles.icon, styles.collapseIcon)}
+            onClick={handleCollapse}
+            data-intercom-target={"workflow-node-expand-toggle"}
+          >
             {collapsed ? <ExpandIcon /> : <CollapseIcon />}
           </div>
           {!props.noOptions && (
             <PopoverButton
+              intercomTarget="workflow-node-options"
               button={
                 <div className={classNames(styles.icon, styles.optionsIcon)}>
                   <OptionsIcon />

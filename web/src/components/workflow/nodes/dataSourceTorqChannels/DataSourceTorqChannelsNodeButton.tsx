@@ -9,6 +9,7 @@ export function DataSourceTorqChannelsNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"data-source-torq-channels-node-button"}
       colorVariant={NodeColorVariant.accent2}
       nodeType={WorkflowNodeType.DataSourceTorqChannels}
       icon={<DataSourceTorqChannelsIcon />}

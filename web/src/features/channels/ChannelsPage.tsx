@@ -7,7 +7,6 @@ import {
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
@@ -152,8 +151,8 @@ function ChannelsPage() {
       <TableControlsButtonGroup>
         <Button
           buttonColor={ColorVariant.primary}
+          data-intercom-target="download-csv"
           title={t.download}
-          hideMobileText={true}
           icon={<DownloadCsvIcon />}
           onClick={() => {
             track("Downloads Table as CSV", {
@@ -168,20 +167,25 @@ function ChannelsPage() {
         />
         <Button
           buttonColor={ColorVariant.primary}
+          data-intercom-target="refresh-table"
           icon={<RefreshIcon />}
           onClick={() => {
             track("Refresh Table", { page: "Channels" });
             channelsResponse.refetch();
           }}
         />
-        <TableControlsButton
-          onClickHandler={() => {
+        <Button
+          data-intercom-target="table-settings"
+          onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels" });
             setSidebarExpanded(!sidebarExpanded);
           }}
-          icon={OptionsIcon}
+          hideMobileText={true}
+          icon={<OptionsIcon />}
           id={"tableControlsButton"}
-        />
+        >
+          {t.Options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -220,6 +224,7 @@ function ChannelsPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"open-channels-table"}
         cellRenderer={channelsCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}

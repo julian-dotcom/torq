@@ -1,11 +1,7 @@
 import DashboardPageTemplate from "features/templates/dashboardPageTemplate/DashboardPageTemplate";
 import useTranslations from "services/i18n/useTranslations";
 import styles from "features/dashboard/dashboard-page.module.scss";
-import {
-  TableControlsButtonGroup,
-  TableControlSection,
-  TableControlsTabsGroup,
-} from "../templates/tablePageTemplate/TablePageTemplate";
+import { TableControlsButtonGroup, TableControlSection } from "../templates/tablePageTemplate/TablePageTemplate";
 import Button, { ButtonPosition, ColorVariant, SizeVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
 import * as Routes from "constants/routes";
@@ -225,53 +221,55 @@ function DashboardPage() {
   const controls = (
     <TableControlSection>
       <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<ChannelsIcon />}
-            onClick={() => {
-              track("Navigate to Open Channel");
-              navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
-            }}
-          >
-            {t.openChannel}
-          </Button>
-          <Button
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<TransactionIcon />}
-            onClick={() => {
-              track("Navigate to New Payment");
-              navigate(NEW_PAYMENT, { state: { background: location } });
-            }}
-          >
-            {t.newPayment}
-          </Button>
-          <Button
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<InvoiceIcon />}
-            onClick={() => {
-              navigate(NEW_INVOICE, { state: { background: location } });
-              track("Navigate to New Invoice");
-            }}
-          >
-            {t.header.newInvoice}
-          </Button>
+        <Button
+          buttonColor={ColorVariant.success}
+          data-intercom-target="open-channel-button-dashboard"
+          hideMobileText={true}
+          icon={<ChannelsIcon />}
+          onClick={() => {
+            track("Navigate to Open Channel");
+            navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
+          }}
+        >
+          {t.openChannel}
+        </Button>
+        <Button
+          buttonColor={ColorVariant.success}
+          data-intercom-target="new-payment-button-dashboard"
+          hideMobileText={true}
+          icon={<TransactionIcon />}
+          onClick={() => {
+            track("Navigate to New Payment");
+            navigate(NEW_PAYMENT, { state: { background: location } });
+          }}
+        >
+          {t.newPayment}
+        </Button>
+        <Button
+          buttonColor={ColorVariant.success}
+          data-intercom-target="new-invoice-button-dashboard"
+          hideMobileText={true}
+          icon={<InvoiceIcon />}
+          onClick={() => {
+            navigate(NEW_INVOICE, { state: { background: location } });
+            track("Navigate to New Invoice");
+          }}
+        >
+          {t.header.newInvoice}
+        </Button>
 
-          <Button
-            buttonColor={ColorVariant.success}
-            icon={<NewOnChainAddressIcon />}
-            hideMobileText={true}
-            onClick={() => {
-              navigate(NEW_ADDRESS, { state: { background: location } });
-              track("Navigate to New OnChain Address");
-            }}
-          >
-            {t.newAddress}
-          </Button>
-        </TableControlsTabsGroup>
+        <Button
+          buttonColor={ColorVariant.success}
+          data-intercom-target="new-onchain-address-button-dashboard"
+          icon={<NewOnChainAddressIcon />}
+          hideMobileText={true}
+          onClick={() => {
+            navigate(NEW_ADDRESS, { state: { background: location } });
+            track("Navigate to New OnChain Address");
+          }}
+        >
+          {t.newAddress}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -280,7 +278,7 @@ function DashboardPage() {
     <DashboardPageTemplate title={t.dashboard} welcomeMessage={t.dashboardPage.welcome}>
       {controls}
       <div className={styles.dashboardWrapper}>
-        <div className={styles.summaryCardContainer}>
+        <div className={styles.summaryCardContainer} data-intercom-target={"dashboard-summary-container"}>
           <SummaryCard
             heading={t.dashboardPage.totalBalance}
             value={totalsSummary?.totalBalance}
@@ -309,6 +307,7 @@ function DashboardPage() {
               <div className={styles.summaryNodeContainer}>
                 <SummaryCard
                   heading={t.dashboardPage.totalOnChainBalance}
+                  intercomTarget={"dashboard-onchain-balance-details"}
                   value={node.onChainBalance}
                   valueLabel={t.dashboardPage.btc}
                   details={
@@ -332,16 +331,19 @@ function DashboardPage() {
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.totalOffChainBalance}
+                  intercomTarget={"dashboard-offchain-balance-details"}
                   value={node.localBalance}
                   valueLabel={t.dashboardPage.btc}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.totalBalance}
+                  intercomTarget={"dashboard-total-balance-details"}
                   value={node.totalBalance}
                   valueLabel={t.dashboardPage.btc}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.channels}
+                  intercomTarget={"dashboard-channel-count-details"}
                   value={node.channels}
                   valueLabel={""}
                   details={
@@ -363,11 +365,13 @@ function DashboardPage() {
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.capacity}
+                  intercomTarget={"dashboard-capacity-details"}
                   value={node.capacity}
                   valueLabel={t.dashboardPage.btc}
                 ></SummaryCard>
                 <SummaryCard
                   heading={t.dashboardPage.publicKey}
+                  intercomTarget={"dashboard-public-key-details"}
                   value={node.channels}
                   valueLabel={""}
                   details={

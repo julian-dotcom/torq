@@ -8,14 +8,20 @@ import Navigation from "features/navigation/Navigation";
 import TopNavigation from "features/navigation/TopNavigation";
 import classNames from "classnames";
 import mixpanel from "mixpanel-browser";
-import { useGetSettingsQuery } from "apiSlice";
+import { useGetNodeConfigurationsQuery, useGetServicesQuery, useGetSettingsQuery } from "apiSlice";
 import { Network, selectActiveNetwork } from "features/network/networkSlice";
+import { useIntercom } from "react-use-intercom";
+import { userEvents } from "utils/userEvents";
 
 function DefaultLayout() {
+  const { trackEvent } = useIntercom();
+  const { track } = userEvents();
   const hidden = useAppSelector(selectHidden);
   const isDashboardPage = useMatch("/");
   const { data: settingsData } = useGetSettingsQuery();
   const activeNetwork = useAppSelector(selectActiveNetwork);
+  const { data: nodeConfigurations } = useGetNodeConfigurationsQuery();
+  const { data: servicesData } = useGetServicesQuery();
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && process.env.REACT_APP_E2E_TEST !== "true") {
@@ -49,6 +55,26 @@ function DefaultLayout() {
       });
     }
   }, [activeNetwork]);
+
+  useEffect(() => {
+    if (nodeConfigurations?.length) {
+      mixpanel.register({
+        nodeCount: nodeConfigurations?.length || 0,
+      });
+      if (nodeConfigurations?.length === 0) {
+        trackEvent("No Node Configured");
+      } else {
+        console.log("Node Configured");
+        trackEvent("Node Configured");
+        // check if all data is synced
+        const allDataSynced = (nodeConfigurations || []).every((node) => node.status === 1);
+        if (allDataSynced) {
+          console.log("Node synced");
+          track("All Data Synced", { nodeCount: nodeConfigurations?.length || 0 });
+        }
+      }
+    }
+  }, [nodeConfigurations?.length, servicesData?.lndServices?.length]);
 
   return (
     <div

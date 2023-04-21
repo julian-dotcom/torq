@@ -140,6 +140,7 @@ function Socket(props: SocketProps) {
 
   return (
     <div
+      data-intercom-target="socket-input"
       className={classNames(styles.socketInputWrapper, inputColorClass, { [styles.dragOver]: isDragover })}
       onDragOver={handleDragEnter}
       onDragLeave={handleDragLeave}

@@ -32,7 +32,7 @@ export function StageSelector({
   editingDisabled,
 }: StageSelectorProps) {
   return (
-    <div className={styles.stagesWrapper}>
+    <div className={styles.stagesWrapper} data-intercom-target={"workflow-stages-selector"}>
       {stageNumbers.map((stage, index) => {
         return (
           <SelectStageButton
@@ -103,6 +103,7 @@ function SelectStageButton(props: SelectStageButtonProps) {
 
   return (
     <button
+      data-intercom-target={`workflow-stage-select-button-${buttonIndex}`}
       className={classNames(styles.stageContainer, { [styles.selected]: stage === selectedStage })}
       onClick={() => setSelectedStage(stage)}
     >
@@ -164,6 +165,7 @@ function AddStageButton(props: AddStageButtonProps) {
 
   return (
     <button
+      data-intercom-target={"workflow-add-stage-button"}
       className={classNames(
         styles.stageContainer,
         props.editingDisabled ? styles.disabledStage : styles.addStageButton

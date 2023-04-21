@@ -9,6 +9,7 @@ export function CronTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"cron-trigger-node-button"}
       colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.CronTrigger}
       icon={<CronTriggerIcon />}

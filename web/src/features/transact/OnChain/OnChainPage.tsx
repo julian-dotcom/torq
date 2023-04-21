@@ -3,13 +3,12 @@ import { useGetOnChainTxQuery } from "./onChainApi";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Options20Regular as OptionsIcon,
-  LinkEdit20Regular as NewOnChainAddressIcon,
+  Add20Regular as NewOnChainAddressIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsButton,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
@@ -102,6 +101,7 @@ function OnChainPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
+            data-interom-target="new-address"
             buttonColor={ColorVariant.success}
             icon={<NewOnChainAddressIcon />}
             hideMobileText={true}
@@ -113,8 +113,11 @@ function OnChainPage() {
             {t.newAddress}
           </Button>
         </TableControlsTabsGroup>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup>
         <TableControlsButtonGroup>
           <Button
+            data-interom-target="refresh-table"
             buttonColor={ColorVariant.primary}
             icon={<RefreshIcon />}
             onClick={() => {
@@ -122,14 +125,18 @@ function OnChainPage() {
               onChainTxResponse.refetch();
             }}
           />
-          <TableControlsButton
-            onClickHandler={() => {
+          <Button
+            data-interom-target="table-settings"
+            onClick={() => {
               setSidebarExpanded(!sidebarExpanded);
               track("Toggle Table Sidebar", { page: "OnChain" });
             }}
-            icon={OptionsIcon}
+            hideMobileText={true}
+            icon={<OptionsIcon />}
             id={"tableControlsButton"}
-          />
+          >
+            {t.Options}
+          </Button>
         </TableControlsButtonGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
@@ -169,6 +176,7 @@ function OnChainPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"on-chain-table"}
         cellRenderer={DefaultCellRenderer}
         data={onChainTxResponse?.data?.data || []}
         activeColumns={viewResponse.view.columns}

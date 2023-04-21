@@ -9,6 +9,7 @@ export function RebalanceRunNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"rebalance-run-node-button"}
       colorVariant={NodeColorVariant.accent1}
       nodeType={WorkflowNodeType.RebalanceRun}
       icon={<RebalanceRunIcon />}

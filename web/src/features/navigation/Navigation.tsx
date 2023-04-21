@@ -67,16 +67,20 @@ function Navigation() {
 
         <NetworkSelector />
 
-        <div className={styles.collapseButton} id={"collapse-navigation"} onClick={toggleNavHandler}>
+        <div
+          className={styles.collapseButton}
+          id={"collapse-navigation"}
+          onClick={toggleNavHandler}
+          data-intercom-target="collapse-nav-button"
+        >
           <CollapseIcon />
         </div>
       </div>
 
       <div className={styles.mainNavWrapper}>
-        {/*<MenuItem text={"Dashboard"} icon={<DashboardIcon />} routeTo={"/sadfa"} />*/}
-
         <NavCategory text={t.dashboard} collapsed={false}>
           <MenuItem
+            intercomTarget="dashboard-nav-button"
             text={t.dashboard}
             icon={<DashboardIcon />}
             routeTo={"/"}
@@ -87,6 +91,7 @@ function Navigation() {
         </NavCategory>
         <NavCategory text={t.analyse} collapsed={false}>
           <MenuItem
+            intercomTarget="forwards-summary-nav-button"
             text={t.summary}
             icon={<SummaryIcon />}
             routeTo={`/${routes.ANALYSE}/${routes.FORWARDS_SUMMARY}`}
@@ -96,6 +101,7 @@ function Navigation() {
           />
 
           <MenuItem
+            intercomTarget="forwards-nav-button"
             text={t.forwards}
             icon={<ForwardsIcon />}
             routeTo={"/analyse/forwards"}
@@ -107,6 +113,7 @@ function Navigation() {
 
         <NavCategory text={t.channels} collapsed={false}>
           <MenuItem
+            intercomTarget="open-channels-nav-button"
             text={t.openChannels}
             icon={<ChannelsIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.OPEN_CHANNELS}`}
@@ -115,6 +122,7 @@ function Navigation() {
             }}
           />
           <MenuItem
+            intercomTarget="pending-channels-nav-button"
             text={t.pendingChannels}
             icon={<ChannelsPendingIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.PENDING_CHANNELS}`}
@@ -123,6 +131,7 @@ function Navigation() {
             }}
           />
           <MenuItem
+            intercomTarget="closed-channels-nav-button"
             text={t.closedChannels}
             icon={<ChannelsClosedIcon />}
             routeTo={`/${routes.CHANNELS}/${routes.CLOSED_CHANNELS}`}
@@ -134,6 +143,7 @@ function Navigation() {
 
         <NavCategory text={t.manage} collapsed={false}>
           <MenuItem
+            intercomTarget="automation-nav-button"
             text={t.automation}
             icon={<WorkflowsIcon />}
             routeTo={"/manage/workflows"}
@@ -142,6 +152,7 @@ function Navigation() {
             }}
           />
           <MenuItem
+            intercomTarget="tags-nav-button"
             text={t.tags}
             icon={<TagsIcon />}
             routeTo={"/manage/tags"}
@@ -150,6 +161,7 @@ function Navigation() {
             }}
           />
           <MenuItem
+            intercomTarget="peers-nav-button"
             text={t.peers}
             icon={<PeersIcon />}
             routeTo={`/manage/${routes.PEERS}`}
@@ -159,6 +171,7 @@ function Navigation() {
           />
 
           <MenuItem
+            intercomTarget="messages-nav-button"
             text={t.MessageVerification}
             icon={<MessageVerificationIcon />}
             routeTo={routes.MESSAGE_VERIFICATION}
@@ -171,6 +184,7 @@ function Navigation() {
 
         <NavCategory text={t.transactions} collapsed={false}>
           <MenuItem
+            intercomTarget="payments-nav-button"
             text={t.payments}
             icon={<PaymentsIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.PAYMENTS}`}
@@ -179,6 +193,7 @@ function Navigation() {
             }}
           />
           <MenuItem
+            intercomTarget="invoices-nav-button"
             text={t.invoices}
             icon={<InvoicesIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.INVOICES}`}
@@ -187,6 +202,7 @@ function Navigation() {
             }}
           />
           <MenuItem
+            intercomTarget="on-chain-nav-button"
             text={t.onChain}
             icon={<OnChainTransactionIcon />}
             routeTo={`/${routes.TRANSACTIONS}/${routes.ONCHAIN}`}
@@ -199,6 +215,7 @@ function Navigation() {
 
       <div className={classNames(styles.bottomWrapper)}>
         <MenuButtonItem
+          intercomTarget="intercom-launcher"
           text={t.helpAndBugsMenuItem}
           icon={<HelpIcon />}
           id={"intercom-launcher"}
@@ -207,6 +224,7 @@ function Navigation() {
           }}
         />
         <MenuItem
+          intercomTarget="settings-nav-button"
           text={t.settings}
           icon={<SettingsIcon />}
           routeTo={"/settings"}
@@ -216,6 +234,7 @@ function Navigation() {
         />
         {!autoLogin && (
           <MenuItem
+            intercomTarget="logout-nav-button"
             text={t.logout}
             icon={<LogoutIcon />}
             routeTo={"/logout"}

@@ -95,5 +95,12 @@ export default function TorqSelect(props: Props) {
       </components.DropdownIndicator>
     );
   };
-  return <Select components={{ DropdownIndicator }} styles={customStyles} {...props} />;
+  return (
+    <Select
+      components={{ DropdownIndicator }}
+      styles={customStyles}
+      {...props}
+      data-intercom-target={"view-sort-key"}
+    />
+  );
 }

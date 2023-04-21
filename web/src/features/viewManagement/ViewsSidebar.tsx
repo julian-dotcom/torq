@@ -65,6 +65,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
   return (
     <Sidebar title={"Options"} closeSidebarHandler={() => props.onExpandToggle()}>
       <SectionContainer
+        intercomTarget={"views-section"}
         title={t.views}
         icon={ViewsIcon}
         expanded={activeSidebarSections.views}
@@ -73,6 +74,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
         <ViewsPopover page={props.viewResponse.page} defaultView={props.defaultView} />
       </SectionContainer>
       <SectionContainer
+        intercomTarget={"columns-section"}
         title={t.columns}
         icon={ColumnsIcon}
         expanded={activeSidebarSections.columns}
@@ -86,6 +88,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
         />
       </SectionContainer>
       <SectionContainer
+        intercomTarget={"filter-section"}
         title={t.filter}
         icon={FilterIcon}
         expanded={activeSidebarSections.filter}
@@ -100,6 +103,7 @@ export default function ViewsSidebar<T>(props: ViewSidebarProps<T>) {
         />
       </SectionContainer>
       <SectionContainer
+        intercomTarget={"sort-section"}
         title={t.sort}
         icon={SortIcon}
         expanded={activeSidebarSections.sort}

@@ -55,7 +55,12 @@ function WorkflowPage() {
   return (
     <WorkflowContext.Provider value={{ workflowStatus: workflow?.status || Status.Inactive }}>
       <div className={styles.contentWrapper}>
-        <PageTitle breadcrumbs={breadcrumbs} title={workflow?.name || ""} onNameChange={handleWorkflowNameChange} />
+        <PageTitle
+          breadcrumbs={breadcrumbs}
+          title={workflow?.name || ""}
+          onNameChange={handleWorkflowNameChange}
+          intercomTarget={"workflow-page-title"}
+        />
         <WorkflowControls
           sidebarExpanded={sidebarExpanded}
           setSidebarExpanded={setSidebarExpanded}

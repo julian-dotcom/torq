@@ -1,5 +1,5 @@
 import {
-  MoneyHand20Regular as TransactionIcon,
+  Add20Regular as TransactionIcon,
   Options20Regular as OptionsIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
@@ -8,7 +8,6 @@ import { NEW_PAYMENT } from "constants/routes";
 import Button, { ColorVariant } from "components/buttons/Button";
 import Table from "features/table/Table";
 import TablePageTemplate, {
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlSection,
   TableControlsTabsGroup,
@@ -124,6 +123,7 @@ function PaymentsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
+            data-intercom-target="new-payment"
             buttonColor={ColorVariant.success}
             hideMobileText={true}
             icon={<TransactionIcon />}
@@ -135,24 +135,28 @@ function PaymentsPage() {
             {t.newPayment}
           </Button>
         </TableControlsTabsGroup>
-        <TableControlsButtonGroup>
-          <Button
-            buttonColor={ColorVariant.primary}
-            icon={<RefreshIcon />}
-            onClick={() => {
-              track("Refresh Table", { page: "Payments" });
-              paymentsResponse.refetch();
-            }}
-          />
-          <TableControlsButton
-            onClickHandler={() => {
-              setSidebarExpanded(!sidebarExpanded);
-              track("Toggle Table Sidebar", { page: "Payments" });
-            }}
-            icon={OptionsIcon}
-            id={"tableControlsButton"}
-          />
-        </TableControlsButtonGroup>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup>
+        <Button
+          data-intercom-target="refresh-table"
+          buttonColor={ColorVariant.primary}
+          icon={<RefreshIcon />}
+          onClick={() => {
+            track("Refresh Table", { page: "Payments" });
+            paymentsResponse.refetch();
+          }}
+        />
+        <Button
+          onClick={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            track("Toggle Table Sidebar", { page: "Payments" });
+          }}
+          icon={<OptionsIcon />}
+          hideMobileText={true}
+          id={"tableControlsButton"}
+        >
+          {t.Options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -191,6 +195,7 @@ function PaymentsPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"payments-table"}
         cellRenderer={DefaultCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}

@@ -138,9 +138,9 @@ function TimeIntervalSelect(props: { className?: string }) {
   );
 
   return (
-    <div className={classNames(dateRangeClass, props.className)}>
+    <div className={classNames(dateRangeClass, props.className)} data-intercom-target={"date-range-container"}>
       <Button buttonColor={ColorVariant.accent1} icon={<LeftIcon />} onClick={moveBackwardInTime} />
-      <Popover button={popOverButton} className={"no-padding right"}>
+      <Popover button={popOverButton} className={"no-padding"}>
         <div className="date-range-popover-content">
           <DateRangePicker
             renderStaticRangeLabel={renderCustomRangeLabel}

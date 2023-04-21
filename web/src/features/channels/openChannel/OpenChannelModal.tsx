@@ -174,6 +174,7 @@ function OpenChannelModal() {
           <div className={styles.openChannelTableRow}>
             <FormRow>
               <Select
+                intercomTarget={"open-channel-node-select"}
                 label={t.yourNode}
                 onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
                   // Check if newValue is of type SelectOptions
@@ -192,6 +193,7 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableSingle}>
                 <div className={styles.input}>
                   <TextArea
+                    intercomTarget={"open-channel-connection-string"}
                     label={t.ConnectionString}
                     helpText={t.NodeConnectionStringHelp}
                     sizeVariant={InputSizeVariant.normal}
@@ -218,6 +220,7 @@ function OpenChannelModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
+                data-intercom-target={"open-channel-connect-button"}
                 disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
                 onClick={() => {
                   setStepIndex(1);
@@ -232,7 +235,7 @@ function OpenChannelModal() {
           />
         </ProgressTabContainer>
         <ProgressTabContainer>
-          <div className={styles.activeColumns}>
+          <div className={styles.activeColumns} data-intercom-target={"open-channel-details"}>
             <div className={styles.openChannelTableRow}>
               <FormRow>
                 <div className={styles.openChannelTableSingle}>
@@ -272,6 +275,7 @@ function OpenChannelModal() {
               </FormRow>
             </div>
             <SectionContainer
+              intercomTarget={"open-channel-advanced-options"}
               title={t.AdvancedOptions}
               icon={AdvencedOption}
               expanded={expandAdvancedOptions}

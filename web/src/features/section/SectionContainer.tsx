@@ -15,11 +15,15 @@ type SectionContainerProps = {
   expanded?: boolean;
   disabled?: boolean;
   handleToggle?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  intercomTarget?: string;
 };
 
 export function SectionContainer(props: SectionContainerProps) {
   return (
-    <div className={classNames(styles.sectionContainer, { [styles.disabled]: props.disabled })}>
+    <div
+      className={classNames(styles.sectionContainer, { [styles.disabled]: props.disabled })}
+      data-intercom-target={props.intercomTarget}
+    >
       <div className={styles.sectionTitleContainer} onClick={props.handleToggle}>
         <div className={styles.sidebarIcon}>
           <props.icon />

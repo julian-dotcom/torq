@@ -101,6 +101,7 @@ export default function MessageVerificationModal() {
         <Form onSubmit={handleSubmit} name={"messageVerificationForm"} ref={formRef}>
           <RadioChips
             groupName={"action"}
+            intercomTarget={"message-verification-action"}
             options={[
               { label: "Sign Message", checked: currentAction === "sign", onChange: handleRadioChange, id: "sign" },
               {
@@ -113,6 +114,7 @@ export default function MessageVerificationModal() {
           />
 
           <Select
+            intercomTarget={"message-node-selection"}
             label={t.node}
             autoFocus={true}
             defaultValue={nodeConfigurationOptions[0]}
@@ -126,6 +128,7 @@ export default function MessageVerificationModal() {
           />
           <div className={classNames(styles.signMessageWrapper, { [styles.hidden]: currentAction !== "sign" })}>
             <TextArea
+              intercomTarget={"sign-message-textarea"}
               rows={6}
               label={t.message}
               onKeyDown={textAreaKeyboardSubmit}
@@ -135,6 +138,7 @@ export default function MessageVerificationModal() {
               errorText={emptyMessageSignField ? t.missingSignMessage : undefined}
             />
             <TextArea
+              intercomTarget={"sign-message-signature-textarea"}
               rows={3}
               label={t.signature}
               disabled={signMessageResponse?.data?.signature === undefined}
@@ -145,6 +149,7 @@ export default function MessageVerificationModal() {
 
           <div className={classNames(styles.verifyMessageWrapper, { [styles.hidden]: currentAction !== "verify" })}>
             <TextArea
+              intercomTarget={"verify-message-textarea"}
               rows={6}
               id={"message"}
               label={t.message}
@@ -155,6 +160,7 @@ export default function MessageVerificationModal() {
               onKeyDown={textAreaKeyboardSubmit}
             />
             <TextArea
+              intercomTarget={"verify-message-signature-textarea"}
               rows={3}
               id={"signature"}
               label={t.signature}
@@ -178,6 +184,7 @@ export default function MessageVerificationModal() {
           </div>
 
           <Button
+            data-intercom-target={"message-verification-submit-button"}
             type={"submit"}
             buttonColor={ColorVariant.primary}
             buttonPosition={ButtonPosition.fullWidth}

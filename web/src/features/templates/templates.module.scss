@@ -3,7 +3,7 @@
   flex-direction: row;
   justify-content: space-between;
   padding-top: 32px;
-  align-items: end;
+  align-items: flex-end;
   @media only screen and (max-width: 900px) {
     padding-top: 16px;
   }

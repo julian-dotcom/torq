@@ -9,6 +9,7 @@ export function AddTagNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"add-tag-node-button"}
       colorVariant={NodeColorVariant.accent3}
       nodeType={WorkflowNodeType.AddTag}
       icon={<TagHeaderIcon />}

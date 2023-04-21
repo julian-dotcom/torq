@@ -100,6 +100,7 @@ export type SelectProps = Props & {
   sizeVariant?: InputSizeVariant;
   warningText?: string;
   errorText?: string;
+  intercomTarget?: string;
 };
 
 export default function Select({
@@ -108,6 +109,7 @@ export default function Select({
   sizeVariant,
   warningText,
   errorText,
+  intercomTarget,
   ...selectProps
 }: SelectProps) {
   const DropdownIndicator = (props: DropdownIndicatorProps) => {
@@ -144,7 +146,10 @@ export default function Select({
   }
 
   return (
-    <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
+    <div
+      className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}
+      data-intercom-target={intercomTarget}
+    >
       {label && (
         <div className={styles.labelWrapper}>
           <label htmlFor={selectProps.id || inputId} className={styles.label}>

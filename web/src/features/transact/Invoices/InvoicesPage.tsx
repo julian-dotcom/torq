@@ -3,12 +3,11 @@ import { useGetInvoicesQuery } from "./invoiceApi";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Options20Regular as OptionsIcon,
-  Check20Regular as InvoiceIcon,
+  Add20Regular as InvoiceIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
@@ -124,6 +123,7 @@ function InvoicesPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
+            data-interom-target="new-invoice"
             buttonColor={ColorVariant.success}
             hideMobileText={true}
             icon={<InvoiceIcon />}
@@ -135,8 +135,11 @@ function InvoicesPage() {
             {t.header.newInvoice}
           </Button>
         </TableControlsTabsGroup>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup>
         <TableControlsButtonGroup>
           <Button
+            data-interom-target="refresh-table"
             buttonColor={ColorVariant.primary}
             icon={<RefreshIcon />}
             onClick={() => {
@@ -144,16 +147,20 @@ function InvoicesPage() {
               invoicesResponse.refetch();
             }}
           />
-          <TableControlsButton
-            onClickHandler={() => {
+          <Button
+            data-interom-target="table-settings"
+            onClick={() => {
               setSidebarExpanded(!sidebarExpanded);
               track("Toggle Table Sidebar", {
                 page: "Invoices",
               });
             }}
-            icon={OptionsIcon}
+            icon={<OptionsIcon />}
+            hideMobileText={true}
             id={"tableControlsButton"}
-          />
+          >
+            {t.Options}
+          </Button>
         </TableControlsButtonGroup>
       </TableControlsButtonGroup>
     </TableControlSection>
@@ -193,6 +200,7 @@ function InvoicesPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"invoices-table"}
         cellRenderer={DefaultCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}

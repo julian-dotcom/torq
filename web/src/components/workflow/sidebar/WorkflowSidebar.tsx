@@ -63,6 +63,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
       <Sidebar title={t.actions} closeSidebarHandler={closeSidebarHandler}>
         {" "}
         <SectionContainer
+          intercomTarget={"workflow-triggers-section"}
           title={t.triggers}
           icon={TriggersIcon}
           expanded={sectionState.triggers}
@@ -75,6 +76,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <ChannelCloseTriggerNodeButton />
         </SectionContainer>
         <SectionContainer
+          intercomTarget={"workflow-data-sources-section"}
           title={t.dataSources}
           icon={DataSourcesIcon}
           expanded={sectionState.dataSources}
@@ -83,6 +85,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <DataSourceTorqChannelsNodeButton />
         </SectionContainer>
         <SectionContainer
+          intercomTarget={"workflow-actions-section"}
           title={t.actions}
           icon={ChannelsIcon}
           expanded={sectionState.actions}
@@ -95,6 +98,7 @@ export default function WorkflowSidebar(props: WorkflowSidebarProps) {
           <RemoveTagNodeButton />
         </SectionContainer>
         <SectionContainer
+          intercomTarget={"workflow-advanced-actions-section"}
           title={t.AdvancedActions}
           icon={TagsIcon}
           expanded={sectionState.advanced}

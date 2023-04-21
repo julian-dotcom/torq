@@ -94,7 +94,7 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
         [styles.expanded]: expanded,
       })}
     >
-      <div className={classNames(styles.columnRow)}>
+      <div className={classNames(styles.columnRow)} data-intercom-target={"view-column-locked"}>
         <div className={classNames(styles.rowLeftIcon, styles.lockBtn)}>
           <LockClosedIcon />
         </div>
@@ -144,20 +144,32 @@ function ColumnRow<T>(props: ColumnRow<T>) {
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div className={classNames(styles.columnRow)}>
-            <div className={classNames(styles.rowLeftIcon, styles.dragHandle)} {...provided.dragHandleProps}>
+          <div className={classNames(styles.columnRow)} data-intercom-target={"view-column-row"}>
+            <div
+              className={classNames(styles.rowLeftIcon, styles.dragHandle)}
+              {...provided.dragHandleProps}
+              data-intercom-target={"view-column-drag-handle"}
+            >
               <DragHandle />
             </div>
 
-            <div className={styles.columnName}>
+            <div className={styles.columnName} data-intercom-target={"view-column-heading"}>
               <div>{props.column.heading}</div>
             </div>
 
-            <div className={styles.rowOptions} onClick={() => setExpanded(!expanded)}>
+            <div
+              className={styles.rowOptions}
+              onClick={() => setExpanded(!expanded)}
+              data-intercom-target={"view-column-expand-button"}
+            >
               {expanded ? <OptionsExpandedIcon /> : <OptionsIcon />}
             </div>
 
-            <div className={styles.removeColumn} onClick={handleRemoveColumn}>
+            <div
+              className={styles.removeColumn}
+              onClick={handleRemoveColumn}
+              data-intercom-target={"view-column-delete-button"}
+            >
               <RemoveIcon />
             </div>
           </div>
@@ -194,6 +206,7 @@ interface unselectedColumnRow {
 function UnselectedColumn({ name, onAddColumn }: unselectedColumnRow) {
   return (
     <div
+      data-intercom-target={"view-column-unselected"}
       className={styles.unselectedColumnRow}
       onClick={() => {
         onAddColumn();

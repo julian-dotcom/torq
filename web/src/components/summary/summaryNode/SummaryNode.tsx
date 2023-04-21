@@ -14,10 +14,11 @@ export type SummaryNodeProps = {
 export default function SummaryNode(props: SummaryNodeProps) {
   const { t } = useTranslations();
   return (
-    <div className={styles.nodeSummaryContainer}>
+    <div className={styles.nodeSummaryContainer} data-intercom-target={"dashboard-node-container"}>
       <div className={styles.headerContainer}>
         <div className={styles.header}>{props.nodeName}</div>
         <div
+          data-intercom-target={"dashboard-node-status-indicator"}
           className={classNames(
             styles.statusContainer,
             props.status === nodeStatus.active ? styles.online : styles.offline

@@ -12,6 +12,7 @@
   padding: var(--button-padding);
   height: var(--button-height);
   min-width: var(--button-height);
+  width: fit-content;
 
   font-size: var(--button-font-size);
   white-space: nowrap;

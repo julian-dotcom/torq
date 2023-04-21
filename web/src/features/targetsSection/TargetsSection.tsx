@@ -89,7 +89,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
   }
 
   return (
-    <div className={styles.targetsSection}>
+    <div className={styles.targetsSection} data-intercom-target={"tag-applied-to-section"}>
       <div className={styles.target}>
         <div className={styles.targetIcon}>
           <TargetIcon />
@@ -97,7 +97,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
         <div className={styles.targetText}>Applied to</div>
       </div>
 
-      <div className={styles.addTagWrapper}>
+      <div className={styles.addTagWrapper} data-intercom-target={"tags-applied-to-nodes"}>
         <Select
           label={t.tagNode}
           onChange={(newValue: unknown) => {
@@ -150,7 +150,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
         </div>
       </div>
 
-      <div className={styles.addTagWrapper}>
+      <div className={styles.addTagWrapper} data-intercom-target={"tags-applied-to-channels"}>
         <Select
           label={t.tagChannel}
           onChange={(newValue: unknown) => {

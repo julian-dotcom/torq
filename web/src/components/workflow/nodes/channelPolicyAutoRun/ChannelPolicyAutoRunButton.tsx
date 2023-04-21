@@ -9,6 +9,7 @@ export function ChannelPolicyAutoRunNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"channel-policy-auto-run-node-button"}
       colorVariant={NodeColorVariant.accent1}
       nodeType={WorkflowNodeType.ChannelPolicyAutoRun}
       icon={<ChannelPolicyConfiguratorIcon />}

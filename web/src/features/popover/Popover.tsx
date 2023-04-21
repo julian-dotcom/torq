@@ -6,10 +6,14 @@ import { useClickOutside } from "utils/hooks";
 interface PopoverInterface {
   className?: string;
   button?: ReactNode;
+  intercomTarget?: string;
   children?: ReactNode;
 }
 
-const PopoverButton = React.forwardRef(function popoverButton({ className, button, children }: PopoverInterface, ref) {
+const PopoverButton = React.forwardRef(function popoverButton(
+  { className, button, intercomTarget, children }: PopoverInterface,
+  ref
+) {
   const wrapperRef = useRef(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -26,6 +30,7 @@ const PopoverButton = React.forwardRef(function popoverButton({ className, butto
       onClick={() => setIsPopoverOpen(!isPopoverOpen)}
       ref={wrapperRef}
       className={classNames("torq-popover-button-wrapper", className)}
+      data-intercom-target={intercomTarget}
     >
       {button ? button : "button"}
       <div

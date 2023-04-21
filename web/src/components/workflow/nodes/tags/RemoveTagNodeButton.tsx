@@ -9,6 +9,7 @@ export function RemoveTagNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"remove-tag-node-button"}
       colorVariant={NodeColorVariant.accent3}
       nodeType={WorkflowNodeType.RemoveTag}
       icon={<TagHeaderIcon />}

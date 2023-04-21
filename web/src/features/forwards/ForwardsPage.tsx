@@ -1,9 +1,13 @@
 import { Link } from "react-router-dom";
-import { Options20Regular as OptionsIcon, ArrowDownload20Regular as DownloadCsvIcon } from "@fluentui/react-icons";
+import {
+  Options20Regular as OptionsIcon,
+  ArrowDownload20Regular as DownloadCsvIcon,
+  ArrowSync20Regular as RefreshIcon,
+} from "@fluentui/react-icons";
 import TablePageTemplate, {
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlSection,
+  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
@@ -26,7 +30,6 @@ import forwardsCellRenderer from "./forwardsCells";
 import Table from "features/table/Table";
 import { useFilterData, useSortData } from "features/viewManagement/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import styles from "./forwards_table.module.scss";
 import { useGroupBy } from "features/sidebar/sections/group/groupBy";
 import { createCsvFile } from "utils/JsonTableToCsv";
 import Button, { ColorVariant } from "components/buttons/Button";
@@ -134,7 +137,51 @@ function ForwardsPage() {
 
   const tableControls = (
     <TableControlSection>
-      <TableControlsButtonGroup></TableControlsButtonGroup>
+      <TableControlsButtonGroup>
+        <TableControlsTabsGroup>
+          <TimeIntervalSelect />
+        </TableControlsTabsGroup>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup>
+        <Button
+          buttonColor={ColorVariant.primary}
+          data-intercom-target="refresh-table"
+          icon={<RefreshIcon />}
+          onClick={() => {
+            track("Refresh Table", { page: "Channels" });
+            forwardsResponse.refetch();
+          }}
+        />
+        <Button
+          data-intercom-target="download-csv"
+          buttonColor={ColorVariant.primary}
+          title={t.download}
+          hideMobile={true}
+          icon={<DownloadCsvIcon />}
+          onClick={() => {
+            track("Downloads Table as CSV", {
+              downloadTablePage: "Forwards",
+              downloadTableViewTitle: viewResponse.view.title,
+              downloadTableColumns: viewResponse.view.columns,
+              downloadTableFilters: viewResponse.view.filters,
+              downloadTableSortBy: viewResponse.view.sortBy,
+            });
+            createCsvFile(data, viewResponse.view.title || "Forwards");
+          }}
+        />
+        <Button
+          data-intercom-target="table-settings"
+          onClick={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            track("Toggle Table Sidebar", { page: "Forwards" });
+          }}
+          hideMobileText={true}
+          icon={<OptionsIcon />}
+          id={"tableControlsButton"}
+        >
+          {t.Options}
+        </Button>
+      </TableControlsButtonGroup>
     </TableControlSection>
   );
 
@@ -168,39 +215,11 @@ function ForwardsPage() {
       sidebarExpanded={sidebarExpanded}
       onNameChange={handleNameChange}
       isDraft={viewResponse.id === undefined}
-      titleContent={
-        <div className={styles.forwardsControls}>
-          <TimeIntervalSelect />
-          <Button
-            buttonColor={ColorVariant.primary}
-            title={t.download}
-            hideMobileText={true}
-            icon={<DownloadCsvIcon />}
-            onClick={() => {
-              track("Downloads Table as CSV", {
-                downloadTablePage: "Forwards",
-                downloadTableViewTitle: viewResponse.view.title,
-                downloadTableColumns: viewResponse.view.columns,
-                downloadTableFilters: viewResponse.view.filters,
-                downloadTableSortBy: viewResponse.view.sortBy,
-              });
-              createCsvFile(data, viewResponse.view.title || "Forwards");
-            }}
-          />
-          <TableControlsButton
-            onClickHandler={() => {
-              setSidebarExpanded(!sidebarExpanded);
-              track("Toggle Table Sidebar", { page: "Forwards" });
-            }}
-            icon={OptionsIcon}
-            id={"tableControlsButton"}
-          />
-        </div>
-      }
       sidebar={sidebar}
       tableControls={tableControls}
     >
       <Table
+        intercomTarget={"forwards-table"}
         activeColumns={viewResponse.view.columns || []}
         data={data}
         totalRow={totalsRowData ? totalsRowData : undefined}
