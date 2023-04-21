@@ -16,7 +16,7 @@ import (
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/graph_events"
 	"github.com/lncapital/torq/internal/nodes"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/cln"
 )
 
@@ -33,7 +33,7 @@ func SubscribeAndStoreChannels(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.ClnServiceChannelsService
+	serviceType := services_helpers.ClnServiceChannelsService
 
 	cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 
@@ -63,7 +63,7 @@ func SubscribeAndStoreChannels(ctx context.Context,
 }
 
 func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_ListChannels,
-	serviceType services_core.ServiceType,
+	serviceType services_helpers.ServiceType,
 	nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool) error {
 

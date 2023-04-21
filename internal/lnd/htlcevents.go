@@ -8,7 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -158,7 +158,7 @@ func SubscribeAndStoreHtlcEvents(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServiceHtlcEventStream
+	serviceType := services_helpers.LndServiceHtlcEventStream
 
 	stream, err := router.SubscribeHtlcEvents(ctx, &routerrpc.SubscribeHtlcEventsRequest{})
 	if err != nil {

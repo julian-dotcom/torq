@@ -1,4 +1,4 @@
-package services_core
+package services_helpers
 
 import "github.com/lncapital/torq/internal/core"
 
@@ -57,4 +57,14 @@ const (
 	// Initializing is when a service is operational but it's performing an initialization task
 	// (an example here would be importing historic data before starting to process live data)
 	Initializing = ServiceStatus(core.Initializing)
+)
+
+type ImportType int
+
+const (
+	ImportChannelRoutingPolicies = ImportType(iota)
+	ImportNodeInformation
+	ImportAllChannels
+	ImportPendingChannels
+	ImportPeerStatus
 )

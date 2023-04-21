@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/cache"
-	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/internal/workflows"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -19,7 +19,7 @@ func RegisterAutomationRoutes(r *gin.RouterGroup, db *sqlx.DB) {
 }
 
 func rebalanceHandler(c *gin.Context, db *sqlx.DB) {
-	var rr lightning_requests.RebalanceRequests
+	var rr lightning_helpers.RebalanceRequests
 	if err := c.BindJSON(&rr); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return

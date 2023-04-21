@@ -9,12 +9,12 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/communications"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 )
 
 func StartNotifier(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.NotifierService
+	serviceType := services_helpers.NotifierService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -33,7 +33,7 @@ func StartNotifier(ctx context.Context, db *sqlx.DB) {
 
 func StartSlackListener(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.SlackService
+	serviceType := services_helpers.SlackService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -52,9 +52,9 @@ func StartSlackListener(ctx context.Context, db *sqlx.DB) {
 
 func StartTelegramListeners(ctx context.Context, db *sqlx.DB, highPriority bool) {
 
-	serviceType := services_core.TelegramHighService
+	serviceType := services_helpers.TelegramHighService
 	if !highPriority {
-		serviceType = services_core.TelegramLowService
+		serviceType = services_helpers.TelegramLowService
 	}
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())

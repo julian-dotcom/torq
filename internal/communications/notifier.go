@@ -17,8 +17,8 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
-	"github.com/lncapital/torq/internal/lightning_requests"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/lightning_helpers"
+	"github.com/lncapital/torq/internal/services_helpers"
 )
 
 type MessageForBot struct {
@@ -132,9 +132,9 @@ func getButtons() [7]string {
 
 func Notify(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.NotifierService
+	serviceType := services_helpers.NotifierService
 
-	informationResponses := make(map[nodeIdType]lightning_requests.InformationResponse)
+	informationResponses := make(map[nodeIdType]lightning_helpers.InformationResponse)
 	graphInSyncTime := make(map[nodeIdType]time.Time)
 	graphErrorState := make(map[nodeIdType]bool)
 	chainInSyncTime := make(map[nodeIdType]time.Time)
@@ -254,8 +254,8 @@ func HandleNotification(db *sqlx.DB, notifierEvent core.NotifierEvent) {
 	}
 }
 
-func compareGraphSyncTime(previousInformation lightning_requests.InformationResponse,
-	newInformation lightning_requests.InformationResponse,
+func compareGraphSyncTime(previousInformation lightning_helpers.InformationResponse,
+	newInformation lightning_helpers.InformationResponse,
 	graphInSyncTime map[nodeIdType]time.Time,
 	graphErrorState map[nodeIdType]bool,
 	torqNodeSettings cache.NodeSettingsCache,
@@ -276,8 +276,8 @@ func compareGraphSyncTime(previousInformation lightning_requests.InformationResp
 	return message
 }
 
-func compareChainSyncTime(previousInformation lightning_requests.InformationResponse,
-	newInformation lightning_requests.InformationResponse,
+func compareChainSyncTime(previousInformation lightning_helpers.InformationResponse,
+	newInformation lightning_helpers.InformationResponse,
 	chainInSyncTime map[nodeIdType]time.Time,
 	chainErrorState map[nodeIdType]bool,
 	torqNodeSettings cache.NodeSettingsCache,
@@ -298,8 +298,8 @@ func compareChainSyncTime(previousInformation lightning_requests.InformationResp
 	return message
 }
 
-func comparePendingChannelCount(previousInformation lightning_requests.InformationResponse,
-	newInformation lightning_requests.InformationResponse,
+func comparePendingChannelCount(previousInformation lightning_helpers.InformationResponse,
+	newInformation lightning_helpers.InformationResponse,
 	message string) string {
 
 	if previousInformation.PendingChannelCount != newInformation.PendingChannelCount {
@@ -313,8 +313,8 @@ func comparePendingChannelCount(previousInformation lightning_requests.Informati
 	return message
 }
 
-func compareChannelCount(previousInformation lightning_requests.InformationResponse,
-	newInformation lightning_requests.InformationResponse,
+func compareChannelCount(previousInformation lightning_helpers.InformationResponse,
+	newInformation lightning_helpers.InformationResponse,
 	message string) string {
 
 	previousNonPendingCount := previousInformation.InactiveChannelCount + previousInformation.ActiveChannelCount
@@ -329,8 +329,8 @@ func compareChannelCount(previousInformation lightning_requests.InformationRespo
 	return message
 }
 
-func compareVersion(previousInformation lightning_requests.InformationResponse,
-	newInformation lightning_requests.InformationResponse,
+func compareVersion(previousInformation lightning_helpers.InformationResponse,
+	newInformation lightning_helpers.InformationResponse,
 	message string) string {
 
 	if previousInformation.Version != newInformation.Version {

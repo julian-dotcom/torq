@@ -13,7 +13,7 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
-	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	qp "github.com/lncapital/torq/internal/query_parser"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
@@ -133,7 +133,7 @@ func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 func newAddressHandler(c *gin.Context) {
-	var requestBody lightning_requests.NewAddressRequest
+	var requestBody lightning_helpers.NewAddressRequest
 
 	if err := c.BindJSON(&requestBody); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))

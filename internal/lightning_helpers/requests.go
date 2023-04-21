@@ -1,4 +1,4 @@
-package lightning_requests
+package lightning_helpers
 
 import (
 	"encoding/hex"
@@ -236,4 +236,14 @@ type BatchOpenChannelRequest struct {
 	Channels    []BatchOpenChannel `json:"channels"`
 	TargetConf  *int32             `json:"targetConf"`
 	SatPerVbyte *int64             `json:"satPerVbyte"`
+}
+
+type CloseChannelRequest struct {
+	CommunicationRequest
+	Db              *sqlx.DB
+	ChannelId       int     `json:"channelId"`
+	Force           *bool   `json:"force"`
+	TargetConf      *int32  `json:"targetConf"`
+	DeliveryAddress *string `json:"deliveryAddress"`
+	SatPerVbyte     *uint64 `json:"satPerVbyte"`
 }

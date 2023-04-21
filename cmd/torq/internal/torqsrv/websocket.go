@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/pkg/server_errors"
 
 	"github.com/cockroachdb/errors"
@@ -15,17 +16,16 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/payments"
 )
 
 type wsRequest struct {
-	RequestId           string                        `json:"requestId"`
-	Type                string                        `json:"type"`
-	NewPaymentRequest   *core.NewPaymentRequest       `json:"newPaymentRequest"`
-	PayOnChainRequest   *core.PayOnChainRequest       `json:"payOnChainRequest"`
-	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
-	Password            *string                       `json:"password"`
+	RequestId           string                                 `json:"requestId"`
+	Type                string                                 `json:"type"`
+	NewPaymentRequest   *core.NewPaymentRequest                `json:"newPaymentRequest"`
+	PayOnChainRequest   *core.PayOnChainRequest                `json:"payOnChainRequest"`
+	CloseChannelRequest *lightning_helpers.CloseChannelRequest `json:"closeChannelRequest"`
+	Password            *string                                `json:"password"`
 }
 
 type Pong struct {

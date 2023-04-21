@@ -11,7 +11,7 @@ import (
 	"go.uber.org/ratelimit"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -124,7 +124,7 @@ func SubscribeForwardingEvents(ctx context.Context,
 	nodeSettings cache.NodeSettingsCache,
 	opt *FwhOptions) {
 
-	serviceType := services_core.LndServiceForwardsService
+	serviceType := services_helpers.LndServiceForwardsService
 
 	maxEvents := streamLndMaxForwards
 	bootStrapping := true

@@ -1,4 +1,4 @@
-package services_core
+package services_helpers
 
 import (
 	"github.com/rs/zerolog/log"
@@ -274,4 +274,20 @@ func GetPingSystemServiceType(ps core.PingSystem) *ServiceType {
 		log.Error().Msgf("DEVELOPMENT ERROR: PingSystem not supported")
 		return nil
 	}
+}
+
+func (i ImportType) String() string {
+	switch i {
+	case ImportChannelRoutingPolicies:
+		return "ImportChannelRoutingPolicies"
+	case ImportNodeInformation:
+		return "ImportNodeInformation"
+	case ImportAllChannels:
+		return "ImportAllChannels"
+	case ImportPendingChannels:
+		return "ImportPendingChannels"
+	case ImportPeerStatus:
+		return "ImportPeerStatus"
+	}
+	return core.UnknownEnumString
 }

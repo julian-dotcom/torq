@@ -283,7 +283,7 @@ func getChannelsWithStatus(db *sqlx.DB, network core.Network, status []core.Chan
 	return channels, nil
 }
 
-func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
+func UpdateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
 	currentSettings := cache.GetChannelSettingByChannelId(channelId)
 	_, err := db.Exec(`
 		UPDATE channel

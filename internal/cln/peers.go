@@ -14,7 +14,7 @@ import (
 	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/nodes"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/internal/settings"
 	"github.com/lncapital/torq/proto/cln"
 )
@@ -30,7 +30,7 @@ func SubscribeAndStorePeers(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.ClnServicePeersService
+	serviceType := services_helpers.ClnServicePeersService
 
 	cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 
@@ -59,7 +59,7 @@ func SubscribeAndStorePeers(ctx context.Context,
 	}
 }
 
-func processError(ctx context.Context, serviceType services_core.ServiceType, nodeSettings cache.NodeSettingsCache, err error) {
+func processError(ctx context.Context, serviceType services_helpers.ServiceType, nodeSettings cache.NodeSettingsCache, err error) {
 	if errors.Is(ctx.Err(), context.Canceled) {
 		cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 		return
@@ -69,7 +69,7 @@ func processError(ctx context.Context, serviceType services_core.ServiceType, no
 }
 
 func listAndProcessPeers(ctx context.Context, db *sqlx.DB, client client_ListPeers,
-	serviceType services_core.ServiceType,
+	serviceType services_helpers.ServiceType,
 	nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool) error {
 

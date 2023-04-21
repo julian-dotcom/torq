@@ -8,7 +8,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/lncapital/torq/internal/core"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 )
 
 var ServicesCacheChannel = make(chan ServiceCache) //nolint:gochecknoglobals
@@ -47,11 +47,11 @@ const (
 type ServiceCache struct {
 	Type                               ServiceCacheOperationType
 	NoSubscriptions                    bool
-	ServiceType                        services_core.ServiceType
+	ServiceType                        services_helpers.ServiceType
 	NodeId                             int
-	ServiceStatus                      services_core.ServiceStatus
+	ServiceStatus                      services_helpers.ServiceStatus
 	CancelFunc                         context.CancelFunc
-	SuccessTimes                       map[core.ImportType]time.Time
+	SuccessTimes                       map[services_helpers.ImportType]time.Time
 	NodeConnectionDetails              NodeConnectionDetails
 	NodeConnectionDetailCustomSettings core.NodeConnectionDetailCustomSettings
 	SystemServiceStateOut              chan<- SystemServiceState
@@ -59,18 +59,18 @@ type ServiceCache struct {
 	TimeOut                            chan<- *time.Time
 	BoolOut                            chan<- bool
 	IntsOut                            chan<- []int
-	SuccessTimesOut                    chan<- map[core.ImportType]time.Time
+	SuccessTimesOut                    chan<- map[services_helpers.ImportType]time.Time
 	NodeConnectionDetailsOut           chan<- NodeConnectionDetails
 }
 
 type SystemServiceState struct {
 	NoSubscriptions   bool
-	CoreServiceStates map[services_core.ServiceType]ServiceState
-	NodeServiceStates map[core.Implementation]map[nodeIdType]map[services_core.ServiceType]ServiceState
+	CoreServiceStates map[services_helpers.ServiceType]ServiceState
+	NodeServiceStates map[core.Implementation]map[nodeIdType]map[services_helpers.ServiceType]ServiceState
 }
 
 type ServiceState struct {
-	Status             services_core.ServiceStatus
+	Status             services_helpers.ServiceStatus
 	CancelFunc         *context.CancelFunc
 	ActiveTime         *time.Time
 	PendingTime        *time.Time
@@ -81,7 +81,7 @@ type ServiceState struct {
 
 func (ss *ServiceState) Pending(cancelFunc context.CancelFunc) ServiceState {
 	now := time.Now()
-	ss.Status = services_core.Pending
+	ss.Status = services_helpers.Pending
 	ss.CancelFunc = &cancelFunc
 	ss.ActiveTime = nil
 	ss.PendingTime = &now
@@ -91,7 +91,7 @@ func (ss *ServiceState) Pending(cancelFunc context.CancelFunc) ServiceState {
 
 func (ss *ServiceState) Initializing() ServiceState {
 	now := time.Now()
-	ss.Status = services_core.Initializing
+	ss.Status = services_helpers.Initializing
 	ss.ActiveTime = nil
 	ss.InitializationTime = &now
 	return *ss
@@ -99,7 +99,7 @@ func (ss *ServiceState) Initializing() ServiceState {
 
 func (ss *ServiceState) Activate() ServiceState {
 	now := time.Now()
-	ss.Status = services_core.Active
+	ss.Status = services_helpers.Active
 	ss.ActiveTime = &now
 	ss.PendingTime = nil
 	ss.InitializationTime = nil
@@ -120,7 +120,7 @@ func (ss *ServiceState) Cancel() ServiceState {
 func (ss *ServiceState) Inactivate() ServiceState {
 	now := time.Now()
 	ss.Cancel()
-	ss.Status = services_core.Inactive
+	ss.Status = services_helpers.Inactive
 	ss.PendingTime = nil
 	ss.InitializationTime = nil
 	ss.InactivationTime = &now
@@ -147,7 +147,7 @@ type NodeConnectionDetails struct {
 }
 
 func ServiceCacheHandler(ch <-chan ServiceCache, ctx context.Context) {
-	successTimes := make(map[nodeIdType]map[core.ImportType]time.Time)
+	successTimes := make(map[nodeIdType]map[services_helpers.ImportType]time.Time)
 	nodeConnectionDetailsCache := make(map[nodeIdType]NodeConnectionDetails)
 	var torqCurrentStateCache SystemServiceState
 	var torqDesiredStateCache SystemServiceState
@@ -168,34 +168,34 @@ func handleServiceOperation(
 	torqCurrentStateCache SystemServiceState,
 	torqDesiredStateCache SystemServiceState,
 	nodeConnectionDetailsCache map[nodeIdType]NodeConnectionDetails,
-	successTimes map[nodeIdType]map[core.ImportType]time.Time) (SystemServiceState, SystemServiceState) {
+	successTimes map[nodeIdType]map[services_helpers.ImportType]time.Time) (SystemServiceState, SystemServiceState) {
 
 	switch serviceCache.Type {
 	case initStates:
-		coreDesiredServiceState := make(map[services_core.ServiceType]ServiceState)
-		for _, coreServiceType := range services_core.GetCoreServiceTypes() {
-			coreDesiredServiceState[coreServiceType] = ServiceState{Status: services_core.Active}
+		coreDesiredServiceState := make(map[services_helpers.ServiceType]ServiceState)
+		for _, coreServiceType := range services_helpers.GetCoreServiceTypes() {
+			coreDesiredServiceState[coreServiceType] = ServiceState{Status: services_helpers.Active}
 		}
 		torqDesiredStateCache = SystemServiceState{
 			NoSubscriptions:   serviceCache.NoSubscriptions,
 			CoreServiceStates: coreDesiredServiceState,
-			NodeServiceStates: make(map[core.Implementation]map[nodeIdType]map[services_core.ServiceType]ServiceState),
+			NodeServiceStates: make(map[core.Implementation]map[nodeIdType]map[services_helpers.ServiceType]ServiceState),
 		}
 		for _, implementation := range core.GetImplementations() {
-			torqDesiredStateCache.NodeServiceStates[implementation] = make(map[nodeIdType]map[services_core.ServiceType]ServiceState)
+			torqDesiredStateCache.NodeServiceStates[implementation] = make(map[nodeIdType]map[services_helpers.ServiceType]ServiceState)
 		}
 
-		coreCurrentServiceState := make(map[services_core.ServiceType]ServiceState)
-		for _, coreServiceType := range services_core.GetCoreServiceTypes() {
-			coreCurrentServiceState[coreServiceType] = ServiceState{Status: services_core.Inactive}
+		coreCurrentServiceState := make(map[services_helpers.ServiceType]ServiceState)
+		for _, coreServiceType := range services_helpers.GetCoreServiceTypes() {
+			coreCurrentServiceState[coreServiceType] = ServiceState{Status: services_helpers.Inactive}
 		}
 		torqCurrentStateCache = SystemServiceState{
 			NoSubscriptions:   serviceCache.NoSubscriptions,
 			CoreServiceStates: coreCurrentServiceState,
-			NodeServiceStates: make(map[core.Implementation]map[nodeIdType]map[services_core.ServiceType]ServiceState),
+			NodeServiceStates: make(map[core.Implementation]map[nodeIdType]map[services_helpers.ServiceType]ServiceState),
 		}
 		for _, implementation := range core.GetImplementations() {
-			torqCurrentStateCache.NodeServiceStates[implementation] = make(map[nodeIdType]map[services_core.ServiceType]ServiceState)
+			torqCurrentStateCache.NodeServiceStates[implementation] = make(map[nodeIdType]map[services_helpers.ServiceType]ServiceState)
 		}
 	case readCurrentCoreServiceState:
 		serviceCache.ServiceStateOut <- torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType]
@@ -210,13 +210,13 @@ func handleServiceOperation(
 		state, exist := torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType]
 		if exist {
 			switch serviceCache.ServiceStatus {
-			case services_core.Pending:
+			case services_helpers.Pending:
 				t = state.PendingTime
-			case services_core.Initializing:
+			case services_helpers.Initializing:
 				t = state.InitializationTime
-			case services_core.Active:
+			case services_helpers.Active:
 				t = state.ActiveTime
-			case services_core.Inactive:
+			case services_helpers.Inactive:
 				t = state.InactivationTime
 			}
 		}
@@ -238,7 +238,7 @@ func handleServiceOperation(
 		}
 		st, exists := successTimes[nodeIdType(serviceCache.NodeId)]
 		if !exists {
-			st = make(map[core.ImportType]time.Time)
+			st = make(map[services_helpers.ImportType]time.Time)
 		}
 		serviceCache.SuccessTimesOut <- st
 	case readNodeConnectionDetails:
@@ -251,7 +251,7 @@ func handleServiceOperation(
 		n := getNodeServiceStates(serviceCache, torqCurrentStateCache)
 		state, exists := n[serviceCache.ServiceType]
 		if exists {
-			s = state.Status == services_core.Active
+			s = state.Status == services_helpers.Active
 		}
 		serviceCache.BoolOut <- s
 	case readActiveStateChannelBalanceCache:
@@ -261,7 +261,7 @@ func handleServiceOperation(
 			n, nodeExist := torqCurrentStateCache.NodeServiceStates[core.LND][nodeIdType(serviceCache.NodeId)]
 			if nodeExist {
 				s = true
-				for _, serviceType := range services_core.GetLndServiceTypes() {
+				for _, serviceType := range services_helpers.GetLndServiceTypes() {
 					if !serviceType.IsChannelBalanceCache() {
 						continue
 					}
@@ -270,7 +270,7 @@ func handleServiceOperation(
 						s = false
 						break
 					}
-					if state.Status != services_core.Active {
+					if state.Status != services_helpers.Active {
 						s = false
 						break
 					}
@@ -280,7 +280,7 @@ func handleServiceOperation(
 			n, nodeExist := torqCurrentStateCache.NodeServiceStates[core.CLN][nodeIdType(serviceCache.NodeId)]
 			if nodeExist {
 				s = true
-				for _, serviceType := range services_core.GetClnServiceTypes() {
+				for _, serviceType := range services_helpers.GetClnServiceTypes() {
 					if !serviceType.IsChannelBalanceCache() {
 						continue
 					}
@@ -289,7 +289,7 @@ func handleServiceOperation(
 						s = false
 						break
 					}
-					if state.Status != services_core.Active {
+					if state.Status != services_helpers.Active {
 						s = false
 						break
 					}
@@ -317,12 +317,12 @@ func handleServiceOperation(
 		writeState(serviceCache, torqDesiredStateCache)
 	case writeCurrentCoreServiceState:
 		state := torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType]
-		if state.Status == serviceCache.ServiceStatus && serviceCache.ServiceStatus == services_core.Initializing {
+		if state.Status == serviceCache.ServiceStatus && serviceCache.ServiceStatus == services_helpers.Initializing {
 			torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType] = state.Initializing()
 		}
 		if state.Status != serviceCache.ServiceStatus {
 			switch serviceCache.ServiceStatus {
-			case services_core.Pending:
+			case services_helpers.Pending:
 				switch {
 				case serviceCache.CancelFunc != nil:
 					torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType] = state.Pending(serviceCache.CancelFunc)
@@ -331,11 +331,11 @@ func handleServiceOperation(
 				default:
 					log.Error().Msgf("No empty cancelFunc (%v) allowed", serviceCache.CancelFunc)
 				}
-			case services_core.Active:
+			case services_helpers.Active:
 				torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType] = state.Activate()
-			case services_core.Inactive:
+			case services_helpers.Inactive:
 				torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType] = state.Inactivate()
-			case services_core.Initializing:
+			case services_helpers.Initializing:
 				torqCurrentStateCache.CoreServiceStates[serviceCache.ServiceType] = state.Initializing()
 			}
 		}
@@ -350,13 +350,13 @@ func handleServiceOperation(
 		}
 		n := getNodeServiceStates(serviceCache, torqCurrentStateCache)
 		state := n[serviceCache.ServiceType]
-		if state.Status == serviceCache.ServiceStatus && serviceCache.ServiceStatus == services_core.Initializing {
+		if state.Status == serviceCache.ServiceStatus && serviceCache.ServiceStatus == services_helpers.Initializing {
 			n[serviceCache.ServiceType] = state.Initializing()
 			setNodeServiceStates(serviceCache, torqCurrentStateCache, n)
 		}
 		if state.Status != serviceCache.ServiceStatus {
 			switch serviceCache.ServiceStatus {
-			case services_core.Pending:
+			case services_helpers.Pending:
 				switch {
 				case serviceCache.CancelFunc != nil:
 					n[serviceCache.ServiceType] = state.Pending(serviceCache.CancelFunc)
@@ -366,13 +366,13 @@ func handleServiceOperation(
 					log.Error().Msgf("No empty cancelFunc (%v) allowed", serviceCache.CancelFunc)
 				}
 				setNodeServiceStates(serviceCache, torqCurrentStateCache, n)
-			case services_core.Active:
+			case services_helpers.Active:
 				n[serviceCache.ServiceType] = state.Activate()
 				setNodeServiceStates(serviceCache, torqCurrentStateCache, n)
-			case services_core.Inactive:
+			case services_helpers.Inactive:
 				n[serviceCache.ServiceType] = state.Inactivate()
 				setNodeServiceStates(serviceCache, torqCurrentStateCache, n)
-			case services_core.Initializing:
+			case services_helpers.Initializing:
 				n[serviceCache.ServiceType] = state.Initializing()
 				setNodeServiceStates(serviceCache, torqCurrentStateCache, n)
 			}
@@ -419,7 +419,7 @@ func handleServiceOperation(
 
 func setNodeServiceStates(serviceCache ServiceCache,
 	stateCache SystemServiceState,
-	nodeServiceStates map[services_core.ServiceType]ServiceState) {
+	nodeServiceStates map[services_helpers.ServiceType]ServiceState) {
 
 	implementation := serviceCache.ServiceType.GetImplementation()
 	if implementation != nil {
@@ -427,14 +427,14 @@ func setNodeServiceStates(serviceCache ServiceCache,
 	}
 }
 
-func getNodeServiceStates(serviceCache ServiceCache, stateCache SystemServiceState) map[services_core.ServiceType]ServiceState {
-	n := make(map[services_core.ServiceType]ServiceState)
+func getNodeServiceStates(serviceCache ServiceCache, stateCache SystemServiceState) map[services_helpers.ServiceType]ServiceState {
+	n := make(map[services_helpers.ServiceType]ServiceState)
 	var nodeExists bool
 	implementation := serviceCache.ServiceType.GetImplementation()
 	if implementation != nil {
 		n, nodeExists = stateCache.NodeServiceStates[*implementation][nodeIdType(serviceCache.NodeId)]
 		if !nodeExists {
-			n = make(map[services_core.ServiceType]ServiceState)
+			n = make(map[services_helpers.ServiceType]ServiceState)
 		}
 	}
 	return n
@@ -451,8 +451,8 @@ func getFailureTime(serviceCache ServiceCache, stateCache SystemServiceState) *t
 }
 
 func readNodeIds(implementation core.Implementation,
-	desiredStateCache map[nodeIdType]map[services_core.ServiceType]ServiceState,
-	currentStateCache map[nodeIdType]map[services_core.ServiceType]ServiceState,
+	desiredStateCache map[nodeIdType]map[services_helpers.ServiceType]ServiceState,
+	currentStateCache map[nodeIdType]map[services_helpers.ServiceType]ServiceState,
 	nodeConnectionDetails map[nodeIdType]NodeConnectionDetails) []int {
 	var nodeIds []int
 	for nodeId := range desiredStateCache {
@@ -489,13 +489,13 @@ func getServiceTime(serviceCache ServiceCache, stateCache SystemServiceState) *t
 	state, exists := n[serviceCache.ServiceType]
 	if exists {
 		switch serviceCache.ServiceStatus {
-		case services_core.Pending:
+		case services_helpers.Pending:
 			t = state.PendingTime
-		case services_core.Initializing:
+		case services_helpers.Initializing:
 			t = state.InitializationTime
-		case services_core.Active:
+		case services_helpers.Active:
 			t = state.ActiveTime
-		case services_core.Inactive:
+		case services_helpers.Inactive:
 			t = state.InactivationTime
 		}
 	}
@@ -510,7 +510,7 @@ func InitStates(noSubscriptions bool) {
 	ServicesCacheChannel <- serviceCache
 }
 
-func GetCurrentCoreServiceState(serviceType services_core.ServiceType) ServiceState {
+func GetCurrentCoreServiceState(serviceType services_helpers.ServiceType) ServiceState {
 	responseChannel := make(chan ServiceState)
 	serviceCache := ServiceCache{
 		ServiceType:     serviceType,
@@ -521,7 +521,7 @@ func GetCurrentCoreServiceState(serviceType services_core.ServiceType) ServiceSt
 	return <-responseChannel
 }
 
-func GetCurrentNodeServiceState(serviceType services_core.ServiceType, nodeId int) ServiceState {
+func GetCurrentNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) ServiceState {
 	responseChannel := make(chan ServiceState)
 	serviceCache := ServiceCache{
 		ServiceType:     serviceType,
@@ -533,7 +533,7 @@ func GetCurrentNodeServiceState(serviceType services_core.ServiceType, nodeId in
 	return <-responseChannel
 }
 
-func GetDesiredCoreServiceState(serviceType services_core.ServiceType) ServiceState {
+func GetDesiredCoreServiceState(serviceType services_helpers.ServiceType) ServiceState {
 	responseChannel := make(chan ServiceState)
 	serviceCache := ServiceCache{
 		ServiceType:     serviceType,
@@ -544,7 +544,7 @@ func GetDesiredCoreServiceState(serviceType services_core.ServiceType) ServiceSt
 	return <-responseChannel
 }
 
-func GetDesiredNodeServiceState(serviceType services_core.ServiceType, nodeId int) ServiceState {
+func GetDesiredNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) ServiceState {
 	responseChannel := make(chan ServiceState)
 	serviceCache := ServiceCache{
 		ServiceType:     serviceType,
@@ -556,11 +556,11 @@ func GetDesiredNodeServiceState(serviceType services_core.ServiceType, nodeId in
 	return <-responseChannel
 }
 
-func GetCoreFailedAttemptTime(serviceType services_core.ServiceType) *time.Time {
+func GetCoreFailedAttemptTime(serviceType services_helpers.ServiceType) *time.Time {
 	responseChannel := make(chan *time.Time)
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
-		ServiceStatus: services_core.Inactive,
+		ServiceStatus: services_helpers.Inactive,
 		Type:          readLatestCoreFailedAttempt,
 		TimeOut:       responseChannel,
 	}
@@ -568,7 +568,7 @@ func GetCoreFailedAttemptTime(serviceType services_core.ServiceType) *time.Time 
 	return <-responseChannel
 }
 
-func GetNodeFailedAttemptTime(serviceType services_core.ServiceType, nodeId int) *time.Time {
+func GetNodeFailedAttemptTime(serviceType services_helpers.ServiceType, nodeId int) *time.Time {
 	responseChannel := make(chan *time.Time)
 	serviceCache := ServiceCache{
 		ServiceType: serviceType,
@@ -580,7 +580,7 @@ func GetNodeFailedAttemptTime(serviceType services_core.ServiceType, nodeId int)
 	return <-responseChannel
 }
 
-func GetCoreServiceTime(serviceType services_core.ServiceType, serviceStatus services_core.ServiceStatus) *time.Time {
+func GetCoreServiceTime(serviceType services_helpers.ServiceType, serviceStatus services_helpers.ServiceStatus) *time.Time {
 	responseChannel := make(chan *time.Time)
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
@@ -592,7 +592,7 @@ func GetCoreServiceTime(serviceType services_core.ServiceType, serviceStatus ser
 	return <-responseChannel
 }
 
-func GetNodeServiceTime(serviceType services_core.ServiceType, nodeId int, serviceStatus services_core.ServiceStatus) *time.Time {
+func GetNodeServiceTime(serviceType services_helpers.ServiceType, nodeId int, serviceStatus services_helpers.ServiceStatus) *time.Time {
 	responseChannel := make(chan *time.Time)
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
@@ -609,7 +609,7 @@ func IsLndServiceActive(nodeId int) bool {
 	responseChannel := make(chan bool)
 	serviceCache := ServiceCache{
 		NodeId:      nodeId,
-		ServiceType: services_core.LndServiceChannelEventStream,
+		ServiceType: services_helpers.LndServiceChannelEventStream,
 		Type:        readActiveState,
 		BoolOut:     responseChannel,
 	}
@@ -621,7 +621,7 @@ func IsClnServiceActive(nodeId int) bool {
 	responseChannel := make(chan bool)
 	serviceCache := ServiceCache{
 		NodeId:      nodeId,
-		ServiceType: services_core.ClnServicePeersService,
+		ServiceType: services_helpers.ClnServicePeersService,
 		Type:        readActiveState,
 		BoolOut:     responseChannel,
 	}
@@ -640,7 +640,7 @@ func IsChannelBalanceCacheStreamActive(nodeId int) bool {
 	return <-responseChannel
 }
 
-func SetDesiredCoreServiceState(serviceType services_core.ServiceType, serviceStatus services_core.ServiceStatus) {
+func SetDesiredCoreServiceState(serviceType services_helpers.ServiceType, serviceStatus services_helpers.ServiceStatus) {
 	log.Info().Msgf("%v desired state is now %v.", serviceType.String(), serviceStatus.String())
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
@@ -650,7 +650,7 @@ func SetDesiredCoreServiceState(serviceType services_core.ServiceType, serviceSt
 	ServicesCacheChannel <- serviceCache
 }
 
-func SetDesiredNodeServiceState(serviceType services_core.ServiceType, nodeId int, serviceStatus services_core.ServiceStatus) {
+func SetDesiredNodeServiceState(serviceType services_helpers.ServiceType, nodeId int, serviceStatus services_helpers.ServiceStatus) {
 	log.Info().Msgf("%v desired state is now %v with nodeId: %v.", serviceType.String(), serviceStatus.String(),
 		nodeId)
 
@@ -665,68 +665,68 @@ func SetDesiredNodeServiceState(serviceType services_core.ServiceType, nodeId in
 
 func InitRootService(cancelFunc context.CancelFunc) {
 	serviceCache := ServiceCache{
-		ServiceType:   services_core.RootService,
+		ServiceType:   services_helpers.RootService,
 		CancelFunc:    cancelFunc,
-		ServiceStatus: services_core.Inactive,
+		ServiceStatus: services_helpers.Inactive,
 		Type:          writeCurrentCoreServiceState,
 	}
 	ServicesCacheChannel <- serviceCache
 }
 
-func InitCoreServiceState(serviceType services_core.ServiceType, cancelFunc context.CancelFunc) {
+func InitCoreServiceState(serviceType services_helpers.ServiceType, cancelFunc context.CancelFunc) {
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
 		CancelFunc:    cancelFunc,
-		ServiceStatus: services_core.Pending,
+		ServiceStatus: services_helpers.Pending,
 		Type:          writeCurrentCoreServiceState,
 	}
 	ServicesCacheChannel <- serviceCache
 }
 
-func InitNodeServiceState(serviceType services_core.ServiceType, nodeId int, cancelFunc context.CancelFunc) {
+func InitNodeServiceState(serviceType services_helpers.ServiceType, nodeId int, cancelFunc context.CancelFunc) {
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
 		NodeId:        nodeId,
 		CancelFunc:    cancelFunc,
-		ServiceStatus: services_core.Pending,
+		ServiceStatus: services_helpers.Pending,
 		Type:          writeCurrentNodeServiceState,
 	}
 	ServicesCacheChannel <- serviceCache
 }
 
-func SetPendingCoreServiceState(serviceType services_core.ServiceType) {
-	setCoreServiceStatus(serviceType, services_core.Pending)
+func SetPendingCoreServiceState(serviceType services_helpers.ServiceType) {
+	setCoreServiceStatus(serviceType, services_helpers.Pending)
 }
 
-func SetPendingNodeServiceState(serviceType services_core.ServiceType, nodeId int) {
-	setNodeServiceStatus(serviceType, nodeId, services_core.Pending)
+func SetPendingNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) {
+	setNodeServiceStatus(serviceType, nodeId, services_helpers.Pending)
 }
 
-func SetInitializingCoreServiceState(serviceType services_core.ServiceType) {
-	setCoreServiceStatus(serviceType, services_core.Initializing)
+func SetInitializingCoreServiceState(serviceType services_helpers.ServiceType) {
+	setCoreServiceStatus(serviceType, services_helpers.Initializing)
 }
 
-func SetInitializingNodeServiceState(serviceType services_core.ServiceType, nodeId int) {
-	setNodeServiceStatus(serviceType, nodeId, services_core.Initializing)
+func SetInitializingNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) {
+	setNodeServiceStatus(serviceType, nodeId, services_helpers.Initializing)
 }
 
-func SetActiveCoreServiceState(serviceType services_core.ServiceType) {
-	setCoreServiceStatus(serviceType, services_core.Active)
+func SetActiveCoreServiceState(serviceType services_helpers.ServiceType) {
+	setCoreServiceStatus(serviceType, services_helpers.Active)
 }
 
-func SetActiveNodeServiceState(serviceType services_core.ServiceType, nodeId int) {
-	setNodeServiceStatus(serviceType, nodeId, services_core.Active)
+func SetActiveNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) {
+	setNodeServiceStatus(serviceType, nodeId, services_helpers.Active)
 }
 
-func SetInactiveCoreServiceState(serviceType services_core.ServiceType) {
-	setCoreServiceStatus(serviceType, services_core.Inactive)
+func SetInactiveCoreServiceState(serviceType services_helpers.ServiceType) {
+	setCoreServiceStatus(serviceType, services_helpers.Inactive)
 }
 
-func SetInactiveNodeServiceState(serviceType services_core.ServiceType, nodeId int) {
-	setNodeServiceStatus(serviceType, nodeId, services_core.Inactive)
+func SetInactiveNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) {
+	setNodeServiceStatus(serviceType, nodeId, services_helpers.Inactive)
 }
 
-func CancelCoreService(serviceType services_core.ServiceType) {
+func CancelCoreService(serviceType services_helpers.ServiceType) {
 	log.Debug().Msgf("%v cancellation requested", serviceType.String())
 	serviceCache := ServiceCache{
 		ServiceType: serviceType,
@@ -735,7 +735,7 @@ func CancelCoreService(serviceType services_core.ServiceType) {
 	ServicesCacheChannel <- serviceCache
 }
 
-func CancelNodeService(serviceType services_core.ServiceType, nodeId int) {
+func CancelNodeService(serviceType services_helpers.ServiceType, nodeId int) {
 	log.Debug().Msgf("%v cancellation requested for nodeId: %v", serviceType.String(), nodeId)
 	serviceCache := ServiceCache{
 		ServiceType: serviceType,
@@ -746,8 +746,8 @@ func CancelNodeService(serviceType services_core.ServiceType, nodeId int) {
 
 }
 
-func SetFailedCoreServiceState(serviceType services_core.ServiceType) {
-	inactive := services_core.Inactive
+func SetFailedCoreServiceState(serviceType services_helpers.ServiceType) {
+	inactive := services_helpers.Inactive
 	log.Debug().Msgf("%v updating current state to %v (due to failure)", serviceType.String(), (&inactive).String())
 	serviceCache := ServiceCache{
 		ServiceType: serviceType,
@@ -756,8 +756,8 @@ func SetFailedCoreServiceState(serviceType services_core.ServiceType) {
 	ServicesCacheChannel <- serviceCache
 }
 
-func SetFailedNodeServiceState(serviceType services_core.ServiceType, nodeId int) {
-	inactive := services_core.Inactive
+func SetFailedNodeServiceState(serviceType services_helpers.ServiceType, nodeId int) {
+	inactive := services_helpers.Inactive
 	log.Debug().Msgf("%v updating current state to %v (due to failure) for nodeId: %v", serviceType.String(),
 		(&inactive).String(), nodeId)
 	serviceCache := ServiceCache{
@@ -768,7 +768,7 @@ func SetFailedNodeServiceState(serviceType services_core.ServiceType, nodeId int
 	ServicesCacheChannel <- serviceCache
 }
 
-func setCoreServiceStatus(serviceType services_core.ServiceType, serviceStatus services_core.ServiceStatus) {
+func setCoreServiceStatus(serviceType services_helpers.ServiceType, serviceStatus services_helpers.ServiceStatus) {
 	log.Debug().Msgf("%v updating current state to %v", serviceType.String(), serviceStatus.String())
 	serviceCache := ServiceCache{
 		ServiceType:   serviceType,
@@ -778,7 +778,7 @@ func setCoreServiceStatus(serviceType services_core.ServiceType, serviceStatus s
 	ServicesCacheChannel <- serviceCache
 }
 
-func setNodeServiceStatus(serviceType services_core.ServiceType, nodeId int, serviceStatus services_core.ServiceStatus) {
+func setNodeServiceStatus(serviceType services_helpers.ServiceType, nodeId int, serviceStatus services_helpers.ServiceStatus) {
 	log.Debug().Msgf("%v updating current state to %v for nodeId: %v", serviceType.String(),
 		serviceStatus.String(), nodeId)
 
@@ -811,12 +811,12 @@ func GetClnNodeIds() []int {
 	return <-responseChannel
 }
 
-func InactivateCoreService(ctx context.Context, serviceType services_core.ServiceType) bool {
-	SetDesiredCoreServiceState(serviceType, services_core.Inactive)
+func InactivateCoreService(ctx context.Context, serviceType services_helpers.ServiceType) bool {
+	SetDesiredCoreServiceState(serviceType, services_helpers.Inactive)
 
 	// Fast check in case the state is already what we wanted
 	state := GetCurrentCoreServiceState(serviceType)
-	if state.Status == services_core.Inactive {
+	if state.Status == services_helpers.Inactive {
 		return true
 	}
 
@@ -830,19 +830,19 @@ func InactivateCoreService(ctx context.Context, serviceType services_core.Servic
 			return false
 		case <-ticker.C:
 			state = GetCurrentCoreServiceState(serviceType)
-			if state.Status == services_core.Inactive {
+			if state.Status == services_helpers.Inactive {
 				return true
 			}
 		}
 	}
 }
 
-func ActivateCoreService(ctx context.Context, serviceType services_core.ServiceType) bool {
-	SetDesiredCoreServiceState(serviceType, services_core.Active)
+func ActivateCoreService(ctx context.Context, serviceType services_helpers.ServiceType) bool {
+	SetDesiredCoreServiceState(serviceType, services_helpers.Active)
 
 	// Fast check in case the state is already what we wanted
 	state := GetCurrentCoreServiceState(serviceType)
-	if state.Status != services_core.Inactive {
+	if state.Status != services_helpers.Inactive {
 		return true
 	}
 
@@ -856,19 +856,19 @@ func ActivateCoreService(ctx context.Context, serviceType services_core.ServiceT
 			return false
 		case <-ticker.C:
 			state = GetCurrentCoreServiceState(serviceType)
-			if state.Status != services_core.Inactive {
+			if state.Status != services_helpers.Inactive {
 				return true
 			}
 		}
 	}
 }
 
-func InactivateNodeServiceState(ctx context.Context, serviceType services_core.ServiceType, nodeId int) bool {
-	SetDesiredNodeServiceState(serviceType, nodeId, services_core.Inactive)
+func InactivateNodeServiceState(ctx context.Context, serviceType services_helpers.ServiceType, nodeId int) bool {
+	SetDesiredNodeServiceState(serviceType, nodeId, services_helpers.Inactive)
 
 	// Fast check in case the state is already what we wanted
 	state := GetCurrentNodeServiceState(serviceType, nodeId)
-	if state.Status == services_core.Inactive {
+	if state.Status == services_helpers.Inactive {
 		return true
 	}
 
@@ -882,19 +882,19 @@ func InactivateNodeServiceState(ctx context.Context, serviceType services_core.S
 			return false
 		case <-ticker.C:
 			state = GetCurrentNodeServiceState(serviceType, nodeId)
-			if state.Status == services_core.Inactive {
+			if state.Status == services_helpers.Inactive {
 				return true
 			}
 		}
 	}
 }
 
-func ActivateNodeServiceState(ctx context.Context, serviceType services_core.ServiceType, nodeId int) bool {
-	SetDesiredNodeServiceState(serviceType, nodeId, services_core.Active)
+func ActivateNodeServiceState(ctx context.Context, serviceType services_helpers.ServiceType, nodeId int) bool {
+	SetDesiredNodeServiceState(serviceType, nodeId, services_helpers.Active)
 
 	// Fast check in case the state is already what we wanted
 	state := GetCurrentNodeServiceState(serviceType, nodeId)
-	if state.Status != services_core.Inactive {
+	if state.Status != services_helpers.Inactive {
 		return true
 	}
 
@@ -908,7 +908,7 @@ func ActivateNodeServiceState(ctx context.Context, serviceType services_core.Ser
 			return false
 		case <-ticker.C:
 			state = GetCurrentNodeServiceState(serviceType, nodeId)
-			if state.Status != services_core.Inactive {
+			if state.Status != services_helpers.Inactive {
 				return true
 			}
 		}
@@ -917,22 +917,22 @@ func ActivateNodeServiceState(ctx context.Context, serviceType services_core.Ser
 
 func InactivateNodeService(ctx context.Context, nodeId int) bool {
 	ncd := GetNodeConnectionDetails(nodeId)
-	var serviceTypes []services_core.ServiceType
+	var serviceTypes []services_helpers.ServiceType
 	switch ncd.Implementation {
 	case core.LND:
-		serviceTypes = services_core.GetLndServiceTypes()
+		serviceTypes = services_helpers.GetLndServiceTypes()
 	case core.CLN:
-		serviceTypes = services_core.GetClnServiceTypes()
+		serviceTypes = services_helpers.GetClnServiceTypes()
 	}
 	for _, serviceType := range serviceTypes {
-		SetDesiredNodeServiceState(serviceType, nodeId, services_core.Inactive)
+		SetDesiredNodeServiceState(serviceType, nodeId, services_helpers.Inactive)
 	}
 
 	// Fast check in case the state is already what we wanted
 	allGood := true
 	for _, serviceType := range serviceTypes {
 		state := GetCurrentNodeServiceState(serviceType, nodeId)
-		if state.Status != services_core.Inactive {
+		if state.Status != services_helpers.Inactive {
 			allGood = false
 		}
 	}
@@ -951,7 +951,7 @@ recheck:
 		case <-ticker.C:
 			for _, serviceType := range serviceTypes {
 				state := GetCurrentNodeServiceState(serviceType, nodeId)
-				if state.Status != services_core.Inactive {
+				if state.Status != services_helpers.Inactive {
 					continue recheck
 				}
 			}
@@ -966,27 +966,27 @@ func ActivateLndService(ctx context.Context,
 	pingSystem core.PingSystem) bool {
 
 	ncd := GetNodeConnectionDetails(nodeId)
-	var serviceTypes []services_core.ServiceType
+	var serviceTypes []services_helpers.ServiceType
 	switch ncd.Implementation {
 	case core.LND:
-		serviceTypes = services_core.GetLndServiceTypes()
+		serviceTypes = services_helpers.GetLndServiceTypes()
 	case core.CLN:
-		serviceTypes = services_core.GetClnServiceTypes()
+		serviceTypes = services_helpers.GetClnServiceTypes()
 	}
 
-	var relavantServiceTypes []services_core.ServiceType
+	var relavantServiceTypes []services_helpers.ServiceType
 	for _, serviceType := range serviceTypes {
 		switch serviceType {
-		case services_core.LndServiceVectorService, services_core.LndServiceAmbossService,
-			services_core.ClnServiceVectorService, services_core.ClnServiceAmbossService:
+		case services_helpers.LndServiceVectorService, services_helpers.LndServiceAmbossService,
+			services_helpers.ClnServiceVectorService, services_helpers.ClnServiceAmbossService:
 			if pingSystem&(*serviceType.GetPingSystem()) != 0 {
 				relavantServiceTypes = append(relavantServiceTypes, serviceType)
 			}
-		case services_core.LndServiceTransactionStream,
-			services_core.LndServiceHtlcEventStream,
-			services_core.LndServiceForwardsService,
-			services_core.LndServiceInvoiceStream,
-			services_core.LndServicePaymentsService:
+		case services_helpers.LndServiceTransactionStream,
+			services_helpers.LndServiceHtlcEventStream,
+			services_helpers.LndServiceForwardsService,
+			services_helpers.LndServiceInvoiceStream,
+			services_helpers.LndServicePaymentsService:
 			active := false
 			for _, cs := range serviceType.GetNodeConnectionDetailCustomSettings() {
 				if customSettings&cs != 0 {
@@ -1002,14 +1002,14 @@ func ActivateLndService(ctx context.Context,
 		}
 	}
 	for _, serviceType := range relavantServiceTypes {
-		SetDesiredNodeServiceState(serviceType, nodeId, services_core.Active)
+		SetDesiredNodeServiceState(serviceType, nodeId, services_helpers.Active)
 	}
 
 	// Fast check in case the state is already what we wanted
 	allGood := true
 	for _, serviceType := range relavantServiceTypes {
 		state := GetCurrentNodeServiceState(serviceType, nodeId)
-		if state.Status == services_core.Inactive {
+		if state.Status == services_helpers.Inactive {
 			allGood = false
 		}
 	}
@@ -1028,7 +1028,7 @@ recheck:
 		case <-ticker.C:
 			for _, serviceType := range relavantServiceTypes {
 				state := GetCurrentNodeServiceState(serviceType, nodeId)
-				if state.Status == services_core.Inactive {
+				if state.Status == services_helpers.Inactive {
 					continue recheck
 				}
 			}
@@ -1037,8 +1037,8 @@ recheck:
 	}
 }
 
-func GetSuccessTimes(nodeId int) map[core.ImportType]time.Time {
-	responseChannel := make(chan map[core.ImportType]time.Time)
+func GetSuccessTimes(nodeId int) map[services_helpers.ImportType]time.Time {
+	responseChannel := make(chan map[services_helpers.ImportType]time.Time)
 	serviceCache := ServiceCache{
 		NodeId:          nodeId,
 		Type:            readSuccessTimes,
@@ -1048,7 +1048,7 @@ func GetSuccessTimes(nodeId int) map[core.ImportType]time.Time {
 	return <-responseChannel
 }
 
-func SetSuccessTimes(nodeId int, successTimes map[core.ImportType]time.Time) {
+func SetSuccessTimes(nodeId int, successTimes map[services_helpers.ImportType]time.Time) {
 	serviceCache := ServiceCache{
 		NodeId:       nodeId,
 		Type:         writeSuccessTimes,

@@ -11,7 +11,7 @@ import (
 	cln2 "github.com/lncapital/torq/internal/cln"
 	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/lnd"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/cln"
 	"github.com/lncapital/torq/proto/lnrpc"
 	"github.com/lncapital/torq/proto/lnrpc/chainrpc"
@@ -22,7 +22,7 @@ import (
 
 func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceChannelEventStream
+	serviceType := services_helpers.LndServiceChannelEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -62,7 +62,7 @@ func StartChannelEventStream(ctx context.Context, conn *grpc.ClientConn, db *sql
 
 func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceGraphEventStream
+	serviceType := services_helpers.LndServiceGraphEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -102,7 +102,7 @@ func StartGraphEventStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 func StartHtlcEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceHtlcEventStream
+	serviceType := services_helpers.LndServiceHtlcEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -121,7 +121,7 @@ func StartHtlcEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServicePeerEventStream
+	serviceType := services_helpers.LndServicePeerEventStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -147,7 +147,7 @@ func StartPeerEvents(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, no
 
 func StartTransactionStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceTransactionStream
+	serviceType := services_helpers.LndServiceTransactionStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -170,7 +170,7 @@ func StartTransactionStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx
 
 func StartForwardsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceForwardsService
+	serviceType := services_helpers.LndServiceForwardsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -189,7 +189,7 @@ func StartForwardsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.D
 
 func StartPaymentsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServicePaymentsService
+	serviceType := services_helpers.LndServicePaymentsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -208,7 +208,7 @@ func StartPaymentsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.D
 
 func StartInvoiceStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceInvoiceStream
+	serviceType := services_helpers.LndServiceInvoiceStream
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -227,7 +227,7 @@ func StartInvoiceStream(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB,
 
 func StartInFlightPaymentsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceInFlightPaymentsService
+	serviceType := services_helpers.LndServiceInFlightPaymentsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -246,7 +246,7 @@ func StartInFlightPaymentsService(ctx context.Context, conn *grpc.ClientConn, db
 
 func StartPeersService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.ClnServicePeersService
+	serviceType := services_helpers.ClnServicePeersService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -265,7 +265,7 @@ func StartPeersService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, 
 
 func StartChannelsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.ClnServiceChannelsService
+	serviceType := services_helpers.ClnServiceChannelsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -284,7 +284,7 @@ func StartChannelsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.D
 
 func StartFundsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.ClnServiceFundsService
+	serviceType := services_helpers.ClnServiceFundsService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -303,7 +303,7 @@ func StartFundsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, 
 
 func StartNodesService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.ClnServiceNodesService
+	serviceType := services_helpers.ClnServiceNodesService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -325,7 +325,7 @@ func StartChannelBalanceCacheMaintenance(ctx context.Context,
 	db *sqlx.DB,
 	nodeId int) {
 
-	serviceType := services_core.LndServiceChannelBalanceCacheService
+	serviceType := services_helpers.LndServiceChannelBalanceCacheService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 

@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/zpay32"
 
 	"github.com/lncapital/torq/proto/lnrpc"
@@ -39,7 +39,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	nodeSettings cache.NodeSettingsCache,
 	opt *PayOptions) {
 
-	serviceType := services_core.LndServicePaymentsService
+	serviceType := services_helpers.LndServicePaymentsService
 
 	bootStrapping := true
 	includeIncomplete := cache.HasCustomSetting(nodeSettings.NodeId, core.ImportFailedPayments)
@@ -259,7 +259,7 @@ func UpdateInFlightPayments(ctx context.Context,
 	nodeSettings cache.NodeSettingsCache,
 	opt *PayOptions) {
 
-	serviceType := services_core.LndServiceInFlightPaymentsService
+	serviceType := services_helpers.LndServiceInFlightPaymentsService
 
 	bootStrapping := true
 

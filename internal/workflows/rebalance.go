@@ -15,7 +15,8 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/lightning_helpers"
+	"github.com/lncapital/torq/internal/workflow_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 
 	"github.com/lncapital/torq/proto/lnrpc"
@@ -48,7 +49,7 @@ type Rebalancer struct {
 	RebalanceCtx    context.Context
 	RebalanceCancel context.CancelFunc
 	Runners         map[int]*RebalanceRunner
-	Request         lightning_requests.RebalanceRequest
+	Request         lightning_helpers.RebalanceRequest
 }
 
 type RebalanceRunner struct {
@@ -158,8 +159,8 @@ func RebalanceServiceStart(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 func RebalanceRequests(ctx context.Context,
 	db *sqlx.DB,
-	requests lightning_requests.RebalanceRequests,
-	nodeId int) []lightning_requests.RebalanceResponse {
+	requests lightning_helpers.RebalanceRequests,
+	nodeId int) []lightning_helpers.RebalanceResponse {
 
 	var incoming bool
 	var outgoing bool
@@ -175,12 +176,12 @@ func RebalanceRequests(ctx context.Context,
 			"Rebalance request's ignored because focus was both incoming and outgoing, "+
 				"which is impossible for nodeId: %v", nodeId))
 		log.Error().Err(err).Msg("RebalanceRequests failed")
-		return []lightning_requests.RebalanceResponse{{
-			Request:               lightning_requests.RebalanceRequest{},
-			CommunicationResponse: lightning_requests.CommunicationResponse{},
+		return []lightning_helpers.RebalanceResponse{{
+			Request:               lightning_helpers.RebalanceRequest{},
+			CommunicationResponse: lightning_helpers.CommunicationResponse{},
 		}}
 	}
-	responses := make(map[int]lightning_requests.RebalanceResponse)
+	responses := make(map[int]lightning_helpers.RebalanceResponse)
 	for _, request := range requests.Requests {
 		response := validateRebalanceRequest(request)
 		if response != nil {
@@ -233,10 +234,10 @@ func RebalanceRequests(ctx context.Context,
 			}
 
 			if len(finalChannelIds) == 0 {
-				responses[request.IncomingChannelId] = lightning_requests.RebalanceResponse{
+				responses[request.IncomingChannelId] = lightning_helpers.RebalanceResponse{
 					Request: request,
-					CommunicationResponse: lightning_requests.CommunicationResponse{
-						Status: lightning_requests.Inactive,
+					CommunicationResponse: lightning_helpers.CommunicationResponse{
+						Status: lightning_helpers.Inactive,
 						Error:  "No channelIds found after filtering based on historic records",
 					},
 				}
@@ -260,10 +261,10 @@ func RebalanceRequests(ctx context.Context,
 			rebalancer.RebalanceCtx = rebalancerCtx
 			rebalancer.RebalanceCancel = rebalancerCancel
 			if !addRebalancer(rebalancer) {
-				rebalanceResponse := lightning_requests.RebalanceResponse{
+				rebalanceResponse := lightning_helpers.RebalanceResponse{
 					Request: request,
-					CommunicationResponse: lightning_requests.CommunicationResponse{
-						Status: lightning_requests.Active,
+					CommunicationResponse: lightning_helpers.CommunicationResponse{
+						Status: lightning_helpers.Active,
 					},
 				}
 				rebalanceResponse.Message = fmt.Sprintf(
@@ -274,10 +275,10 @@ func RebalanceRequests(ctx context.Context,
 				responses[request.IncomingChannelId] = rebalanceResponse
 				continue
 			}
-			responses[request.IncomingChannelId] = lightning_requests.RebalanceResponse{
+			responses[request.IncomingChannelId] = lightning_helpers.RebalanceResponse{
 				Request: request,
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Active,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Active,
 				},
 			}
 		}
@@ -297,10 +298,10 @@ func RebalanceRequests(ctx context.Context,
 			}
 
 			if len(finalChannelIds) == 0 {
-				responses[request.OutgoingChannelId] = lightning_requests.RebalanceResponse{
+				responses[request.OutgoingChannelId] = lightning_helpers.RebalanceResponse{
 					Request: request,
-					CommunicationResponse: lightning_requests.CommunicationResponse{
-						Status: lightning_requests.Inactive,
+					CommunicationResponse: lightning_helpers.CommunicationResponse{
+						Status: lightning_helpers.Inactive,
 						Error:  "No channelIds found after filtering based on historic records",
 					},
 				}
@@ -324,10 +325,10 @@ func RebalanceRequests(ctx context.Context,
 			rebalancer.RebalanceCtx = rebalancerCtx
 			rebalancer.RebalanceCancel = rebalancerCancel
 			if !addRebalancer(rebalancer) {
-				rebalanceResponse := lightning_requests.RebalanceResponse{
+				rebalanceResponse := lightning_helpers.RebalanceResponse{
 					Request: request,
-					CommunicationResponse: lightning_requests.CommunicationResponse{
-						Status: lightning_requests.Active,
+					CommunicationResponse: lightning_helpers.CommunicationResponse{
+						Status: lightning_helpers.Active,
 					},
 				}
 				rebalanceResponse.Message = fmt.Sprintf(
@@ -338,15 +339,15 @@ func RebalanceRequests(ctx context.Context,
 				responses[request.OutgoingChannelId] = rebalanceResponse
 				continue
 			}
-			responses[request.OutgoingChannelId] = lightning_requests.RebalanceResponse{
+			responses[request.OutgoingChannelId] = lightning_helpers.RebalanceResponse{
 				Request: request,
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Active,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Active,
 				},
 			}
 		}
 	}
-	var res []lightning_requests.RebalanceResponse
+	var res []lightning_helpers.RebalanceResponse
 	for _, resp := range responses {
 		res = append(res, resp)
 	}
@@ -656,7 +657,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 	var channelIds []int
 	for _, workflowNode := range unfocusedPath {
 		switch workflowNode.Type {
-		case core.WorkflowNodeDataSourceTorqChannels:
+		case workflow_helpers.WorkflowNodeDataSourceTorqChannels:
 			var params TorqChannelsConfiguration
 			err = json.Unmarshal([]byte(workflowNode.Parameters), &params)
 			if err != nil {
@@ -695,7 +696,7 @@ func (rebalancer *Rebalancer) getPendingChannelId() int {
 				log.Error().Err(errors.New(msg)).Msg(msg)
 				return 0
 			}
-		case core.WorkflowNodeChannelFilter:
+		case workflow_helpers.WorkflowNodeChannelFilter:
 			if len(channelIds) == 0 {
 				return 0
 			}
@@ -965,21 +966,21 @@ func (runner *RebalanceRunner) createInvoice(
 	return invoice, nil
 }
 
-func validateRebalanceRequest(request lightning_requests.RebalanceRequest) *lightning_requests.RebalanceResponse {
+func validateRebalanceRequest(request lightning_helpers.RebalanceRequest) *lightning_helpers.RebalanceResponse {
 	if request.IncomingChannelId == 0 && request.OutgoingChannelId == 0 {
-		return &lightning_requests.RebalanceResponse{
+		return &lightning_helpers.RebalanceResponse{
 			Request: request,
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "IncomingChannelId and OutgoingChannelId are 0",
 			},
 		}
 	}
 	if request.IncomingChannelId != 0 && request.OutgoingChannelId != 0 {
-		return &lightning_requests.RebalanceResponse{
+		return &lightning_helpers.RebalanceResponse{
 			Request: request,
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "IncomingChannelId and OutgoingChannelId are populated",
 			},
 		}
@@ -988,19 +989,19 @@ func validateRebalanceRequest(request lightning_requests.RebalanceRequest) *ligh
 	if request.IncomingChannelId != 0 {
 		incomingChannel := cache.GetChannelSettingByChannelId(request.IncomingChannelId)
 		if incomingChannel.Capacity == 0 || incomingChannel.Status != core.Open {
-			return &lightning_requests.RebalanceResponse{
+			return &lightning_helpers.RebalanceResponse{
 				Request: request,
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Inactive,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Inactive,
 					Error:  "IncomingChannelId is invalid",
 				},
 			}
 		}
 		if slices.Contains(request.ChannelIds, request.IncomingChannelId) {
-			return &lightning_requests.RebalanceResponse{
+			return &lightning_helpers.RebalanceResponse{
 				Request: request,
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Inactive,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Inactive,
 					Error: fmt.Sprintf("ChannelIds also contain IncomingChannelId: %v (%v)",
 						request.IncomingChannelId, request.ChannelIds),
 				},
@@ -1010,19 +1011,19 @@ func validateRebalanceRequest(request lightning_requests.RebalanceRequest) *ligh
 	if request.OutgoingChannelId != 0 {
 		outgoingChannel := cache.GetChannelSettingByChannelId(request.OutgoingChannelId)
 		if outgoingChannel.Capacity == 0 || outgoingChannel.Status != core.Open {
-			return &lightning_requests.RebalanceResponse{
+			return &lightning_helpers.RebalanceResponse{
 				Request: request,
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Inactive,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Inactive,
 					Error:  "OutgoingChannelId is invalid",
 				},
 			}
 		}
 		if slices.Contains(request.ChannelIds, request.OutgoingChannelId) {
-			return &lightning_requests.RebalanceResponse{
+			return &lightning_helpers.RebalanceResponse{
 				Request: request,
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Inactive,
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Inactive,
 					Error: fmt.Sprintf("ChannelIds also contain OutgoingChannelId: %v (%v)",
 						request.OutgoingChannelId, request.ChannelIds),
 				},
@@ -1049,12 +1050,12 @@ func validateRebalanceRequest(request lightning_requests.RebalanceRequest) *ligh
 	return nil
 }
 
-func verifyNotZeroUint(request lightning_requests.RebalanceRequest, value uint64, label string) *lightning_requests.RebalanceResponse {
+func verifyNotZeroUint(request lightning_helpers.RebalanceRequest, value uint64, label string) *lightning_helpers.RebalanceResponse {
 	if value == 0 {
-		return &lightning_requests.RebalanceResponse{
+		return &lightning_helpers.RebalanceResponse{
 			Request: request,
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  label + " is 0",
 			},
 		}
@@ -1062,12 +1063,12 @@ func verifyNotZeroUint(request lightning_requests.RebalanceRequest, value uint64
 	return nil
 }
 
-func verifyNotZeroInt(request lightning_requests.RebalanceRequest, value int64, label string) *lightning_requests.RebalanceResponse {
+func verifyNotZeroInt(request lightning_helpers.RebalanceRequest, value int64, label string) *lightning_helpers.RebalanceResponse {
 	if value == 0 {
-		return &lightning_requests.RebalanceResponse{
+		return &lightning_helpers.RebalanceResponse{
 			Request: request,
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  label + " is 0",
 			},
 		}
@@ -1075,7 +1076,7 @@ func verifyNotZeroInt(request lightning_requests.RebalanceRequest, value int64, 
 	return nil
 }
 
-func updateExistingRebalanceRequest(db *sqlx.DB, request lightning_requests.RebalanceRequest) *lightning_requests.RebalanceResponse {
+func updateExistingRebalanceRequest(db *sqlx.DB, request lightning_helpers.RebalanceRequest) *lightning_helpers.RebalanceResponse {
 	rebalancer := getRebalancer(request.Origin, request.OriginId, request.IncomingChannelId, request.OutgoingChannelId)
 	if rebalancer == nil {
 		return nil
@@ -1096,10 +1097,10 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request lightning_requests.Reba
 		err = setRebalancer(db, request, rebalancer)
 	}
 	if err != nil {
-		return &lightning_requests.RebalanceResponse{
+		return &lightning_helpers.RebalanceResponse{
 			Request: request,
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error: fmt.Sprintf(
 					"(%v) for IncomingChannelId: %v, OutgoingChannelId: %v that already has a running rebalancer "+
 						"for origin: %v with originId: %v (ref: %v)",
@@ -1108,10 +1109,10 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request lightning_requests.Reba
 			},
 		}
 	}
-	rebalanceResponse := &lightning_requests.RebalanceResponse{
+	rebalanceResponse := &lightning_helpers.RebalanceResponse{
 		Request: request,
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Active,
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Active,
 		},
 	}
 	if rebalancer.Request.IncomingChannelId != 0 {
@@ -1129,7 +1130,7 @@ func updateExistingRebalanceRequest(db *sqlx.DB, request lightning_requests.Reba
 	return rebalanceResponse
 }
 
-func setRebalancer(db *sqlx.DB, request lightning_requests.RebalanceRequest, rebalancer *Rebalancer) error {
+func setRebalancer(db *sqlx.DB, request lightning_helpers.RebalanceRequest, rebalancer *Rebalancer) error {
 	rebalancer.UpdateOn = time.Now().UTC()
 	rebalancer.Request = request
 	if rebalancer.RebalanceId != 0 {

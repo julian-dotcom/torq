@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/workflow_helpers"
 )
 
 var TriggersCacheChannel = make(chan TriggerCache) //nolint:gochecknoglobals
@@ -28,7 +29,7 @@ type TriggerCache struct {
 	Type                            TriggerCacheOperationType
 	WorkflowVersionId               int
 	TriggeringWorkflowVersionNodeId int
-	TriggeringNodeType              core.WorkflowNodeType
+	TriggeringNodeType              workflow_helpers.WorkflowNodeType
 	TriggeringEvent                 any
 	Reference                       string
 	CancelFunction                  context.CancelFunc
@@ -42,7 +43,7 @@ type TriggerCache struct {
 type TriggerSettingsCache struct {
 	WorkflowVersionId               int
 	TriggeringWorkflowVersionNodeId int
-	TriggeringNodeType              core.WorkflowNodeType
+	TriggeringNodeType              workflow_helpers.WorkflowNodeType
 	Reference                       string
 	CancelFunction                  context.CancelFunc
 	BootTime                        *time.Time
@@ -255,7 +256,7 @@ func GetTimeTriggerSettingsByWorkflowVersionId(workflowVersionId int) TriggerSet
 func GetEventTriggerSettingsByWorkflowVersionId(
 	workflowVersionId int,
 	triggeringWorkflowVersionNodeId int,
-	triggeringNodeType core.WorkflowNodeType,
+	triggeringNodeType workflow_helpers.WorkflowNodeType,
 	triggeringEvent any) TriggerSettingsCache {
 
 	triggerSettingsChannel := make(chan TriggerSettingsCache)
@@ -300,7 +301,7 @@ func ActivateEventTrigger(
 	reference string,
 	workflowVersionId int,
 	triggeringWorkflowVersionNodeId int,
-	triggeringNodeType core.WorkflowNodeType,
+	triggeringNodeType workflow_helpers.WorkflowNodeType,
 	triggeringEvent any,
 	cancel context.CancelFunc) {
 
@@ -322,7 +323,7 @@ func ActivateEventTrigger(
 func DeactivateEventTrigger(
 	workflowVersionId int,
 	triggeringWorkflowVersionNodeId int,
-	triggeringNodeType core.WorkflowNodeType,
+	triggeringNodeType workflow_helpers.WorkflowNodeType,
 	triggeringEvent any) {
 
 	TriggersCacheChannel <- TriggerCache{
@@ -338,7 +339,7 @@ func DeactivateEventTrigger(
 func ScheduleTrigger(
 	reference string,
 	workflowVersionId int,
-	triggeringNodeType core.WorkflowNodeType,
+	triggeringNodeType workflow_helpers.WorkflowNodeType,
 	triggeringWorkflowVersionNodeId int,
 	triggeringEvent any) {
 

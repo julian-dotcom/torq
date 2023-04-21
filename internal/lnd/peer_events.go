@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -33,7 +33,7 @@ func SubscribePeerEvents(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServicePeerEventStream
+	serviceType := services_helpers.LndServicePeerEventStream
 
 	stream, err := client.SubscribePeerEvents(ctx, &lnrpc.PeerEventSubscription{})
 	if err != nil {

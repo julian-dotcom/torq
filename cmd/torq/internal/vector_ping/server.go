@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/build"
@@ -65,10 +65,10 @@ type VectorPingChain struct {
 // Start runs the background server. It sends out a ping to Vector every 20 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn, implementation core.Implementation, nodeId int) {
 
-	serviceType := services_core.LndServiceVectorService
+	serviceType := services_helpers.LndServiceVectorService
 	switch implementation {
 	case core.CLN:
-		serviceType = services_core.ClnServiceVectorService
+		serviceType = services_helpers.ClnServiceVectorService
 	}
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)

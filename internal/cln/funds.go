@@ -13,7 +13,7 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/cln"
 )
 
@@ -30,7 +30,7 @@ func SubscribeAndStoreFunds(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.ClnServiceFundsService
+	serviceType := services_helpers.ClnServiceFundsService
 
 	cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 
@@ -60,7 +60,7 @@ func SubscribeAndStoreFunds(ctx context.Context,
 }
 
 func listAndProcessFunds(ctx context.Context, db *sqlx.DB, client client_ListFunds,
-	serviceType services_core.ServiceType,
+	serviceType services_helpers.ServiceType,
 	nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool) error {
 

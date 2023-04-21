@@ -16,7 +16,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/lightning_helpers"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/routerrpc"
 	"github.com/lncapital/torq/proto/lnrpc/walletrpc"
 
@@ -93,114 +95,124 @@ type lightningService struct {
 	limit chan struct{}
 }
 
-func Information(request lightning_requests.InformationRequest) lightning_requests.InformationResponse {
+func Information(request lightning_helpers.InformationRequest) lightning_helpers.InformationResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.InformationResponse); ok {
+	if res, ok := response.(lightning_helpers.InformationResponse); ok {
 		return res
 	}
-	return lightning_requests.InformationResponse{}
+	return lightning_helpers.InformationResponse{}
 }
 
-func SignMessage(request lightning_requests.SignMessageRequest) lightning_requests.SignMessageResponse {
+func SignMessage(request lightning_helpers.SignMessageRequest) lightning_helpers.SignMessageResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.SignMessageResponse); ok {
+	if res, ok := response.(lightning_helpers.SignMessageResponse); ok {
 		return res
 	}
-	return lightning_requests.SignMessageResponse{}
+	return lightning_helpers.SignMessageResponse{}
 }
 
-func SignatureVerification(request lightning_requests.SignatureVerificationRequest) lightning_requests.SignatureVerificationResponse {
+func SignatureVerification(request lightning_helpers.SignatureVerificationRequest) lightning_helpers.SignatureVerificationResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.SignatureVerificationResponse); ok {
+	if res, ok := response.(lightning_helpers.SignatureVerificationResponse); ok {
 		return res
 	}
-	return lightning_requests.SignatureVerificationResponse{}
+	return lightning_helpers.SignatureVerificationResponse{}
 }
 
-func RoutingPolicyUpdate(request lightning_requests.RoutingPolicyUpdateRequest) lightning_requests.RoutingPolicyUpdateResponse {
+func RoutingPolicyUpdate(request lightning_helpers.RoutingPolicyUpdateRequest) lightning_helpers.RoutingPolicyUpdateResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.RoutingPolicyUpdateResponse); ok {
+	if res, ok := response.(lightning_helpers.RoutingPolicyUpdateResponse); ok {
 		return res
 	}
-	return lightning_requests.RoutingPolicyUpdateResponse{}
+	return lightning_helpers.RoutingPolicyUpdateResponse{}
 }
 
-func ConnectPeer(request lightning_requests.ConnectPeerRequest) lightning_requests.ConnectPeerResponse {
+func ConnectPeer(request lightning_helpers.ConnectPeerRequest) lightning_helpers.ConnectPeerResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.ConnectPeerResponse); ok {
+	if res, ok := response.(lightning_helpers.ConnectPeerResponse); ok {
 		return res
 	}
-	return lightning_requests.ConnectPeerResponse{}
+	return lightning_helpers.ConnectPeerResponse{}
 }
 
-func DisconnectPeer(request lightning_requests.DisconnectPeerRequest) lightning_requests.DisconnectPeerResponse {
+func DisconnectPeer(request lightning_helpers.DisconnectPeerRequest) lightning_helpers.DisconnectPeerResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), disconnectPeerTimeoutInSeconds, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.DisconnectPeerResponse); ok {
+	if res, ok := response.(lightning_helpers.DisconnectPeerResponse); ok {
 		return res
 	}
-	return lightning_requests.DisconnectPeerResponse{}
+	return lightning_helpers.DisconnectPeerResponse{}
 }
 
-func WalletBalance(request lightning_requests.WalletBalanceRequest) lightning_requests.WalletBalanceResponse {
+func WalletBalance(request lightning_helpers.WalletBalanceRequest) lightning_helpers.WalletBalanceResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.WalletBalanceResponse); ok {
+	if res, ok := response.(lightning_helpers.WalletBalanceResponse); ok {
 		return res
 	}
-	return lightning_requests.WalletBalanceResponse{}
+	return lightning_helpers.WalletBalanceResponse{}
 }
 
-func ListPeers(request lightning_requests.ListPeersRequest) lightning_requests.ListPeersResponse {
+func ListPeers(request lightning_helpers.ListPeersRequest) lightning_helpers.ListPeersResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.ListPeersResponse); ok {
+	if res, ok := response.(lightning_helpers.ListPeersResponse); ok {
 		return res
 	}
-	return lightning_requests.ListPeersResponse{}
+	return lightning_helpers.ListPeersResponse{}
 }
 
-func NewAddress(request lightning_requests.NewAddressRequest) lightning_requests.NewAddressResponse {
+func NewAddress(request lightning_helpers.NewAddressRequest) lightning_helpers.NewAddressResponse {
 	responseChan := make(chan any)
 	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.NewAddressResponse); ok {
+	if res, ok := response.(lightning_helpers.NewAddressResponse); ok {
 		return res
 	}
-	return lightning_requests.NewAddressResponse{}
+	return lightning_helpers.NewAddressResponse{}
 }
 
-func OpenChannel(request lightning_requests.OpenChannelRequest) lightning_requests.OpenChannelResponse {
+func OpenChannel(request lightning_helpers.OpenChannelRequest) lightning_helpers.OpenChannelResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 300, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.OpenChannelResponse); ok {
+	if res, ok := response.(lightning_helpers.OpenChannelResponse); ok {
 		return res
 	}
-	return lightning_requests.OpenChannelResponse{}
+	return lightning_helpers.OpenChannelResponse{}
 }
 
-func BatchOpenChannel(request lightning_requests.BatchOpenChannelRequest) lightning_requests.BatchOpenChannelResponse {
+func BatchOpenChannel(request lightning_helpers.BatchOpenChannelRequest) lightning_helpers.BatchOpenChannelResponse {
 	responseChan := make(chan any)
 	processConcurrent(context.Background(), 300, request, responseChan)
 	response := <-responseChan
-	if res, ok := response.(lightning_requests.BatchOpenChannelResponse); ok {
+	if res, ok := response.(lightning_helpers.BatchOpenChannelResponse); ok {
 		return res
 	}
-	return lightning_requests.BatchOpenChannelResponse{}
+	return lightning_helpers.BatchOpenChannelResponse{}
+}
+
+func CloseChannel(request lightning_helpers.CloseChannelRequest) lightning_helpers.CloseChannelResponse {
+	responseChan := make(chan any)
+	processConcurrent(context.Background(), 300, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_helpers.CloseChannelResponse); ok {
+		return res
+	}
+	return lightning_helpers.CloseChannelResponse{}
 }
 
 func ChannelStatusUpdate(request ChannelStatusUpdateRequest) ChannelStatusUpdateResponse {
@@ -330,38 +342,41 @@ func processRequestConcurrent(ctx context.Context, cancel context.CancelFunc, re
 
 func processRequestByType(ctx context.Context, req any, responseChan chan<- any) {
 	switch r := req.(type) {
-	case lightning_requests.InformationRequest:
+	case lightning_helpers.InformationRequest:
 		responseChan <- processGetInfoRequest(ctx, r)
 		return
-	case lightning_requests.SignMessageRequest:
+	case lightning_helpers.SignMessageRequest:
 		responseChan <- processSignMessageRequest(ctx, r)
 		return
-	case lightning_requests.SignatureVerificationRequest:
+	case lightning_helpers.SignatureVerificationRequest:
 		responseChan <- processSignatureVerificationRequest(ctx, r)
 		return
-	case lightning_requests.RoutingPolicyUpdateRequest:
+	case lightning_helpers.RoutingPolicyUpdateRequest:
 		responseChan <- processRoutingPolicyUpdateRequest(ctx, r)
 		return
-	case lightning_requests.ConnectPeerRequest:
+	case lightning_helpers.ConnectPeerRequest:
 		responseChan <- processConnectPeerRequest(ctx, r)
 		return
-	case lightning_requests.DisconnectPeerRequest:
+	case lightning_helpers.DisconnectPeerRequest:
 		responseChan <- processDisconnectPeerRequest(ctx, r)
 		return
-	case lightning_requests.WalletBalanceRequest:
+	case lightning_helpers.WalletBalanceRequest:
 		responseChan <- processWalletBalanceRequest(ctx, r)
 		return
-	case lightning_requests.ListPeersRequest:
+	case lightning_helpers.ListPeersRequest:
 		responseChan <- processListPeersRequest(ctx, r)
 		return
-	case lightning_requests.NewAddressRequest:
+	case lightning_helpers.NewAddressRequest:
 		responseChan <- processNewAddressRequest(ctx, r)
 		return
-	case lightning_requests.OpenChannelRequest:
+	case lightning_helpers.OpenChannelRequest:
 		responseChan <- processOpenChannelRequest(ctx, r)
 		return
-	case lightning_requests.BatchOpenChannelRequest:
+	case lightning_helpers.BatchOpenChannelRequest:
 		responseChan <- processBatchOpenChannelRequest(ctx, r)
+		return
+	case lightning_helpers.CloseChannelRequest:
+		responseChan <- processCloseChannelRequest(ctx, r)
 		return
 	case ChannelStatusUpdateRequest:
 		responseChan <- processChannelStatusUpdateRequest(ctx, r)
@@ -477,11 +492,11 @@ type ImportPeerStatusResponse struct {
 }
 
 func processListPeersRequest(ctx context.Context,
-	request lightning_requests.ListPeersRequest) lightning_requests.ListPeersResponse {
+	request lightning_helpers.ListPeersRequest) lightning_helpers.ListPeersResponse {
 
-	response := lightning_requests.ListPeersResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.ListPeersResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 	}
 
@@ -501,23 +516,23 @@ func processListPeersRequest(ctx context.Context,
 		return response
 	}
 
-	peers := make(map[string]lightning_requests.Peer)
+	peers := make(map[string]lightning_helpers.Peer)
 	for _, peer := range rsp.Peers {
-		peers[peer.PubKey] = lightning_requests.GetPeerLND(peer)
+		peers[peer.PubKey] = lightning_helpers.GetPeerLND(peer)
 	}
 
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	response.Peers = peers
 
 	return response
 }
 
 func processNewAddressRequest(ctx context.Context,
-	request lightning_requests.NewAddressRequest) lightning_requests.NewAddressResponse {
+	request lightning_helpers.NewAddressRequest) lightning_helpers.NewAddressResponse {
 
-	response := lightning_requests.NewAddressResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.NewAddressResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 	}
 
@@ -533,13 +548,13 @@ func processNewAddressRequest(ctx context.Context,
 		lndAddressRequest.Account = request.Account
 	}
 	switch request.Type {
-	case lightning_requests.P2WPKH:
+	case lightning_helpers.P2WPKH:
 		lndAddressRequest.Type = walletrpc.AddressType_WITNESS_PUBKEY_HASH
-	case lightning_requests.P2WKH:
+	case lightning_helpers.P2WKH:
 		lndAddressRequest.Type = walletrpc.AddressType_NESTED_WITNESS_PUBKEY_HASH
-	case lightning_requests.NP2WKH:
+	case lightning_helpers.NP2WKH:
 		lndAddressRequest.Type = walletrpc.AddressType_HYBRID_NESTED_WITNESS_PUBKEY_HASH
-	case lightning_requests.P2TR:
+	case lightning_helpers.P2TR:
 		lndAddressRequest.Type = walletrpc.AddressType_TAPROOT_PUBKEY
 	default:
 		response.Error = "unknown address type"
@@ -551,7 +566,7 @@ func processNewAddressRequest(ctx context.Context,
 		response.Error = err.Error()
 		return response
 	}
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	response.Address = rsp.Addr
 
 	return response
@@ -560,11 +575,11 @@ func processNewAddressRequest(ctx context.Context,
 const openChannelTimeoutInSeconds = 60
 
 func processOpenChannelRequest(ctx context.Context,
-	request lightning_requests.OpenChannelRequest) lightning_requests.OpenChannelResponse {
+	request lightning_helpers.OpenChannelRequest) lightning_helpers.OpenChannelResponse {
 
-	response := lightning_requests.OpenChannelResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.OpenChannelResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 	}
 
@@ -597,11 +612,11 @@ func processOpenChannelRequest(ctx context.Context,
 		response.Error = err.Error()
 		return response
 	}
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	return response
 }
 
-func prepareOpenRequest(request lightning_requests.OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
+func prepareOpenRequest(request lightning_helpers.OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
 	if request.NodeId == 0 {
 		return &lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
 	}
@@ -664,8 +679,8 @@ func prepareOpenRequest(request lightning_requests.OpenChannelRequest) (r *lnrpc
 }
 
 func checkConnectPeer(nodeId int, remotePublicKey string, host string) error {
-	peerList := ListPeers(lightning_requests.ListPeersRequest{
-		CommunicationRequest: lightning_requests.CommunicationRequest{NodeId: nodeId},
+	peerList := ListPeers(lightning_helpers.ListPeersRequest{
+		CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: nodeId},
 		LatestError:          false,
 	})
 	if peerList.Error != "" {
@@ -680,8 +695,8 @@ func checkConnectPeer(nodeId int, remotePublicKey string, host string) error {
 		}
 	}
 
-	req := lightning_requests.ConnectPeerRequest{
-		CommunicationRequest: lightning_requests.CommunicationRequest{NodeId: nodeId},
+	req := lightning_helpers.ConnectPeerRequest{
+		CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: nodeId},
 		PublicKey:            remotePublicKey,
 		Host:                 host,
 	}
@@ -697,7 +712,7 @@ func checkConnectPeer(nodeId int, remotePublicKey string, host string) error {
 func openChannelProcess(ctx context.Context,
 	client lnrpc.LightningClient,
 	openChannelReq *lnrpc.OpenChannelRequest,
-	request lightning_requests.OpenChannelRequest) (lightning_requests.OpenChannelResponse, error) {
+	request lightning_helpers.OpenChannelRequest) (lightning_helpers.OpenChannelResponse, error) {
 
 	// Create a context with a timeout.
 	timeoutCtx, cancel := context.WithTimeout(ctx, openChannelTimeoutInSeconds*time.Second)
@@ -706,14 +721,14 @@ func openChannelProcess(ctx context.Context,
 	// Call OpenChannel with the timeout context.
 	openReq, err := client.OpenChannel(timeoutCtx, openChannelReq)
 	if err != nil {
-		return lightning_requests.OpenChannelResponse{}, errors.Wrap(err, "Close channel request")
+		return lightning_helpers.OpenChannelResponse{}, errors.Wrap(err, "Close channel request")
 	}
 
 	// Loop until we receive an open channel response or the context times out.
 	for {
 		select {
 		case <-timeoutCtx.Done():
-			return lightning_requests.OpenChannelResponse{}, errors.New("Close channel request timeout")
+			return lightning_helpers.OpenChannelResponse{}, errors.New("Close channel request timeout")
 		default:
 		}
 
@@ -723,12 +738,12 @@ func openChannelProcess(ctx context.Context,
 			if err == io.EOF {
 				// TODO FIXME this doesn't look ok?
 				// No more messages to receive, the channel is open.
-				return lightning_requests.OpenChannelResponse{}, nil
+				return lightning_helpers.OpenChannelResponse{}, nil
 			}
-			return lightning_requests.OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
+			return lightning_helpers.OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
 		}
 
-		r := lightning_requests.OpenChannelResponse{
+		r := lightning_helpers.OpenChannelResponse{
 			Request: request,
 		}
 		if resp.Update == nil {
@@ -740,7 +755,7 @@ func openChannelProcess(ctx context.Context,
 			r.ChannelStatus = core.Opening
 			ch, err := chainhash.NewHash(resp.GetChanPending().Txid)
 			if err != nil {
-				return lightning_requests.OpenChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
+				return lightning_helpers.OpenChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
 			}
 			r.FundingTransactionHash = ch.String()
 			r.FundingOutputIndex = resp.GetChanPending().OutputIndex
@@ -751,11 +766,11 @@ func openChannelProcess(ctx context.Context,
 }
 
 func processBatchOpenChannelRequest(ctx context.Context,
-	request lightning_requests.BatchOpenChannelRequest) lightning_requests.BatchOpenChannelResponse {
+	request lightning_helpers.BatchOpenChannelRequest) lightning_helpers.BatchOpenChannelResponse {
 
-	response := lightning_requests.BatchOpenChannelResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.BatchOpenChannelResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 	}
 
@@ -788,7 +803,7 @@ func processBatchOpenChannelRequest(ctx context.Context,
 
 }
 
-func checkPrepareReq(bocReq lightning_requests.BatchOpenChannelRequest) (req *lnrpc.BatchOpenChannelRequest, err error) {
+func checkPrepareReq(bocReq lightning_helpers.BatchOpenChannelRequest) (req *lnrpc.BatchOpenChannelRequest, err error) {
 
 	if bocReq.NodeId == 0 {
 		return req, errors.New("Node id is missing")
@@ -847,18 +862,162 @@ func checkPrepareReq(bocReq lightning_requests.BatchOpenChannelRequest) (req *ln
 }
 
 func processBatchOpenChannelResponse(
-	resp *lnrpc.BatchOpenChannelResponse) (lightning_requests.BatchOpenChannelResponse, error) {
+	resp *lnrpc.BatchOpenChannelResponse) (lightning_helpers.BatchOpenChannelResponse, error) {
 
-	response := lightning_requests.BatchOpenChannelResponse{}
+	response := lightning_helpers.BatchOpenChannelResponse{}
 	for _, pc := range resp.GetPendingChannels() {
 		chanPoint, err := chanPointFromByte(pc.Txid, pc.OutputIndex)
 		if err != nil {
 			log.Error().Msgf("Translate channel point err: %v", err)
-			return lightning_requests.BatchOpenChannelResponse{}, err
+			return lightning_helpers.BatchOpenChannelResponse{}, err
 		}
 		response.PendingChannelPoints = append(response.PendingChannelPoints, chanPoint)
 	}
 	return response, nil
+}
+
+const closeChannelTimeoutInSeconds = 60
+
+func processCloseChannelRequest(ctx context.Context,
+	request lightning_helpers.CloseChannelRequest) lightning_helpers.CloseChannelResponse {
+
+	response := lightning_helpers.CloseChannelResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
+		},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	closeChanReq, err := prepareCloseRequest(request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	client := lnrpc.NewLightningClient(connection)
+
+	// Send Close channel request
+	response, err = closeChannelProcess(ctx, client, closeChanReq, request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	response.Status = lightning_helpers.Active
+	return response
+}
+
+func prepareCloseRequest(ccReq lightning_helpers.CloseChannelRequest) (r *lnrpc.CloseChannelRequest, err error) {
+
+	if ccReq.NodeId == 0 {
+		return &lnrpc.CloseChannelRequest{}, errors.New("Node id is missing")
+	}
+
+	if ccReq.SatPerVbyte != nil && ccReq.TargetConf != nil {
+		return &lnrpc.CloseChannelRequest{}, errors.New("cannot set both SatPerVbyte and TargetConf")
+	}
+
+	channelSettings := cache.GetChannelSettingByChannelId(ccReq.ChannelId)
+
+	if channelSettings.FundingTransactionHash == nil || channelSettings.FundingOutputIndex == nil {
+		return &lnrpc.CloseChannelRequest{}, errors.New("cannot find FundingTransactionHash or OutputIndex")
+	}
+
+	//Make the close channel request
+	closeChanReq := &lnrpc.CloseChannelRequest{
+		ChannelPoint: &lnrpc.ChannelPoint{
+			FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
+				FundingTxidStr: *channelSettings.FundingTransactionHash,
+			},
+			OutputIndex: uint32(*channelSettings.FundingOutputIndex),
+		},
+	}
+
+	if ccReq.Force != nil {
+		closeChanReq.Force = *ccReq.Force
+	}
+
+	if ccReq.TargetConf != nil {
+		closeChanReq.TargetConf = *ccReq.TargetConf
+	}
+
+	if ccReq.SatPerVbyte != nil {
+		closeChanReq.SatPerVbyte = *ccReq.SatPerVbyte
+	}
+
+	if ccReq.DeliveryAddress != nil {
+		closeChanReq.DeliveryAddress = *ccReq.DeliveryAddress
+	}
+
+	return closeChanReq, nil
+}
+
+func closeChannelProcess(ctx context.Context,
+	client lnrpc.LightningClient,
+	lndRequest *lnrpc.CloseChannelRequest,
+	request lightning_helpers.CloseChannelRequest) (lightning_helpers.CloseChannelResponse, error) {
+
+	// Create a context with a timeout.
+	timeoutCtx, cancel := context.WithTimeout(ctx, closeChannelTimeoutInSeconds*time.Second)
+	defer cancel()
+
+	// Call CloseChannel with the timeout context.
+	closeChanRes, err := client.CloseChannel(timeoutCtx, lndRequest)
+	if err != nil {
+		err = errors.Wrap(err, "problem sending closing channel request to LND")
+		log.Error().Err(err).Send()
+		return lightning_helpers.CloseChannelResponse{}, err
+	}
+
+	// Loop until we receive a close channel response or the context times out.
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			return lightning_helpers.CloseChannelResponse{}, errors.New("close channel request timeout")
+		default:
+		}
+
+		// Receive the next close channel response message.
+		resp, err := closeChanRes.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// TODO FIXME this doesn't look ok?
+				// No more messages to receive, the channel is closed.
+				return lightning_helpers.CloseChannelResponse{}, nil
+			}
+			log.Error().Err(errors.Wrap(err, "LND close channel")).Send()
+			return lightning_helpers.CloseChannelResponse{}, errors.Wrap(err, "LND Close channel")
+		}
+
+		// Process the close channel response and see if the channel is pending closure.
+		r := lightning_helpers.CloseChannelResponse{
+			Request: request,
+		}
+		if resp.Update == nil {
+			continue
+		}
+
+		switch resp.GetUpdate().(type) {
+		case *lnrpc.CloseStatusUpdate_ClosePending:
+			r.ChannelStatus = core.Closing
+			ch, err := chainhash.NewHash(resp.GetClosePending().Txid)
+			if err != nil {
+				return lightning_helpers.CloseChannelResponse{}, errors.Wrap(err, "getting closing transaction hash")
+			}
+			r.ClosingTransactionHash = ch.String()
+
+			err = channels.UpdateChannelToClosingByChannelId(request.Db, request.ChannelId, ch.String())
+			if err != nil {
+				return lightning_helpers.CloseChannelResponse{}, errors.Wrap(err, "updating channel to closing status in the db")
+			}
+			return r, nil
+		}
+	}
 }
 
 const disconnectPeerTimeoutInSeconds = 10
@@ -866,11 +1025,11 @@ const disconnectPeerAttemptDelayInSeconds = 1
 const maximumAttempts = 5
 
 func processDisconnectPeerRequest(ctx context.Context,
-	request lightning_requests.DisconnectPeerRequest) lightning_requests.DisconnectPeerResponse {
+	request lightning_helpers.DisconnectPeerRequest) lightning_helpers.DisconnectPeerResponse {
 
-	response := lightning_requests.DisconnectPeerResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.DisconnectPeerResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 		RequestFailedCurrentlyDisconnected: false,
 	}
@@ -897,7 +1056,7 @@ func processDisconnectPeerRequest(ctx context.Context,
 					response.RequestFailedCurrentlyDisconnected = true
 					return response
 				}
-				response.Status = lightning_requests.Active
+				response.Status = lightning_helpers.Active
 				return response
 			}
 			log.Debug().Err(err).Msgf(
@@ -916,7 +1075,7 @@ func processDisconnectPeerRequest(ctx context.Context,
 			return response
 		}
 		if peer == nil {
-			response.Status = lightning_requests.Active
+			response.Status = lightning_helpers.Active
 			return response
 		}
 		if iterationCounter == maximumAttempts {
@@ -948,11 +1107,11 @@ func getPeerByPublicKeyDelayed(ctx context.Context,
 }
 
 func processConnectPeerRequest(ctx context.Context,
-	request lightning_requests.ConnectPeerRequest) lightning_requests.ConnectPeerResponse {
+	request lightning_helpers.ConnectPeerRequest) lightning_helpers.ConnectPeerResponse {
 
-	response := lightning_requests.ConnectPeerResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.ConnectPeerResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 		RequestFailCurrentlyConnected: false,
 	}
@@ -1000,7 +1159,7 @@ func processConnectPeerRequest(ctx context.Context,
 			response.Error = "Connection unsuccessful"
 			return response
 		}
-		response.Status = lightning_requests.Active
+		response.Status = lightning_helpers.Active
 		return response
 	}
 }
@@ -1024,7 +1183,7 @@ func getPeerByPublicKey(ctx context.Context, client lnrpc.LightningClient, publi
 }
 
 func processImportAllChannelsRequest(ctx context.Context, request ImportAllChannelsRequest) ImportAllChannelsResponse {
-	importType := core.ImportAllChannels
+	importType := services_helpers.ImportAllChannels
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
 	response := ImportAllChannelsResponse{
@@ -1087,7 +1246,7 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportAllChann
 func processImportPendingChannelsRequest(ctx context.Context,
 	request ImportPendingChannelsRequest) ImportPendingChannelsResponse {
 
-	importType := core.ImportPendingChannels
+	importType := services_helpers.ImportPendingChannels
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
 	response := ImportPendingChannelsResponse{
@@ -1133,7 +1292,7 @@ func processImportPendingChannelsRequest(ctx context.Context,
 func processImportChannelRoutingPoliciesRequest(ctx context.Context,
 	request ImportChannelRoutingPoliciesRequest) ImportChannelRoutingPoliciesResponse {
 
-	importType := core.ImportChannelRoutingPolicies
+	importType := services_helpers.ImportChannelRoutingPolicies
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
 	response := ImportChannelRoutingPoliciesResponse{
@@ -1171,7 +1330,7 @@ func processImportChannelRoutingPoliciesRequest(ctx context.Context,
 func processImportNodeInformationRequest(ctx context.Context,
 	request ImportNodeInformationRequest) ImportNodeInformationResponse {
 
-	importType := core.ImportNodeInformation
+	importType := services_helpers.ImportNodeInformation
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
 	response := ImportNodeInformationResponse{
@@ -1207,7 +1366,7 @@ func processImportNodeInformationRequest(ctx context.Context,
 }
 
 func processImportPeerStatusRequest(ctx context.Context, request ImportPeerStatusRequest) ImportPeerStatusResponse {
-	importType := core.ImportPeerStatus
+	importType := services_helpers.ImportPeerStatus
 	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
 
 	response := ImportPeerStatusResponse{
@@ -1242,7 +1401,10 @@ func processImportPeerStatusRequest(ctx context.Context, request ImportPeerStatu
 	return response
 }
 
-func getSuccessTimes(nodeId int, force bool, importType core.ImportType) (map[core.ImportType]time.Time, bool) {
+func getSuccessTimes(nodeId int,
+	force bool,
+	importType services_helpers.ImportType) (map[services_helpers.ImportType]time.Time, bool) {
+
 	// TODO FIXME For now there is no concurrency enabled for lightning communication
 	// When concurrency is enabled this need to be revisited
 	successTimes := cache.GetSuccessTimes(nodeId)
@@ -1259,18 +1421,21 @@ func getSuccessTimes(nodeId int, force bool, importType core.ImportType) (map[co
 	return successTimes, false
 }
 
-func setSuccessTime(nodeId int, successTimes map[core.ImportType]time.Time, importType core.ImportType) {
+func setSuccessTime(nodeId int,
+	successTimes map[services_helpers.ImportType]time.Time,
+	importType services_helpers.ImportType) {
+
 	log.Info().Msgf("%v was imported successfully for nodeId: %v.", importType.String(), nodeId)
 	successTimes[importType] = time.Now()
 	cache.SetSuccessTimes(nodeId, successTimes)
 }
 
 func processSignMessageRequest(ctx context.Context,
-	request lightning_requests.SignMessageRequest) lightning_requests.SignMessageResponse {
+	request lightning_helpers.SignMessageRequest) lightning_helpers.SignMessageResponse {
 
-	response := lightning_requests.SignMessageResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.SignMessageResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 		Request: request,
 	}
@@ -1294,17 +1459,17 @@ func processSignMessageRequest(ctx context.Context,
 		return response
 	}
 
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	response.Signature = signMsgResp.Signature
 	return response
 }
 
 func processSignatureVerificationRequest(ctx context.Context,
-	request lightning_requests.SignatureVerificationRequest) lightning_requests.SignatureVerificationResponse {
+	request lightning_helpers.SignatureVerificationRequest) lightning_helpers.SignatureVerificationResponse {
 
-	response := lightning_requests.SignatureVerificationResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.SignatureVerificationResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 		Request: request,
 	}
@@ -1330,18 +1495,18 @@ func processSignatureVerificationRequest(ctx context.Context,
 		return response
 	}
 
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	response.PublicKey = verifyMsgResp.Pubkey
 	response.Valid = verifyMsgResp.GetValid()
 	return response
 }
 
 func processWalletBalanceRequest(ctx context.Context,
-	request lightning_requests.WalletBalanceRequest) lightning_requests.WalletBalanceResponse {
+	request lightning_helpers.WalletBalanceRequest) lightning_helpers.WalletBalanceResponse {
 
-	response := lightning_requests.WalletBalanceResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.WalletBalanceResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 		Request: request,
 	}
@@ -1360,7 +1525,7 @@ func processWalletBalanceRequest(ctx context.Context,
 		return response
 	}
 
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	response.ReservedBalanceAnchorChan = wb.ReservedBalanceAnchorChan
 	response.UnconfirmedBalance = wb.UnconfirmedBalance
 	response.ConfirmedBalance = wb.ConfirmedBalance
@@ -1371,11 +1536,11 @@ func processWalletBalanceRequest(ctx context.Context,
 }
 
 func processGetInfoRequest(ctx context.Context,
-	request lightning_requests.InformationRequest) lightning_requests.InformationResponse {
+	request lightning_helpers.InformationRequest) lightning_helpers.InformationResponse {
 
-	response := lightning_requests.InformationResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Inactive,
+	response := lightning_helpers.InformationResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Inactive,
 		},
 		Request: request,
 	}
@@ -1395,7 +1560,7 @@ func processGetInfoRequest(ctx context.Context,
 	}
 
 	response.Implementation = core.LND
-	response.Status = lightning_requests.Active
+	response.Status = lightning_helpers.Active
 	response.Version = info.Version
 	response.PublicKey = info.IdentityPubkey
 	response.Alias = info.Alias
@@ -1559,7 +1724,7 @@ func validateChannelStatusUpdateRequest(request ChannelStatusUpdateRequest) *Cha
 }
 
 func processRoutingPolicyUpdateRequest(ctx context.Context,
-	request lightning_requests.RoutingPolicyUpdateRequest) lightning_requests.RoutingPolicyUpdateResponse {
+	request lightning_helpers.RoutingPolicyUpdateRequest) lightning_helpers.RoutingPolicyUpdateResponse {
 
 	response := validateRoutingPolicyUpdateRequest(request)
 	if response != nil {
@@ -1568,17 +1733,17 @@ func processRoutingPolicyUpdateRequest(ctx context.Context,
 
 	channelState := cache.GetChannelState(request.NodeId, request.ChannelId, true)
 	if channelState == nil {
-		return lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 			Request: request,
 		}
 	}
 	if !routingPolicyUpdateRequestContainsUpdates(request, channelState) {
-		return lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Active,
+		return lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Active,
 			},
 			Request: request,
 		}
@@ -1601,25 +1766,25 @@ func processRoutingPolicyUpdateRequest(ctx context.Context,
 	return processRoutingPolicyUpdateResponse(request, resp, err)
 }
 
-func processRoutingPolicyUpdateResponse(request lightning_requests.RoutingPolicyUpdateRequest,
+func processRoutingPolicyUpdateResponse(request lightning_helpers.RoutingPolicyUpdateRequest,
 	resp *lnrpc.PolicyUpdateResponse,
-	err error) lightning_requests.RoutingPolicyUpdateResponse {
+	err error) lightning_helpers.RoutingPolicyUpdateResponse {
 
 	if err != nil && resp == nil {
 		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v",
 			request.ChannelId, request.NodeId)
-		return lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 			Request: request,
 		}
 	}
-	var failedUpdateArray []lightning_requests.FailedRequest
+	var failedUpdateArray []lightning_helpers.FailedRequest
 	for _, failedUpdate := range resp.GetFailedUpdates() {
 		log.Error().Msgf("Failed to update routing policy for channelId: %v on nodeId: %v (lnd-grpc error: %v)",
 			request.ChannelId, request.NodeId, failedUpdate.Reason)
-		failedRequest := lightning_requests.FailedRequest{
+		failedRequest := lightning_helpers.FailedRequest{
 			Reason: failedUpdate.UpdateError,
 			Error:  failedUpdate.UpdateError,
 		}
@@ -1628,23 +1793,23 @@ func processRoutingPolicyUpdateResponse(request lightning_requests.RoutingPolicy
 	if err != nil || len(failedUpdateArray) != 0 {
 		log.Error().Err(err).Msgf("Failed to update routing policy for channelId: %v on nodeId: %v",
 			request.ChannelId, request.NodeId)
-		return lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 			},
 			Request:       request,
 			FailedUpdates: failedUpdateArray,
 		}
 	}
-	return lightning_requests.RoutingPolicyUpdateResponse{
-		CommunicationResponse: lightning_requests.CommunicationResponse{
-			Status: lightning_requests.Active,
+	return lightning_helpers.RoutingPolicyUpdateResponse{
+		CommunicationResponse: lightning_helpers.CommunicationResponse{
+			Status: lightning_helpers.Active,
 		},
 		Request: request,
 	}
 }
 
-func constructPolicyUpdateRequest(request lightning_requests.RoutingPolicyUpdateRequest,
+func constructPolicyUpdateRequest(request lightning_helpers.RoutingPolicyUpdateRequest,
 	channelState *cache.ChannelStateSettingsCache) *lnrpc.PolicyUpdateRequest {
 
 	policyUpdateRequest := &lnrpc.PolicyUpdateRequest{}
@@ -1683,34 +1848,34 @@ func constructPolicyUpdateRequest(request lightning_requests.RoutingPolicyUpdate
 }
 
 func validateRoutingPolicyUpdateRequest(
-	request lightning_requests.RoutingPolicyUpdateRequest) *lightning_requests.RoutingPolicyUpdateResponse {
+	request lightning_helpers.RoutingPolicyUpdateRequest) *lightning_helpers.RoutingPolicyUpdateResponse {
 
 	if request.FeeRateMilliMsat == nil &&
 		request.FeeBaseMsat == nil &&
 		request.MaxHtlcMsat == nil &&
 		request.MinHtlcMsat == nil &&
 		request.TimeLockDelta == nil {
-		return &lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status:  lightning_requests.Active,
+		return &lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status:  lightning_helpers.Active,
 				Message: "Nothing changed so update is ignored",
 			},
 			Request: request,
 		}
 	}
 	if request.ChannelId == 0 {
-		return &lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return &lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "ChannelId is 0",
 			},
 			Request: request,
 		}
 	}
 	if request.TimeLockDelta != nil && *request.TimeLockDelta < 18 {
-		return &lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return &lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "TimeLockDelta is < 18",
 			},
 			Request: request,
@@ -1719,9 +1884,9 @@ func validateRoutingPolicyUpdateRequest(
 	channelSettings := cache.GetChannelSettingByChannelId(request.ChannelId)
 	if channelSettings.FundingTransactionHash == nil || *channelSettings.FundingTransactionHash == "" ||
 		channelSettings.FundingOutputIndex == nil {
-		return &lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return &lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  "FundingTransaction information is not known",
 			},
 			Request: request,
@@ -1730,7 +1895,7 @@ func validateRoutingPolicyUpdateRequest(
 	return nil
 }
 
-func routingPolicyUpdateRequestContainsUpdates(request lightning_requests.RoutingPolicyUpdateRequest,
+func routingPolicyUpdateRequestContainsUpdates(request lightning_helpers.RoutingPolicyUpdateRequest,
 	channelState *cache.ChannelStateSettingsCache) bool {
 
 	if request.TimeLockDelta != nil && *request.TimeLockDelta != channelState.LocalTimeLockDelta {
@@ -1752,7 +1917,7 @@ func routingPolicyUpdateRequestContainsUpdates(request lightning_requests.Routin
 }
 
 func routingPolicyUpdateRequestIsRepeated(
-	request lightning_requests.RoutingPolicyUpdateRequest) *lightning_requests.RoutingPolicyUpdateResponse {
+	request lightning_helpers.RoutingPolicyUpdateRequest) *lightning_helpers.RoutingPolicyUpdateResponse {
 
 	rateLimitSeconds := routingPolicyUpdateLimiterSeconds
 	if request.RateLimitSeconds > 0 {
@@ -1760,9 +1925,9 @@ func routingPolicyUpdateRequestIsRepeated(
 	}
 	channelEventsFromGraph, err := graph_events.GetChannelEventFromGraph(request.Db, request.ChannelId, &rateLimitSeconds)
 	if err != nil {
-		return &lightning_requests.RoutingPolicyUpdateResponse{
-			CommunicationResponse: lightning_requests.CommunicationResponse{
-				Status: lightning_requests.Inactive,
+		return &lightning_helpers.RoutingPolicyUpdateResponse{
+			CommunicationResponse: lightning_helpers.CommunicationResponse{
+				Status: lightning_helpers.Inactive,
 				Error:  err.Error(),
 			},
 			Request: request,
@@ -1810,9 +1975,9 @@ func routingPolicyUpdateRequestIsRepeated(
 			minHtlcMsatCounter >= rateLimitCount || maxHtlcMsatCounter >= rateLimitCount ||
 			feeBaseMsatCounter >= rateLimitCount || feeRateMilliMsatCounter >= rateLimitCount {
 
-			return &lightning_requests.RoutingPolicyUpdateResponse{
-				CommunicationResponse: lightning_requests.CommunicationResponse{
-					Status: lightning_requests.Inactive,
+			return &lightning_helpers.RoutingPolicyUpdateResponse{
+				CommunicationResponse: lightning_helpers.CommunicationResponse{
+					Status: lightning_helpers.Inactive,
 					Error: fmt.Sprintf("Routing policy update ignored due to rate limiter for channelId: %v",
 						request.ChannelId),
 				},

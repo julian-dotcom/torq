@@ -1,4 +1,4 @@
-package lightning_requests
+package lightning_helpers
 
 import (
 	"time"
@@ -116,4 +116,11 @@ type BatchOpenChannelResponse struct {
 	Request BatchOpenChannelRequest `json:"request"`
 	CommunicationResponse
 	PendingChannelPoints []string `json:"pendingChannelPoints"`
+}
+
+type CloseChannelResponse struct {
+	Request CloseChannelRequest `json:"request"`
+	CommunicationResponse
+	ChannelStatus          core.ChannelStatus `json:"channelStatus"`
+	ClosingTransactionHash string             `json:"closingTransactionHash"`
 }

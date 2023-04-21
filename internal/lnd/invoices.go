@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/zpay32"
 
 	"github.com/lncapital/torq/proto/lnrpc"
@@ -206,7 +206,7 @@ func fetchLastInvoiceIndexes(db *sqlx.DB, nodeId int) (addIndex uint64, settleIn
 func SubscribeAndStoreInvoices(ctx context.Context, client invoicesClient, db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServiceInvoiceStream
+	serviceType := services_helpers.LndServiceInvoiceStream
 
 	bootStrapping := true
 	importCounter := 0

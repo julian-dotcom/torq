@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -72,7 +72,7 @@ func setAllLndServices(nodeId int,
 	return cache.InactivateNodeService(ctxWithTimeout, nodeId)
 }
 
-func setService(serviceType services_core.ServiceType, nodeId int, active bool) bool {
+func setService(serviceType services_helpers.ServiceType, nodeId int, active bool) bool {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
@@ -136,16 +136,16 @@ func updateSettingsHandler(c *gin.Context, db *sqlx.DB) {
 	}
 	if setts.SlackBotAppToken != nil && *setts.SlackBotAppToken != "" &&
 		setts.SlackOAuthToken != nil && *setts.SlackOAuthToken != "" {
-		cache.SetDesiredCoreServiceState(services_core.SlackService, services_core.Active)
-		cache.SetDesiredCoreServiceState(services_core.NotifierService, services_core.Active)
+		cache.SetDesiredCoreServiceState(services_helpers.SlackService, services_helpers.Active)
+		cache.SetDesiredCoreServiceState(services_helpers.NotifierService, services_helpers.Active)
 	}
 	if setts.TelegramHighPriorityCredentials != nil && *setts.TelegramHighPriorityCredentials != "" {
-		cache.SetDesiredCoreServiceState(services_core.TelegramHighService, services_core.Active)
-		cache.SetDesiredCoreServiceState(services_core.NotifierService, services_core.Active)
+		cache.SetDesiredCoreServiceState(services_helpers.TelegramHighService, services_helpers.Active)
+		cache.SetDesiredCoreServiceState(services_helpers.NotifierService, services_helpers.Active)
 	}
 	if setts.TelegramLowPriorityCredentials != nil && *setts.TelegramLowPriorityCredentials != "" {
-		cache.SetDesiredCoreServiceState(services_core.TelegramLowService, services_core.Active)
-		cache.SetDesiredCoreServiceState(services_core.NotifierService, services_core.Active)
+		cache.SetDesiredCoreServiceState(services_helpers.TelegramLowService, services_helpers.Active)
+		cache.SetDesiredCoreServiceState(services_helpers.NotifierService, services_helpers.Active)
 	}
 	c.JSON(http.StatusOK, setts)
 }
@@ -564,7 +564,7 @@ func setNodeConnectionDetailsPingSystemHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	done := setService(*services_core.GetPingSystemServiceType(ps), nodeId, s == core.Active)
+	done := setService(*services_helpers.GetPingSystemServiceType(ps), nodeId, s == core.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -602,7 +602,7 @@ func setNodeConnectionDetailsCustomSettingHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	done := setService(*services_core.GetNodeConnectionDetailServiceType(cs), nodeId, s == core.Active)
+	done := setService(*services_helpers.GetNodeConnectionDetailServiceType(cs), nodeId, s == core.Active)
 	if !done {
 		server_errors.LogAndSendServerError(c, errors.New("Service failed please try again."))
 		return
@@ -646,7 +646,7 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 		return
 	}
 
-	services := make(map[bool][]services_core.ServiceType)
+	services := make(map[bool][]services_helpers.ServiceType)
 	appendPingSystemServiceType(ps, services, core.Vector)
 	appendPingSystemServiceType(ps, services, core.Amboss)
 	appendCustomSettingServiceType(cs, services, core.ImportFailedPayments, core.ImportPayments)
@@ -679,24 +679,24 @@ func setNodeConnectionDetailsCustomSettingsHandler(c *gin.Context, db *sqlx.DB) 
 }
 
 func appendPingSystemServiceType(ps core.PingSystem,
-	services map[bool][]services_core.ServiceType,
+	services map[bool][]services_helpers.ServiceType,
 	referencePingSystem core.PingSystem) {
 
 	if ps.HasPingSystem(referencePingSystem) {
-		services[true] = append(services[true], *services_core.GetPingSystemServiceType(referencePingSystem))
+		services[true] = append(services[true], *services_helpers.GetPingSystemServiceType(referencePingSystem))
 	} else {
-		services[false] = append(services[false], *services_core.GetPingSystemServiceType(referencePingSystem))
+		services[false] = append(services[false], *services_helpers.GetPingSystemServiceType(referencePingSystem))
 	}
 }
 
 func appendCustomSettingServiceType(cs core.NodeConnectionDetailCustomSettings,
-	services map[bool][]services_core.ServiceType,
+	services map[bool][]services_helpers.ServiceType,
 	referenceCustomSettings ...core.NodeConnectionDetailCustomSettings) {
 
 	active := false
-	var serviceType *services_core.ServiceType
+	var serviceType *services_helpers.ServiceType
 	for ix, referenceCustomSetting := range referenceCustomSettings {
-		st := services_core.GetNodeConnectionDetailServiceType(referenceCustomSettings[ix])
+		st := services_helpers.GetNodeConnectionDetailServiceType(referenceCustomSettings[ix])
 		if serviceType == nil {
 			serviceType = st
 		}

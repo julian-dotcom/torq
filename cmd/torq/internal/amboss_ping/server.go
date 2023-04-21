@@ -12,7 +12,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"google.golang.org/grpc"
@@ -27,10 +27,10 @@ const ambossSleepSeconds = 25
 // Start runs the background server. It sends out a ping to Amboss every 25 seconds.
 func Start(ctx context.Context, conn *grpc.ClientConn, implementation core.Implementation, nodeId int) {
 
-	serviceType := services_core.LndServiceAmbossService
+	serviceType := services_helpers.LndServiceAmbossService
 	switch implementation {
 	case core.CLN:
-		serviceType = services_core.ClnServiceAmbossService
+		serviceType = services_helpers.ClnServiceAmbossService
 	}
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)

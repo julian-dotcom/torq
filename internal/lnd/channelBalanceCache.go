@@ -11,7 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -26,7 +26,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServiceChannelBalanceCacheService
+	serviceType := services_helpers.LndServiceChannelBalanceCacheService
 
 	bootStrapping := true
 	lndSyncTicker := time.NewTicker(channelbalanceTickerSeconds * time.Second)
@@ -83,7 +83,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 
 func synchronizeDataFromLnd(nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool,
-	serviceType services_core.ServiceType,
+	serviceType services_helpers.ServiceType,
 	lndClient lnrpc.LightningClient,
 	db *sqlx.DB,
 	mutex *sync.RWMutex) (bool, error) {

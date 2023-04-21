@@ -107,80 +107,11 @@ const (
 )
 const NodeConnectionDetailCustomSettingsMax = int(ImportHistoricForwards)*2 - 1
 
-type ImportType int
-
-const (
-	ImportChannelRoutingPolicies = ImportType(iota)
-	ImportNodeInformation
-	ImportAllChannels
-	ImportPendingChannels
-	ImportPeerStatus
-)
-
 const (
 	MEMPOOL string = "https://mempool.space/lightning/channel/"
 	AMBOSS  string = "https://amboss.space/edge/"
 	ONEML   string = "https://1ml.com/channel/"
 )
-
-type WorkflowNodeType int
-
-const (
-	WorkflowNodeIntervalTrigger = WorkflowNodeType(iota)
-	WorkflowNodeChannelBalanceEventTrigger
-	WorkflowNodeChannelFilter
-	WorkflowNodeChannelPolicyConfigurator
-	WorkflowNodeRebalanceConfigurator
-	WorkflowNodeStageTrigger
-	WorkflowNodeRebalanceRun
-	WorkflowNodeChannelPolicyRun
-	WorkflowNodeSetVariable
-	WorkflowNodeFilterOnVariable
-	WorkflowTrigger
-	WorkflowNodeAddTag
-	WorkflowNodeRemoveTag
-	WorkflowNodeChannelOpenEventTrigger
-	WorkflowNodeChannelCloseEventTrigger
-	WorkflowNodeCronTrigger
-	WorkflowNodeManualTrigger
-	WorkflowNodeChannelPolicyAutoRun
-	WorkflowNodeRebalanceAutoRun
-	WorkflowNodeDataSourceTorqChannels
-	WorkflowNodeChannelBalanceEventFilter
-)
-
-type WorkflowParameterType string
-
-const (
-	WorkflowParameterTypeChannelIds            = WorkflowParameterType("channelIds")
-	WorkflowParameterTypeRoutingPolicySettings = WorkflowParameterType("routingPolicySettings")
-	WorkflowParameterTypeRebalanceSettings     = WorkflowParameterType("rebalanceSettings")
-	WorkflowParameterTypeTagSettings           = WorkflowParameterType("tagSettings")
-	WorkflowParameterTypeStatus                = WorkflowParameterType("status")
-)
-
-type WorkflowParameterLabel string
-
-const (
-	WorkflowParameterLabelChannels              = WorkflowParameterLabel("channels")
-	WorkflowParameterLabelRoutingPolicySettings = WorkflowParameterLabel("routingPolicySettings")
-	WorkflowParameterLabelRebalanceSettings     = WorkflowParameterLabel("rebalanceSettings")
-	WorkflowParameterLabelTagSettings           = WorkflowParameterLabel("tagSettings")
-	WorkflowParameterLabelIncomingChannels      = WorkflowParameterLabel("incomingChannels")
-	WorkflowParameterLabelOutgoingChannels      = WorkflowParameterLabel("outgoingChannels")
-	WorkflowParameterLabelStatus                = WorkflowParameterLabel("status")
-	WorkflowParameterLabelAllChannels           = WorkflowParameterLabel("allChannels")
-	WorkflowParameterLabelEventChannels         = WorkflowParameterLabel("eventChannels")
-	WorkflowParameterLabelEvents                = WorkflowParameterLabel("events")
-)
-
-type WorkflowNodeTypeParameters struct {
-	WorkflowNodeType WorkflowNodeType
-	RequiredInputs   map[WorkflowParameterLabel]WorkflowParameterType
-	OptionalInputs   map[WorkflowParameterLabel]WorkflowParameterType
-	RequiredOutputs  map[WorkflowParameterLabel]WorkflowParameterType
-	OptionalOutputs  map[WorkflowParameterLabel]WorkflowParameterType
-}
 
 type BalanceUpdateEventOrigin int
 

@@ -11,7 +11,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -363,7 +363,7 @@ func SubscribeAndStoreChannelEvents(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServiceChannelEventStream
+	serviceType := services_helpers.LndServiceChannelEventStream
 
 	stream, err := client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 	if err != nil {

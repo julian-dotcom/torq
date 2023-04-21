@@ -9,7 +9,7 @@ import (
 
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
-	"github.com/lncapital/torq/internal/lightning_requests"
+	"github.com/lncapital/torq/internal/lightning_helpers"
 )
 
 func AddRebalance(db *sqlx.DB, rebalancer Rebalance) (int, error) {
@@ -57,7 +57,7 @@ func AddRebalanceResult(db *sqlx.DB, rebalanceResult RebalanceResult) error {
 }
 
 func GetLatestResultByOrigin(db *sqlx.DB,
-	origin lightning_requests.RebalanceOrigin, originId int,
+	origin lightning_helpers.RebalanceOrigin, originId int,
 	incomingChannelId int, outgoingChannelId int,
 	status core.Status, timeoutInMinutes int) (RebalanceResult, error) {
 	if incomingChannelId == 0 && outgoingChannelId == 0 {

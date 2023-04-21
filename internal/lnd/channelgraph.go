@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -38,7 +38,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServiceGraphEventStream
+	serviceType := services_helpers.LndServiceGraphEventStream
 
 	stream, err := client.SubscribeChannelGraph(ctx, &lnrpc.GraphTopologySubscription{})
 	if err != nil {

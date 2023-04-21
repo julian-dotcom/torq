@@ -9,7 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/chainrpc"
 
 	"github.com/lncapital/torq/proto/lnrpc"
@@ -53,7 +53,7 @@ func SubscribeAndStoreTransactions(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := services_core.LndServiceTransactionStream
+	serviceType := services_helpers.LndServiceTransactionStream
 
 	var transactionHeight uint32
 	var err error

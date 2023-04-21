@@ -10,13 +10,13 @@ import (
 
 	"github.com/lncapital/torq/internal/automation"
 	"github.com/lncapital/torq/internal/cache"
-	"github.com/lncapital/torq/internal/services_core"
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/internal/workflows"
 )
 
 func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.AutomationIntervalTriggerService
+	serviceType := services_helpers.AutomationIntervalTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -37,7 +37,7 @@ func StartIntervalService(ctx context.Context, db *sqlx.DB) {
 
 func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.AutomationChannelBalanceEventTriggerService
+	serviceType := services_helpers.AutomationChannelBalanceEventTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -58,7 +58,7 @@ func StartChannelBalanceEventService(ctx context.Context, db *sqlx.DB) {
 
 func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.AutomationChannelEventTriggerService
+	serviceType := services_helpers.AutomationChannelEventTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -79,7 +79,7 @@ func StartChannelEventService(ctx context.Context, db *sqlx.DB) {
 
 func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.AutomationScheduledTriggerService
+	serviceType := services_helpers.AutomationScheduledTriggerService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -100,7 +100,7 @@ func StartScheduledService(ctx context.Context, db *sqlx.DB) {
 
 func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
 
-	serviceType := services_core.LndServiceRebalanceService
+	serviceType := services_helpers.LndServiceRebalanceService
 
 	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
 
@@ -121,7 +121,7 @@ func StartRebalanceService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.
 
 func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.MaintenanceService
+	serviceType := services_helpers.MaintenanceService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 
@@ -142,7 +142,7 @@ func StartMaintenanceService(ctx context.Context, db *sqlx.DB) {
 
 func StartCronService(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := services_core.CronService
+	serviceType := services_helpers.CronService
 
 	defer log.Info().Msgf("%v terminated", serviceType.String())
 

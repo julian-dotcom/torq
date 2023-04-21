@@ -1,4 +1,4 @@
-package channels
+package lightning
 
 import (
 	"reflect"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/channels"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -44,7 +45,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 
 	lndShortChannelId := uint64(9999)
 	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
-	channel, err := addChannel(db, Channel{
+	channel, err := channels.addChannel(db, channels.Channel{
 		ShortChannelID:         &shortChannelId,
 		Status:                 core.Open,
 		Private:                false,
@@ -75,13 +76,13 @@ func Test_prepareCloseRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   CloseChannelRequest
+		input   channels.CloseChannelRequest
 		want    *lnrpc.CloseChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID not provided",
-			CloseChannelRequest{
+			channels.CloseChannelRequest{
 				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
@@ -91,7 +92,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Both targetConf & satPerVbyte provided",
-			CloseChannelRequest{
+			channels.CloseChannelRequest{
 				NodeId:          cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           nil,
@@ -110,7 +111,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Just mandatory params",
-			CloseChannelRequest{
+			channels.CloseChannelRequest{
 				NodeId:    cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId: channel.ChannelID,
 			},
@@ -121,7 +122,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"All params provide",
-			CloseChannelRequest{
+			channels.CloseChannelRequest{
 				NodeId:          cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 				ChannelId:       channel.ChannelID,
 				Force:           &force,
@@ -139,7 +140,7 @@ func Test_prepareCloseRequest(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := prepareCloseRequest(test.input)
+			got, err := channels.prepareCloseRequest(test.input)
 
 			if err != nil {
 				if test.wantErr {
