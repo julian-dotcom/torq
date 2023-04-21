@@ -207,3 +207,33 @@ type NewAddressRequest struct {
 	//The name of the account to generate a new address for. If empty, the default wallet account is used.
 	Account string `json:"account"`
 }
+
+type OpenChannelRequest struct {
+	CommunicationRequest
+	SatPerVbyte        *uint64 `json:"satPerVbyte"`
+	NodePubKey         string  `json:"nodePubKey"`
+	Host               *string `json:"host"`
+	LocalFundingAmount int64   `json:"localFundingAmount"`
+	PushSat            *int64  `json:"pushSat"`
+	TargetConf         *int32  `json:"targetConf"`
+	Private            *bool   `json:"private"`
+	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
+	RemoteCsvDelay     *uint32 `json:"remoteCsvDelay"`
+	MinConfs           *int32  `json:"minConfs"`
+	SpendUnconfirmed   *bool   `json:"spendUnconfirmed"`
+	CloseAddress       *string `json:"closeAddress"`
+}
+
+type BatchOpenChannel struct {
+	NodePublicKey      string `json:"nodePublicKey"`
+	LocalFundingAmount int64  `json:"localFundingAmount"`
+	PushSat            *int64 `json:"pushSat"`
+	Private            *bool  `json:"private"`
+}
+
+type BatchOpenChannelRequest struct {
+	CommunicationRequest
+	Channels    []BatchOpenChannel `json:"channels"`
+	TargetConf  *int32             `json:"targetConf"`
+	SatPerVbyte *int64             `json:"satPerVbyte"`
+}

@@ -102,3 +102,18 @@ type NewAddressResponse struct {
 	CommunicationResponse
 	Address string `json:"address"`
 }
+
+type OpenChannelResponse struct {
+	Request OpenChannelRequest `json:"request"`
+	CommunicationResponse
+	ChannelStatus          core.ChannelStatus `json:"channelStatus"`
+	ChannelPoint           string             `json:"channelPoint"`
+	FundingTransactionHash string             `json:"fundingTransactionHash,omitempty"`
+	FundingOutputIndex     uint32             `json:"fundingOutputIndex,omitempty"`
+}
+
+type BatchOpenChannelResponse struct {
+	Request BatchOpenChannelRequest `json:"request"`
+	CommunicationResponse
+	PendingChannelPoints []string `json:"pendingChannelPoints"`
+}

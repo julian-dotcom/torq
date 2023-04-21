@@ -249,27 +249,3 @@ type PayOnChainResponse struct {
 	Request PayOnChainRequest `json:"request"`
 	TxId    string            `json:"txId"`
 }
-
-// BATCH OPEN CHANNELS
-type BatchOpenChannel struct {
-	NodePubkey         string  `json:"nodePubkey"`
-	LocalFundingAmount int64   `json:"localFundingAmount"`
-	PushSat            *int64  `json:"pushSat"`
-	Private            *bool   `json:"private"`
-	MinHtlcMsat        *uint64 `json:"minHtlcMsat"`
-}
-
-type BatchOpenRequest struct {
-	NodeId      int                `json:"nodeId"`
-	Channels    []BatchOpenChannel `json:"channels"`
-	TargetConf  *int32             `json:"targetConf"`
-	SatPerVbyte *int64             `json:"satPerVbyte"`
-}
-
-type BatchOpenResponse struct {
-	PendingChannels []PendingChannel `json:"pendingChannels"`
-}
-
-type PendingChannel struct {
-	PendingChannelPoint string `json:"pendingChannelPoint"`
-}

@@ -3,11 +3,14 @@ package lnd
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -92,7 +95,7 @@ type lightningService struct {
 
 func Information(request lightning_requests.InformationRequest) lightning_requests.InformationResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.InformationResponse); ok {
 		return res
@@ -102,7 +105,7 @@ func Information(request lightning_requests.InformationRequest) lightning_reques
 
 func SignMessage(request lightning_requests.SignMessageRequest) lightning_requests.SignMessageResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.SignMessageResponse); ok {
 		return res
@@ -112,7 +115,7 @@ func SignMessage(request lightning_requests.SignMessageRequest) lightning_reques
 
 func SignatureVerification(request lightning_requests.SignatureVerificationRequest) lightning_requests.SignatureVerificationResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.SignatureVerificationResponse); ok {
 		return res
@@ -122,7 +125,7 @@ func SignatureVerification(request lightning_requests.SignatureVerificationReque
 
 func RoutingPolicyUpdate(request lightning_requests.RoutingPolicyUpdateRequest) lightning_requests.RoutingPolicyUpdateResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.RoutingPolicyUpdateResponse); ok {
 		return res
@@ -132,7 +135,7 @@ func RoutingPolicyUpdate(request lightning_requests.RoutingPolicyUpdateRequest) 
 
 func ConnectPeer(request lightning_requests.ConnectPeerRequest) lightning_requests.ConnectPeerResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.ConnectPeerResponse); ok {
 		return res
@@ -142,7 +145,7 @@ func ConnectPeer(request lightning_requests.ConnectPeerRequest) lightning_reques
 
 func DisconnectPeer(request lightning_requests.DisconnectPeerRequest) lightning_requests.DisconnectPeerResponse {
 	responseChan := make(chan any)
-	process(context.Background(), disconnectPeerTimeoutInSeconds, request, responseChan)
+	processConcurrent(context.Background(), disconnectPeerTimeoutInSeconds, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.DisconnectPeerResponse); ok {
 		return res
@@ -152,7 +155,7 @@ func DisconnectPeer(request lightning_requests.DisconnectPeerRequest) lightning_
 
 func WalletBalance(request lightning_requests.WalletBalanceRequest) lightning_requests.WalletBalanceResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.WalletBalanceResponse); ok {
 		return res
@@ -162,7 +165,7 @@ func WalletBalance(request lightning_requests.WalletBalanceRequest) lightning_re
 
 func ListPeers(request lightning_requests.ListPeersRequest) lightning_requests.ListPeersResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.ListPeersResponse); ok {
 		return res
@@ -172,7 +175,7 @@ func ListPeers(request lightning_requests.ListPeersRequest) lightning_requests.L
 
 func NewAddress(request lightning_requests.NewAddressRequest) lightning_requests.NewAddressResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.NewAddressResponse); ok {
 		return res
@@ -180,9 +183,29 @@ func NewAddress(request lightning_requests.NewAddressRequest) lightning_requests
 	return lightning_requests.NewAddressResponse{}
 }
 
+func OpenChannel(request lightning_requests.OpenChannelRequest) lightning_requests.OpenChannelResponse {
+	responseChan := make(chan any)
+	processConcurrent(context.Background(), 300, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_requests.OpenChannelResponse); ok {
+		return res
+	}
+	return lightning_requests.OpenChannelResponse{}
+}
+
+func BatchOpenChannel(request lightning_requests.BatchOpenChannelRequest) lightning_requests.BatchOpenChannelResponse {
+	responseChan := make(chan any)
+	processConcurrent(context.Background(), 300, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_requests.BatchOpenChannelResponse); ok {
+		return res
+	}
+	return lightning_requests.BatchOpenChannelResponse{}
+}
+
 func ChannelStatusUpdate(request ChannelStatusUpdateRequest) ChannelStatusUpdateResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(ChannelStatusUpdateResponse); ok {
 		return res
@@ -192,7 +215,7 @@ func ChannelStatusUpdate(request ChannelStatusUpdateRequest) ChannelStatusUpdate
 
 func ImportAllChannels(request ImportAllChannelsRequest) ImportAllChannelsResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(ImportAllChannelsResponse); ok {
 		return res
@@ -202,7 +225,7 @@ func ImportAllChannels(request ImportAllChannelsRequest) ImportAllChannelsRespon
 
 func ImportPendingChannels(request ImportPendingChannelsRequest) ImportPendingChannelsResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(ImportPendingChannelsResponse); ok {
 		return res
@@ -212,7 +235,7 @@ func ImportPendingChannels(request ImportPendingChannelsRequest) ImportPendingCh
 
 func ImportChannelRoutingPolicies(request ImportChannelRoutingPoliciesRequest) ImportChannelRoutingPoliciesResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(ImportChannelRoutingPoliciesResponse); ok {
 		return res
@@ -222,7 +245,7 @@ func ImportChannelRoutingPolicies(request ImportChannelRoutingPoliciesRequest) I
 
 func ImportNodeInformation(request ImportNodeInformationRequest) ImportNodeInformationResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(ImportNodeInformationResponse); ok {
 		return res
@@ -232,7 +255,7 @@ func ImportNodeInformation(request ImportNodeInformationRequest) ImportNodeInfor
 
 func ImportPeerStatus(request ImportPeerStatusRequest) ImportPeerStatusResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(ImportPeerStatusResponse); ok {
 		return res
@@ -240,15 +263,29 @@ func ImportPeerStatus(request ImportPeerStatusRequest) ImportPeerStatusResponse 
 	return ImportPeerStatusResponse{}
 }
 
-const concurrentWorkLimit = 1
+const concurrentWorkLimit = 10
 
-var service = lightningService{limit: make(chan struct{}, concurrentWorkLimit)} //nolint:gochecknoglobals
+var serviceSequential = lightningService{limit: make(chan struct{}, 1)}                   //nolint:gochecknoglobals
+var serviceConcurrent = lightningService{limit: make(chan struct{}, concurrentWorkLimit)} //nolint:gochecknoglobals
 
-func processRequest(ctx context.Context, cancel context.CancelFunc, req any, responseChan chan<- any) {
+func processSequential(ctx context.Context, timeoutInSeconds int, req any, responseChan chan any) {
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
 
+	select {
+	case <-ctx.Done():
+		cancel()
+		return
+	case serviceSequential.limit <- struct{}{}:
+	}
+
+	go processRequestSequential(ctx, cancel, req, responseChan)
+}
+
+func processRequestSequential(ctx context.Context, cancel context.CancelFunc, req any, responseChan chan<- any) {
 	defer func() {
 		cancel()
-		<-service.limit
+		<-serviceSequential.limit
 	}()
 
 	select {
@@ -258,6 +295,40 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 	default:
 	}
 
+	processRequestByType(ctx, req, responseChan)
+}
+
+func processConcurrent(ctx context.Context, timeoutInSeconds int, req any, responseChan chan any) {
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
+
+	select {
+	case <-ctx.Done():
+		cancel()
+		return
+	case serviceConcurrent.limit <- struct{}{}:
+	}
+
+	go processRequestConcurrent(ctx, cancel, req, responseChan)
+}
+
+func processRequestConcurrent(ctx context.Context, cancel context.CancelFunc, req any, responseChan chan<- any) {
+	defer func() {
+		cancel()
+		<-serviceConcurrent.limit
+	}()
+
+	select {
+	case <-ctx.Done():
+		responseChan <- nil
+		return
+	default:
+	}
+
+	processRequestByType(ctx, req, responseChan)
+}
+
+func processRequestByType(ctx context.Context, req any, responseChan chan<- any) {
 	switch r := req.(type) {
 	case lightning_requests.InformationRequest:
 		responseChan <- processGetInfoRequest(ctx, r)
@@ -286,6 +357,12 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 	case lightning_requests.NewAddressRequest:
 		responseChan <- processNewAddressRequest(ctx, r)
 		return
+	case lightning_requests.OpenChannelRequest:
+		responseChan <- processOpenChannelRequest(ctx, r)
+		return
+	case lightning_requests.BatchOpenChannelRequest:
+		responseChan <- processBatchOpenChannelRequest(ctx, r)
+		return
 	case ChannelStatusUpdateRequest:
 		responseChan <- processChannelStatusUpdateRequest(ctx, r)
 		return
@@ -307,20 +384,6 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 	}
 
 	responseChan <- nil
-}
-
-func process(ctx context.Context, timeoutInSeconds int, req any, responseChan chan any) {
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-
-	select {
-	case <-ctx.Done():
-		cancel()
-		return
-	case service.limit <- struct{}{}:
-	}
-
-	go processRequest(ctx, cancel, req, responseChan)
 }
 
 type ResponseStatus int
@@ -492,6 +555,310 @@ func processNewAddressRequest(ctx context.Context,
 	response.Address = rsp.Addr
 
 	return response
+}
+
+const openChannelTimeoutInSeconds = 60
+
+func processOpenChannelRequest(ctx context.Context,
+	request lightning_requests.OpenChannelRequest) lightning_requests.OpenChannelResponse {
+
+	response := lightning_requests.OpenChannelResponse{
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	openChanReq, err := prepareOpenRequest(request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	client := lnrpc.NewLightningClient(connection)
+
+	//If host provided - check if node is connected to peer and if not, connect peer
+	if request.NodePubKey != "" && request.Host != nil {
+		if err := checkConnectPeer(request.NodeId, request.NodePubKey, *request.Host); err != nil {
+			response.Error = "could not connect to peer"
+			return response
+		}
+	}
+
+	// Send open channel request
+	response, err = openChannelProcess(ctx, client, openChanReq, request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	response.Status = lightning_requests.Active
+	return response
+}
+
+func prepareOpenRequest(request lightning_requests.OpenChannelRequest) (r *lnrpc.OpenChannelRequest, err error) {
+	if request.NodeId == 0 {
+		return &lnrpc.OpenChannelRequest{}, errors.New("Node id is missing")
+	}
+
+	if request.SatPerVbyte != nil && request.TargetConf != nil {
+		return &lnrpc.OpenChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
+	}
+
+	pubKeyHex, err := hex.DecodeString(request.NodePubKey)
+	if err != nil {
+		return &lnrpc.OpenChannelRequest{}, errors.New("error decoding public key hex")
+	}
+
+	//open channel request
+	openChanReq := &lnrpc.OpenChannelRequest{
+		NodePubkey: pubKeyHex,
+
+		// This is the amount we are putting into the channel (channel size)
+		LocalFundingAmount: request.LocalFundingAmount,
+	}
+
+	// The amount to give the other node in the opening process.
+	// NB: This means you will give the other node this amount of sats
+	if request.PushSat != nil {
+		openChanReq.PushSat = *request.PushSat
+	}
+
+	if request.SatPerVbyte != nil {
+		openChanReq.SatPerVbyte = *request.SatPerVbyte
+	}
+
+	if request.TargetConf != nil {
+		openChanReq.TargetConf = *request.TargetConf
+	}
+
+	if request.Private != nil {
+		openChanReq.Private = *request.Private
+	}
+
+	if request.MinHtlcMsat != nil {
+		openChanReq.MinHtlcMsat = int64(*request.MinHtlcMsat)
+	}
+
+	if request.RemoteCsvDelay != nil {
+		openChanReq.RemoteCsvDelay = *request.RemoteCsvDelay
+	}
+
+	if request.MinConfs != nil {
+		openChanReq.MinConfs = *request.MinConfs
+	}
+
+	if request.SpendUnconfirmed != nil {
+		openChanReq.SpendUnconfirmed = *request.SpendUnconfirmed
+	}
+
+	if request.CloseAddress != nil {
+		openChanReq.CloseAddress = *request.CloseAddress
+	}
+	return openChanReq, nil
+}
+
+func checkConnectPeer(nodeId int, remotePublicKey string, host string) error {
+	peerList := ListPeers(lightning_requests.ListPeersRequest{
+		CommunicationRequest: lightning_requests.CommunicationRequest{NodeId: nodeId},
+		LatestError:          false,
+	})
+	if peerList.Error != "" {
+		return errors.Wrap(errors.New(peerList.Error), "List peers")
+	}
+
+	for _, peer := range peerList.Peers {
+		if peer.PubKey == remotePublicKey {
+			// peer found
+			//log.Debug().Msgf("Peer is connected")
+			return nil
+		}
+	}
+
+	req := lightning_requests.ConnectPeerRequest{
+		CommunicationRequest: lightning_requests.CommunicationRequest{NodeId: nodeId},
+		PublicKey:            remotePublicKey,
+		Host:                 host,
+	}
+
+	res := ConnectPeer(req)
+	if res.Error != "" {
+		return errors.Wrap(errors.New(res.Error), "Connect peer")
+	}
+
+	return nil
+}
+
+func openChannelProcess(ctx context.Context,
+	client lnrpc.LightningClient,
+	openChannelReq *lnrpc.OpenChannelRequest,
+	request lightning_requests.OpenChannelRequest) (lightning_requests.OpenChannelResponse, error) {
+
+	// Create a context with a timeout.
+	timeoutCtx, cancel := context.WithTimeout(ctx, openChannelTimeoutInSeconds*time.Second)
+	defer cancel()
+
+	// Call OpenChannel with the timeout context.
+	openReq, err := client.OpenChannel(timeoutCtx, openChannelReq)
+	if err != nil {
+		return lightning_requests.OpenChannelResponse{}, errors.Wrap(err, "Close channel request")
+	}
+
+	// Loop until we receive an open channel response or the context times out.
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			return lightning_requests.OpenChannelResponse{}, errors.New("Close channel request timeout")
+		default:
+		}
+
+		// Receive the next close channel response message.
+		resp, err := openReq.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// TODO FIXME this doesn't look ok?
+				// No more messages to receive, the channel is open.
+				return lightning_requests.OpenChannelResponse{}, nil
+			}
+			return lightning_requests.OpenChannelResponse{}, errors.Wrap(err, "LND Open channel")
+		}
+
+		r := lightning_requests.OpenChannelResponse{
+			Request: request,
+		}
+		if resp.Update == nil {
+			continue
+		}
+
+		switch resp.GetUpdate().(type) {
+		case *lnrpc.OpenStatusUpdate_ChanPending:
+			r.ChannelStatus = core.Opening
+			ch, err := chainhash.NewHash(resp.GetChanPending().Txid)
+			if err != nil {
+				return lightning_requests.OpenChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
+			}
+			r.FundingTransactionHash = ch.String()
+			r.FundingOutputIndex = resp.GetChanPending().OutputIndex
+			r.ChannelPoint = fmt.Sprintf("%s:%d", ch.String(), resp.GetChanPending().OutputIndex)
+			return r, nil
+		}
+	}
+}
+
+func processBatchOpenChannelRequest(ctx context.Context,
+	request lightning_requests.BatchOpenChannelRequest) lightning_requests.BatchOpenChannelResponse {
+
+	response := lightning_requests.BatchOpenChannelResponse{
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	bOpenChanReq, err := checkPrepareReq(request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	client := lnrpc.NewLightningClient(connection)
+	bocResponse, err := client.BatchOpenChannel(ctx, bOpenChanReq)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	r, err := processBatchOpenChannelResponse(bocResponse)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	return r
+
+}
+
+func checkPrepareReq(bocReq lightning_requests.BatchOpenChannelRequest) (req *lnrpc.BatchOpenChannelRequest, err error) {
+
+	if bocReq.NodeId == 0 {
+		return req, errors.New("Node id is missing")
+	}
+
+	if len(bocReq.Channels) == 0 {
+		log.Debug().Msgf("channel array empty")
+		return req, errors.New("Channels array is empty")
+	}
+
+	if bocReq.TargetConf != nil && bocReq.SatPerVbyte != nil {
+		log.Error().Msgf("Only one fee model accepted")
+		return req, errors.New("Either targetConf or satPerVbyte accepted")
+	}
+
+	var boChannels []*lnrpc.BatchOpenChannel
+
+	for i, channel := range bocReq.Channels {
+		var boChannel lnrpc.BatchOpenChannel
+		pubKeyHex, err := hex.DecodeString(channel.NodePublicKey)
+		if err != nil {
+			log.Error().Msgf("Err decoding string: %v, %v", i, err)
+			return req, errors.Wrap(err, "Hex decode string")
+		}
+		boChannel.NodePubkey = pubKeyHex
+
+		if channel.LocalFundingAmount == 0 {
+			log.Debug().Msgf("local funding amt 0")
+			return req, errors.New("Local funding amount 0")
+		}
+		boChannel.LocalFundingAmount = channel.LocalFundingAmount
+
+		if channel.Private != nil {
+			boChannel.Private = *channel.Private
+		}
+
+		if channel.PushSat != nil {
+			boChannel.PushSat = *channel.PushSat
+		}
+		boChannels = append(boChannels, &boChannel)
+	}
+
+	batchOpnReq := &lnrpc.BatchOpenChannelRequest{
+		Channels: boChannels,
+	}
+
+	if bocReq.SatPerVbyte != nil {
+		batchOpnReq.SatPerVbyte = *bocReq.SatPerVbyte
+	}
+
+	if bocReq.TargetConf != nil {
+		batchOpnReq.TargetConf = *bocReq.TargetConf
+	}
+
+	return batchOpnReq, nil
+}
+
+func processBatchOpenChannelResponse(
+	resp *lnrpc.BatchOpenChannelResponse) (lightning_requests.BatchOpenChannelResponse, error) {
+
+	response := lightning_requests.BatchOpenChannelResponse{}
+	for _, pc := range resp.GetPendingChannels() {
+		chanPoint, err := chanPointFromByte(pc.Txid, pc.OutputIndex)
+		if err != nil {
+			log.Error().Msgf("Translate channel point err: %v", err)
+			return lightning_requests.BatchOpenChannelResponse{}, err
+		}
+		response.PendingChannelPoints = append(response.PendingChannelPoints, chanPoint)
+	}
+	return response, nil
 }
 
 const disconnectPeerTimeoutInSeconds = 10

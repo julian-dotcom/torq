@@ -48,7 +48,7 @@ func CloseChannel(db *sqlx.DB, req CloseChannelRequest) (response CloseChannelRe
 		connectionDetails.TLSFileBytes,
 		connectionDetails.MacaroonFileBytes)
 	if err != nil {
-		return CloseChannelResponse{}, errors.Wrap(err, "Connecting to LND")
+		return CloseChannelResponse{}, errors.Wrap(err, "connecting to LND")
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -72,13 +72,13 @@ func prepareCloseRequest(ccReq CloseChannelRequest) (r *lnrpc.CloseChannelReques
 	}
 
 	if ccReq.SatPerVbyte != nil && ccReq.TargetConf != nil {
-		return &lnrpc.CloseChannelRequest{}, errors.New("Cannot set both SatPerVbyte and TargetConf")
+		return &lnrpc.CloseChannelRequest{}, errors.New("cannot set both SatPerVbyte and TargetConf")
 	}
 
 	channelSettings := cache.GetChannelSettingByChannelId(ccReq.ChannelId)
 
 	if channelSettings.FundingTransactionHash == nil || channelSettings.FundingOutputIndex == nil {
-		return &lnrpc.CloseChannelRequest{}, errors.New("Cannot find FundingTransactionHash or OutputIndex")
+		return &lnrpc.CloseChannelRequest{}, errors.New("cannot find FundingTransactionHash or OutputIndex")
 	}
 
 	//Make the close channel request
@@ -122,7 +122,7 @@ func closeChannelResp(db *sqlx.DB,
 	// Call CloseChannel with the timeout context.
 	closeChanRes, err := client.CloseChannel(timeoutCtx, closeChanReq)
 	if err != nil {
-		err = errors.Wrap(err, "Problem sending closing channel request to LND")
+		err = errors.Wrap(err, "problem sending closing channel request to LND")
 		log.Error().Err(err).Send()
 		return CloseChannelResponse{}, err
 	}
@@ -131,7 +131,7 @@ func closeChannelResp(db *sqlx.DB,
 	for {
 		select {
 		case <-timeoutCtx.Done():
-			return CloseChannelResponse{}, errors.New("Close channel request timeout")
+			return CloseChannelResponse{}, errors.New("close channel request timeout")
 		default:
 		}
 
@@ -159,13 +159,13 @@ func closeChannelResp(db *sqlx.DB,
 			r.Status = core.Closing
 			ch, err := chainhash.NewHash(resp.GetClosePending().Txid)
 			if err != nil {
-				return CloseChannelResponse{}, errors.Wrap(err, "Getting closing transaction hash")
+				return CloseChannelResponse{}, errors.Wrap(err, "getting closing transaction hash")
 			}
 			r.ClosingTransactionHash = ch.String()
 
 			err = updateChannelToClosingByChannelId(db, ccReq.ChannelId, ch.String())
 			if err != nil {
-				return CloseChannelResponse{}, errors.Wrap(err, "Updating channel to closing status in the db")
+				return CloseChannelResponse{}, errors.Wrap(err, "updating channel to closing status in the db")
 			}
 			return r, nil
 		}

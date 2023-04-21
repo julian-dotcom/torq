@@ -86,7 +86,7 @@ type lightningService struct {
 func Information(
 	request lightning_requests.InformationRequest) lightning_requests.InformationResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.InformationResponse); ok {
 		return res
@@ -97,7 +97,7 @@ func Information(
 func SignMessage(
 	request lightning_requests.SignMessageRequest) lightning_requests.SignMessageResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.SignMessageResponse); ok {
 		return res
@@ -108,7 +108,7 @@ func SignMessage(
 func SignatureVerification(
 	request lightning_requests.SignatureVerificationRequest) lightning_requests.SignatureVerificationResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.SignatureVerificationResponse); ok {
 		return res
@@ -119,7 +119,7 @@ func SignatureVerification(
 func RoutingPolicyUpdate(
 	request lightning_requests.RoutingPolicyUpdateRequest) lightning_requests.RoutingPolicyUpdateResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.RoutingPolicyUpdateResponse); ok {
 		return res
@@ -130,7 +130,7 @@ func RoutingPolicyUpdate(
 func ConnectPeer(
 	request lightning_requests.ConnectPeerRequest) lightning_requests.ConnectPeerResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.ConnectPeerResponse); ok {
 		return res
@@ -141,7 +141,7 @@ func ConnectPeer(
 func DisconnectPeer(
 	request lightning_requests.DisconnectPeerRequest) lightning_requests.DisconnectPeerResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.DisconnectPeerResponse); ok {
 		return res
@@ -151,7 +151,7 @@ func DisconnectPeer(
 
 func WalletBalance(request lightning_requests.WalletBalanceRequest) lightning_requests.WalletBalanceResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.WalletBalanceResponse); ok {
 		return res
@@ -161,7 +161,7 @@ func WalletBalance(request lightning_requests.WalletBalanceRequest) lightning_re
 
 func ListPeers(request lightning_requests.ListPeersRequest) lightning_requests.ListPeersResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 60, request, responseChan)
+	processConcurrent(context.Background(), 60, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.ListPeersResponse); ok {
 		return res
@@ -171,7 +171,7 @@ func ListPeers(request lightning_requests.ListPeersRequest) lightning_requests.L
 
 func NewAddress(request lightning_requests.NewAddressRequest) lightning_requests.NewAddressResponse {
 	responseChan := make(chan any)
-	process(context.Background(), 2, request, responseChan)
+	processSequential(context.Background(), 2, request, responseChan)
 	response := <-responseChan
 	if res, ok := response.(lightning_requests.NewAddressResponse); ok {
 		return res
@@ -179,15 +179,39 @@ func NewAddress(request lightning_requests.NewAddressRequest) lightning_requests
 	return lightning_requests.NewAddressResponse{}
 }
 
-const concurrentWorkLimit = 1
+func OpenChannel(request lightning_requests.OpenChannelRequest) lightning_requests.OpenChannelResponse {
+	responseChan := make(chan any)
+	processConcurrent(context.Background(), 300, request, responseChan)
+	response := <-responseChan
+	if res, ok := response.(lightning_requests.OpenChannelResponse); ok {
+		return res
+	}
+	return lightning_requests.OpenChannelResponse{}
+}
 
-var service = lightningService{limit: make(chan struct{}, concurrentWorkLimit)} //nolint:gochecknoglobals
+const concurrentWorkLimit = 10
 
-func processRequest(ctx context.Context, cancel context.CancelFunc, req any, responseChan chan<- any) {
+var serviceSequential = lightningService{limit: make(chan struct{}, 1)}                   //nolint:gochecknoglobals
+var serviceConcurrent = lightningService{limit: make(chan struct{}, concurrentWorkLimit)} //nolint:gochecknoglobals
 
+func processSequential(ctx context.Context, timeoutInSeconds int, req any, responseChan chan any) {
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
+
+	select {
+	case <-ctx.Done():
+		cancel()
+		return
+	case serviceSequential.limit <- struct{}{}:
+	}
+
+	go processRequestSequential(ctx, cancel, req, responseChan)
+}
+
+func processRequestSequential(ctx context.Context, cancel context.CancelFunc, req any, responseChan chan<- any) {
 	defer func() {
 		cancel()
-		<-service.limit
+		<-serviceSequential.limit
 	}()
 
 	select {
@@ -197,6 +221,40 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 	default:
 	}
 
+	processRequestByType(ctx, req, responseChan)
+}
+
+func processConcurrent(ctx context.Context, timeoutInSeconds int, req any, responseChan chan any) {
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
+
+	select {
+	case <-ctx.Done():
+		cancel()
+		return
+	case serviceConcurrent.limit <- struct{}{}:
+	}
+
+	go processRequestConcurrent(ctx, cancel, req, responseChan)
+}
+
+func processRequestConcurrent(ctx context.Context, cancel context.CancelFunc, req any, responseChan chan<- any) {
+	defer func() {
+		cancel()
+		<-serviceConcurrent.limit
+	}()
+
+	select {
+	case <-ctx.Done():
+		responseChan <- nil
+		return
+	default:
+	}
+
+	processRequestByType(ctx, req, responseChan)
+}
+
+func processRequestByType(ctx context.Context, req any, responseChan chan<- any) {
 	switch r := req.(type) {
 	case lightning_requests.InformationRequest:
 		responseChan <- processGetInfoRequest(ctx, r)
@@ -225,23 +283,12 @@ func processRequest(ctx context.Context, cancel context.CancelFunc, req any, res
 	case lightning_requests.NewAddressRequest:
 		responseChan <- processNewAddressRequest(ctx, r)
 		return
+	case lightning_requests.OpenChannelRequest:
+		responseChan <- processOpenChannelRequest(ctx, r)
+		return
 	}
 
 	responseChan <- nil
-}
-
-func process(ctx context.Context, timeoutInSeconds int, req any, responseChan chan any) {
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-
-	select {
-	case <-ctx.Done():
-		cancel()
-		return
-	case service.limit <- struct{}{}:
-	}
-
-	go processRequest(ctx, cancel, req, responseChan)
 }
 
 func processGetInfoRequest(ctx context.Context,
@@ -630,6 +677,7 @@ func processConnectPeerRequest(ctx context.Context,
 		CommunicationResponse: lightning_requests.CommunicationResponse{
 			Status: lightning_requests.Inactive,
 		},
+		Request:                       request,
 		RequestFailCurrentlyConnected: false,
 	}
 
@@ -674,6 +722,7 @@ func processDisconnectPeerRequest(ctx context.Context,
 		CommunicationResponse: lightning_requests.CommunicationResponse{
 			Status: lightning_requests.Inactive,
 		},
+		Request:                            request,
 		RequestFailedCurrentlyDisconnected: false,
 	}
 
@@ -759,6 +808,7 @@ func processListPeersRequest(ctx context.Context,
 		CommunicationResponse: lightning_requests.CommunicationResponse{
 			Status: lightning_requests.Inactive,
 		},
+		Request: request,
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -795,6 +845,7 @@ func processNewAddressRequest(ctx context.Context,
 		CommunicationResponse: lightning_requests.CommunicationResponse{
 			Status: lightning_requests.Inactive,
 		},
+		Request: request,
 	}
 
 	connection, err := getConnection(request.NodeId)
@@ -835,4 +886,112 @@ func processNewAddressRequest(ctx context.Context,
 		response.Address = *rsp.Bech32
 	}
 	return response
+}
+
+func processOpenChannelRequest(ctx context.Context,
+	request lightning_requests.OpenChannelRequest) lightning_requests.OpenChannelResponse {
+
+	response := lightning_requests.OpenChannelResponse{
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	connection, err := getConnection(request.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain a GRPC connection.")
+		response.Error = err.Error()
+		return response
+	}
+
+	openChanReq, err := prepareOpenRequest(request)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	client := cln.NewNodeClient(connection)
+	channel, err := client.FundChannel(ctx, openChanReq)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+
+	response.ChannelPoint = fmt.Sprintf("%v:%v", hex.EncodeToString(channel.Txid), channel.Outnum)
+	response.ChannelStatus = core.Opening
+	response.Request = request
+	response.FundingTransactionHash = hex.EncodeToString(channel.Txid)
+	response.FundingOutputIndex = channel.Outnum
+	response.Status = lightning_requests.Active
+	return response
+}
+
+func prepareOpenRequest(request lightning_requests.OpenChannelRequest) (*cln.FundchannelRequest, error) {
+	if request.NodeId == 0 {
+		return nil, errors.New("nodeId is missing")
+	}
+
+	if request.SatPerVbyte != nil && request.TargetConf != nil {
+		return nil, errors.New("Cannot set both SatPerVbyte and TargetConf")
+	}
+
+	pubKeyHex, err := hex.DecodeString(request.NodePubKey)
+	if err != nil {
+		return nil, errors.New("error decoding public key hex")
+	}
+
+	//open channel request
+	openChanReq := &cln.FundchannelRequest{
+		Id: pubKeyHex,
+
+		// This is the amount we are putting into the channel (channel size)
+		Amount: &cln.AmountOrAll{Value: &cln.AmountOrAll_Amount{Amount: &cln.Amount{Msat: uint64(request.LocalFundingAmount * 1_000)},
+		}},
+	}
+
+	// The amount to give the other node in the opening process.
+	// NB: This means you will give the other node this amount of sats
+	if request.PushSat != nil {
+		openChanReq.PushMsat = &cln.Amount{Msat: uint64((*request.PushSat) * 1_000)}
+	}
+
+	if request.SatPerVbyte != nil {
+		// TODO FIXME CLN verify
+		openChanReq.Feerate = &cln.Feerate{Style: &cln.Feerate_Perkw{Perkw: uint32(*request.SatPerVbyte)}}
+	}
+
+	if request.TargetConf != nil {
+		minDept := uint32(*request.TargetConf)
+		openChanReq.Mindepth = &minDept
+	}
+
+	if request.Private != nil {
+		announced := !*request.Private
+		openChanReq.Announce = &announced
+	}
+
+	// TODO FIXME CLN verify
+	//if request.MinHtlcMsat != nil {
+	//	openChanReq.MinHtlcMsat = int64(*request.MinHtlcMsat)
+	//}
+
+	// TODO FIXME CLN verify
+	//if request.RemoteCsvDelay != nil {
+	//	openChanReq.RemoteCsvDelay = *request.RemoteCsvDelay
+	//}
+
+	if request.MinConfs != nil {
+		minConf := uint32(*request.MinConfs)
+		openChanReq.Minconf = &minConf
+	}
+
+	// TODO FIXME CLN verify
+	//if request.SpendUnconfirmed != nil {
+	//	openChanReq.SpendUnconfirmed = *request.SpendUnconfirmed
+	//}
+
+	if request.CloseAddress != nil {
+		openChanReq.CloseTo = request.CloseAddress
+	}
+	return openChanReq, nil
 }

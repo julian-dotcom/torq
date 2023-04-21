@@ -16,6 +16,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/lightning"
+	"github.com/lncapital/torq/internal/lightning_requests"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -186,14 +188,14 @@ type PendingChannel struct {
 	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
 }
 
-func batchOpenHandler(c *gin.Context, db *sqlx.DB) {
-	var batchOpnReq core.BatchOpenRequest
+func batchOpenHandler(c *gin.Context) {
+	var batchOpnReq lightning_requests.BatchOpenChannelRequest
 	if err := c.BindJSON(&batchOpnReq); err != nil {
 		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
 		return
 	}
 
-	response, err := batchOpenChannels(db, batchOpnReq)
+	response, err := lightning.BatchOpenChannel(batchOpnReq)
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Batch open channels")
 		return
@@ -548,15 +550,15 @@ func getChannelAndNodeListHandler(c *gin.Context, db *sqlx.DB) {
 }
 
 // openChannelHandler opens a channel to a peer
-func openChannelHandler(c *gin.Context, db *sqlx.DB) {
-	var openChannelRequest OpenChannelRequest
+func openChannelHandler(c *gin.Context) {
+	var openChannelRequest lightning_requests.OpenChannelRequest
 	err := c.BindJSON(&openChannelRequest)
 	if err != nil {
 		server_errors.SendBadRequest(c, "Can't parse request")
 		return
 	}
 
-	response, err := OpenChannel(openChannelRequest)
+	response, err := lightning.OpenChannel(openChannelRequest)
 	switch {
 	case err != nil && strings.Contains(err.Error(), "connecting to "):
 		serr := server_errors.ServerError{}
@@ -628,7 +630,7 @@ func closeChannelHandler(c *gin.Context, db *sqlx.DB) {
 	response, err := CloseChannel(db, closeChannelRequest)
 	if err != nil {
 		// Check if the error was because the node could not connect to the peer
-		if strings.Contains(err.Error(), "Could not connect to peer.") {
+		if strings.Contains(err.Error(), "could not connect to peer.") {
 			serr := server_errors.ServerError{}
 			serr.AddServerError("Could not connect to peer node.")
 			server_errors.SendBadRequestFieldError(c, &serr)

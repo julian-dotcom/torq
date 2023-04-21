@@ -11,7 +11,8 @@ import (
 	"github.com/lncapital/torq/internal/lnd"
 )
 
-var ServiceInactiveError = errors.New("service is not active") //nolint:gochecknoglobals
+var ServiceInactiveError = errors.New("service is not active")         //nolint:gochecknoglobals
+var UnsupportedOperationError = errors.New("request is not supported") //nolint:gochecknoglobals
 
 func GetInformation(nodeId int) (lightning_requests.InformationResponse, error) {
 	request := lightning_requests.InformationRequest{
@@ -332,6 +333,60 @@ func NewAddress(request lightning_requests.NewAddressRequest) (string, error) {
 		return "", errors.New(response.Error)
 	}
 	return response.Address, nil
+}
+
+func OpenChannel(request lightning_requests.OpenChannelRequest) (lightning_requests.OpenChannelResponse, error) {
+	response := lightning_requests.OpenChannelResponse{
+		Request: request,
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return lightning_requests.OpenChannelResponse{}, ServiceInactiveError
+		}
+		response = lnd.OpenChannel(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return lightning_requests.OpenChannelResponse{}, ServiceInactiveError
+		}
+		response = cln.OpenChannel(request)
+	}
+	if response.Error != "" {
+		return lightning_requests.OpenChannelResponse{}, errors.New(response.Error)
+	}
+	return response, nil
+}
+
+func BatchOpenChannel(request lightning_requests.BatchOpenChannelRequest) (lightning_requests.BatchOpenChannelResponse, error) {
+	response := lightning_requests.BatchOpenChannelResponse{
+		Request: request,
+		CommunicationResponse: lightning_requests.CommunicationResponse{
+			Status: lightning_requests.Inactive,
+		},
+	}
+
+	nodeConnectionDetails := cache.GetNodeConnectionDetails(request.NodeId)
+	switch nodeConnectionDetails.Implementation {
+	case core.LND:
+		if !cache.IsLndServiceActive(request.NodeId) {
+			return lightning_requests.BatchOpenChannelResponse{}, ServiceInactiveError
+		}
+		response = lnd.BatchOpenChannel(request)
+	case core.CLN:
+		if !cache.IsClnServiceActive(request.NodeId) {
+			return lightning_requests.BatchOpenChannelResponse{}, ServiceInactiveError
+		}
+		return lightning_requests.BatchOpenChannelResponse{}, UnsupportedOperationError
+	}
+	if response.Error != "" {
+		return lightning_requests.BatchOpenChannelResponse{}, errors.New(response.Error)
+	}
+	return response, nil
 }
 
 func ImportAllChannels(db *sqlx.DB,
