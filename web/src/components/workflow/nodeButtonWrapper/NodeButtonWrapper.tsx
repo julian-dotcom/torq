@@ -15,6 +15,7 @@ export type WorkflowNodeButtonProps = {
   colorVariant: NodeColorVariant;
   parameters?: string;
   disabled?: boolean;
+  intercomTarget?: string;
 };
 
 function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
@@ -54,6 +55,7 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
   }
   return (
     <div
+      data-intercom-target={props.intercomTarget}
       className={classNames(
         styles.nodeButtonWrapper,
         { [styles.dragging]: isDragging },

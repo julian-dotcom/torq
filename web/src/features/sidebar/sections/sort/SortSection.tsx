@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import {
-  AddSquare20Regular as AddIcon,
+  Add16Regular as AddIcon,
   ArrowSortDownLines16Regular as SortDescIcon,
   Delete16Regular as DismissIcon,
   ReOrder16Regular as ReOrderIcon,
@@ -63,13 +63,18 @@ function SortRow(props: SortRowProps) {
     <Draggable draggableId={`draggable-sort-id-${props.index}`} index={props.index}>
       {(provided, snapshot) => (
         <div
+          data-intercom-target={"view-sort-row"}
           className={classNames(styles.sortRow, {
             dragging: snapshot.isDragging,
           })}
           ref={provided.innerRef}
           {...provided.draggableProps}
         >
-          <div {...provided.dragHandleProps} className={styles.dragHandle}>
+          <div
+            {...provided.dragHandleProps}
+            className={styles.dragHandle}
+            data-intercom-target={"view-sort-row-drag-handle"}
+          >
             <ReOrderIcon />
           </div>
           <div className={styles.labelWrapper}>
@@ -89,12 +94,13 @@ function SortRow(props: SortRowProps) {
           </div>
 
           <div
+            data-intercom-target={"view-sort-row-toggle-direction"}
             className={classNames(styles.directionWrapper, { [styles.asc]: props.orderBy.direction === "asc" })}
             onClick={() => toggleDirection()}
           >
             {<SortDescIcon />}
           </div>
-          <div className={styles.dismissIconWrapper}>
+          <div className={styles.dismissIconWrapper} data-intercom-target={"view-sort--row-delete"}>
             <DismissIcon
               onClick={() => {
                 dispatch(deleteSortBy({ page: props.page, viewIndex: props.viewIndex, sortByIndex: props.index }));
@@ -202,7 +208,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
             onClick={() => handleAddSort()}
             icon={<AddIcon />}
           >
-            {t.Add}
+            {t.add}
           </Button>
         </div>
       </div>

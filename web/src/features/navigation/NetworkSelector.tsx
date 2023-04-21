@@ -18,6 +18,7 @@ function NetworkSelector() {
       <Popover
         button={
           <Button
+            data-intercom-target={"network-selector"}
             buttonColor={ColorVariant.ghost}
             buttonSize={SizeVariant.small}
             icon={<GlobeIcon />}
@@ -28,6 +29,7 @@ function NetworkSelector() {
       >
         <div className={styles.quickToggleContent}>
           <Button
+            data-intercom-target={"network-select-mainnet"}
             buttonColor={activeNetwork === Network.MainNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.MainNet));
@@ -37,6 +39,7 @@ function NetworkSelector() {
             {t.MainNet}
           </Button>
           <Button
+            data-intercom-target={"network-select-testnet"}
             buttonColor={activeNetwork === Network.TestNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.TestNet));
@@ -46,6 +49,7 @@ function NetworkSelector() {
             {t.TestNet}
           </Button>
           <Button
+            data-intercom-target={"network-select-regtest"}
             buttonColor={activeNetwork === Network.RegTest ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.RegTest));
@@ -55,6 +59,7 @@ function NetworkSelector() {
             {t.RegTest}
           </Button>
           <Button
+            data-intercom-target={"network-select-signet"}
             buttonColor={activeNetwork === Network.SigNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SigNet));
@@ -64,6 +69,7 @@ function NetworkSelector() {
             {t.SigNet}
           </Button>
           <Button
+            data-intercom-target={"network-select-simnet"}
             buttonColor={activeNetwork === Network.SimNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SimNet));

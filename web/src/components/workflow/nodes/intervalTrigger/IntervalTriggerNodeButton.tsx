@@ -9,6 +9,7 @@ export function IntervalTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"interval-trigger-button"}
       colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.IntervalTrigger}
       icon={<IntervalTriggerIcon />}

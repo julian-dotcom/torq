@@ -146,60 +146,71 @@ function Settings() {
 
               <form onSubmit={submitPreferences} className={styles.settingsForm}>
                 <Select
+                  data-intercom-target="settings-default-date-range"
                   label={t.defaultDateRange}
                   onChange={handleDefaultDateRangeChange}
                   options={defaultDateRangeOptions}
                   value={defaultDateRangeOptions.find((dd) => dd.value === settingsState?.defaultDateRange)}
                 />
                 <Select
+                  data-intercom-target="settings-default-languag"
                   label={t.language}
                   onChange={handleDefaultLanguageRangeChange}
                   options={languageOptions}
                   value={languageOptions.find((lo) => lo.value === settingsState?.defaultLanguage)}
                 />
-                <div>
-                  <Select
-                    label={t.preferredTimezone}
-                    onChange={handlePreferredTimezoneChange}
-                    options={preferredTimezoneOptions}
-                    value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
-                  />
-                </div>
                 <Select
+                  data-intercom-target="settings-preferred-timezone"
+                  label={t.preferredTimezone}
+                  onChange={handlePreferredTimezoneChange}
+                  options={preferredTimezoneOptions}
+                  value={preferredTimezoneOptions.find((tz) => tz.value === settingsState?.preferredTimezone)}
+                />
+                <Select
+                  data-intercom-target="settings-week-starts-on"
                   label={t.weekStartsOn}
                   onChange={handleWeekStartsOnChange}
                   options={weekStartsOnOptions}
                   value={weekStartsOnOptions.find((dd) => dd.value === settingsState?.weekStartsOn)}
                 />
-                <Input
-                  label={t.slackOAuthToken}
-                  value={settingsState?.slackOAuthToken}
-                  type={"text"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSlackOAuthTokenChange(e.target.value)}
-                />
-                <Input
-                  label={t.slackBotAppToken}
-                  value={settingsState?.slackBotAppToken}
-                  type={"text"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSlackBotAppTokenChange(e.target.value)}
-                />
-                <Input
-                  label={t.telegramHighPriorityCredentials}
-                  value={settingsState?.telegramHighPriorityCredentials}
-                  type={"text"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleTelegramHighPriorityCredentialsChange(e.target.value)
-                  }
-                />
-                <Input
-                  label={t.telegramLowPriorityCredentials}
-                  value={settingsState?.telegramLowPriorityCredentials}
-                  type={"text"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleTelegramLowPriorityCredentialsChange(e.target.value)
-                  }
-                />
+                <div data-intercom-target={"settings-slack-section"}>
+                  <Input
+                    data-intercom-target="settings-slack-oauth-token"
+                    label={t.slackOAuthToken}
+                    value={settingsState?.slackOAuthToken}
+                    type={"text"}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSlackOAuthTokenChange(e.target.value)}
+                  />
+                  <Input
+                    data-intercom-target="settings-slack-bot-app-token"
+                    label={t.slackBotAppToken}
+                    value={settingsState?.slackBotAppToken}
+                    type={"text"}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSlackBotAppTokenChange(e.target.value)}
+                  />
+                </div>
+                <div data-intercom-target={"settings-telegram-section"}>
+                  <Input
+                    data-intercom-target="settings-telegram-high-priority-credentials"
+                    label={t.telegramHighPriorityCredentials}
+                    value={settingsState?.telegramHighPriorityCredentials}
+                    type={"text"}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleTelegramHighPriorityCredentialsChange(e.target.value)
+                    }
+                  />
+                  <Input
+                    data-intercom-target="settings-telegram-low-priority-credentials"
+                    label={t.telegramLowPriorityCredentials}
+                    value={settingsState?.telegramLowPriorityCredentials}
+                    type={"text"}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleTelegramLowPriorityCredentialsChange(e.target.value)
+                    }
+                  />
+                </div>
                 <Button
+                  data-intercom-target="settings-save-button"
                   type={"submit"}
                   icon={<SaveIcon />}
                   buttonColor={ColorVariant.success}
@@ -220,7 +231,12 @@ function Settings() {
                   />
                 ))}
             </div>
-            <Button buttonColor={ColorVariant.success} onClick={addNodeConfiguration} icon={<AddIcon />}>
+            <Button
+              buttonColor={ColorVariant.success}
+              onClick={addNodeConfiguration}
+              icon={<AddIcon />}
+              data-intercom-target={"settings-add-node-button"}
+            >
               {t.addNode}
             </Button>
             <Modal title={t.addNode} show={showAddNodeState} onClose={handleNewNodeModalOnClose}>

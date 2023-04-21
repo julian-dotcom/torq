@@ -12,6 +12,7 @@ export type SummaryCardProps = {
   valueLabel: valueLabel;
   details?: React.ReactNode;
   children?: React.ReactNode;
+  intercomTarget?: string;
 };
 
 function formatValue(value: number, valueLabel: valueLabel): string {
@@ -38,6 +39,7 @@ export default function SummaryCard(props: SummaryCardProps) {
 
   return (
     <div
+      data-intercom-target={props.intercomTarget}
       className={classNames({ [styles.expanded]: showInspection && props.details }, styles.summaryCard)}
       onMouseEnter={() => handleHover(true)}
       onMouseLeave={() => handleHover(false)}

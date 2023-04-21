@@ -9,6 +9,7 @@ export function ChannelBalanceEventFilterNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"channel-balance-event-filter-node-button"}
       colorVariant={NodeColorVariant.accent1}
       nodeType={WorkflowNodeType.ChannelBalanceEventFilter}
       icon={<ChannelBalanceEventFilterIcon />}

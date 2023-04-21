@@ -86,8 +86,11 @@ function FowardsSummaryPage() {
   return (
     <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
       <div className={styles.channelWrapper}>
-        <div className={classNames(styles.pageRow, styles.channelSummary)}>
-          <div className={styles.shortColumn}>
+        <div
+          className={classNames(styles.pageRow, styles.channelSummary)}
+          data-intercom-target={"forwards-summary-container"}
+        >
+          <div className={styles.shortColumn} data-intercom-target={"forwards-summary-stats"}>
             <div className={styles.card}>
               <div className={styles.heading}>Revenue</div>
               <div className={styles.cardRow}>
@@ -149,7 +152,10 @@ function FowardsSummaryPage() {
             </div>
           </div>
 
-          <div className={classNames(styles.card, styles.channelSummaryChart)}>
+          <div
+            className={classNames(styles.card, styles.channelSummaryChart)}
+            data-intercom-target={"forwards-summary-chart"}
+          >
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
@@ -185,10 +191,13 @@ function FowardsSummaryPage() {
           </div>
         </div>
 
-        <div className={styles.pageRow}>
+        <div className={styles.pageRow} data-intercom-target={"forwards-summary-flow-chart"}>
           <div className={styles.card}>
             <div className={styles.profitChartControls}>
-              <div className={styles.profitChartLeftControls}>
+              <div
+                className={styles.profitChartLeftControls}
+                data-intercom-target={"forwards-summary-flow-chart-select"}
+              >
                 <Select
                   value={flowKey}
                   sizeVariant={InputSizeVariant.small}

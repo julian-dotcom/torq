@@ -9,6 +9,7 @@ export function RebalanceConfiguratorNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"rebalance-configurator-node-button"}
       colorVariant={NodeColorVariant.accent1}
       nodeType={WorkflowNodeType.RebalanceConfigurator}
       icon={<RebalanceConfiguratorIcon />}

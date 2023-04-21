@@ -9,4 +9,5 @@ export type BasicInputType = {
   errorText?: string;
   warningText?: string;
   helpText?: string;
+  intercomTarget?: string;
 };

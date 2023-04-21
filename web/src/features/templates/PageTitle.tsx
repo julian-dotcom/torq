@@ -48,6 +48,7 @@ type PageTitleProps = {
   children?: React.ReactNode;
   onNameChange?: (name: string) => void;
   isDraft?: boolean;
+  intercomTarget?: string;
 };
 
 function PageTitle(props: PageTitleProps) {
@@ -81,7 +82,7 @@ function PageTitle(props: PageTitleProps) {
     );
 
   return (
-    <div className={classNames(styles.pageTitleWrapper, props.className)}>
+    <div className={classNames(styles.pageTitleWrapper, props.className)} data-intercom-target={props.intercomTarget}>
       <div className={styles.leftWrapper}>
         <Breadcrumbs breadcrumbs={props.breadcrumbs || []} />
         <h1 className={classNames(styles.titleContainer, props.className)}>{title}</h1>

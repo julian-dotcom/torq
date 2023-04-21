@@ -52,6 +52,7 @@ function TagsPage() {
   return (
     <TablePageTemplate title={t.tags} breadcrumbs={breadcrumbs} tableControls={tableControls}>
       <Table
+        intercomTarget={"tags-table"}
         cellRenderer={tagsCellRenderer}
         data={tagsResponse?.data || []}
         activeColumns={DefaultTagsView.view.columns}

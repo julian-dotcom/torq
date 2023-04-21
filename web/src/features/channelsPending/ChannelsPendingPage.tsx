@@ -6,7 +6,6 @@ import {
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
@@ -95,6 +94,7 @@ function ChannelsPendingPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
+          data-intercom-target="download-table"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -111,6 +111,7 @@ function ChannelsPendingPage() {
           }}
         />
         <Button
+          data-intercom-target="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -118,14 +119,16 @@ function ChannelsPendingPage() {
             channelsResponse.refetch();
           }}
         />
-        <TableControlsButton
-          onClickHandler={() => {
+        <Button
+          onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels Pending" });
             setSidebarExpanded(!sidebarExpanded);
           }}
-          icon={OptionsIcon}
+          icon={<OptionsIcon />}
           id={"tableControlsButton"}
-        />
+        >
+          {t.Options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
@@ -164,6 +167,7 @@ function ChannelsPendingPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"pending-channels-table"}
         cellRenderer={channelsPendingCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}

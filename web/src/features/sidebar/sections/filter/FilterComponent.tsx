@@ -171,12 +171,12 @@ function FilterComponent<T>(props: FilterComponentProps<T>) {
       </div>
 
       <div className={styles.buttonsRow}>
-        <div className={styles.addFilterButton} onClick={addFilter}>
+        <div className={styles.addFilterButton} onClick={addFilter} data-intercom-target={"add-filter"}>
           <AddFilterIcon />
           <span className={styles.buttonText}>{"Add filter"}</span>
         </div>
         {!props.child && (
-          <div className={styles.addFilterButton} onClick={addGroup}>
+          <div className={styles.addFilterButton} onClick={addGroup} data-intercom-target={"add-filter-group"}>
             <AddGroupIcon />
             <span className={styles.buttonText}>{"Add group"}</span>
           </div>

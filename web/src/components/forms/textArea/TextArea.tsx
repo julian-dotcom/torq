@@ -16,7 +16,16 @@ export type InputProps = React.DetailedHTMLProps<
 > &
   Omit<BasicInputType, "leftIcon">;
 
-function TextArea({ label, sizeVariant, colorVariant, errorText, warningText, helpText, ...inputProps }: InputProps) {
+function TextArea({
+  label,
+  sizeVariant,
+  colorVariant,
+  errorText,
+  warningText,
+  helpText,
+  intercomTarget,
+  ...inputProps
+}: InputProps) {
   const inputId = React.useId();
   let inputColorClass = GetColorClass(colorVariant);
   if (warningText != undefined) {
@@ -30,7 +39,10 @@ function TextArea({ label, sizeVariant, colorVariant, errorText, warningText, he
   }
 
   return (
-    <div className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}>
+    <div
+      className={classNames(styles.inputWrapper, GetSizeClass(sizeVariant), inputColorClass)}
+      data-intercom-target={intercomTarget}
+    >
       {label && (
         <div className={labelStyles.labelWrapper}>
           <label htmlFor={inputProps.id || inputId} className={styles.label} title={"Something"}>

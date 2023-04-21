@@ -31,6 +31,7 @@ export default function WorkflowControls(props: WorkflowControlsProps) {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
+            data-intercom-target={"activate-workflow-button"}
             buttonColor={props.status === Status.Active ? ColorVariant.warning : ColorVariant.success}
             hideMobileText={true}
             icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
@@ -54,7 +55,10 @@ export default function WorkflowControls(props: WorkflowControlsProps) {
             {props.status === Status.Active ? t.deactivate : t.activate}
           </Button>
         </TableControlsTabsGroup>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup>
         <Button
+          data-intercom-target={"activate-workflow-actions-button"}
           buttonColor={ColorVariant.primary}
           hideMobileText={true}
           id={"tableControlsButton"}

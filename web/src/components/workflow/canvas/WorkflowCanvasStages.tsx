@@ -133,7 +133,7 @@ function FirstStageTrigger(props: {
   if (props.stage === 1) {
     return (
       <div className={classNames(styles.triggerNodeWrapper)} onDrop={handleDrop}>
-        <div className={styles.triggerNodeContainer}>
+        <div className={styles.triggerNodeContainer} data-intercom-target={"workflow-triggers-container"}>
           <div className={classNames(styles.triggerContainerHeading)}>
             <div>{t.triggers}</div>
             <Button

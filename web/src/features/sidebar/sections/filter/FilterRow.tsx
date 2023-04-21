@@ -262,18 +262,27 @@ function FilterRow({
             {combiner}
           </div>
         )}
-        <div className={styles.filterKeyLabel} onClick={() => setRowExpanded(!rowExpanded)}>
+        <div
+          className={styles.filterKeyLabel}
+          onClick={() => setRowExpanded(!rowExpanded)}
+          data-intercom-target={"filter-row-summary-label"}
+        >
           <span>{label}</span>
           <span className={styles.filterFunctionLabel}>&nbsp;{funcOption?.label}&nbsp;</span>
           <span className={styles.parameterLabel}>{getParameter()}</span>
         </div>
-        <div className={classNames(styles.removeFilter, styles.desktopRemove)} onClick={() => onRemoveFilter(index)}>
+        <div
+          className={classNames(styles.removeFilter, styles.desktopRemove)}
+          onClick={() => onRemoveFilter(index)}
+          data-intercom-target={"remove-filter-row"}
+        >
           <RemoveIcon />
         </div>
       </div>
 
       <div className={classNames(styles.filterOptions, { [styles.expanded]: rowExpanded })}>
         <Select
+          data-intercom-target={"filter-row-key-select"}
           options={filterOptions}
           value={selectData.key}
           onChange={handleKeyChange}
@@ -283,6 +292,7 @@ function FilterRow({
 
         <div className="filter-function-container">
           <Select
+            data-intercom-target={"filter-row-function-select"}
             options={functionOptions}
             value={selectData.func}
             onChange={handleFunctionChange}
@@ -321,6 +331,7 @@ function FilterInputField(props: {
     case "number":
       return (
         <Input
+          data-intercom-target={"filter-row-parameter-input"}
           disabled={editingDisabled}
           formatted={true}
           thousandSeparator=","
@@ -335,6 +346,7 @@ function FilterInputField(props: {
     case "duration":
       return (
         <Input
+          data-intercom-target={"filter-row-parameter-input"}
           disabled={editingDisabled}
           formatted={true}
           thousandSeparator=","
@@ -350,6 +362,7 @@ function FilterInputField(props: {
     case "boolean":
       return (
         <Select
+          data-intercom-target={"filter-row-parameter-input"}
           isDisabled={editingDisabled}
           options={[
             { label: "True", value: true },
@@ -364,6 +377,7 @@ function FilterInputField(props: {
     case "array": {
       return (
         <Select
+          data-intercom-target={"filter-row-parameter-input"}
           isDisabled={editingDisabled}
           isMulti={true}
           options={props.options}
@@ -379,6 +393,7 @@ function FilterInputField(props: {
     case "tag": {
       return (
         <Select
+          data-intercom-target={"filter-row-parameter-input"}
           isDisabled={editingDisabled}
           isMulti={true}
           options={tags}
@@ -394,6 +409,7 @@ function FilterInputField(props: {
     case "enum": {
       return (
         <Select
+          data-intercom-target={"filter-row-parameter-input"}
           isDisabled={editingDisabled}
           isMulti={true}
           options={props.options}
@@ -409,6 +425,7 @@ function FilterInputField(props: {
     case "date":
       return (
         <Input
+          data-intercom-target={"filter-row-parameter-input"}
           disabled={editingDisabled}
           type="datetime-local"
           sizeVariant={InputSizeVariant.small}
@@ -420,6 +437,7 @@ function FilterInputField(props: {
     default:
       return (
         <Input
+          data-intercom-target={"filter-row-parameter-input"}
           disabled={editingDisabled}
           type="text"
           sizeVariant={InputSizeVariant.small}

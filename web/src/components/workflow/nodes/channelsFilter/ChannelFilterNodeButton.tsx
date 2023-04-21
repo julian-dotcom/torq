@@ -9,6 +9,7 @@ export function ChannelFilterNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"channel-filter-node-button"}
       colorVariant={NodeColorVariant.accent1}
       nodeType={WorkflowNodeType.ChannelFilter}
       icon={<ChannelFilterIcon />}

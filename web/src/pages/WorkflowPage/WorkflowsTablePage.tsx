@@ -58,6 +58,7 @@ function WorkflowsTablePage() {
   return (
     <TablePageTemplate title={t.workflows} breadcrumbs={breadcrumbs} tableControls={workflowControls}>
       <Table
+        intercomTarget={"workflows-table"}
         cellRenderer={workflowCellRenderer}
         data={workflowListResponse.data || []}
         activeColumns={columns}

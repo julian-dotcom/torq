@@ -60,6 +60,7 @@ export default function ViewRowComponent(props: ViewRow) {
           {...provided.draggableProps}
         >
           <div
+            data-intercom-target="view-row-drag-handle"
             className={classNames(styles.viewRowDragHandle, { [styles.dragDisabled]: !props.id })}
             {...provided.dragHandleProps}
           >
@@ -68,6 +69,7 @@ export default function ViewRowComponent(props: ViewRow) {
 
           {editView ? (
             <Input
+              data-intercom-target="view-title-input"
               type="text"
               autoFocus={true}
               onChange={handleInputChange}
@@ -80,15 +82,20 @@ export default function ViewRowComponent(props: ViewRow) {
             </div>
           )}
           {editView ? (
-            <button type={"submit"} className={styles.viewRowEdit}>
+            <button type={"submit"} className={styles.viewRowEdit} data-intercom-target={"exit-edit-view-title-button"}>
               <ChckmarkIcon />
             </button>
           ) : (
-            <div className={styles.viewRowEdit} onClick={() => setEditView(true)}>
+            <div
+              className={styles.viewRowEdit}
+              onClick={() => setEditView(true)}
+              data-intercom-target={"edit-view-title-button"}
+            >
               <EditIcon />
             </div>
           )}
           <div
+            data-intercom-target={"save-view-title"}
             className={classNames(styles.viewRowSave, { [styles.clean]: !props.dirty })}
             onClick={() => {
               props.onSaveView(props.viewIndex);
@@ -98,6 +105,7 @@ export default function ViewRowComponent(props: ViewRow) {
           </div>
           {!props.singleView && (
             <div
+              data-intercom-target={"delete-view-button"}
               className={styles.removeView}
               onClick={() => {
                 if (props.id) {

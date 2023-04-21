@@ -19,13 +19,17 @@ export type RadioChipsProps = {
   editingDisabled?: boolean | false;
   helpText?: string;
   vertical?: boolean;
+  intercomTarget?: string;
 };
 
 export default function RadioChips(props: RadioChipsProps) {
   const sizeClass = GetSizeClass(props.sizeVariant || InputSizeVariant.normal);
   const colorClass = GetColorClass(props.colorVariant || InputColorVaraint.primary);
   return (
-    <div className={classNames(styles.radioChipsWrapper, sizeClass, colorClass, { [styles.vertical]: props.vertical })}>
+    <div
+      className={classNames(styles.radioChipsWrapper, sizeClass, colorClass, { [styles.vertical]: props.vertical })}
+      data-intercom-target={props.intercomTarget}
+    >
       {props.label && (
         <div className={labelStyles.labelWrapper}>
           <label htmlFor="groupName" className={styles.radioChipsLabel}>

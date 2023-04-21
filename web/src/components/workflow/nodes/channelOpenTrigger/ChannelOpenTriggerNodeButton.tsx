@@ -9,6 +9,7 @@ export function ChannelOpenTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"channel-open-trigger-node-button"}
       colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.ChannelOpenEventTrigger}
       icon={<Icon />}

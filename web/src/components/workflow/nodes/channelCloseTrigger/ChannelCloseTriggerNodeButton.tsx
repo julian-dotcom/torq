@@ -9,6 +9,7 @@ export function ChannelCloseTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"channel-close-trigger-node-button"}
       colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.ChannelCloseEventTrigger}
       icon={<Icon />}

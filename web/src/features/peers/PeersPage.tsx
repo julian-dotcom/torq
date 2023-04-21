@@ -160,6 +160,7 @@ function PeersPage() {
       isDraft={viewResponse.id === undefined}
     >
       <Table
+        intercomTarget={"peers-table"}
         cellRenderer={peerCellRenderer}
         data={data}
         activeColumns={viewResponse.view.columns || []}

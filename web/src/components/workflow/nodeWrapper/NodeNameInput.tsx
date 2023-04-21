@@ -30,7 +30,7 @@ export default function NodeNameInput(props: NodeNameInputProps) {
   }
 
   return (
-    <div className={styles.title} onDoubleClick={handleDoubleClick}>
+    <div className={styles.title} onDoubleClick={handleDoubleClick} data-intercom-target={"workflow-node-title"}>
       {isVisible ? (
         <Form onSubmit={handleFormSubmit} className={styles.nameForm}>
           <Input

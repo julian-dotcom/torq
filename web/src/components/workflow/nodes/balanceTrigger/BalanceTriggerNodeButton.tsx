@@ -9,6 +9,7 @@ export function BalanceTriggerNodeButton() {
 
   return (
     <WorkflowNodeButtonWrapper
+      intercomTarget={"balance-trigger-node-button"}
       colorVariant={NodeColorVariant.primary}
       nodeType={WorkflowNodeType.ChannelBalanceEventTrigger}
       icon={<Icon />}
