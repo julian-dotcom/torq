@@ -3,7 +3,12 @@ import { useIntercom } from "react-use-intercom";
 import { AnyObject } from "./types";
 
 export const userEvents = () => {
-  const { trackEvent } = useIntercom();
+  const { trackEvent, update } = useIntercom();
+
+  const register = (properties: AnyObject) => {
+    mixpanel.register(properties);
+    update({ customAttributes: properties });
+  };
 
   // Track with both mixpanel and Intercom
   const track = (eventName: string, properties?: AnyObject) => {
@@ -13,5 +18,6 @@ export const userEvents = () => {
 
   return {
     track,
+    register,
   };
 };

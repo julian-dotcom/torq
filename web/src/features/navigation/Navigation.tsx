@@ -1,7 +1,5 @@
 import { useAppDispatch, useAppSelector } from "store/hooks";
-import mixpanel from "mixpanel-browser";
 import { userEvents } from "utils/userEvents";
-import { useIntercom } from "react-use-intercom";
 import { selectHidden, toggleNav } from "./navSlice";
 import classNames from "classnames";
 import MenuItem from "./MenuItem";
@@ -30,31 +28,20 @@ import styles from "./nav.module.scss";
 import * as routes from "constants/routes";
 import useTranslations from "services/i18n/useTranslations";
 import NetworkSelector from "./NetworkSelector";
-import { useEffect } from "react";
-import { useGetAutoLoginSettingQuery, useGetSettingsQuery } from "apiSlice";
+import { useGetAutoLoginSettingQuery } from "apiSlice";
 import MenuButtonItem from "./MenuButtonItem";
 
 function Navigation() {
   const dispatch = useAppDispatch();
-  const { data: settingsData } = useGetSettingsQuery();
   const { data: autoLogin } = useGetAutoLoginSettingQuery();
   const { t } = useTranslations();
-  const { boot } = useIntercom();
-  const { track } = userEvents();
-
-  useEffect(() => {
-    boot({
-      userId: settingsData?.torqUuid,
-      customLauncherSelector: "#intercom-launcher",
-      hideDefaultLauncher: true,
-    });
-  }, [settingsData?.torqUuid]);
+  const { track, register } = userEvents();
 
   const hidden = useAppSelector(selectHidden);
 
   function toggleNavHandler() {
     track("Toggle Navigation");
-    mixpanel.register({ navigation_collapsed: !hidden });
+    register({ navigation_collapsed: !hidden });
     dispatch(toggleNav());
   }
 

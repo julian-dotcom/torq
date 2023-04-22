@@ -207,8 +207,10 @@ class FlowChartCanvas {
         "position: absolute; left: 0; top: 0px; display: none;" // display: none;
       );
 
-    this.context = this.canvas?.node()?.getContext("2d") as CanvasRenderingContext2D;
-    this.interactionContext = this.interactionLayer?.node()?.getContext("2d") as CanvasRenderingContext2D;
+    this.context = this.canvas?.node()?.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+    this.interactionContext = this.interactionLayer
+      ?.node()
+      ?.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
     this.context.imageSmoothingEnabled = false;
     this.interactionContext.imageSmoothingEnabled = false;
 

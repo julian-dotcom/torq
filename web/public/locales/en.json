@@ -427,6 +427,7 @@
     "totalOnChainBalance": "Total On-Chain Balance",
     "totalOffChainBalance": "Total Off-Chain Balance",
     "totalChannelCount": "Total Channel Count",
+    "totalCapacity": "Total Capacity",
     "channels": "Channels",
     "capacity": "Capacity",
     "peers": "peers",

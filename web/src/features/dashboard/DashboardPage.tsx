@@ -67,7 +67,10 @@ interface allNodesSummary {
   localBalance: number;
   totalBalance: number;
   channels: number;
+  totalCapacity: number;
 }
+
+type channelReduceReturnType = Record<number, nodeChannelSummary>;
 
 function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSummary {
   if (!nodeSummaries) return {} as allNodesSummary;
@@ -80,11 +83,20 @@ function CalculateTotals(nodeSummaries: nodeSummary[] | undefined): allNodesSumm
         acc.onChainBalance += node.onChainBalance ?? 0;
         acc.channels += node.channels ?? 0;
         acc.totalBalance += node.totalBalance ?? 0;
+        acc.totalCapacity += node.capacity ?? 0;
         return acc;
       },
-      { onChainBalance: 0, offChainBalance: 0, localBalance: 0, totalBalance: 0, channels: 0 }
+      {
+        onChainBalance: 0,
+        offChainBalance: 0,
+        localBalance: 0,
+        totalBalance: 0,
+        channels: 0,
+        totalCapacity: 0,
+      }
     );
 }
+
 function DashboardPage() {
   const { t } = useTranslations();
   const { track } = userEvents();
@@ -141,8 +153,6 @@ function DashboardPage() {
     });
     navigate("/settings", { replace: true });
   };
-
-  type channelReduceReturnType = Record<number, nodeChannelSummary>;
 
   //process channels based on node
   const nodesOpenChannelSummary = channelsResponse?.data?.reduce<channelReduceReturnType>((acc, channel) => {
@@ -283,22 +293,23 @@ function DashboardPage() {
             heading={t.dashboardPage.totalBalance}
             value={totalsSummary?.totalBalance}
             valueLabel={t.dashboardPage.btc}
-          ></SummaryCard>
+          />
           <SummaryCard
             heading={t.dashboardPage.totalOnChainBalance}
             value={totalsSummary?.onChainBalance}
             valueLabel={t.dashboardPage.btc}
-          ></SummaryCard>
+          />
           <SummaryCard
             heading={t.dashboardPage.totalOffChainBalance}
             value={totalsSummary?.localBalance}
             valueLabel={t.dashboardPage.btc}
-          ></SummaryCard>
+          />
+          <SummaryCard heading={t.dashboardPage.totalChannelCount} value={totalsSummary?.channels} valueLabel={""} />
           <SummaryCard
-            heading={t.dashboardPage.totalChannelCount}
-            value={totalsSummary?.channels}
-            valueLabel={""}
-          ></SummaryCard>
+            heading={t.dashboardPage.totalCapacity}
+            value={totalsSummary?.totalCapacity}
+            valueLabel={t.dashboardPage.btc}
+          />
         </div>
 
         {nodeSummaries?.map((node) => {
@@ -328,19 +339,19 @@ function DashboardPage() {
                       </div>
                     </div>
                   }
-                ></SummaryCard>
+                />
                 <SummaryCard
                   heading={t.dashboardPage.totalOffChainBalance}
                   intercomTarget={"dashboard-offchain-balance-details"}
                   value={node.localBalance}
                   valueLabel={t.dashboardPage.btc}
-                ></SummaryCard>
+                />
                 <SummaryCard
                   heading={t.dashboardPage.totalBalance}
                   intercomTarget={"dashboard-total-balance-details"}
                   value={node.totalBalance}
                   valueLabel={t.dashboardPage.btc}
-                ></SummaryCard>
+                />
                 <SummaryCard
                   heading={t.dashboardPage.channels}
                   intercomTarget={"dashboard-channel-count-details"}
@@ -362,13 +373,13 @@ function DashboardPage() {
                       </div>
                     </div>
                   }
-                ></SummaryCard>
+                />
                 <SummaryCard
                   heading={t.dashboardPage.capacity}
                   intercomTarget={"dashboard-capacity-details"}
                   value={node.capacity}
                   valueLabel={t.dashboardPage.btc}
-                ></SummaryCard>
+                />
                 <SummaryCard
                   heading={t.dashboardPage.publicKey}
                   intercomTarget={"dashboard-public-key-details"}
