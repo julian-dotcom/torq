@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useMatch } from "react-router-dom";
 import { useAppSelector } from "store/hooks";
 import { selectHidden } from "features/navigation/navSlice";
@@ -24,25 +24,18 @@ function DefaultLayout() {
   const { boot } = useIntercom();
   const hidden = useAppSelector(selectHidden);
   const isDashboardPage = useMatch("/");
-  const { data: settingsData, isSuccess: settingsDataSuccess } = useGetSettingsQuery();
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const { data: nodeConfigurations, isSuccess: nodeConfigurationSuccess } = useGetNodeConfigurationsQuery();
   const { data: servicesData, isSuccess: servicesDataSuccess } = useGetServicesQuery();
   const { data: nodes, isSuccess: nodeQueryHasRun } = useGetNodesInformationByCategoryQuery(activeNetwork);
+  const [hasTorqIdentity, setHasTorqIdentity] = useState<boolean>(false);
+  const { data: settingsData, isSuccess: settingsDataSuccess } = useGetSettingsQuery(undefined, {
+    pollingInterval: hasTorqIdentity ? undefined : 1000,
+  });
 
   const { data: channelData } = useGetChannelsQuery<{
     data: Array<channel>;
   }>({ network: activeNetwork });
-
-  useEffect(() => {
-    if (settingsData?.torqUuid) {
-      boot({
-        userId: settingsData?.torqUuid,
-        customLauncherSelector: "#intercom-launcher",
-        hideDefaultLauncher: true,
-      });
-    }
-  }, [settingsDataSuccess, settingsData?.torqUuid]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && process.env.REACT_APP_E2E_TEST !== "true") {
@@ -55,32 +48,45 @@ function DefaultLayout() {
   const { track, register } = userEvents();
 
   useEffect(() => {
-    if (settingsData) {
-      mixpanel.identify(settingsData.torqUuid);
-      mixpanel.people.set({
-        $opt_out: settingsData.mixpanelOptOut,
-      });
-      mixpanel.people.set_once({
-        $created: new Date().toISOString(),
-      });
-      register({
-        nodeEnv: process.env.NODE_ENV,
-        defaultDateRange: settingsData.defaultDateRange,
-        defaultLanguage: settingsData.defaultLanguage,
-        weekStartsOn: settingsData.weekStartsOn,
-      });
-    }
-  }, [settingsData]);
+    if (!settingsData?.torqUuid) return;
+    setHasTorqIdentity(true);
+    boot({
+      userId: settingsData?.torqUuid,
+      customLauncherSelector: "#intercom-launcher",
+      hideDefaultLauncher: true,
+    });
+    console.debug("Intercom has booted");
+  }, [settingsDataSuccess, settingsData?.torqUuid]);
 
   useEffect(() => {
-    if (settingsData) {
-      register({
-        network: Network[activeNetwork],
-      });
-    }
+    if (!settingsData?.torqUuid) return;
+
+    mixpanel.identify(settingsData.torqUuid);
+    mixpanel.people.set({
+      $opt_out: settingsData.mixpanelOptOut,
+    });
+    mixpanel.people.set_once({
+      $created: new Date().toISOString(),
+    });
+    register({
+      nodeEnv: process.env.NODE_ENV,
+      defaultDateRange: settingsData.defaultDateRange,
+      defaultLanguage: settingsData.defaultLanguage,
+      weekStartsOn: settingsData.weekStartsOn,
+    });
+  }, [settingsData, settingsData?.torqUuid]);
+
+  useEffect(() => {
+    if (!settingsData?.torqUuid) return;
+
+    register({
+      network: Network[activeNetwork],
+    });
   }, [activeNetwork]);
 
   useEffect(() => {
+    if (!settingsData?.torqUuid) return;
+
     // Reduce channels data into an object containing channel count and total capacity
     const summary = channelData?.reduce(
       (acc, channel) => {
@@ -96,26 +102,30 @@ function DefaultLayout() {
       channelCount: summary?.channelCount || 0,
       totalCapacity: summary?.totalCapacity || 0,
     });
-  }, [channelData?.length]);
+  }, [channelData?.length, settingsData?.torqUuid, nodeConfigurationSuccess]);
 
   useEffect(() => {
+    if (!settingsData?.torqUuid) return;
+
     if (nodeConfigurations?.length === 0) {
       track("No Node Configured");
     } else {
-      console.log("Node Configured");
+      console.debug("Node Configured");
       track("Node Configured");
 
       // check if all data is synced
       const allDataSynced = (nodeConfigurations || []).every((node) => node.status === 1);
-      if (allDataSynced) {
-        console.log("Node synced");
+      if (nodeConfigurations?.length && allDataSynced) {
+        console.debug("Node synced");
         track("All Data Synced", { nodeCount: nodeConfigurations?.length || 0 });
       }
     }
-  }, [nodeConfigurationSuccess]);
+  }, [nodeConfigurationSuccess, settingsData?.torqUuid]);
 
   // check if all services are running
   useEffect(() => {
+    if (!settingsData?.torqUuid) return;
+
     // Register torq version
     if (servicesData?.version) {
       register({
@@ -147,9 +157,10 @@ function DefaultLayout() {
         torqServiceMainService: servicesData?.mainService?.statusString,
       });
     }
-  }, [servicesData?.lndServices, servicesDataSuccess]);
+  }, [servicesData?.lndServices, servicesDataSuccess, settingsData?.torqUuid]);
 
   useEffect(() => {
+    if (!settingsData?.torqUuid) return;
     if (nodeQueryHasRun) {
       // Register each node public key and alias separately as a string array separated by comma.
       const nodePublicKeys = nodes?.map((node) => node.publicKey);
@@ -160,7 +171,7 @@ function DefaultLayout() {
         name: nodeAliases?.join(", "),
       });
     }
-  }, [nodes?.length, nodeQueryHasRun]);
+  }, [nodes?.length, nodeQueryHasRun, settingsData?.torqUuid]);
 
   return (
     <div
