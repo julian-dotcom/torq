@@ -2,7 +2,6 @@ import useTranslations from "services/i18n/useTranslations";
 import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlSection,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 
 import Table from "features/table/Table";
@@ -48,9 +47,9 @@ function WorkflowsTablePage() {
   const NewWorkflowButton = useNewWorkflowButton();
 
   const workflowControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>{NewWorkflowButton}</TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"workflows-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"workflows-page-controls-left"}>
+        {NewWorkflowButton}
       </TableControlsButtonGroup>
     </TableControlSection>
   );

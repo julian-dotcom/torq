@@ -10,7 +10,6 @@ import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlSection,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import { useLocation } from "react-router";
@@ -119,24 +118,22 @@ function PaymentsPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            intercomTarget="new-payment"
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<TransactionIcon />}
-            onClick={() => {
-              track("Navigate to New Payment");
-              navigate(NEW_PAYMENT, { state: { background: location } });
-            }}
-          >
-            {t.newPayment}
-          </Button>
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <Button
+          intercomTarget="new-payment"
+          buttonColor={ColorVariant.success}
+          hideMobileText={true}
+          icon={<TransactionIcon />}
+          onClick={() => {
+            track("Navigate to New Payment");
+            navigate(NEW_PAYMENT, { state: { background: location } });
+          }}
+        >
+          {t.newPayment}
+        </Button>
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
         <Button
           intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}

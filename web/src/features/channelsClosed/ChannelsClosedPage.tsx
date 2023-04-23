@@ -7,7 +7,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { ChannelClosed } from "features/channelsClosed/channelsClosedTypes";
 import * as Routes from "constants/routes";
@@ -88,11 +87,9 @@ function ClosedChannelsPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup></TableControlsTabsGroup>
-      </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+    <TableControlSection intercomTarget={"closed-channels-controls-section"}>
+      <div />
+      <TableControlsButtonGroup intercomTarget={"closed-channels-page-controls-right"}>
         <Button
           intercomTarget="download-table"
           buttonColor={ColorVariant.primary}

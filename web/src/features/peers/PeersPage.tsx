@@ -7,7 +7,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { Peer } from "features/peers/peersTypes";
 import useTranslations from "services/i18n/useTranslations";
@@ -77,24 +76,22 @@ function PeersPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            intercomTarget={"new-peer-button"}
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<NewPeerIcon />}
-            onClick={() => {
-              track("Navigate to Connect Peer");
-              navigate(Routes.CONNECT_PEER, { state: { background: location } });
-            }}
-          >
-            {t.peersPage.connectPeer}
-          </Button>
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <Button
+          intercomTarget={"new-peer-button"}
+          buttonColor={ColorVariant.success}
+          hideMobileText={true}
+          icon={<NewPeerIcon />}
+          onClick={() => {
+            track("Navigate to Connect Peer");
+            navigate(Routes.CONNECT_PEER, { state: { background: location } });
+          }}
+        >
+          {t.peersPage.connectPeer}
+        </Button>
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
         <Button
           intercomTarget={"download-csv"}
           buttonColor={ColorVariant.primary}
@@ -127,7 +124,7 @@ function PeersPage() {
             track("Toggle Table Sidebar", { page: "Peers" });
             setSidebarExpanded(!sidebarExpanded);
           }}
-          icon={<OptionsIcon/>}
+          icon={<OptionsIcon />}
           id={"tableControlsButton"}
         >
           {t.options}

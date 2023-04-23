@@ -2,9 +2,7 @@ import React from "react";
 import styles from "./table-page-template.module.scss";
 
 import classNames from "classnames";
-import { FluentIconsProps } from "@fluentui/react-icons";
 import PageTitle from "features/templates/PageTitle";
-import Button, { ColorVariant } from "components/buttons/Button";
 
 type TablePageTemplateProps = {
   title: string;
@@ -50,36 +48,7 @@ export default function TablePageTemplate(props: TablePageTemplateProps) {
   );
 }
 
-type TableControlsButtonProps = {
-  id?: string;
-  text?: string;
-  icon: React.FC<FluentIconsProps>;
-  onClickHandler?: () => void;
-  active?: boolean;
-  intercomTarget?: string;
-};
-
-export function TableControlsButton(props: TableControlsButtonProps) {
-  return (
-    <div
-      className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}
-      data-intercom-target={props.intercomTarget}
-    >
-      <Button
-        intercomTarget={"table-controls-button"}
-        id={props.id}
-        className={styles.tableControlsButtonIcon}
-        onClick={props.onClickHandler}
-        buttonColor={ColorVariant.primary}
-        icon={<props.icon />}
-      >
-        {props.text}
-      </Button>
-    </div>
-  );
-}
-
-export function TableControlSection(props: { intercomTarget?: string; children?: React.ReactNode }) {
+export function TableControlSection(props: { intercomTarget: string; children?: React.ReactNode }) {
   return (
     <div className={classNames(styles.tableControlsSection)} data-intercom-target={props.intercomTarget}>
       {props.children}
@@ -87,14 +56,10 @@ export function TableControlSection(props: { intercomTarget?: string; children?:
   );
 }
 
-export function TableControlsButtonGroup(props: { intercomTarget?: string; children?: React.ReactNode }) {
+export function TableControlsButtonGroup(props: { intercomTarget: string; children?: React.ReactNode }) {
   return (
     <div className={classNames(styles.tableControlsButtonGroup)} data-intercom-target={props.intercomTarget}>
       {props.children}
     </div>
   );
-}
-
-export function TableControlsTabsGroup(props: { children?: React.ReactNode }) {
-  return <div className={classNames(styles.tableControlsTabsGroup)}>{props.children}</div>;
 }

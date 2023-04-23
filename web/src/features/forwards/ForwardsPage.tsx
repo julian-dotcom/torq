@@ -7,7 +7,6 @@ import {
 import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlSection,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
@@ -136,13 +135,11 @@ function ForwardsPage() {
   };
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <TimeIntervalSelect />
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <TimeIntervalSelect />
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
         <Button
           intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}

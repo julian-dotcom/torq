@@ -9,7 +9,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import Button, { ColorVariant } from "components/buttons/Button";
@@ -97,47 +96,43 @@ function OnChainPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            intercomTarget="new-address"
-            buttonColor={ColorVariant.success}
-            icon={<NewOnChainAddressIcon />}
-            hideMobileText={true}
-            onClick={() => {
-              navigate(NEW_ADDRESS, { state: { background: location } });
-              track("Navigate to New OnChain Address");
-            }}
-          >
-            {t.newAddress}
-          </Button>
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <Button
+          intercomTarget="new-address"
+          buttonColor={ColorVariant.success}
+          icon={<NewOnChainAddressIcon />}
+          hideMobileText={true}
+          onClick={() => {
+            navigate(NEW_ADDRESS, { state: { background: location } });
+            track("Navigate to New OnChain Address");
+          }}
+        >
+          {t.newAddress}
+        </Button>
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
-        <TableControlsButtonGroup>
-          <Button
-            intercomTarget="refresh-table"
-            buttonColor={ColorVariant.primary}
-            icon={<RefreshIcon />}
-            onClick={() => {
-              track("Refresh Table", { page: "OnChain" });
-              onChainTxResponse.refetch();
-            }}
-          />
-          <Button
-            intercomTarget="table-settings"
-            onClick={() => {
-              setSidebarExpanded(!sidebarExpanded);
-              track("Toggle Table Sidebar", { page: "OnChain" });
-            }}
-            hideMobileText={true}
-            icon={<OptionsIcon />}
-            id={"tableControlsButton"}
-          >
-            {t.Options}
-          </Button>
-        </TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
+        <Button
+          intercomTarget="refresh-table"
+          buttonColor={ColorVariant.primary}
+          icon={<RefreshIcon />}
+          onClick={() => {
+            track("Refresh Table", { page: "OnChain" });
+            onChainTxResponse.refetch();
+          }}
+        />
+        <Button
+          intercomTarget="table-settings"
+          onClick={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            track("Toggle Table Sidebar", { page: "OnChain" });
+          }}
+          hideMobileText={true}
+          icon={<OptionsIcon />}
+          id={"tableControlsButton"}
+        >
+          {t.Options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );

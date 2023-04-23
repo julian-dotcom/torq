@@ -9,7 +9,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import Button, { ColorVariant } from "components/buttons/Button";
@@ -119,49 +118,45 @@ function InvoicesPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            intercomTarget="new-invoice"
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<InvoiceIcon />}
-            onClick={() => {
-              navigate(NEW_INVOICE, { state: { background: location } });
-              track("Navigate to New Invoice");
-            }}
-          >
-            {t.header.newInvoice}
-          </Button>
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <Button
+          intercomTarget="new-invoice"
+          buttonColor={ColorVariant.success}
+          hideMobileText={true}
+          icon={<InvoiceIcon />}
+          onClick={() => {
+            navigate(NEW_INVOICE, { state: { background: location } });
+            track("Navigate to New Invoice");
+          }}
+        >
+          {t.header.newInvoice}
+        </Button>
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
-        <TableControlsButtonGroup>
-          <Button
-            intercomTarget="refresh-table"
-            buttonColor={ColorVariant.primary}
-            icon={<RefreshIcon />}
-            onClick={() => {
-              track("Refresh Table", { page: "Invoices" });
-              invoicesResponse.refetch();
-            }}
-          />
-          <Button
-            intercomTarget="table-settings"
-            onClick={() => {
-              setSidebarExpanded(!sidebarExpanded);
-              track("Toggle Table Sidebar", {
-                page: "Invoices",
-              });
-            }}
-            icon={<OptionsIcon />}
-            hideMobileText={true}
-            id={"tableControlsButton"}
-          >
-            {t.Options}
-          </Button>
-        </TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
+        <Button
+          intercomTarget="refresh-table"
+          buttonColor={ColorVariant.primary}
+          icon={<RefreshIcon />}
+          onClick={() => {
+            track("Refresh Table", { page: "Invoices" });
+            invoicesResponse.refetch();
+          }}
+        />
+        <Button
+          intercomTarget="table-settings"
+          onClick={() => {
+            setSidebarExpanded(!sidebarExpanded);
+            track("Toggle Table Sidebar", {
+              page: "Invoices",
+            });
+          }}
+          icon={<OptionsIcon />}
+          hideMobileText={true}
+          id={"tableControlsButton"}
+        >
+          {t.Options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );
