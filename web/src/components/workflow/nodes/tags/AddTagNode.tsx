@@ -137,7 +137,9 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
       colorVariant={NodeColorVariant.accent3}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}
+            intercomTarget={"workflow-node-add-tag-form"}
+      >
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Targets}
@@ -168,6 +170,7 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
           editingDisabled={editingDisabled}
         />
         <Select
+          intercomTarget={"workflow-node-add-tag-select"}
           isMulti={true}
           options={tagsOptions}
           onChange={handleAddedTagChange}
@@ -177,6 +180,7 @@ export function AddTagNode({ ...wrapperProps }: TagProps) {
           isDisabled={editingDisabled}
         />
         <Button
+          intercomTarget={"workflow-node-tag-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

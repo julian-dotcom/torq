@@ -8,7 +8,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import Button, { ColorVariant } from "components/buttons/Button";
 import { useNavigate } from "react-router-dom";
@@ -132,26 +131,25 @@ function ChannelsPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<ChannelsIcon />}
-            onClick={() => {
-              track("Navigate to Open Channel");
-              navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
-            }}
-          >
-            {t.openChannel}
-          </Button>
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-controls-section"}>
+      <TableControlsButtonGroup intercomTarget={"table-controls-left"}>
+        <Button
+          buttonColor={ColorVariant.success}
+          hideMobileText={true}
+          icon={<ChannelsIcon />}
+          onClick={() => {
+            track("Navigate to Open Channel");
+            navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
+          }}
+          intercomTarget={"channels-page-open-channel-navigation-button"}
+        >
+          {t.openChannel}
+        </Button>
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-controls-right"}>
         <Button
           buttonColor={ColorVariant.primary}
-          data-intercom-target="download-csv"
+          intercomTarget="download-csv"
           title={t.download}
           icon={<DownloadCsvIcon />}
           onClick={() => {
@@ -167,7 +165,7 @@ function ChannelsPage() {
         />
         <Button
           buttonColor={ColorVariant.primary}
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           icon={<RefreshIcon />}
           onClick={() => {
             track("Refresh Table", { page: "Channels" });
@@ -175,7 +173,7 @@ function ChannelsPage() {
           }}
         />
         <Button
-          data-intercom-target="table-settings"
+          intercomTarget="table-settings"
           onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels" });
             setSidebarExpanded(!sidebarExpanded);

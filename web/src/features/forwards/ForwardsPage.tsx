@@ -7,7 +7,6 @@ import {
 import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlSection,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
@@ -136,16 +135,14 @@ function ForwardsPage() {
   };
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <TimeIntervalSelect />
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <TimeIntervalSelect />
       </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
         <Button
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
-          data-intercom-target="refresh-table"
           icon={<RefreshIcon />}
           onClick={() => {
             track("Refresh Table", { page: "Channels" });
@@ -153,7 +150,7 @@ function ForwardsPage() {
           }}
         />
         <Button
-          data-intercom-target="download-csv"
+          intercomTarget="download-csv"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobile={true}
@@ -170,7 +167,7 @@ function ForwardsPage() {
           }}
         />
         <Button
-          data-intercom-target="table-settings"
+          intercomTarget="table-settings"
           onClick={() => {
             setSidebarExpanded(!sidebarExpanded);
             track("Toggle Table Sidebar", { page: "Forwards" });

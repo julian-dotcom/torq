@@ -203,6 +203,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
 
         <div className={styles.buttonsRow}>
           <Button
+            intercomTarget={"view-sort-add-button"}
             buttonColor={ColorVariant.primary}
             buttonSize={SizeVariant.small}
             onClick={() => handleAddSort()}

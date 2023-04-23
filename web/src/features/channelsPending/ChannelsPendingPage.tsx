@@ -7,7 +7,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { ChannelPending } from "features/channelsPending/channelsPendingTypes";
 import * as Routes from "constants/routes";
@@ -88,13 +87,11 @@ function ChannelsPendingPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup></TableControlsTabsGroup>
-      </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <div />
+      <TableControlsButtonGroup intercomTarget="table-page-controls-right">
         <Button
-          data-intercom-target="download-table"
+          intercomTarget="download-table"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -111,7 +108,7 @@ function ChannelsPendingPage() {
           }}
         />
         <Button
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -120,6 +117,7 @@ function ChannelsPendingPage() {
           }}
         />
         <Button
+          intercomTarget="toggle-table-sidebar"
           onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels Pending" });
             setSidebarExpanded(!sidebarExpanded);

@@ -9,8 +9,9 @@ interface fileProps {
   label?: string;
   onFileChange?: (file: File | null) => void;
   fileName?: string;
+  intercomTarget?: string;
 }
-function File({ label, onFileChange, fileName }: fileProps) {
+function File({ label, onFileChange, fileName, intercomTarget }: fileProps) {
   const drop = React.useRef<HTMLDivElement>(null);
   const hiddenFileRef = React.useRef<HTMLInputElement>(null);
 
@@ -87,7 +88,7 @@ function File({ label, onFileChange, fileName }: fileProps) {
 
   const inputId = React.useId();
   return (
-    <div className={classNames(styles.fileDropWrapper, styles.primary)}>
+    <div className={classNames(styles.fileDropWrapper, styles.primary)} data-intercom-target={intercomTarget}>
       <label htmlFor={inputId}>{label}</label>
       <input
         id={inputId}

@@ -4,7 +4,6 @@ import { Tag20Regular as NewTagIcon } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import Button, { ColorVariant } from "components/buttons/Button";
 import { useLocation } from "react-router";
@@ -23,21 +22,20 @@ function TagsPage() {
   const tagsResponse = useGetTagsQuery();
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            buttonColor={ColorVariant.primary}
-            icon={<NewTagIcon />}
-            hideMobileText={true}
-            onClick={() => {
-              track("Navigate to Create Tag");
-              navigate("/create-tag", { state: { background: location } });
-            }}
-          >
-            {t.tagsModal.createTag}
-          </Button>
-        </TableControlsTabsGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+        <Button
+          intercomTarget={"create-tag-button"}
+          buttonColor={ColorVariant.primary}
+          icon={<NewTagIcon />}
+          hideMobileText={true}
+          onClick={() => {
+            track("Navigate to Create Tag");
+            navigate("/create-tag", { state: { background: location } });
+          }}
+        >
+          {t.tagsModal.createTag}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );

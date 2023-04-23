@@ -77,6 +77,7 @@ function NewAddressModal() {
       <div className={styles.nodeSelectionWrapper}>
         <div className={styles.nodeSelection}>
           <Select
+            intercomTarget={"new-address-select-node"}
             label={t.yourNode}
             onChange={(newValue: unknown) => {
               const value = newValue as Option;
@@ -94,6 +95,7 @@ function NewAddressModal() {
           {addressTypeOptions.map((addType, index) => {
             return (
               <Button
+                intercomTarget={"new-address-" + addType.label}
                 disabled={isLoading || selectedNodeId === undefined}
                 buttonColor={ColorVariant.primary}
                 key={index + addType.label}
@@ -128,6 +130,7 @@ function NewAddressModal() {
         )}
         {data?.address && isSuccess && (
           <Button
+            intercomTarget={"new-address-copy-address"}
             buttonColor={ColorVariant.success}
             buttonSize={SizeVariant.normal}
             buttonPosition={ButtonPosition.fullWidth}

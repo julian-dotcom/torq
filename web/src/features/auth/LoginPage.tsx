@@ -65,7 +65,13 @@ function LoginPage() {
         </div>
         <form className="login-form" onSubmit={submit}>
           <Input type="password" name={"password"} placeholder={"Password..."} id={"password-field"} autoFocus={true} />
-          <Button type="submit" icon={<UnlockIcon />} buttonColor={ColorVariant.success} id={"submit-button"}>
+          <Button
+            type="submit"
+            icon={<UnlockIcon />}
+            buttonColor={ColorVariant.success}
+            id={"submit-button"}
+            intercomTarget={"login-button"}
+          >
             {t.login}
           </Button>
         </form>

@@ -28,6 +28,7 @@ export type ButtonProps = {
   children?: ReactNode;
   hideMobileText?: boolean;
   hideMobile?: boolean;
+  intercomTarget: string;
 };
 
 const Button = forwardRef(
@@ -40,6 +41,7 @@ const Button = forwardRef(
       children,
       hideMobileText,
       hideMobile,
+      intercomTarget,
       ...buttonProps
     }: React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & ButtonProps,
     ref: LegacyRef<HTMLButtonElement> | undefined
@@ -48,6 +50,7 @@ const Button = forwardRef(
 
     return (
       <button
+        data-intercom-target={intercomTarget}
         ref={ref}
         {...buttonProps}
         className={classNames(
@@ -78,10 +81,12 @@ export function LinkButton({
   children,
   hideMobileText,
   hideMobile,
+  intercomTarget,
   ...buttonProps
 }: LinkProps & ButtonProps) {
   return (
     <Link
+      data-intercom-target={intercomTarget}
       {...buttonProps}
       className={classNames(
         styles.button,

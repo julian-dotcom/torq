@@ -172,7 +172,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
       headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"rebalance-auto-run-node-form"}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Destinations}
@@ -231,6 +231,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
           editingDisabled={editingDisabled}
         />
         <Input
+          intercomTarget={"rebalance-auto-run-node-amount-input"}
           formatted={true}
           value={amountSat}
           thousandSeparator={","}
@@ -251,6 +252,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
         {/*  disabled={editingDisabled}*/}
         {/*/>*/}
         <Input
+          intercomTarget={"rebalance-auto-run-node-ppm-input"}
           formatted={true}
           value={configuration.maximumCostMilliMsat}
           thousandSeparator={","}
@@ -269,6 +271,7 @@ export function RebalanceAutoRunNode({ ...wrapperProps }: RebalanceAutoRunNodePr
         {/*  sizeVariant={InputSizeVariant.small}*/}
         {/*/>*/}
         <Button
+          intercomTarget={"rebalance-auto-run-node-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

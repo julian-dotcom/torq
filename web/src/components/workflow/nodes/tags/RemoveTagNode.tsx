@@ -137,7 +137,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
       colorVariant={NodeColorVariant.accent3}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"remove-tag-node-form"}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Targets}
@@ -168,6 +168,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
           editingDisabled={editingDisabled}
         />
         <Select
+          intercomTarget={"remove-tag-node-select-tag-input"}
           isMulti={true}
           options={tagsOptions}
           onChange={handleRemovedTagChange}
@@ -177,6 +178,7 @@ export function RemoveTagNode({ ...wrapperProps }: TagProps) {
           isDisabled={editingDisabled}
         />
         <Button
+          intercomTarget={"remove-tag-node-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

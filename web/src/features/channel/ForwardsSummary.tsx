@@ -91,7 +91,7 @@ function FowardsSummaryPage() {
           data-intercom-target={"forwards-summary-container"}
         >
           <div className={styles.shortColumn} data-intercom-target={"forwards-summary-stats"}>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"forwards-summary-stats-revenue-card"}>
               <div className={styles.heading}>Revenue</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Forwarding fees</div>
@@ -106,7 +106,7 @@ function FowardsSummaryPage() {
                 <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
               </div>
             </div>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"forwards-summary-stats-expenses-card"}>
               <div className={styles.heading}>Expenses</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Rebalancing</div>
@@ -121,7 +121,7 @@ function FowardsSummaryPage() {
                 <div className={classNames(styles.rowValue)}>{ft(totalCost)}</div>
               </div>
             </div>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"forwards-summary-stats-profit-card"}>
               <div className={styles.heading}>Profit</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Total</div>
@@ -132,7 +132,7 @@ function FowardsSummaryPage() {
                 <div className={classNames(styles.rowValue)}>{d3.format(".2%")(historyReveueOutMinusCost)}</div>
               </div>
             </div>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"forwards-summary-stats-transaction-card"}>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>Revenue</div>
                 <div className={styles.rowValue}>{ft(historyRevenueOut)}</div>
@@ -159,6 +159,7 @@ function FowardsSummaryPage() {
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
+                  intercomTarget={"forwards-summary-chart-select"}
                   sizeVariant={InputSizeVariant.small}
                   value={profitKey}
                   onChange={(newValue) => {
@@ -199,6 +200,7 @@ function FowardsSummaryPage() {
                 data-intercom-target={"forwards-summary-flow-chart-select"}
               >
                 <Select
+                  intercomTarget={"forwards-summary-flow-chart-key-select"}
                   value={flowKey}
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {

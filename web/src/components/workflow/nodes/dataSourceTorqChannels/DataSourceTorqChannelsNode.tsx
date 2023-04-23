@@ -63,7 +63,9 @@ export function DataSourceTorqChannelsNode({ ...wrapperProps }: DataSourceTorqCh
       colorVariant={NodeColorVariant.accent2}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}
+            intercomTarget={"data-source-torq-channels-node-form"}
+      >
         <RadioChips
           label={t.channels}
           sizeVariant={InputSizeVariant.small}
@@ -105,6 +107,7 @@ export function DataSourceTorqChannelsNode({ ...wrapperProps }: DataSourceTorqCh
           editingDisabled={editingDisabled}
         />
         <Button
+          intercomTarget={"data-source-torq-channels-node-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

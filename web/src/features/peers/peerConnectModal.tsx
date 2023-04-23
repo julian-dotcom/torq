@@ -136,6 +136,7 @@ function ConnectPeerModal() {
         <ProgressTabContainer>
           <FormRow>
             <Select
+              intercomTarget={"connect-peer-node-select"}
               label={t.yourNode}
               onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
                 // Check if newValue is of type SelectOptions
@@ -176,6 +177,7 @@ function ConnectPeerModal() {
           <ButtonWrapper
             rightChildren={
               <Button
+                intercomTarget={"connect-peer-confirm-button"}
                 disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
                 onClick={() => {
                   setStepIndex(1);
@@ -215,6 +217,7 @@ function ConnectPeerModal() {
               className={styles.resetButton}
               rightChildren={
                 <Button
+                  intercomTarget={"connect-peer-another-peer-button"}
                   onClick={() => {
                     closeAndReset();
                   }}

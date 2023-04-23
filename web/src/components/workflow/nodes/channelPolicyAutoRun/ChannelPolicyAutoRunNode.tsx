@@ -148,7 +148,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"channel-policy-auto-run-form"}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
@@ -159,6 +159,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           editingDisabled={editingDisabled}
         />
         <Input
+          intercomTarget={"channel-policy-auto-run-fee-rate"}
           formatted={true}
           value={channelPolicy.feeRateMilliMsat}
           thousandSeparator={","}
@@ -169,6 +170,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           disabled={editingDisabled}
         />
         <Input
+          intercomTarget={"channel-policy-auto-run-fee-base"}
           formatted={true}
           value={feeBase}
           thousandSeparator={","}
@@ -179,6 +181,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           disabled={editingDisabled}
         />
         <Input
+          intercomTarget={"channel-policy-auto-run-min-htlc"}
           formatted={true}
           value={minHtlc}
           thousandSeparator={","}
@@ -189,6 +192,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           disabled={editingDisabled}
         />
         <Input
+          intercomTarget={"channel-policy-auto-run-max-htlc"}
           formatted={true}
           value={maxHtlc}
           thousandSeparator={","}
@@ -199,6 +203,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           disabled={editingDisabled}
         />
         <Input
+          intercomTarget={"channel-policy-auto-run-time-lock-delta"}
           formatted={true}
           value={channelPolicy.timeLockDelta}
           thousandSeparator={","}
@@ -208,6 +213,7 @@ export function ChannelPolicyAutoRunNode({ ...wrapperProps }: ChannelPolicyAutoR
           disabled={editingDisabled}
         />
         <Button
+          intercomTarget={"channel-policy-auto-run-save"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

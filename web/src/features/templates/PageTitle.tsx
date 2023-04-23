@@ -33,7 +33,12 @@ function PageNameInput({ title, className, onSubmitHandler, onHideInput, ...inpu
         className={classNames(className, styles.title, styles.pageNameInput)}
         onChange={(e) => setLocalTitle(e.target.value)}
       />
-      <Button type={"submit"} buttonColor={ColorVariant.primary} buttonSize={SizeVariant.large}>
+      <Button
+        type={"submit"}
+        buttonColor={ColorVariant.primary}
+        buttonSize={SizeVariant.large}
+        intercomTarget={"save-page-title-button"}
+      >
         <SaveTitleIcon />
       </Button>
     </form>
@@ -70,6 +75,7 @@ function PageTitle(props: PageTitleProps) {
         <span onDoubleClick={() => setShowNameInput(true)}>{props.title}</span>
         {props.onNameChange && (
           <Button
+            intercomTarget={"edit-page-title-button"}
             buttonColor={ColorVariant.primary}
             buttonSize={SizeVariant.large}
             onClick={() => setShowNameInput(true)}

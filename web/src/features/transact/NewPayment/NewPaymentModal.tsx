@@ -233,6 +233,7 @@ function NewPaymentModal() {
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
           <Select
+            intercomTarget={"new-payment-select-node"}
             label={t.yourNode}
             onChange={
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -282,6 +283,7 @@ function NewPaymentModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
+                intercomTarget={"new-payment-destination-next-button"}
                 disabled={!destinationType || decodedInvRes.isError}
                 onClick={() => {
                   if (destination) {

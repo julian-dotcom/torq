@@ -161,7 +161,9 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}
+      intercomTarget={"channel-policy-configurator-form"}
+      >
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
@@ -172,6 +174,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           editingDisabled={editingDisabled}
         />
         <Input
+          intercomTarget={"channel-policy-configurator-fee-rate-input"}
           formatted={true}
           value={channelPolicy.feeRateMilliMsat}
           thousandSeparator={","}
@@ -187,6 +190,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           thousandSeparator={","}
           suffix={" sat"}
           onValueChange={createChangeMsatHandler("feeBaseMsat")}
+          intercomTarget={"channel-policy-configurator-fee-base-input"}
           label={t.baseFee}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
@@ -197,6 +201,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           thousandSeparator={","}
           suffix={" sat"}
           onValueChange={createChangeMsatHandler("minHtlcMsat")}
+          intercomTarget={"channel-policy-configurator-min-htlc-input"}
           label={t.minHTLCAmount}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
@@ -207,6 +212,7 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           thousandSeparator={","}
           suffix={" sat"}
           onValueChange={createChangeMsatHandler("maxHtlcMsat")}
+          intercomTarget={"channel-policy-configurator-max-htlc-input"}
           label={t.maxHTLCAmount}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
@@ -216,11 +222,13 @@ export function ChannelPolicyConfiguratorNode({ ...wrapperProps }: ChannelPolicy
           value={channelPolicy.timeLockDelta}
           thousandSeparator={","}
           onValueChange={createChangeHandler("timeLockDelta")}
+          intercomTarget={"channel-policy-configurator-time-lock-delta-input"}
           label={t.updateChannelPolicy.timeLockDelta}
           sizeVariant={InputSizeVariant.small}
           disabled={editingDisabled}
         />
         <Button
+          intercomTarget={"channel-policy-configurator-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

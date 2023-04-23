@@ -20,6 +20,7 @@ const Template: Story<SelectProps> = (args) => {
 
 const defaultArgs: SelectProps = {
   label: "Label",
+  intercomTarget: "select",
   colorVariant: InputColorVaraint.primary,
   sizeVariant: InputSizeVariant.normal,
   options: [

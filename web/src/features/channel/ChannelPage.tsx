@@ -235,6 +235,7 @@ function ChannelPage(_: ChannelPageProps) {
             {isSingleChannel && (
               <>
                 <LinkButton
+                  intercomTarget={"inspect-update-channel"}
                   to={`${UPDATE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
                   state={{ background: location }}
                   hideMobileText={true}
@@ -252,6 +253,7 @@ function ChannelPage(_: ChannelPageProps) {
                 </LinkButton>
 
                 <LinkButton
+                  intercomTarget={"inspect-close-channel"}
                   to={`${CLOSE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
                   state={{ background: location }}
                   hideMobileText={true}
@@ -270,13 +272,14 @@ function ChannelPage(_: ChannelPageProps) {
               </>
             )}
           </div>
-          <div className={styles.tags}>
+          <div className={styles.tags} data-intercom-target={"inspect-channel-tag-list"}>
             {((history?.channels && history.channels[0].tags) || []).map((tag) => (
               <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
             ))}
             {isSingleChannel && (
               <>
                 <LinkButton
+                  intercomTarget={"inspect-tag-channel"}
                   to={`/tag-channel/${chanId}`}
                   state={{ background: location }}
                   onClick={() => {
@@ -289,6 +292,7 @@ function ChannelPage(_: ChannelPageProps) {
                   buttonColor={ColorVariant.disabled}
                 />
                 <LinkButton
+                  intercomTarget={"inspect-tag-node"}
                   to={`/tag-node/${channelDetail?.peerNodeId}`}
                   state={{ background: location }}
                   onClick={() => {
@@ -305,9 +309,12 @@ function ChannelPage(_: ChannelPageProps) {
           </div>
         </div>
 
-        <div className={classNames(styles.pageRow, styles.channelSummary)}>
+        <div
+          className={classNames(styles.pageRow, styles.channelSummary)}
+          data-intercom-target={"inspect-channel-summary"}
+        >
           <div className={styles.shortColumn}>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"inspect-channel-revenue-card"}>
               <div className={styles.heading}>{t.channelPage.revenue.header}</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.revenue.forwardingFees}</div>
@@ -322,7 +329,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={styles.rowValue}>{history?.revenueOut}</div>
               </div>
             </div>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"inspect-channel-expenses-card"}>
               <div className={styles.heading}>{t.channelPage.expenses.heading}</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.expenses.rebalancing}</div>
@@ -337,7 +344,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <div className={classNames(styles.rowValue)}>{ft(onchainPlusRebalancingCostBy1000)}</div>
               </div>
             </div>
-            <div className={styles.card}>
+            <div className={styles.card} data-intercom-target={"inspect-channel-profit-card"}>
               <div className={styles.heading}>{t.channelPage.profit.heading}</div>
               <div className={styles.cardRow}>
                 <div className={styles.rowLabel}>{t.channelPage.profit.total}</div>
@@ -357,7 +364,10 @@ function ChannelPage(_: ChannelPageProps) {
               </div>
             </div>
 
-            <div className={classNames(styles.card, styles.currentCard)}>
+            <div
+              className={classNames(styles.card, styles.currentCard)}
+              data-intercom-target={"inspect-channel-outbound-policy-card"}
+            >
               <div className={styles.heading}>
                 {t.channelPage.policyDetails.outbound} {t.channelPage.policyDetails.heading}
               </div>
@@ -388,7 +398,10 @@ function ChannelPage(_: ChannelPageProps) {
                 </div>
               </div>
             </div>
-            <div className={classNames(styles.card, styles.currentCard)}>
+            <div
+              className={classNames(styles.card, styles.currentCard)}
+              data-intercom-target={"inspect-channel-inbound-policy-card"}
+            >
               <div className={styles.heading}>
                 {t.channelPage.policyDetails.inbound} {t.channelPage.policyDetails.heading}
               </div>
@@ -421,10 +434,14 @@ function ChannelPage(_: ChannelPageProps) {
             </div>
           </div>
 
-          <div className={classNames(styles.card, styles.channelSummaryChart)}>
+          <div
+            className={classNames(styles.card, styles.channelSummaryChart)}
+            data-intercom-target={"inspect-channel-summary-chart-card"}
+          >
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
+                  intercomTarget={"inspect-channel-summary-chart-key-select"}
                   sizeVariant={InputSizeVariant.small}
                   value={profitKey}
                   onChange={(newValue) => {
@@ -458,7 +475,7 @@ function ChannelPage(_: ChannelPageProps) {
         </div>
 
         <div className={classNames(styles.pageRow, styles.tripleRow)}>
-          <div className={styles.card}>
+          <div className={styles.card} data-intercom-target={"inspect-channel-capacity-card"}>
             <div className={styles.heading}>{t.channelPage.amount.header}</div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>{t.channelPage.amount.capacity}</div>
@@ -486,7 +503,7 @@ function ChannelPage(_: ChannelPageProps) {
             </div>
           </div>
 
-          <div className={styles.card}>
+          <div className={styles.card} data-intercom-target={"inspect-channel-revenue-details-card"}>
             <div className={styles.heading}>{t.channelPage.revenue.header}</div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>{t.channelPage.revenue.outbound}</div>
@@ -514,7 +531,7 @@ function ChannelPage(_: ChannelPageProps) {
             </div>
           </div>
 
-          <div className={styles.card}>
+          <div className={styles.card} data-intercom-target={"inspect-channel-transaction-count-details-card"}>
             <div className={styles.heading}>{t.channelPage.transactionCount.header}</div>
             <div className={styles.cardRow}>
               <div className={styles.rowLabel}>{t.channelPage.transactionCount.outbound}</div>
@@ -535,18 +552,26 @@ function ChannelPage(_: ChannelPageProps) {
           </div>
         </div>
 
-        <div className={classNames(styles.pageRow, styles.eventSummary)}>
-          <div className={styles.shortColumn}>
+        <div
+          className={classNames(styles.pageRow, styles.eventSummary)}
+          data-intercom-target={"inspect-channel-event-summary-card"}
+        >
+          <div className={styles.shortColumn} data-intercom-target={"inspect-channel-event-summary-card"}>
             <EventsCard
               events={event as ChannelEventResponse}
               selectedEvents={selectedEvents}
               channels={history as ChannelHistoryResponse}
             />
           </div>
-          <div className={classNames(styles.card, styles.channelSummaryChart)} style={{ height: "600px" }}>
+          <div
+            className={classNames(styles.card, styles.channelSummaryChart)}
+            style={{ height: "600px" }}
+            data-intercom-target={"inspect-channel-event-summary-chart-card"}
+          >
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
+                  intercomTarget={"inspect-channel-event-summary-chart-key"}
                   value={eventKey}
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
@@ -570,8 +595,10 @@ function ChannelPage(_: ChannelPageProps) {
               </div>
               <div className={styles.profitChartRightControls}>
                 <Popover
+                  intercomTarget={"inspect-channel-event-toggle"}
                   button={
                     <Button
+                      intercomTarget={"inspect-channel-event-toggle-button"}
                       buttonColor={ColorVariant.primary}
                       buttonSize={SizeVariant.small}
                       icon={<EventFlagIcon />}
@@ -586,6 +613,7 @@ function ChannelPage(_: ChannelPageProps) {
                     <div className={styles.cardRow}>
                       <div className={styles.rowLabel}>
                         <Switch
+                          intercomTarget={"inspect-channel-event-toggle-all"}
                           label={t.channelPage.chartSetting.toggleAll}
                           checked={allToggle}
                           colorVariant={InputColorVaraint.accent1}
@@ -610,6 +638,7 @@ function ChannelPage(_: ChannelPageProps) {
                         <div className={styles.cardRow} key={key}>
                           <div className={styles.rowLabel}>
                             <Switch
+                              intercomTarget={`inspect-channel-event-toggle-${key}`}
                               label={eventNames.get(k) || ""}
                               checked={selectedEvents[k] || false}
                               onChange={() => {
@@ -625,7 +654,7 @@ function ChannelPage(_: ChannelPageProps) {
               </div>
             </div>
 
-            <div className={styles.chartContainer}>
+            <div className={styles.chartContainer} data-intercom-target={"inspect-channel-event-chart"}>
               {history && (
                 <EventsChart
                   from={from}
@@ -644,6 +673,7 @@ function ChannelPage(_: ChannelPageProps) {
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
+                  intercomTarget={"inspect-channel-balance-chart-key"}
                   value={balanceChanId}
                   onChange={(newValue) => {
                     if (newValue) {
@@ -676,10 +706,11 @@ function ChannelPage(_: ChannelPageProps) {
         </div>
 
         <div className={styles.pageRow}>
-          <div className={styles.card}>
+          <div className={styles.card} data-intercom-target={"inspect-channel-flow-chart-card"}>
             <div className={styles.profitChartControls}>
               <div className={styles.profitChartLeftControls}>
                 <Select
+                  intercomTarget={"inspect-channel-flow-chart-key"}
                   value={flowKey}
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {

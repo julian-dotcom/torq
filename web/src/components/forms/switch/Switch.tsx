@@ -19,13 +19,14 @@ export type SwitchProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTML
   sizeVariant?: SwitchSize;
   colorVariant?: InputColorVaraint;
   label: string;
+  intercomTarget: string;
 };
 
-export default function Switch({ label, sizeVariant, colorVariant, ...rest }: SwitchProps) {
+export default function Switch({ label, sizeVariant, colorVariant, intercomTarget, ...rest }: SwitchProps) {
   const sizeClass = SwitchSizeClasses.get(sizeVariant || SwitchSize.normal);
   const colorClass = GetColorClass(colorVariant || InputColorVaraint.primary);
   return (
-    <label className={classNames(styles.switchWrapper, sizeClass, colorClass)}>
+    <label className={classNames(styles.switchWrapper, sizeClass, colorClass)} data-intercom-target={intercomTarget}>
       <span className={styles.innerSwitch}>
         <input {...rest} type="checkbox" />
         <span className={classNames(styles.slider, styles.round)}></span>

@@ -56,6 +56,7 @@ function ChannelCell(props: ChannelCell) {
       <div className={styles.actionButtons}>
         {props.connectionStatus.toString() === ConnectionStatus.Disconnected && (
           <Button
+            intercomTarget={"connect-peer-button"}
             disabled={reconnectIsLoading || disconnectIsLoading}
             buttonSize={SizeVariant.tiny}
             onClick={() => {
@@ -73,6 +74,7 @@ function ChannelCell(props: ChannelCell) {
         )}
         {props.connectionStatus.toString() === ConnectionStatus.Connected && (
           <Button
+            intercomTarget={"disconnect-peer-button"}
             disabled={reconnectIsLoading || disconnectIsLoading}
             buttonSize={SizeVariant.tiny}
             onClick={() => {
@@ -93,6 +95,7 @@ function ChannelCell(props: ChannelCell) {
         )}
 
         <LinkButton
+          intercomTarget={"update-peer-button"}
           to={`${Routes.UPDATE_PEER}?torqNodeId=${props.torqNodeId}&peerNodeId=${props.peerNodeId}`}
           state={{ background: location }}
           hideMobileText={true}

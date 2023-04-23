@@ -10,7 +10,6 @@ import Table from "features/table/Table";
 import TablePageTemplate, {
   TableControlsButtonGroup,
   TableControlSection,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { useState } from "react";
 import { useLocation } from "react-router";
@@ -119,26 +118,24 @@ function PaymentsPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup>
-          <Button
-            data-intercom-target="new-payment"
-            buttonColor={ColorVariant.success}
-            hideMobileText={true}
-            icon={<TransactionIcon />}
-            onClick={() => {
-              track("Navigate to New Payment");
-              navigate(NEW_PAYMENT, { state: { background: location } });
-            }}
-          >
-            {t.newPayment}
-          </Button>
-        </TableControlsTabsGroup>
-      </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+    <TableControlSection intercomTarget={"table-page-controls"}>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
         <Button
-          data-intercom-target="refresh-table"
+          intercomTarget="new-payment"
+          buttonColor={ColorVariant.success}
+          hideMobileText={true}
+          icon={<TransactionIcon />}
+          onClick={() => {
+            track("Navigate to New Payment");
+            navigate(NEW_PAYMENT, { state: { background: location } });
+          }}
+        >
+          {t.newPayment}
+        </Button>
+      </TableControlsButtonGroup>
+      <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
+        <Button
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -147,6 +144,7 @@ function PaymentsPage() {
           }}
         />
         <Button
+          intercomTarget="table-settings"
           onClick={() => {
             setSidebarExpanded(!sidebarExpanded);
             track("Toggle Table Sidebar", { page: "Payments" });

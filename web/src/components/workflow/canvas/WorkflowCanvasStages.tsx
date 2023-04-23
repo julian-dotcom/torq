@@ -137,6 +137,7 @@ function FirstStageTrigger(props: {
           <div className={classNames(styles.triggerContainerHeading)}>
             <div>{t.triggers}</div>
             <Button
+              intercomTarget={"workflow-trigger-manual-button"}
               icon={runIsProcessing ? <Spinny /> : <PlayIcon />}
               disabled={runIsProcessing}
               buttonSize={SizeVariant.tiny}

@@ -100,7 +100,7 @@ export default function TorqSelect(props: Props) {
       components={{ DropdownIndicator }}
       styles={customStyles}
       {...props}
-      data-intercom-target={"view-sort-key"}
+      data-intercom-target={"view-sort-key-select"}
     />
   );
 }

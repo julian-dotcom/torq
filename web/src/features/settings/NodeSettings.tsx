@@ -488,6 +488,8 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   <Popover button={menuButton} className={classNames("right", styles.moreButton)} ref={popoverRef}>
                     <div className={styles.nodeMenu}>
                       <Button
+                        intercomTarget={"node-configuration-disable-button"}
+                        buttonPosition={ButtonPosition.fullWidth}
                         buttonColor={ColorVariant.warning}
                         icon={nodeConfigurationState.status == 0 ? <PlayIcon /> : <PauseIcon />}
                         onClick={handleStatusClick}
@@ -496,6 +498,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                         {nodeConfigurationState.status == 0 ? "Enable node" : "Disable node"}
                       </Button>
                       <Button
+                        intercomTarget={"node-configuration-delete-button"}
                         buttonColor={ColorVariant.error}
                         icon={<DeleteIcon />}
                         onClick={handleDeleteClick}
@@ -510,8 +513,9 @@ const NodeSettings = React.forwardRef(function NodeSettings(
             </>
           )}
           <div className={""}>
-            <Form onSubmit={handleSubmit}>
+            <Form onSubmit={handleSubmit} intercomTarget={"node-configuration-form"}>
               <Select
+                intercomTarget={"node-setting-select-implementation"}
                 label={t.implementation}
                 onChange={() => {
                   return;
@@ -521,6 +525,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               />
               <span id="name">
                 <Input
+                  intercomTarget={"node-setting-input-name"}
                   label={t.nodeName}
                   value={nodeConfigurationState.name}
                   type={"text"}
@@ -530,6 +535,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               </span>
               <span id="address">
                 <Input
+                  intercomTarget={"node-setting-input-address"}
                   label={t.grpcAddress}
                   type={"text"}
                   value={nodeConfigurationState.grpcAddress}
@@ -541,6 +547,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               </span>
               <span id="tls">
                 <File
+                  intercomTarget={"node-setting-input-tls"}
                   label={t.tlsCertificate}
                   onFileChange={handleTLSFileChange}
                   fileName={nodeConfigurationState?.tlsFileName}
@@ -548,6 +555,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               </span>
               <span id="macaroon">
                 <File
+                  intercomTarget={"node-setting-input-macaroon"}
                   label={t.macaroon}
                   onFileChange={handleMacaroonFileChange}
                   fileName={nodeConfigurationState?.macaroonFileName}
@@ -555,6 +563,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               </span>
               <span id="nodeStartDate">
                 <Input
+                  intercomTarget={"node-setting-input-nodeStartDate"}
                   label={t.nodeStartDate}
                   value={formatDate(nodeConfigurationState.nodeStartDate)}
                   max={formatDate(new Date())}
@@ -584,6 +593,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                           return (
                             <div className={styles.import} key={key}>
                               <Switch
+                                intercomTarget={"node-setting-input-" + key + "-switch"}
                                 label={data.label}
                                 checked={nodeConfigurationState.customSettings % (data.value * 2) >= data.value}
                                 onChange={() => {
@@ -596,6 +606,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       })}
                       <Switch
                         label={t.importFailedPayments}
+                        intercomTarget={"node-setting-input-importFailedPayments-switch"}
                         checked={
                           nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
                           importFailedPaymentsValue
@@ -616,6 +627,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
               <ErrorSummary errors={formErrorState} />
               <Button
                 id={"save-node"}
+                intercomTarget={"node-setting-save-button"}
                 buttonColor={ColorVariant.success}
                 icon={saveEnabledState || nodeConfigurationState.status == 1 ? <SaveIcon /> : <Spinny />}
                 onClick={submitNodeSettings}
@@ -631,7 +643,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                   : "Saving..."}
               </Button>
               {!addMode && (
-                <div className={styles.toggleSettings}>
+                <div className={styles.toggleSettings} data-intercom-target={"node-setting-advanced-toggle-button"}>
                   <div
                     className={classNames(styles.header, { [styles.expanded]: !customSettingsCollapsedState })}
                     onClick={handleCustomSettingsCollapseClick}
@@ -643,7 +655,11 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                       {customSettingsCollapsedState ? <CollapsedIcon /> : <ExpandedIcon />}
                     </div>
                   </div>
-                  <Collapse collapsed={customSettingsCollapsedState} animate={true}>
+                  <Collapse
+                    collapsed={customSettingsCollapsedState}
+                    animate={true}
+                    intercomTarget={"node-setting-advanced-options-addmode"}
+                  >
                     <div className={styles.customImportSettingsBody}>
                       {Object.keys(customSettingsState).map((key) => {
                         const k = key as keyof typeof customSettingsState;
@@ -652,6 +668,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                           return (
                             <div className={styles.import} key={key}>
                               <Switch
+                                intercomTarget={"node-setting-input-" + key + "-switch-addmode"}
                                 label={data.label || ""}
                                 checked={customSettingsState[k]}
                                 onChange={() => {
@@ -667,6 +684,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                         }
                       })}
                       <Switch
+                        intercomTarget={"node-setting-input-importFailedPayments-switch-addmode"}
                         label={t.importFailedPayments}
                         checked={
                           nodeConfigurationState.customSettings % (importFailedPaymentsValue * 2) >=
@@ -677,16 +695,22 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                         }}
                       />
                       <Switch
+                        intercomTarget={"node-setting-input-vectorPing-switch-addmode"}
                         label="Vector Ping"
                         checked={nodeConfigurationState.pingSystem % 4 >= 2}
                         onChange={handleVectorPingClick}
                       />
                       <Switch
+                        intercomTarget={"node-setting-input-ambossPing-switch-addmode"}
                         label="Amboss Ping"
                         checked={nodeConfigurationState.pingSystem % 2 >= 1}
                         onChange={handleAmbossPingClick}
                       />
-                      <Note title={t.note} noteType={NoteType.info}>
+                      <Note
+                        title={t.note}
+                        noteType={NoteType.info}
+                        intercomTarget={"node-setting-advanced-options-note-addmode"}
+                      >
                         <p>{t.info.importFailedPayments}</p>
                         <p>{t.pingNote}</p>
                         <p>{t.header.pingSystem}</p>
@@ -696,6 +720,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
                     </div>
                     <ErrorSummary errors={toggleErrorState} />
                     <Button
+                      intercomTarget={"node-setting-advanced-options-save-button-addmode"}
                       id={"customSettings-save-node"}
                       buttonColor={ColorVariant.success}
                       icon={<SaveIcon />}
@@ -736,6 +761,7 @@ const NodeSettings = React.forwardRef(function NodeSettings(
           />
           <div className={styles.deleteConfirmButtons}>
             <Button
+              intercomTarget={"node-setting-delete-confirm-button"}
               buttonColor={ColorVariant.error}
               buttonPosition={ButtonPosition.fullWidth}
               icon={<DeleteIcon />}

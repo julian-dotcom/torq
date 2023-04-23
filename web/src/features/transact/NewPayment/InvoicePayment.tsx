@@ -10,6 +10,7 @@ import styles from "./newPayments.module.scss";
 import { PaymentType, PaymentTypeLabel } from "./types";
 import { DecodedInvoice } from "types/api";
 import { SendJsonMessage } from "react-use-websocket/dist/lib/types";
+import useTranslations from "services/i18n/useTranslations";
 
 type InvoicePaymentProps = {
   selectedNodeId: number;
@@ -28,6 +29,7 @@ type InvoicePaymentProps = {
 const DefualtTimeoutSeconds = 60;
 
 export default function InvoicePayment(props: InvoicePaymentProps) {
+  const { t } = useTranslations();
   const [expandAdvancedOptions, setExpandAdvancedOptions] = useState(false);
   const [amountSat, setAmountSat] = useState<number | undefined>(undefined);
   const [feeLimit, setFeeLimit] = useState<number | undefined>(
@@ -95,6 +97,7 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
         className={styles.customButtonWrapperStyles}
         leftChildren={
           <Button
+            intercomTarget={"payment-back-button"}
             onClick={() => {
               props.setStepIndex(0);
               props.setDestState(ProgressStepState.completed);
@@ -107,6 +110,7 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
         }
         rightChildren={
           <Button
+            intercomTarget={"payment-confirm-button"}
             onClick={() => {
               props.sendJsonMessage({
                 requestId: "randId",
@@ -129,7 +133,7 @@ export default function InvoicePayment(props: InvoicePaymentProps) {
             }}
             buttonColor={ColorVariant.success}
           >
-            {"Confirm"}
+            {t.confirm}
           </Button>
         }
       />

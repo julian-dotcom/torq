@@ -105,6 +105,7 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
         className={styles.customButtonWrapperStyles}
         leftChildren={
           <Button
+            intercomTarget={"on-chain-payment-back-button"}
             onClick={() => {
               props.setStepIndex(0);
               props.setDestState(ProgressStepState.completed);
@@ -117,6 +118,7 @@ export default function OnChanPaymentDetails(props: BtcStepProps) {
         }
         rightChildren={
           <Button
+            intercomTarget={"on-chain-payment-confirm-button"}
             onClick={() => {
               props.setStepIndex(2);
               props.setConfirmState(ProgressStepState.completed);

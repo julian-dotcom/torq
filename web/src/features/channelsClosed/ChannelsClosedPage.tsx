@@ -7,7 +7,6 @@ import {
 import TablePageTemplate, {
   TableControlSection,
   TableControlsButtonGroup,
-  TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
 import { ChannelClosed } from "features/channelsClosed/channelsClosedTypes";
 import * as Routes from "constants/routes";
@@ -88,13 +87,11 @@ function ClosedChannelsPage() {
   }
 
   const tableControls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
-        <TableControlsTabsGroup></TableControlsTabsGroup>
-      </TableControlsButtonGroup>
-      <TableControlsButtonGroup>
+    <TableControlSection intercomTarget={"closed-channels-controls-section"}>
+      <div />
+      <TableControlsButtonGroup intercomTarget={"closed-channels-page-controls-right"}>
         <Button
-          data-intercom-target="download-table"
+          intercomTarget="download-table"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -111,7 +108,7 @@ function ClosedChannelsPage() {
           }}
         />
         <Button
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -120,7 +117,7 @@ function ClosedChannelsPage() {
           }}
         />
         <Button
-          data-intercom-target="table-settings"
+          intercomTarget="table-settings"
           onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels Closed" });
             setSidebarExpanded(!sidebarExpanded);

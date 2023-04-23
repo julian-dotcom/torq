@@ -49,7 +49,9 @@ export function ChannelPolicyRunNode({ ...wrapperProps }: ChannelPolicyRunNodePr
       headerIcon={<ChannelPolicyConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
-      <Form style={{ flexGrow: 1 }}>
+      <Form style={{ flexGrow: 1 }}
+      intercomTarget={"channel-policy-run-form"}
+      >
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.inputs}

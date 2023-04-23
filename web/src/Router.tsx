@@ -15,7 +15,6 @@ import DashboardPage from "features/dashboard/DashboardPage";
 import ForwardsPage from "features/forwards/ForwardsPage";
 import NoMatch from "features/no_match/NoMatch";
 import SettingsPage from "features/settings/SettingsPage";
-import AllTxPage from "features/transact/AllTxPage";
 import InvoicesPage from "features/transact/Invoices/InvoicesPage";
 import OnChainPage from "features/transact/OnChain/OnChainPage";
 import NewPaymentModal from "features/transact/NewPayment/NewPaymentModal";
@@ -123,7 +122,6 @@ const authenticatedRoutes: RouteObject = {
             { path: routes.PAYMENTS, element: <PaymentsPage /> },
             { path: routes.INVOICES, element: <InvoicesPage /> },
             { path: routes.ONCHAIN, element: <OnChainPage /> },
-            { path: routes.ALL, element: <AllTxPage /> },
           ],
         },
         { path: routes.SETTINGS, element: <SettingsPage /> },

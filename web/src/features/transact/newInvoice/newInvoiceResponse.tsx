@@ -74,6 +74,7 @@ export function NewInvoiceResponseStep(props: NewInvoiceResponseProps) {
         className={styles.customButtonWrapperStyles}
         rightChildren={
           <Button
+            intercomTarget={"new-invoice-restart-button"}
             onClick={() => {
               props.clearFlow();
             }}

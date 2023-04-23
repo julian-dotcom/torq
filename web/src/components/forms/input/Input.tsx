@@ -23,7 +23,7 @@ export type FormattedInputProps = {
   errorText?: string;
   warningText?: string;
   helpText?: string;
-  intercomTarget?: string;
+  intercomTarget: string;
 } & NumberFormatProps;
 
 function Input({

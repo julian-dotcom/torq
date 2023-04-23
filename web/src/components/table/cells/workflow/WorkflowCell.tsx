@@ -37,7 +37,7 @@ function WorkflowCell(props: WorkflowCell) {
       <div className={styles.name}>{props.name}</div>
       <div className={styles.actionButtons}>
         <LinkButton
-          data-intercom-target={"edit-workflow-button"}
+          intercomTarget={"workflow-cell-edit-workflow-button"}
           to={`${props.workflowId}/versions/${props.workflowVersionId}`}
           onClick={() => {
             track("Navigate to Workflow", {
@@ -53,7 +53,7 @@ function WorkflowCell(props: WorkflowCell) {
           {t.edit}
         </LinkButton>
         <Button
-          data-intercom-target={"archive-workflow-button"}
+          intercomTarget={"workflow-cell-archive-workflow-button"}
           icon={<CloseIcon />}
           buttonSize={SizeVariant.tiny}
           buttonColor={ColorVariant.error}
