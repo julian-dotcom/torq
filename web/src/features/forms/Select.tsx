@@ -3,6 +3,7 @@ import { Props } from "react-select";
 
 type selectProps = {
   label: string;
+  intercomTarget: string;
 } & Props;
 
 export type SelectOptions = {
@@ -12,7 +13,7 @@ export type SelectOptions = {
 };
 
 function Select(props: selectProps) {
-  return <RawSelect label={props.label} options={props.options} value={props.value} onChange={props.onChange} />;
+  return <RawSelect intercomTarget={props.intercomTarget} label={props.label} options={props.options} value={props.value} onChange={props.onChange} />;
 }
 
 export default Select;

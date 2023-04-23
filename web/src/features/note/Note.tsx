@@ -24,6 +24,7 @@ type NoteProps = {
   className?: string;
   children: React.ReactNode;
   dismissible?: boolean;
+  intercomTarget?: string;
 };
 
 function Note(props: NoteProps) {
@@ -32,6 +33,7 @@ function Note(props: NoteProps) {
   return (
     <div
       className={classNames(styles.noteWrapper, noteTypeClasses.get(props.noteType || NoteType.info), props.className)}
+      data-intercom-target={props.intercomTarget}
     >
       <div className={styles.noteTitleWrapper}>
         <div className={styles.noteTitleIcon}>{props.icon || <DefaultNoteIcon />}</div>

@@ -27,6 +27,7 @@ function TagsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
+            intercomTarget={"create-tag-button"}
             buttonColor={ColorVariant.primary}
             icon={<NewTagIcon />}
             hideMobileText={true}

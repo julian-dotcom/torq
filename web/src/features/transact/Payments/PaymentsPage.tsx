@@ -123,7 +123,7 @@ function PaymentsPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            data-intercom-target="new-payment"
+            intercomTarget="new-payment"
             buttonColor={ColorVariant.success}
             hideMobileText={true}
             icon={<TransactionIcon />}
@@ -138,7 +138,7 @@ function PaymentsPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -147,6 +147,7 @@ function PaymentsPage() {
           }}
         />
         <Button
+          intercomTarget="table-settings"
           onClick={() => {
             setSidebarExpanded(!sidebarExpanded);
             track("Toggle Table Sidebar", { page: "Payments" });

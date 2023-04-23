@@ -47,6 +47,7 @@ const TagsCell = (props: TagsCellProps) => {
       {!props.totalCell && (
         <>
           <LinkButton
+            intercomTarget={"tag-cell-add-channel-tag-button"}
             to={`/tag-channel/${props.channelId}`}
             state={{ background: location }}
             icon={<ChannelsIcon />}
@@ -59,6 +60,7 @@ const TagsCell = (props: TagsCellProps) => {
             }}
           />
           <LinkButton
+            intercomTarget={"tag-cell-add-node-tag-button"}
             to={`/tag-node/${props.nodeId}`}
             state={{ background: location }}
             icon={<NodeIcon />}

@@ -229,11 +229,11 @@ function DashboardPage() {
   const totalsSummary = CalculateTotals(nodeSummaries);
 
   const controls = (
-    <TableControlSection>
-      <TableControlsButtonGroup>
+    <TableControlSection intercomTarget={"dashboard-controls-section"}>
+      <TableControlsButtonGroup intercomTarget={"dashboard-quick-actions"}>
         <Button
           buttonColor={ColorVariant.success}
-          data-intercom-target="open-channel-button-dashboard"
+          intercomTarget="open-channel-button-dashboard"
           hideMobileText={true}
           icon={<ChannelsIcon />}
           onClick={() => {
@@ -245,7 +245,7 @@ function DashboardPage() {
         </Button>
         <Button
           buttonColor={ColorVariant.success}
-          data-intercom-target="new-payment-button-dashboard"
+          intercomTarget="new-payment-button-dashboard"
           hideMobileText={true}
           icon={<TransactionIcon />}
           onClick={() => {
@@ -257,7 +257,7 @@ function DashboardPage() {
         </Button>
         <Button
           buttonColor={ColorVariant.success}
-          data-intercom-target="new-invoice-button-dashboard"
+          intercomTarget="new-invoice-button-dashboard"
           hideMobileText={true}
           icon={<InvoiceIcon />}
           onClick={() => {
@@ -270,7 +270,7 @@ function DashboardPage() {
 
         <Button
           buttonColor={ColorVariant.success}
-          data-intercom-target="new-onchain-address-button-dashboard"
+          intercomTarget="new-onchain-address-button-dashboard"
           icon={<NewOnChainAddressIcon />}
           hideMobileText={true}
           onClick={() => {
@@ -290,22 +290,31 @@ function DashboardPage() {
       <div className={styles.dashboardWrapper}>
         <div className={styles.summaryCardContainer} data-intercom-target={"dashboard-summary-container"}>
           <SummaryCard
+            intercomTarget={"dashboard-total-balance"}
             heading={t.dashboardPage.totalBalance}
             value={totalsSummary?.totalBalance}
             valueLabel={t.dashboardPage.btc}
           />
           <SummaryCard
+            intercomTarget={"dashboard-total-onchain-balance"}
             heading={t.dashboardPage.totalOnChainBalance}
             value={totalsSummary?.onChainBalance}
             valueLabel={t.dashboardPage.btc}
           />
           <SummaryCard
+            intercomTarget={"dashboard-total-offchain-balance"}
             heading={t.dashboardPage.totalOffChainBalance}
             value={totalsSummary?.localBalance}
             valueLabel={t.dashboardPage.btc}
           />
-          <SummaryCard heading={t.dashboardPage.totalChannelCount} value={totalsSummary?.channels} valueLabel={""} />
           <SummaryCard
+            intercomTarget={"dashboard-total-channel-count"}
+            heading={t.dashboardPage.totalChannelCount}
+            value={totalsSummary?.channels}
+            valueLabel={""}
+          />
+          <SummaryCard
+            intercomTarget={"dashboard-total-capacity"}
             heading={t.dashboardPage.totalCapacity}
             value={totalsSummary?.totalCapacity}
             valueLabel={t.dashboardPage.btc}
@@ -391,6 +400,7 @@ function DashboardPage() {
                         {node.publicKey}
                       </div>
                       <Button
+                        intercomTarget={"dashboard-copy-public-key-button"}
                         onClick={() => copyText(node.publicKey)}
                         icon={<CopyIcon />}
                         buttonSize={SizeVariant.tiny}
@@ -405,6 +415,7 @@ function DashboardPage() {
                                 {address.addr}
                               </div>
                               <Button
+                                intercomTarget={"dashboard-copy-address-button"}
                                 onClick={() => copyText(address.addr)}
                                 icon={<CopyIcon />}
                                 buttonSize={SizeVariant.tiny}
@@ -441,6 +452,7 @@ function DashboardPage() {
 
           <div className={styles.settingsConfirmation}>
             <Button
+              intercomTarget={"dashboard-add-node-button"}
               buttonColor={ColorVariant.success}
               buttonPosition={ButtonPosition.fullWidth}
               icon={<CheckmarkIcon />}
@@ -450,6 +462,7 @@ function DashboardPage() {
               {"Yes"}
             </Button>
             <Button
+              intercomTarget={"dashboard-no-add-node-button"}
               buttonColor={ColorVariant.error}
               buttonPosition={ButtonPosition.fullWidth}
               icon={<DismissIcon />}

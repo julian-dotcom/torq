@@ -65,7 +65,7 @@ function Navigation() {
       </div>
 
       <div className={styles.mainNavWrapper}>
-        <NavCategory text={t.dashboard} collapsed={false}>
+        <NavCategory text={t.dashboard} collapsed={false} intercomTarget={"dashboard-nav-section"}>
           <MenuItem
             intercomTarget="dashboard-nav-button"
             text={t.dashboard}
@@ -76,7 +76,7 @@ function Navigation() {
             }}
           />
         </NavCategory>
-        <NavCategory text={t.analyse} collapsed={false}>
+        <NavCategory text={t.analyse} collapsed={false} intercomTarget={"forwards-nav-section"}>
           <MenuItem
             intercomTarget="forwards-summary-nav-button"
             text={t.summary}
@@ -98,7 +98,7 @@ function Navigation() {
           />
         </NavCategory>
 
-        <NavCategory text={t.channels} collapsed={false}>
+        <NavCategory text={t.channels} collapsed={false} intercomTarget={"channels-nav-section"}>
           <MenuItem
             intercomTarget="open-channels-nav-button"
             text={t.openChannels}
@@ -128,7 +128,7 @@ function Navigation() {
           />
         </NavCategory>
 
-        <NavCategory text={t.manage} collapsed={false}>
+        <NavCategory text={t.manage} collapsed={false} intercomTarget={"manage-nav-section"}>
           <MenuItem
             intercomTarget="automation-nav-button"
             text={t.automation}
@@ -169,7 +169,7 @@ function Navigation() {
           />
         </NavCategory>
 
-        <NavCategory text={t.transactions} collapsed={false}>
+        <NavCategory text={t.transactions} collapsed={false} intercomTarget={"transactions-nav-section"}>
           <MenuItem
             intercomTarget="payments-nav-button"
             text={t.payments}
@@ -200,7 +200,7 @@ function Navigation() {
         </NavCategory>
       </div>
 
-      <div className={classNames(styles.bottomWrapper)}>
+      <div className={classNames(styles.bottomWrapper)} data-intercom-target={"bottom-nav-section"}>
         <MenuButtonItem
           intercomTarget="intercom-launcher"
           text={t.helpAndBugsMenuItem}

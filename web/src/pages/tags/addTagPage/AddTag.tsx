@@ -54,6 +54,7 @@ export default function AddTagModal() {
     <PopoutPageTemplate title={`${t.tag} ${title}`} show={true} icon={<TagHeaderIcon />} onClose={closeAndReset}>
       <div>
         <Select
+          intercomTarget={"add-tag-select-tag"}
           label={t.tag}
           autoFocus={true}
           options={tagOptions}

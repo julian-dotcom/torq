@@ -107,6 +107,7 @@ function closeChannelModal() {
             <div className={styles.closeChannelTableRow}>
               <FormRow>
                 <Input
+                  intercomTarget={"close-channel-sat-per-vbyte-input"}
                   label={"Sat/vbyte"}
                   formatted={true}
                   className={styles.single}
@@ -139,6 +140,7 @@ function closeChannelModal() {
             <div className={styles.closeChannelTableRow}>
               <FormRow className={styles.switchRow}>
                 <Switch
+                  intercomTarget={"close-channel-force-switch"}
                   label={"Force close"}
                   checked={force}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -149,7 +151,11 @@ function closeChannelModal() {
             </div>
             <ButtonWrapper
               rightChildren={
-                <Button onClick={handleCloseChannel} buttonColor={ColorVariant.success}>
+                <Button
+                  onClick={handleCloseChannel}
+                  buttonColor={ColorVariant.success}
+                  intercomTarget={"close-channel-submit-button"}
+                >
                   {t.openCloseChannel.closeChannel}
                 </Button>
               }
@@ -183,6 +189,7 @@ function closeChannelModal() {
                   rel="noreferrer"
                   buttonColor={ColorVariant.success}
                   icon={<LinkIcon />}
+                  intercomTarget={"close-channel-mempool-link"}
                 >
                   {t.openCloseChannel.GoToMempool}
                 </ExternalLinkButton>

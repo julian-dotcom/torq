@@ -56,12 +56,17 @@ type TableControlsButtonProps = {
   icon: React.FC<FluentIconsProps>;
   onClickHandler?: () => void;
   active?: boolean;
+  intercomTarget?: string;
 };
 
 export function TableControlsButton(props: TableControlsButtonProps) {
   return (
-    <div className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}>
+    <div
+      className={classNames(styles.tableControlsButtonWrapper, { [styles.active]: props.active })}
+      data-intercom-target={props.intercomTarget}
+    >
       <Button
+        intercomTarget={"table-controls-button"}
         id={props.id}
         className={styles.tableControlsButtonIcon}
         onClick={props.onClickHandler}
@@ -70,17 +75,24 @@ export function TableControlsButton(props: TableControlsButtonProps) {
       >
         {props.text}
       </Button>
-      {/*<div className={styles.title}>{props.title}</div>*/}
     </div>
   );
 }
 
-export function TableControlSection(props: { children?: React.ReactNode }) {
-  return <div className={classNames(styles.tableControlsSection)}>{props.children}</div>;
+export function TableControlSection(props: { intercomTarget?: string; children?: React.ReactNode }) {
+  return (
+    <div className={classNames(styles.tableControlsSection)} data-intercom-target={props.intercomTarget}>
+      {props.children}
+    </div>
+  );
 }
 
-export function TableControlsButtonGroup(props: { children?: React.ReactNode }) {
-  return <div className={classNames(styles.tableControlsButtonGroup)}>{props.children}</div>;
+export function TableControlsButtonGroup(props: { intercomTarget?: string; children?: React.ReactNode }) {
+  return (
+    <div className={classNames(styles.tableControlsButtonGroup)} data-intercom-target={props.intercomTarget}>
+      {props.children}
+    </div>
+  );
 }
 
 export function TableControlsTabsGroup(props: { children?: React.ReactNode }) {

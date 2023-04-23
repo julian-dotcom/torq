@@ -19,6 +19,7 @@ const Template: Story<SwitchProps> = (args) => {
 
 const defaultArgs: SwitchProps = {
   label: "Add Torq",
+  intercomTarget: "switch",
   sizeVariant: SwitchSize.normal,
 };
 const argTypes = {

@@ -94,7 +94,7 @@ function ClosedChannelsPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
-          data-intercom-target="download-table"
+          intercomTarget="download-table"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -111,7 +111,7 @@ function ClosedChannelsPage() {
           }}
         />
         <Button
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -120,7 +120,7 @@ function ClosedChannelsPage() {
           }}
         />
         <Button
-          data-intercom-target="table-settings"
+          intercomTarget="table-settings"
           onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels Closed" });
             setSidebarExpanded(!sidebarExpanded);

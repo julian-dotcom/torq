@@ -130,6 +130,7 @@ function TimeIntervalSelect(props: { className?: string }) {
       <Button
         buttonColor={ColorVariant.accent1}
         className="time-interval-wrapper"
+        intercomTarget={"time-interval-button"}
         buttonPosition={ButtonPosition.fullWidth}
       >
         {buttonText()}
@@ -139,10 +140,16 @@ function TimeIntervalSelect(props: { className?: string }) {
 
   return (
     <div className={classNames(dateRangeClass, props.className)} data-intercom-target={"date-range-container"}>
-      <Button buttonColor={ColorVariant.accent1} icon={<LeftIcon />} onClick={moveBackwardInTime} />
+      <Button
+        buttonColor={ColorVariant.accent1}
+        icon={<LeftIcon />}
+        onClick={moveBackwardInTime}
+        intercomTarget={"time-interval-backward-button"}
+      />
       <Popover button={popOverButton} className={"no-padding"}>
         <div className="date-range-popover-content">
           <DateRangePicker
+            data-intercom-target={"time-interval-picker"}
             renderStaticRangeLabel={renderCustomRangeLabel}
             monthDisplayFormat="MMMM yyyy"
             showDateDisplay={false}
@@ -189,7 +196,9 @@ function TimeIntervalSelect(props: { className?: string }) {
           </div>
         </div>
       </Popover>
-      <Button buttonColor={ColorVariant.accent1} icon={<RightIcon />} onClick={moveForwardInTime} />
+      <Button
+        intercomTarget={"time-interval-forward-button"}
+        buttonColor={ColorVariant.accent1} icon={<RightIcon />} onClick={moveForwardInTime} />
     </div>
   );
 }

@@ -123,7 +123,7 @@ function InvoicesPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            data-interom-target="new-invoice"
+            intercomTarget="new-invoice"
             buttonColor={ColorVariant.success}
             hideMobileText={true}
             icon={<InvoiceIcon />}
@@ -139,7 +139,7 @@ function InvoicesPage() {
       <TableControlsButtonGroup>
         <TableControlsButtonGroup>
           <Button
-            data-interom-target="refresh-table"
+            intercomTarget="refresh-table"
             buttonColor={ColorVariant.primary}
             icon={<RefreshIcon />}
             onClick={() => {
@@ -148,7 +148,7 @@ function InvoicesPage() {
             }}
           />
           <Button
-            data-interom-target="table-settings"
+            intercomTarget="table-settings"
             onClick={() => {
               setSidebarExpanded(!sidebarExpanded);
               track("Toggle Table Sidebar", {

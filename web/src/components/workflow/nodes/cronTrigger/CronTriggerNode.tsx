@@ -72,7 +72,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
 
   return (
     <WorkflowNodeWrapper {...wrapperProps} headerIcon={<CronTriggerIcon />} colorVariant={NodeColorVariant.primary}>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"cron-trigger-node-form"}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>
             <Input
@@ -90,6 +90,7 @@ export function CronTriggerNode({ ...wrapperProps }: CronTriggerNodeProps) {
           <CronTriggerIcon /> {cronExplained}
         </span>
         <Button
+          intercomTarget={"cron-trigger-node-save"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

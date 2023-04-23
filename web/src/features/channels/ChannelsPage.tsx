@@ -143,6 +143,7 @@ function ChannelsPage() {
               track("Navigate to Open Channel");
               navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
             }}
+            intercomTarget={"channels-page-open-channel-navigation-button"}
           >
             {t.openChannel}
           </Button>
@@ -151,7 +152,7 @@ function ChannelsPage() {
       <TableControlsButtonGroup>
         <Button
           buttonColor={ColorVariant.primary}
-          data-intercom-target="download-csv"
+          intercomTarget="download-csv"
           title={t.download}
           icon={<DownloadCsvIcon />}
           onClick={() => {
@@ -167,7 +168,7 @@ function ChannelsPage() {
         />
         <Button
           buttonColor={ColorVariant.primary}
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           icon={<RefreshIcon />}
           onClick={() => {
             track("Refresh Table", { page: "Channels" });
@@ -175,7 +176,7 @@ function ChannelsPage() {
           }}
         />
         <Button
-          data-intercom-target="table-settings"
+          intercomTarget="table-settings"
           onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels" });
             setSidebarExpanded(!sidebarExpanded);

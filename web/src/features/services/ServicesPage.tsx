@@ -36,7 +36,7 @@ function ServicesPage() {
         </div>
         Torq ({version}): {t.bootstrapping}
         <br />
-        <Button buttonColor={ColorVariant.primary} onClick={retryServices}>
+        <Button buttonColor={ColorVariant.primary} onClick={retryServices} intercomTarget={"services-page-retry-button"}>
           {t.retry}
         </Button>
       </div>

@@ -32,6 +32,7 @@ function ChannelCell(props: ChannelCell) {
       {!props.hideActionButtons && (
         <div className={styles.actionButtons}>
           <LinkButton
+            intercomTarget={"inspect-channel-navigate"}
             key={"buttons-node-inspect"}
             state={{ background: location }}
             to={"/analyse/inspect/" + props.channelId}
@@ -49,6 +50,7 @@ function ChannelCell(props: ChannelCell) {
           </LinkButton>
 
           <LinkButton
+            intercomTarget={"update-channel-navigate"}
             to={`${UPDATE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
             state={{ background: location }}
             hideMobileText={true}
@@ -66,6 +68,7 @@ function ChannelCell(props: ChannelCell) {
           </LinkButton>
 
           <LinkButton
+            intercomTarget={"close-channel-navigate"}
             to={`${CLOSE_CHANNEL}?nodeId=${props.nodeId}&channelId=${props.channelId}`}
             state={{ background: location }}
             hideMobileText={true}

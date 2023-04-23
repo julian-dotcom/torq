@@ -74,6 +74,7 @@ export function OnChainPaymentResponse(props: OnChainPaymentResponseProps) {
         className={styles.customButtonWrapperStyles}
         rightChildren={
           <Button
+            intercomTarget={"new-payment-reset-button"}
             onClick={() => {
               props.clearPaymentFlow();
             }}

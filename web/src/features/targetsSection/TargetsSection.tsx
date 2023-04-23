@@ -99,6 +99,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
 
       <div className={styles.addTagWrapper} data-intercom-target={"tags-applied-to-nodes"}>
         <Select
+          intercomTarget={"tags-apply-to-node-select"}
           label={t.tagNode}
           onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;
@@ -152,6 +153,7 @@ export default function TargetsSection(props: TargetsSectionProps) {
 
       <div className={styles.addTagWrapper} data-intercom-target={"tags-applied-to-channels"}>
         <Select
+          intercomTarget={"tags-apply-to-channel-select"}
           label={t.tagChannel}
           onChange={(newValue: unknown) => {
             const selectOptions = newValue as SelectOptions;

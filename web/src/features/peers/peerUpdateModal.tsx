@@ -132,6 +132,7 @@ function PeerUpdateModal() {
           <ButtonWrapper
             rightChildren={
               <Button
+                intercomTarget={"update-peer-confirm-button"}
                 onClick={() => {
                   setStepIndex(1);
                   setConnectState(ProgressStepState.completed);
@@ -170,6 +171,7 @@ function PeerUpdateModal() {
               className={styles.resetButton}
               rightChildren={
                 <Button
+                  intercomTarget={"update-peer-close-button"}
                   onClick={() => {
                     closeAndReset();
                   }}

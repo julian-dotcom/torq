@@ -172,8 +172,9 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
       headerIcon={<RebalanceConfiguratorIcon />}
       colorVariant={NodeColorVariant.accent1}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"rebalance-configurator-node-form"}>
         <Socket
+          intercomTarget={"rebalance-configurator-node-incoming-channels"}
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Destinations}
           selectedNodes={incomingChannels || []}
@@ -184,6 +185,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           editingDisabled={editingDisabled}
         />
         <Socket
+          intercomTarget={"rebalance-configurator-node-outgoing-channels"}
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.Sources}
           selectedNodes={outgoingChannels || []}
@@ -231,6 +233,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
           editingDisabled={editingDisabled}
         />
         <Input
+          intercomTarget={"rebalance-configurator-node-amount"}
           formatted={true}
           value={amountSat}
           thousandSeparator={","}
@@ -251,6 +254,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
         {/*  disabled={editingDisabled}*/}
         {/*/>*/}
         <Input
+          intercomTarget={"rebalance-configurator-node-maximum-cost"}
           formatted={true}
           value={configuration.maximumCostMilliMsat}
           thousandSeparator={","}
@@ -269,6 +273,7 @@ export function RebalanceConfiguratorNode({ ...wrapperProps }: RebalanceConfigur
         {/*  sizeVariant={InputSizeVariant.small}*/}
         {/*/>*/}
         <Button
+          intercomTarget={"rebalance-configurator-node-save"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

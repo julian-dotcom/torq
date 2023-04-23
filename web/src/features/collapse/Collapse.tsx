@@ -17,6 +17,7 @@ export default function Collapse(props: {
   animate: boolean;
   className?: string;
   children: ReactNode;
+  intercomTarget?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -49,7 +50,7 @@ export default function Collapse(props: {
     }
   }, [props.collapsed, props.animate]);
   return (
-    <div ref={ref} style={styleState} className={props.className}>
+    <div ref={ref} style={styleState} className={props.className} data-intercom-target={props.intercomTarget}>
       {props.children}
     </div>
   );

@@ -98,7 +98,12 @@ export default function MessageVerificationModal() {
   return (
     <PopoutPageTemplate title={t.MessageVerification} show={true} icon={<SignatureIcon />} onClose={closeAndReset}>
       <div className={styles.activeColumns}>
-        <Form onSubmit={handleSubmit} name={"messageVerificationForm"} ref={formRef}>
+        <Form
+          onSubmit={handleSubmit}
+          name={"messageVerificationForm"}
+          ref={formRef}
+          intercomTarget={"message-verification-form"}
+        >
           <RadioChips
             groupName={"action"}
             intercomTarget={"message-verification-action"}
@@ -184,7 +189,7 @@ export default function MessageVerificationModal() {
           </div>
 
           <Button
-            data-intercom-target={"message-verification-submit-button"}
+            intercomTarget={"message-verification-submit-button"}
             type={"submit"}
             buttonColor={ColorVariant.primary}
             buttonPosition={ButtonPosition.fullWidth}

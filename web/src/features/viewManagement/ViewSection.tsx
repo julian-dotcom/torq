@@ -133,7 +133,7 @@ function ViewsPopover<T>(props: ViewSection<T>) {
         </Droppable>
         <div className={styles.buttonsRow}>
           <Button
-            data-intercom-target="add-view-button"
+            intercomTarget="add-view-button"
             buttonColor={ColorVariant.primary}
             buttonSize={SizeVariant.small}
             icon={<AddIcon />}

@@ -10,7 +10,7 @@ function MenuItem(props: {
   routeTo: string;
   withBackground?: boolean;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => void;
-  intercomTarget?: string;
+  intercomTarget: string;
 }) {
   const resolvedPath = useResolvedPath(props.routeTo);
   const hasMatch = useMatch({ path: resolvedPath.pathname, end: true });

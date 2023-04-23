@@ -222,6 +222,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
               <div className={styles.buttonGroup}>
                 {!props.noDeactivation && (
                   <Button
+                    intercomTarget={"workflow-node-status-toggle-button"}
                     icon={props.status === Status.Active ? <DeactivateIcon /> : <ActivateIcon />}
                     buttonColor={ColorVariant.primary}
                     buttonSize={SizeVariant.small}
@@ -247,6 +248,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
                 )}
                 {!props.noDeletion && (
                   <Button
+                    intercomTarget={"workflow-node-delete-buttom"}
                     icon={<DeleteIcon />}
                     buttonColor={ColorVariant.error}
                     buttonSize={SizeVariant.small}

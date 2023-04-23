@@ -220,7 +220,7 @@ function OpenChannelModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
-                data-intercom-target={"open-channel-connect-button"}
+                intercomTarget={"open-channel-connect-button"}
                 disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
                 onClick={() => {
                   setStepIndex(1);
@@ -242,6 +242,7 @@ function OpenChannelModal() {
                   <span className={styles.label}>{t.ChannelSize}</span>
                   <div className={styles.input}>
                     <Input
+                      intercomTarget={"open-channel-channel-size"}
                       formatted={true}
                       className={styles.single}
                       thousandSeparator={","}
@@ -260,6 +261,7 @@ function OpenChannelModal() {
                 <div className={styles.openChannelTableSingle}>
                   <div className={styles.input}>
                     <Input
+                      intercomTarget={"open-channel-sat-per-vbyte"}
                       label={t.SatPerVbyte}
                       formatted={true}
                       className={styles.single}
@@ -288,6 +290,7 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <div className={styles.input}>
                       <Input
+                        intercomTarget={"open-channel-push-amount"}
                         label={t.PushAmount}
                         formatted={true}
                         className={styles.single}
@@ -308,6 +311,7 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <div className={styles.input}>
                       <Input
+                        intercomTarget={"open-channel-htlc-min-sat"}
                         label={t.HTLCMinSat}
                         formatted={true}
                         className={styles.single}
@@ -327,6 +331,7 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <div className={styles.input}>
                       <Input
+                        intercomTarget={"open-channel-min-confirmations"}
                         label={t.MinimumConfirmations}
                         formatted={true}
                         className={styles.single}
@@ -345,6 +350,7 @@ function OpenChannelModal() {
                   <div className={styles.openChannelTableSingle}>
                     <div className={styles.input}>
                       <Input
+                        intercomTarget={"open-channel-close-address"}
                         label={t.ChannelCloseAddress}
                         value={closeAddress}
                         type={"text"}
@@ -360,6 +366,7 @@ function OpenChannelModal() {
               <div className={styles.openChannelTableRow}>
                 <FormRow className={styles.switchRow}>
                   <Switch
+                    intercomTarget={"open-channel-private-channel"}
                     label={t.Private}
                     checked={privateChan}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -369,6 +376,7 @@ function OpenChannelModal() {
                 </FormRow>
                 <FormRow className={styles.switchRow}>
                   <Switch
+                    intercomTarget={"open-channel-spend-unconfirmed"}
                     label={"Spend unconfirmed outputs"}
                     checked={spendUnconfirmed}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -380,7 +388,7 @@ function OpenChannelModal() {
             </SectionContainer>
             <ButtonWrapper
               rightChildren={
-                <Button onClick={handleOpenChannel} buttonColor={ColorVariant.success}>
+                <Button onClick={handleOpenChannel} buttonColor={ColorVariant.success} intercomTarget={"open-channel-confirm"}>
                   {t.confirm}
                 </Button>
               }
@@ -409,6 +417,7 @@ function OpenChannelModal() {
                   {openChannelResponse?.fundingTransactionHash}
                 </Note>
                 <ExternalLinkButton
+                  intercomTarget={"open-channel-mempool-link"}
                   href={"https://mempool.space/tx/" + openChannelResponse?.fundingTransactionHash}
                   target="_blank"
                   rel="noreferrer"
@@ -427,6 +436,7 @@ function OpenChannelModal() {
             <ButtonWrapper
               rightChildren={
                 <Button
+                  intercomTarget={"open-channel-restart-new-channel"}
                   onClick={() => {
                     closeAndReset();
                   }}

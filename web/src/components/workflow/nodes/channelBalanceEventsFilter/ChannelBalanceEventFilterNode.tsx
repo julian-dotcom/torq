@@ -151,7 +151,7 @@ export function ChannelBalanceEventFilterNode({ ...wrapperProps }: FilterEventsN
       colorVariant={NodeColorVariant.accent1}
       outputName={"channels"}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"channel-balance-event-filter-node-form"}>
         <Socket
           collapsed={wrapperProps.visibilitySettings.collapsed}
           label={t.channels}
@@ -201,6 +201,7 @@ export function ChannelBalanceEventFilterNode({ ...wrapperProps }: FilterEventsN
           />
         )}
         <Button
+          intercomTarget={"workflow-node-save"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

@@ -33,7 +33,7 @@ export function useNewWorkflowButton(): ReactNode {
 
   return (
     <Button
-      data-intercom-target={"new-workflow-button"}
+      intercomTarget={"new-workflow-button"}
       buttonColor={ColorVariant.success}
       hideMobileText={true}
       icon={<NewWorkflowIcon />}

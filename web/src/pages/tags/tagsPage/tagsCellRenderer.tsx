@@ -60,6 +60,7 @@ export default function tagsCellRenderer(
     return (
       <CellWrapper key={"delete-button-" + row.tagId}>
         <Button
+          intercomTarget={"tag-cell-delete-tag-button"}
           disabled={!(row.tagId !== undefined && row.tagId >= 0)}
           buttonSize={SizeVariant.small}
           onClick={() => {
@@ -95,6 +96,7 @@ export default function tagsCellRenderer(
     return (
       <CellWrapper key={"edit-button-" + row.tagId}>
         <LinkButton
+          intercomTarget={"tag-cell-edit-tag-button"}
           state={{ background: location }}
           to={`/update-tag/${row.tagId}`}
           onClick={() => {

@@ -69,6 +69,7 @@ export function InvoicePaymentResponse(props: InvoicePaymentResponseProps) {
         className={styles.customButtonWrapperStyles}
         rightChildren={
           <Button
+            intercomTarget={"new-payment-restart-button"}
             onClick={() => {
               props.clearPaymentFlow();
             }}

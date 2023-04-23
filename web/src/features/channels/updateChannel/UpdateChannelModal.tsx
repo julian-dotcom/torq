@@ -122,6 +122,7 @@ function UpdateChannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.feeRateMilliMsat}</span>
                 <div className={styles.input}>
                   <Input
+                    intercomTarget={"update-channel-fee-rate-input"}
                     formatted={true}
                     className={styles.double}
                     suffix={" ppm"}
@@ -137,6 +138,7 @@ function UpdateChannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.feeBase}</span>
                 <div className={styles.input}>
                   <Input
+                    intercomTarget={"update-channel-base-fee-input"}
                     formatted={true}
                     className={styles.double}
                     suffix={" sat"}
@@ -155,6 +157,7 @@ function UpdateChannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.minHtlc}</span>
                 <div className={styles.input}>
                   <Input
+                    intercomTarget={"update-channel-min-htlc-input"}
                     formatted={true}
                     className={styles.double}
                     suffix={" sat"}
@@ -170,6 +173,7 @@ function UpdateChannelModal() {
                 <span className={styles.label}>{t.updateChannelPolicy.maxHtlc}</span>
                 <div className={styles.input}>
                   <Input
+                    intercomTarget={"update-channel-max-htlc-input"}
                     formatted={true}
                     className={styles.double}
                     suffix={" sat"}
@@ -189,6 +193,7 @@ function UpdateChannelModal() {
                   <span className={styles.label}>{"Time Lock Delta"}</span>
                   <div className={styles.input}>
                     <Input
+                      intercomTarget={"update-channel-time-lock-delta-input"}
                       formatted={true}
                       className={styles.single}
                       thousandSeparator={false}
@@ -203,7 +208,11 @@ function UpdateChannelModal() {
             </div>
             <ButtonWrapper
               rightChildren={
-                <Button onClick={updateChannel} buttonColor={ColorVariant.success}>
+                <Button
+                  onClick={updateChannel}
+                  buttonColor={ColorVariant.success}
+                  intercomTarget={"update-channel-submit-button"}
+                >
                   {t.updateChannelPolicy.update}
                 </Button>
               }

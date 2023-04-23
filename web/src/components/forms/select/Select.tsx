@@ -100,7 +100,7 @@ export type SelectProps = Props & {
   sizeVariant?: InputSizeVariant;
   warningText?: string;
   errorText?: string;
-  intercomTarget?: string;
+  intercomTarget: string;
 };
 
 export default function Select({

@@ -6,7 +6,6 @@ import {
 } from "@fluentui/react-icons";
 import TablePageTemplate, {
   TableControlSection,
-  TableControlsButton,
   TableControlsButtonGroup,
   TableControlsTabsGroup,
 } from "features/templates/tablePageTemplate/TablePageTemplate";
@@ -82,6 +81,7 @@ function PeersPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
+            intercomTarget={"new-peer-button"}
             buttonColor={ColorVariant.success}
             hideMobileText={true}
             icon={<NewPeerIcon />}
@@ -96,6 +96,7 @@ function PeersPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
+          intercomTarget={"download-csv"}
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -112,6 +113,7 @@ function PeersPage() {
           }}
         />
         <Button
+          intercomTarget={"refresh-table"}
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -119,14 +121,17 @@ function PeersPage() {
             peersResponse.refetch();
           }}
         />
-        <TableControlsButton
-          onClickHandler={() => {
+        <Button
+          intercomTarget={"table-settings"}
+          onClick={() => {
             track("Toggle Table Sidebar", { page: "Peers" });
             setSidebarExpanded(!sidebarExpanded);
           }}
-          icon={OptionsIcon}
+          icon={<OptionsIcon/>}
           id={"tableControlsButton"}
-        />
+        >
+          {t.options}
+        </Button>
       </TableControlsButtonGroup>
     </TableControlSection>
   );

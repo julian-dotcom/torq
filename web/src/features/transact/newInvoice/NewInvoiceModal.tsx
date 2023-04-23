@@ -114,6 +114,7 @@ function NewInvoiceModal() {
             }}
           />
           <Select
+            intercomTarget={"new-invoice-select-node"}
             label={t.yourNode}
             onChange={
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,6 +168,7 @@ function NewInvoiceModal() {
             className={styles.customButtonWrapperStyles}
             rightChildren={
               <Button
+                intercomTarget={"new-invoice-confirm-button"}
                 onClick={() => {
                   handleClickNext();
                 }}

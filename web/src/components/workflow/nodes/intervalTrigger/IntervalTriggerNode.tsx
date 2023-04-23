@@ -117,10 +117,11 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
 
   return (
     <WorkflowNodeWrapper {...wrapperProps} headerIcon={<IntervalTriggerIcon />} colorVariant={NodeColorVariant.primary}>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} intercomTarget={"interval-trigger-form"}>
         <InputRow>
           <div style={{ flexGrow: 1 }}>
             <Input
+              intercomTarget={"interval-trigger-frequency-input"}
               disabled={editingDisabled}
               formatted={true}
               value={frequency}
@@ -135,6 +136,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
             />
           </div>
           <Select
+            intercomTarget={"interval-trigger-time-unit-select"}
             isDisabled={editingDisabled}
             options={timeUnitOptions}
             onChange={handleTimeUnitChange}
@@ -143,6 +145,7 @@ export function IntervalTriggerNode({ ...wrapperProps }: IntervalTriggerNodeProp
           />
         </InputRow>
         <Button
+          intercomTarget={"interval-trigger-save-button"}
           type="submit"
           buttonColor={ColorVariant.success}
           buttonSize={SizeVariant.small}

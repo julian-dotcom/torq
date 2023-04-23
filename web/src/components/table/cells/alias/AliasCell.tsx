@@ -30,6 +30,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
 
       <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
         <LinkButton
+          intercomTarget={"inspect-channel-navigate"}
           key={"buttons-node-inspect"}
           state={{ background: location }}
           to={"/analyse/inspect/" + channelId}
@@ -51,6 +52,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
             return (
               <div className={styles.editChannelButton} key={"buttons-node-" + nodeId}>
                 <LinkButton
+                  intercomTarget={"update-channel-navigate"}
                   to={`${UPDATE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
                   state={{ background: location }}
                   className={classNames(styles.action, styles.updateLink)}
@@ -69,6 +71,7 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
                 </LinkButton>
 
                 <LinkButton
+                  intercomTarget={"close-channel-navigate"}
                   to={`${CLOSE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
                   state={{ background: location }}
                   className={classNames(styles.action, styles.closeChannelLink)}

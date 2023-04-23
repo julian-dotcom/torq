@@ -101,7 +101,7 @@ function OnChainPage() {
       <TableControlsButtonGroup>
         <TableControlsTabsGroup>
           <Button
-            data-interom-target="new-address"
+            intercomTarget="new-address"
             buttonColor={ColorVariant.success}
             icon={<NewOnChainAddressIcon />}
             hideMobileText={true}
@@ -117,7 +117,7 @@ function OnChainPage() {
       <TableControlsButtonGroup>
         <TableControlsButtonGroup>
           <Button
-            data-interom-target="refresh-table"
+            intercomTarget="refresh-table"
             buttonColor={ColorVariant.primary}
             icon={<RefreshIcon />}
             onClick={() => {
@@ -126,7 +126,7 @@ function OnChainPage() {
             }}
           />
           <Button
-            data-interom-target="table-settings"
+            intercomTarget="table-settings"
             onClick={() => {
               setSidebarExpanded(!sidebarExpanded);
               track("Toggle Table Sidebar", { page: "OnChain" });

@@ -2,8 +2,8 @@ import { useAppDispatch, useAppSelector } from "store/hooks";
 import { Globe20Regular as GlobeIcon } from "@fluentui/react-icons";
 import styles from "./nav.module.scss";
 import Popover from "features/popover/Popover";
-import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
-import { selectActiveNetwork, setActiveNetwork, Network } from "features/network/networkSlice";
+import Button, { ButtonPosition, ColorVariant, SizeVariant } from "components/buttons/Button";
+import { Network, selectActiveNetwork, setActiveNetwork } from "features/network/networkSlice";
 import useTranslations from "services/i18n/useTranslations";
 import { userEvents } from "utils/userEvents";
 
@@ -18,7 +18,7 @@ function NetworkSelector() {
       <Popover
         button={
           <Button
-            data-intercom-target={"network-selector"}
+            intercomTarget={"network-selector"}
             buttonColor={ColorVariant.ghost}
             buttonSize={SizeVariant.small}
             icon={<GlobeIcon />}
@@ -29,7 +29,8 @@ function NetworkSelector() {
       >
         <div className={styles.quickToggleContent}>
           <Button
-            data-intercom-target={"network-select-mainnet"}
+            buttonPosition={ButtonPosition.fullWidth}
+            intercomTarget={"network-select-mainnet"}
             buttonColor={activeNetwork === Network.MainNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.MainNet));
@@ -39,7 +40,8 @@ function NetworkSelector() {
             {t.MainNet}
           </Button>
           <Button
-            data-intercom-target={"network-select-testnet"}
+            buttonPosition={ButtonPosition.fullWidth}
+            intercomTarget={"network-select-testnet"}
             buttonColor={activeNetwork === Network.TestNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.TestNet));
@@ -49,7 +51,8 @@ function NetworkSelector() {
             {t.TestNet}
           </Button>
           <Button
-            data-intercom-target={"network-select-regtest"}
+            buttonPosition={ButtonPosition.fullWidth}
+            intercomTarget={"network-select-regtest"}
             buttonColor={activeNetwork === Network.RegTest ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.RegTest));
@@ -59,7 +62,8 @@ function NetworkSelector() {
             {t.RegTest}
           </Button>
           <Button
-            data-intercom-target={"network-select-signet"}
+            buttonPosition={ButtonPosition.fullWidth}
+            intercomTarget={"network-select-signet"}
             buttonColor={activeNetwork === Network.SigNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SigNet));
@@ -69,7 +73,8 @@ function NetworkSelector() {
             {t.SigNet}
           </Button>
           <Button
-            data-intercom-target={"network-select-simnet"}
+            buttonPosition={ButtonPosition.fullWidth}
+            intercomTarget={"network-select-simnet"}
             buttonColor={activeNetwork === Network.SimNet ? ColorVariant.success : ColorVariant.primary}
             onClick={() => {
               dispatch(setActiveNetwork(Network.SimNet));

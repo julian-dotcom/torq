@@ -27,6 +27,7 @@ function LinkCell(props: LinkCell) {
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.success}
             icon={<LinkIcon />}
+            intercomTarget={"link-cell-button"}
           >
             {props.text}
           </ExternalLinkButton>

@@ -94,7 +94,7 @@ function ChannelsPendingPage() {
       </TableControlsButtonGroup>
       <TableControlsButtonGroup>
         <Button
-          data-intercom-target="download-table"
+          intercomTarget="download-table"
           buttonColor={ColorVariant.primary}
           title={t.download}
           hideMobileText={true}
@@ -111,7 +111,7 @@ function ChannelsPendingPage() {
           }}
         />
         <Button
-          data-intercom-target="refresh-table"
+          intercomTarget="refresh-table"
           buttonColor={ColorVariant.primary}
           icon={<RefreshIcon />}
           onClick={() => {
@@ -120,6 +120,7 @@ function ChannelsPendingPage() {
           }}
         />
         <Button
+          intercomTarget="toggle-table-sidebar"
           onClick={() => {
             track("Toggle Table Sidebar", { page: "Channels Pending" });
             setSidebarExpanded(!sidebarExpanded);
