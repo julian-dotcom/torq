@@ -123,12 +123,12 @@ function NewAddressModal() {
             {isLoading ? t.loading : t.selectAddressType}
           </Note>
         )}
-        {data?.address && (
+        {data && (
           <Note title={t.newAddress} noteType={NoteType.success} icon={<TransactionIconModal />}>
-            {data?.address || t.selectAddressType}
+            {data || t.selectAddressType}
           </Note>
         )}
-        {data?.address && isSuccess && (
+        {data && isSuccess && (
           <Button
             intercomTarget={"new-address-copy-address"}
             buttonColor={ColorVariant.success}
@@ -136,9 +136,9 @@ function NewAddressModal() {
             buttonPosition={ButtonPosition.fullWidth}
             icon={<CopyIcon />}
             onClick={() => {
-              if (data?.address) {
+              if (data) {
                 toastRef?.current?.addToast("Copied to clipboard", toastCategory.success);
-                navigator.clipboard.writeText(data?.address);
+                navigator.clipboard.writeText(data);
               }
             }}
           >

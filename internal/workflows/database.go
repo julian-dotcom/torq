@@ -13,6 +13,7 @@ import (
 
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/workflow_helpers"
 )
 
 //func GetWorkflowByWorkflowVersionId(db *sqlx.DB, workflowVersionId int) (Workflow, error) {
@@ -386,7 +387,7 @@ func removeWorkflowVersion(db *sqlx.DB, workflowVersionId int) (int64, error) {
 	return rowsAffected, nil
 }
 
-func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType core.WorkflowNodeType) ([]int, error) {
+func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType workflow_helpers.WorkflowNodeType) ([]int, error) {
 	var workflowIds []int
 	err := db.Select(&workflowIds, `
 		SELECT DISTINCT wfv.workflow_id
@@ -402,7 +403,7 @@ func GetWorkflowIdsByNodeType(db *sqlx.DB, nodeType core.WorkflowNodeType) ([]in
 	return workflowIds, nil
 }
 
-func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType core.WorkflowNodeType) ([]WorkflowNode, error) {
+func GetActiveEventTriggerNodes(db *sqlx.DB, nodeType workflow_helpers.WorkflowNodeType) ([]WorkflowNode, error) {
 	var workflowVersionRootNodeIds []int
 	err := db.Select(&workflowVersionRootNodeIds, `
 		SELECT wfvn.workflow_version_node_id
@@ -446,7 +447,7 @@ func GetActiveSortedStageTriggerNodeForWorkflowVersionId(db *sqlx.DB, workflowVe
 		JOIN workflow wf ON wf.workflow_id = wfv.workflow_id AND wfv.status=$1
 		LEFT JOIN workflow_version_node_link parentLink ON parentLink.child_workflow_version_node_id = wfvn.workflow_version_node_id
 		WHERE wfvn.status=$1 AND wfvn.type=$2 AND wfv.workflow_version_id=$3 AND parentLink.child_workflow_version_node_id IS NULL
-		ORDER BY wfvn.stage;`, core.Active, core.WorkflowNodeStageTrigger, workflowVersionId)
+		ORDER BY wfvn.stage;`, core.Active, workflow_helpers.WorkflowNodeStageTrigger, workflowVersionId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []WorkflowNode{}, nil
@@ -760,7 +761,7 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlExecutionError)
 	}
-	if wfvn.Type == core.WorkflowTrigger {
+	if wfvn.Type == workflow_helpers.WorkflowTrigger {
 		return wfvn.WorkflowVersionNodeId, nil
 	}
 	var workflowVersionGroupNodeId int
@@ -775,7 +776,7 @@ func GetTriggerGroupWorkflowVersionNodeId(db *sqlx.DB, workflowVersionNodeId int
 			  wfv.workflow_version_id = $3 AND
               n.stage = $4 AND
 			  n.status != $5;`,
-		core.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}),
+		workflow_helpers.WorkflowTrigger, pq.Array([]WorkflowStatus{Active, Inactive}),
 		wfvn.WorkflowVersionId, wfvn.Stage, WorkflowNodeDeleted)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -793,17 +794,17 @@ func parseNodesResultSet(rows *sqlx.Rows, nodes map[int]*WorkflowNode, nodeLinkD
 		var name string
 		var status WorkflowNodeStatus
 		var stage int
-		var nodeType core.WorkflowNodeType
+		var nodeType workflow_helpers.WorkflowNodeType
 		var parameters []byte
 		var visibilitySettings WorkflowNodeVisibilitySettings
 		var workflowVersionId int
 		var updatedOn time.Time
 		var linkUpdatedOn time.Time
 		var versionNodeLinkId int
-		var parentOutput core.WorkflowParameterLabel
+		var parentOutput workflow_helpers.WorkflowParameterLabel
 		var linkName string
 		var linkVisibilitySettings WorkflowVersionNodeLinkVisibilitySettings
-		var childInput core.WorkflowParameterLabel
+		var childInput workflow_helpers.WorkflowParameterLabel
 		err := rows.Scan(&versionNodeId, &name, &status, &stage, &nodeType, &parameters, &visibilitySettings, &workflowVersionId, &updatedOn,
 			&versionNodeLinkId, &parentVersionNodeId, &parentOutput, &linkName, &linkVisibilitySettings,
 			&childVersionNodeId, &childInput, &linkUpdatedOn)

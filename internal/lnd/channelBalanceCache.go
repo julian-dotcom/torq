@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -25,7 +26,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := core.LndServiceChannelBalanceCacheStream
+	serviceType := services_helpers.LndServiceChannelBalanceCacheService
 
 	bootStrapping := true
 	lndSyncTicker := time.NewTicker(channelbalanceTickerSeconds * time.Second)
@@ -42,14 +43,14 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			bootStrapping, err = synchronizeDataFromLnd(nodeSettings, bootStrapping, serviceType, lndClient, db, mutex)
 			if err != nil {
 				log.Error().Err(err).Msgf("Channel balance synchronization failed for nodeId: %v", nodeSettings.NodeId)
-				cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			initiateSync = false
 		}
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-fastTicker.C:
 			if cache.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
@@ -63,7 +64,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			}
 			// channel balance streams are not all active here
 			if bootStrapping {
-				cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 			}
 			if channelBalanceStreamActive {
 				cache.SetChannelStateNodeStatus(nodeSettings.NodeId, core.Inactive)
@@ -73,7 +74,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 			bootStrapping, err = synchronizeDataFromLnd(nodeSettings, bootStrapping, serviceType, lndClient, db, mutex)
 			if err != nil {
 				log.Error().Err(err).Msgf("Channel balance synchronization failed for nodeId: %v", nodeSettings.NodeId)
-				cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 		}
@@ -82,7 +83,7 @@ func ChannelBalanceCacheMaintenance(ctx context.Context,
 
 func synchronizeDataFromLnd(nodeSettings cache.NodeSettingsCache,
 	bootStrapping bool,
-	serviceType core.ServiceType,
+	serviceType services_helpers.ServiceType,
 	lndClient lnrpc.LightningClient,
 	db *sqlx.DB,
 	mutex *sync.RWMutex) (bool, error) {
@@ -94,18 +95,18 @@ func synchronizeDataFromLnd(nodeSettings cache.NodeSettingsCache,
 		}
 	}
 	if bootStrapping {
-		cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 	}
 	err := initializeChannelBalanceFromLnd(lndClient, nodeSettings.NodeId, db, mutex)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to initialize channel balance cache. This is a critical issue! (nodeId: %v)", nodeSettings.NodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 		return bootStrapping, err
 	}
 	if cache.IsChannelBalanceCacheStreamActive(nodeSettings.NodeId) {
 		if bootStrapping {
 			bootStrapping = false
-			cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 		}
 	}
 	return bootStrapping, nil
@@ -149,7 +150,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 			TotalSatoshisSent:     lndChannel.TotalSatoshisSent,
 			TotalSatoshisReceived: lndChannel.TotalSatoshisReceived,
 		}
-		localRoutingPolicy, err := channels.GetLocalRoutingPolicy(channelId, nodeId, db)
+		localRoutingPolicy, err := channels.GetLocalRoutingPolicy(db, channelId, nodeId)
 		if err != nil {
 			return errors.Wrapf(err, "Obtaining LocalRoutingPolicy from the database for channelId: %v", channelId)
 		}
@@ -160,7 +161,7 @@ func initializeChannelBalanceFromLnd(lndClient lnrpc.LightningClient, nodeId int
 		channelStateSettings.LocalMaxHtlcMsat = localRoutingPolicy.MaxHtlcMsat
 		channelStateSettings.LocalTimeLockDelta = localRoutingPolicy.TimeLockDelta
 
-		remoteRoutingPolicy, err := channels.GetRemoteRoutingPolicy(channelId, nodeId, db)
+		remoteRoutingPolicy, err := channels.GetRemoteRoutingPolicy(db, channelId, nodeId)
 		if err != nil {
 			return errors.Wrapf(err, "Obtaining RemoteRoutingPolicy from the database for channelId: %v", channelId)
 		}

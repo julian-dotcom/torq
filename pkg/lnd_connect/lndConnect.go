@@ -14,7 +14,7 @@ import (
 	"gopkg.in/macaroon.v2"
 )
 
-// Connect connects to LND using gRPC.
+// Connect connects to LND using gRPC. DO NOT USE THIS UNLESS THE GRPC SETTINGS ARE NOT VALIDATED NOR ACTIVATED IN TORQ.
 func Connect(host string, tlsCert []byte, macaroonBytes []byte) (*grpc.ClientConn, error) {
 
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, os.Stderr, os.Stderr))

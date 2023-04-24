@@ -5,7 +5,7 @@ export const api = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     closeChannel: builder.mutation<CloseChannelResponse, CloseChannelRequest>({
       query: (body) => ({
-        url: `channels/close`,
+        url: `lightning/close`,
         method: "POST",
         body: body,
       }),

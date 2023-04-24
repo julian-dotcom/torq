@@ -93,8 +93,8 @@ func constructChannelEdgeUpdates(chanEdge *lnrpc.ChannelEdge) ([2]*lnrpc.Channel
 	return r, nil
 }
 
-// ImportRoutingPolicies imports routing policy information about all channels if they don't already have
-func ImportRoutingPolicies(ctx context.Context, client lndClientChannelEvent, db *sqlx.DB, nodeSettings cache.NodeSettingsCache) error {
+// ImportRoutingPoliciesFromLnd imports routing policy information about all channels if they don't already have
+func ImportRoutingPoliciesFromLnd(ctx context.Context, client lndClientChannelEvent, db *sqlx.DB, nodeSettings cache.NodeSettingsCache) error {
 
 	// Get all open channels from LND
 	chanIdList, err := getOpenChanIds(client)

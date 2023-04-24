@@ -19,6 +19,9 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/lightning_helpers"
+	"github.com/lncapital/torq/internal/services_helpers"
+	"github.com/lncapital/torq/internal/workflow_helpers"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -103,7 +106,7 @@ func createWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 	initialNode := CreateNodeRequest{
 		WorkflowVersionId: wv.WorkflowVersionId,
 		Name:              "Trigger",
-		Type:              core.WorkflowTrigger,
+		Type:              workflow_helpers.WorkflowTrigger,
 		Stage:             1,
 	}
 	_, err = createNode(db, initialNode)
@@ -128,7 +131,7 @@ func workFlowTriggerHandler(c *gin.Context, db *sqlx.DB) {
 		WorkflowVersionNodeId: workflow.WorkflowVersionNodeId,
 	}
 	reference := fmt.Sprintf("%v_%v", workflow.WorkflowVersionId, time.Now().UTC().Format("20060102.150405.000000"))
-	cache.ScheduleTrigger(reference, workflow.WorkflowVersionId, core.WorkflowNodeManualTrigger,
+	cache.ScheduleTrigger(reference, workflow.WorkflowVersionId, workflow_helpers.WorkflowNodeManualTrigger,
 		workflow.WorkflowVersionNodeId, manualTriggerEvent)
 
 	c.JSON(http.StatusOK, map[string]interface{}{"message": "Successfully triggered Workflow."})
@@ -151,7 +154,7 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		var rebalancerFocus RebalancerFocus
 		for _, workflowNode := range workflowNodes {
 			switch workflowNode.Type {
-			case core.WorkflowNodeRebalanceConfigurator, core.WorkflowNodeRebalanceAutoRun:
+			case workflow_helpers.WorkflowNodeRebalanceConfigurator, workflow_helpers.WorkflowNodeRebalanceAutoRun:
 				var rebalanceConfiguration RebalanceConfiguration
 				err := json.Unmarshal([]byte(workflowNode.Parameters), &rebalanceConfiguration)
 				if err != nil {
@@ -177,7 +180,7 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 				"Could not get the workflow version nodes to cancel the rebalances associated with it for workflowId: %v",
 				req.WorkflowId)
 		}
-		cancelRebalancersByOriginIds(core.RebalanceRequestWorkflowNode, wfvnIds)
+		cancelRebalancersByOriginIds(lightning_helpers.RebalanceWorkflowNode, wfvnIds)
 	}
 	storedWorkflow, err := updateWorkflow(db, req)
 	if err != nil {
@@ -191,16 +194,16 @@ func updateWorkflowHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 	if req.Status != nil {
-		workflowIds, err := GetWorkflowIdsByNodeType(db, core.WorkflowNodeCronTrigger)
+		workflowIds, err := GetWorkflowIdsByNodeType(db, workflow_helpers.WorkflowNodeCronTrigger)
 		if err != nil {
 			log.Error().Err(err).Msg("Could not obtain workflowIds for WorkflowNodeCronTrigger")
 		}
 		if slices.Contains(workflowIds, req.WorkflowId) {
 			ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 			defer cancel()
-			success := cache.InactivateCoreService(ctxWithTimeout, core.CronService)
+			success := cache.InactivateCoreService(ctxWithTimeout, services_helpers.CronService)
 			if success {
-				success = cache.ActivateCoreService(ctxWithTimeout, core.CronService)
+				success = cache.ActivateCoreService(ctxWithTimeout, services_helpers.CronService)
 			}
 			if !success {
 				server_errors.WrapLogAndSendServerError(c, err, "Could not restart CronService.")

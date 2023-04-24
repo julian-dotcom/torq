@@ -14,12 +14,12 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lncapital/torq/internal/cache"
-	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/services_helpers"
 )
 
 func SubscribeSlack(ctx context.Context, db *sqlx.DB) {
 
-	serviceType := core.SlackService
+	serviceType := services_helpers.SlackService
 
 	for {
 		select {
@@ -54,7 +54,7 @@ func getSlackClient() *slack.Client {
 
 func processEvents(ctx context.Context, socketClient *socketmode.Client, db *sqlx.DB) {
 
-	serviceType := core.SlackService
+	serviceType := services_helpers.SlackService
 
 	defer func() {
 		if err := recover(); err != nil {

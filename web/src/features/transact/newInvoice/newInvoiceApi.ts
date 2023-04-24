@@ -7,7 +7,7 @@ export const invoiceApi = torqApi.injectEndpoints({
     newInvoice: builder.mutation<NewInvoiceResponse, NewInvoiceRequest>({
       query: (data: NewInvoiceRequest) => {
         return {
-          url: "invoices/newinvoice",
+          url: "lightning/newinvoice",
           method: "POST",
           body: data,
         };

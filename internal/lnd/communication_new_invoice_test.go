@@ -1,9 +1,10 @@
-package invoices
+package lnd
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 )
 
@@ -20,13 +21,13 @@ func Test_processInvoiceReq(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   newInvoiceRequest
+		input   lightning_helpers.NewInvoiceRequest
 		want    *lnrpc.Invoice
 		wantErr bool
 	}{
 		{
 			"Node ID missing",
-			newInvoiceRequest{
+			lightning_helpers.NewInvoiceRequest{
 				ValueMsat: &valueMsat,
 			},
 			&lnrpc.Invoice{
@@ -36,9 +37,9 @@ func Test_processInvoiceReq(t *testing.T) {
 		},
 		{
 			"Only ValueMSat provided",
-			newInvoiceRequest{
-				NodeId:    1,
-				ValueMsat: &valueMsat,
+			lightning_helpers.NewInvoiceRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				ValueMsat:            &valueMsat,
 			},
 			&lnrpc.Invoice{
 				ValueMsat: 11,
@@ -47,15 +48,15 @@ func Test_processInvoiceReq(t *testing.T) {
 		},
 		{
 			"All params provided",
-			newInvoiceRequest{
-				NodeId:          1,
-				Memo:            &memo,
-				RPreImage:       &rPreImage,
-				ValueMsat:       &valueMsat,
-				Expiry:          &expiry,
-				FallBackAddress: &fallBackAddress,
-				Private:         &private,
-				IsAmp:           &amp,
+			lightning_helpers.NewInvoiceRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Memo:                 &memo,
+				RPreImage:            &rPreImage,
+				ValueMsat:            &valueMsat,
+				Expiry:               &expiry,
+				FallBackAddress:      &fallBackAddress,
+				Private:              &private,
+				IsAmp:                &amp,
 			},
 			&lnrpc.Invoice{
 				Memo:         "test",

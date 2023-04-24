@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/lightning"
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/pkg/server_errors"
 
 	"github.com/cockroachdb/errors"
@@ -14,55 +15,37 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/rs/zerolog/log"
-
-	"github.com/lncapital/torq/internal/channels"
-	"github.com/lncapital/torq/internal/payments"
 )
 
 type wsRequest struct {
-	RequestId           string                        `json:"requestId"`
-	Type                string                        `json:"type"`
-	NewPaymentRequest   *core.NewPaymentRequest       `json:"newPaymentRequest"`
-	PayOnChainRequest   *core.PayOnChainRequest       `json:"payOnChainRequest"`
-	CloseChannelRequest *channels.CloseChannelRequest `json:"closeChannelRequest"`
-	Password            *string                       `json:"password"`
+	Type              string                               `json:"type"`
+	NewPaymentRequest *lightning_helpers.NewPaymentRequest `json:"newPaymentRequest"`
 }
 
 type Pong struct {
 	Message string `json:"message"`
 }
 
-type AuthSuccess struct {
-	AuthSuccess bool `json:"authSuccess"`
-}
-
 type wsError struct {
-	RequestId string                    `json:"id"`
-	Type      string                    `json:"type"`
-	Error     server_errors.ServerError `json:"error"`
+	Type  string                    `json:"type"`
+	Error server_errors.ServerError `json:"error"`
 }
 
-func processWsReq(db *sqlx.DB,
-	webSocketResponseChannel chan<- interface{},
-	req wsRequest) {
-
-	if req.Type == "ping" {
+func processWsReq(webSocketResponseChannel chan<- interface{}, req wsRequest) {
+	switch req.Type {
+	case "ping":
 		webSocketResponseChannel <- Pong{Message: "pong"}
 		return
-	}
-
-	if req.RequestId == "" {
-		sendError(fmt.Errorf("unknown requestId for type: %s", req.Type), req, webSocketResponseChannel)
-		return
-	}
-
-	switch req.Type {
 	case "newPayment":
 		if req.NewPaymentRequest == nil {
 			sendError(fmt.Errorf("unknown NewPaymentRequest for type: %s", req.Type), req, webSocketResponseChannel)
 			break
 		}
-		sendError(payments.SendNewPayment(webSocketResponseChannel, db, *req.NewPaymentRequest, req.RequestId), req, webSocketResponseChannel)
+		req.NewPaymentRequest.ProgressReportChannel = webSocketResponseChannel
+		_, err := lightning.NewPayment(*req.NewPaymentRequest)
+		if err != nil {
+			sendError(err, req, webSocketResponseChannel)
+		}
 	default:
 		sendError(fmt.Errorf("unknown request type: %s", req.Type), req, webSocketResponseChannel)
 	}
@@ -136,13 +119,12 @@ func processWebsocketRequests(conn *websocket.Conn,
 			log.Debug().Err(err).Msg("WebSocket Handshake Error.")
 			return
 		case nil:
-			go processWsReq(db, webSocketResponseChannel, req)
+			go processWsReq(webSocketResponseChannel, req)
 		default:
 			serverError := server_errors.SingleServerError("Could not parse request, please check that your JSON is correctly formated.")
 			wsr := wsError{
-				RequestId: req.RequestId,
-				Type:      "Error",
-				Error:     *serverError,
+				Type:  "Error",
+				Error: *serverError,
 			}
 			webSocketResponseChannel <- wsr
 		}
@@ -153,9 +135,8 @@ func sendError(err error, req wsRequest, webSocketResponseChannel chan<- interfa
 	if err != nil {
 		serverError := server_errors.SingleServerError(err.Error())
 		webSocketResponseChannel <- wsError{
-			RequestId: req.RequestId,
-			Type:      "Error",
-			Error:     *serverError,
+			Type:  "Error",
+			Error: *serverError,
 		}
 	}
 }

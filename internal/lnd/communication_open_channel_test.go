@@ -1,9 +1,10 @@
-package channels
+package lnd
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 )
 
@@ -23,12 +24,12 @@ func Test_prepareOpenRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   OpenChannelRequest
+		input   lightning_helpers.OpenChannelRequest
 		want    *lnrpc.OpenChannelRequest
 		wantErr bool
 	}{
 		{"Node id not provided",
-			OpenChannelRequest{
+			lightning_helpers.OpenChannelRequest{
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
 				PushSat:            nil,
@@ -38,10 +39,10 @@ func Test_prepareOpenRequest(t *testing.T) {
 			&lnrpc.OpenChannelRequest{},
 			true},
 		{"Just mandatory params",
-			OpenChannelRequest{
-				NodeId:             1,
-				NodePubKey:         pubKeyStr,
-				LocalFundingAmount: 12,
+			lightning_helpers.OpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				NodePubKey:           pubKeyStr,
+				LocalFundingAmount:   12,
 			},
 			&lnrpc.OpenChannelRequest{
 				NodePubkey:         pubKeyByte,
@@ -49,7 +50,7 @@ func Test_prepareOpenRequest(t *testing.T) {
 			},
 			false},
 		{"Both targetConf & satPerVbyte provided",
-			OpenChannelRequest{
+			lightning_helpers.OpenChannelRequest{
 				NodePubKey:         pubKeyStr,
 				LocalFundingAmount: 12,
 				PushSat:            nil,
@@ -59,10 +60,10 @@ func Test_prepareOpenRequest(t *testing.T) {
 			&lnrpc.OpenChannelRequest{},
 			true},
 		{"Just mandatory params",
-			OpenChannelRequest{
-				NodeId:             1,
-				NodePubKey:         pubKeyStr,
-				LocalFundingAmount: 12,
+			lightning_helpers.OpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				NodePubKey:           pubKeyStr,
+				LocalFundingAmount:   12,
 			},
 			&lnrpc.OpenChannelRequest{
 				NodePubkey:         pubKeyByte,
@@ -70,18 +71,18 @@ func Test_prepareOpenRequest(t *testing.T) {
 			},
 			false},
 		{"All params provided",
-			OpenChannelRequest{
-				NodeId:             1,
-				NodePubKey:         pubKeyStr,
-				LocalFundingAmount: 12,
-				PushSat:            &pushSat,
-				TargetConf:         &targetConf,
-				Private:            &private,
-				MinHtlcMsat:        &minHtlcMsat,
-				RemoteCsvDelay:     &remoteCsvDelay,
-				MinConfs:           &minConfs,
-				SpendUnconfirmed:   &spendUnconfirmed,
-				CloseAddress:       &closeAddress,
+			lightning_helpers.OpenChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				NodePubKey:           pubKeyStr,
+				LocalFundingAmount:   12,
+				PushSat:              &pushSat,
+				TargetConf:           &targetConf,
+				Private:              &private,
+				MinHtlcMsat:          &minHtlcMsat,
+				RemoteCsvDelay:       &remoteCsvDelay,
+				MinConfs:             &minConfs,
+				SpendUnconfirmed:     &spendUnconfirmed,
+				CloseAddress:         &closeAddress,
 			},
 			&lnrpc.OpenChannelRequest{
 				NodePubkey:         pubKeyByte,
@@ -123,7 +124,7 @@ func Test_translateChanPoint(t *testing.T) {
 			220, 124, 38, 210, 37, 158, 171, 139, 138, 139, 42, 195, 254, 216, 159, 104, 118, 69, 251,
 			131, 10, 115, 198, 209, 55, 86, 139, 86, 238, 156, 192, 114,
 		}
-		got, err := translateChanPoint(txid, uint32(0))
+		got, err := chanPointFromByte(txid, uint32(0))
 		if err != nil {
 			t.Errorf("translateChanPoint error: %v", err)
 		}

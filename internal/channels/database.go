@@ -58,7 +58,7 @@ func GetChannel(db *sqlx.DB, channelId int) (Channel, error) {
 	return c, nil
 }
 
-func GetLocalRoutingPolicy(channelId, nodeId int, db *sqlx.DB) (ChannelPolicy, error) {
+func GetLocalRoutingPolicy(db *sqlx.DB, channelId int, nodeId int) (ChannelPolicy, error) {
 	cp := ChannelPolicy{}
 	err := db.Get(&cp, `
     SELECT disabled, time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id,
@@ -88,7 +88,7 @@ func GetLocalRoutingPolicy(channelId, nodeId int, db *sqlx.DB) (ChannelPolicy, e
 	return cp, nil
 }
 
-func GetRemoteRoutingPolicy(channelId, nodeId int, db *sqlx.DB) (ChannelPolicy, error) {
+func GetRemoteRoutingPolicy(db *sqlx.DB, channelId, nodeId int) (ChannelPolicy, error) {
 	cp := ChannelPolicy{}
 	err := db.Get(&cp, `
     SELECT disabled, time_lock_delta, min_htlc, max_htlc_msat, fee_base_msat, fee_rate_mill_msat, short_channel_id,
@@ -218,9 +218,16 @@ func getChannelIdByFundingTransaction(db *sqlx.DB, fundingTransactionHash string
 	return channelId, nil
 }
 
-func addChannel(db *sqlx.DB, channel Channel) (Channel, error) {
+func AddChannel(db *sqlx.DB, channel Channel) (Channel, error) {
 	channel.CreatedOn = time.Now().UTC()
 	channel.UpdateOn = &channel.CreatedOn
+	if channel.FundingTransactionHash != nil && *channel.FundingTransactionHash == "" {
+		channel.FundingTransactionHash = nil
+		channel.FundingOutputIndex = nil
+	}
+	if channel.FundingTransactionHash == nil && channel.FundingOutputIndex != nil {
+		channel.FundingOutputIndex = nil
+	}
 	if channel.ShortChannelID != nil && (*channel.ShortChannelID == "" || *channel.ShortChannelID == "0x0x0") {
 		channel.ShortChannelID = nil
 	}
@@ -276,7 +283,7 @@ func getChannelsWithStatus(db *sqlx.DB, network core.Network, status []core.Chan
 	return channels, nil
 }
 
-func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
+func UpdateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransactionHash string) error {
 	currentSettings := cache.GetChannelSettingByChannelId(channelId)
 	_, err := db.Exec(`
 		UPDATE channel
@@ -286,7 +293,7 @@ func updateChannelToClosingByChannelId(db *sqlx.DB, channelId int, closingTransa
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
-	cache.SetChannel(channelId, &currentSettings.ShortChannelId, &currentSettings.LndShortChannelId, core.Closing,
+	cache.SetChannel(channelId, currentSettings.ShortChannelId, currentSettings.LndShortChannelId, core.Closing,
 		currentSettings.FundingTransactionHash, currentSettings.FundingOutputIndex,
 		currentSettings.FundingBlockHeight, currentSettings.FundedOn,
 		currentSettings.Capacity, currentSettings.Private, currentSettings.FirstNodeId, currentSettings.SecondNodeId,

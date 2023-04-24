@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc/zpay32"
 
 	"github.com/lncapital/torq/proto/lnrpc"
@@ -38,7 +39,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 	nodeSettings cache.NodeSettingsCache,
 	opt *PayOptions) {
 
-	serviceType := core.LndServicePaymentStream
+	serviceType := services_helpers.LndServicePaymentsService
 
 	bootStrapping := true
 	includeIncomplete := cache.HasCustomSetting(nodeSettings.NodeId, core.ImportFailedPayments)
@@ -58,29 +59,29 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 		// Exit if canceled
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-tickerChannel:
 			importCounter := 0
 
 			lastPaymentIndex, err := fetchLastPaymentIndex(db, nodeSettings.NodeId)
 			if err != nil {
-				cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 				log.Error().Err(err).Msgf("Failed to obtain last know payment for nodeId: %v", nodeSettings.NodeId)
 				return
 			}
 
 			for {
 				if bootStrapping {
-					cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 				}
 				payments, err := fetchPayments(ctx, client, lastPaymentIndex, includeIncomplete)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
-						cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
-					cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+					cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 					log.Error().Err(err).Msgf("Failed to obtain payments for nodeId: %v", nodeSettings.NodeId)
 					return
 				}
@@ -97,7 +98,7 @@ func SubscribeAndStorePayments(ctx context.Context, client lightningClient_ListP
 				if len(payments.Payments) == 0 || lastPaymentIndex == payments.LastIndexOffset {
 					if bootStrapping {
 						log.Info().Msgf("Bulk import of payments: %v", importCounter)
-						cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 					}
 					bootStrapping = false
 					break
@@ -258,7 +259,7 @@ func UpdateInFlightPayments(ctx context.Context,
 	nodeSettings cache.NodeSettingsCache,
 	opt *PayOptions) {
 
-	serviceType := core.LndServiceInFlightPaymentStream
+	serviceType := services_helpers.LndServiceInFlightPaymentsService
 
 	bootStrapping := true
 
@@ -277,17 +278,17 @@ func UpdateInFlightPayments(ctx context.Context,
 		// Exit if canceled
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		case <-tickerChannel:
 			inFlightIndexes, err := fetchInFlightPaymentIndexes(db, nodeSettings.NodeId)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to obtain in-flight payment indexes for nodeId: %v", nodeSettings.NodeId)
-				cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			if bootStrapping {
-				cache.SetInitializingLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInitializingNodeServiceState(serviceType, nodeSettings.NodeId)
 			}
 			for _, i := range inFlightIndexes {
 				ifPayIndex := i - 1 // Subtract one to get that index, otherwise we would get the one after.
@@ -295,7 +296,7 @@ func UpdateInFlightPayments(ctx context.Context,
 				listPaymentsResponse, err := fetchPayments(ctx, client, ifPayIndex, true)
 				if err != nil {
 					if errors.Is(ctx.Err(), context.Canceled) {
-						cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+						cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 						return
 					}
 					log.Error().Err(err).Msgf("Error with subscribe and update payments for nodeId: %v", nodeSettings.NodeId)
@@ -328,7 +329,7 @@ func UpdateInFlightPayments(ctx context.Context,
 			}
 			if bootStrapping {
 				bootStrapping = false
-				cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			}
 		}
 	}

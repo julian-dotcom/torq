@@ -11,6 +11,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/lncapital/torq/internal/services_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -252,19 +253,10 @@ func storeChannelEvent(ctx context.Context,
 }
 
 func importPendingChannels(db *sqlx.DB, force bool, nodeSettings cache.NodeSettingsCache) error {
-	request := ImportPendingChannelsRequest{
-		ImportRequest: ImportRequest{
-			CommunicationRequest: CommunicationRequest{
-				NodeId: nodeSettings.NodeId,
-			},
-			Db:    db,
-			Force: force,
-		},
-	}
-	response := ImportPendingChannels(request)
-	if response.Error != nil {
-		log.Error().Err(response.Error).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
-		return errors.Wrapf(response.Error, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
+	err := ImportPendingChannels(db, force, nodeSettings.NodeId)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to obtain pending channels for nodeId: %v", nodeSettings.NodeId)
+		return errors.Wrapf(err, "Obtaining pending channels for nodeId: %v", nodeSettings.NodeId)
 	}
 	return nil
 }
@@ -362,26 +354,26 @@ func SubscribeAndStoreChannelEvents(ctx context.Context,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) {
 
-	serviceType := core.LndServiceChannelEventStream
+	serviceType := services_helpers.LndServiceChannelEventStream
 
 	stream, err := client.SubscribeChannelEvents(ctx, &lnrpc.ChannelEventSubscription{})
 	if err != nil {
 		if errors.Is(ctx.Err(), context.Canceled) {
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 		log.Error().Err(err).Msgf(
 			"%v failure to obtain a stream from LND for nodeId: %v", serviceType.String(), nodeSettings.NodeId)
-		cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+		cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 		return
 	}
 
-	cache.SetActiveLndServiceState(serviceType, nodeSettings.NodeId)
+	cache.SetActiveNodeServiceState(serviceType, nodeSettings.NodeId)
 
 	for {
 		select {
 		case <-ctx.Done():
-			cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		default:
 		}
@@ -389,12 +381,12 @@ func SubscribeAndStoreChannelEvents(ctx context.Context,
 		chanEvent, err := stream.Recv()
 		if err != nil {
 			if errors.Is(ctx.Err(), context.Canceled) {
-				cache.SetInactiveLndServiceState(serviceType, nodeSettings.NodeId)
+				cache.SetInactiveNodeServiceState(serviceType, nodeSettings.NodeId)
 				return
 			}
 			log.Error().Err(err).Msgf(
 				"Receiving channel events from the stream failed for nodeId: %v", nodeSettings.NodeId)
-			cache.SetFailedLndServiceState(serviceType, nodeSettings.NodeId)
+			cache.SetFailedNodeServiceState(serviceType, nodeSettings.NodeId)
 			return
 		}
 
@@ -428,7 +420,7 @@ func ImportPendingChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc
 	return nil
 }
 
-func ImportOpenChannels(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
+func ImportOpenChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
 	nodeSettings cache.NodeSettingsCache) error {
 	r, err := client.ListChannels(ctx, &lnrpc.ListChannelsRequest{})
 	if err != nil {
@@ -442,7 +434,7 @@ func ImportOpenChannels(ctx context.Context, db *sqlx.DB, client lnrpc.Lightning
 	return nil
 }
 
-func ImportClosedChannels(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
+func ImportClosedChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
 	nodeSettings cache.NodeSettingsCache) error {
 	r, err := client.ClosedChannels(ctx, &lnrpc.ClosedChannelsRequest{})
 	if err != nil {
@@ -810,13 +802,12 @@ icoLoop:
 }
 
 func processEmptyChanId(channelPoint string, nodeSettings cache.NodeSettingsCache) uint64 {
-
 	fundingTransactionHash, fundingOutputIndex := core.ParseChannelPoint(channelPoint)
 	channelId := cache.GetChannelIdByFundingTransaction(fundingTransactionHash, fundingOutputIndex)
 	if channelId != 0 {
 		channelSettings := cache.GetChannelSettingByChannelId(channelId)
-		if channelSettings.LndShortChannelId != 0 {
-			return channelSettings.LndShortChannelId
+		if channelSettings.LndShortChannelId != nil && *channelSettings.LndShortChannelId != 0 {
+			return *channelSettings.LndShortChannelId
 		}
 		if channelSettings.Status == core.AbandonedClosed || channelSettings.Status == core.FundingCancelledClosed {
 			return 0
@@ -828,7 +819,12 @@ func processEmptyChanId(channelPoint string, nodeSettings cache.NodeSettingsCach
 		return 0
 	}
 
-	shortChannelId := vector.GetShortChannelIdFromVector(fundingTransactionHash, fundingOutputIndex, nodeSettings)
+	if fundingTransactionHash == nil || *fundingTransactionHash == "" || fundingOutputIndex == nil {
+		log.Info().Msgf("No funding information for short channel id from vector for nodeId: %v", nodeSettings.NodeId)
+		return 0
+	}
+
+	shortChannelId := vector.GetShortChannelIdFromVector(*fundingTransactionHash, *fundingOutputIndex, nodeSettings)
 	if shortChannelId == "" {
 		log.Error().Msgf("Failed to obtain shortChannelId for closed channel with channel point %v:%v",
 			fundingTransactionHash, fundingOutputIndex)

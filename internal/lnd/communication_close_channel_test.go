@@ -1,4 +1,4 @@
-package channels
+package lnd
 
 import (
 	"reflect"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/lncapital/torq/internal/channels"
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 
 	"github.com/lncapital/torq/internal/cache"
@@ -42,9 +44,12 @@ func Test_prepareCloseRequest(t *testing.T) {
 		log.Fatal().Msgf("Problem initializing NodeCache cache: %v", err)
 	}
 
+	fundingTransactionHash := FundingTransactionHash
+	fundingOutputIndex := FundingOutputIndex
+
 	lndShortChannelId := uint64(9999)
 	shortChannelId := core.ConvertLNDShortChannelID(lndShortChannelId)
-	channel, err := addChannel(db, Channel{
+	channel, err := channels.AddChannel(db, channels.Channel{
 		ShortChannelID:         &shortChannelId,
 		Status:                 core.Open,
 		Private:                false,
@@ -52,8 +57,8 @@ func Test_prepareCloseRequest(t *testing.T) {
 		FirstNodeId:            cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
 		SecondNodeId:           cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey2, core.Bitcoin, core.SigNet),
 		LNDShortChannelID:      &lndShortChannelId,
-		FundingOutputIndex:     FundingOutputIndex,
-		FundingTransactionHash: FundingTransactionHash,
+		FundingOutputIndex:     &fundingOutputIndex,
+		FundingTransactionHash: &fundingTransactionHash,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Problem initializing channel: %v", err)
@@ -72,16 +77,17 @@ func Test_prepareCloseRequest(t *testing.T) {
 	var targetConf int32 = 12
 	var deliveryAddress = "test"
 	var satPerVbyte uint64 = 12
+	nodeId1 := cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet)
 
 	tests := []struct {
 		name    string
-		input   CloseChannelRequest
+		input   lightning_helpers.CloseChannelRequest
 		want    *lnrpc.CloseChannelRequest
 		wantErr bool
 	}{
 		{
 			"Node ID not provided",
-			CloseChannelRequest{
+			lightning_helpers.CloseChannelRequest{
 				ChannelId: channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
@@ -91,13 +97,13 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Both targetConf & satPerVbyte provided",
-			CloseChannelRequest{
-				NodeId:          cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
-				ChannelId:       channel.ChannelID,
-				Force:           nil,
-				TargetConf:      &targetConf,
-				DeliveryAddress: nil,
-				SatPerVbyte:     &satPerVbyte,
+			lightning_helpers.CloseChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: nodeId1},
+				ChannelId:            channel.ChannelID,
+				Force:                nil,
+				TargetConf:           &targetConf,
+				DeliveryAddress:      nil,
+				SatPerVbyte:          &satPerVbyte,
 			},
 			&lnrpc.CloseChannelRequest{
 				ChannelPoint:    nil,
@@ -110,9 +116,9 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"Just mandatory params",
-			CloseChannelRequest{
-				NodeId:    cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
-				ChannelId: channel.ChannelID,
+			lightning_helpers.CloseChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: nodeId1},
+				ChannelId:            channel.ChannelID,
 			},
 			&lnrpc.CloseChannelRequest{
 				ChannelPoint: channelPoint,
@@ -121,12 +127,12 @@ func Test_prepareCloseRequest(t *testing.T) {
 		},
 		{
 			"All params provide",
-			CloseChannelRequest{
-				NodeId:          cache.GetChannelPeerNodeIdByPublicKey(testutil.TestPublicKey1, core.Bitcoin, core.SigNet),
-				ChannelId:       channel.ChannelID,
-				Force:           &force,
-				TargetConf:      &targetConf,
-				DeliveryAddress: &deliveryAddress,
+			lightning_helpers.CloseChannelRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: nodeId1},
+				ChannelId:            channel.ChannelID,
+				Force:                &force,
+				TargetConf:           &targetConf,
+				DeliveryAddress:      &deliveryAddress,
 			},
 			&lnrpc.CloseChannelRequest{
 				ChannelPoint:    channelPoint,

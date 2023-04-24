@@ -4,14 +4,15 @@ import (
 	"time"
 
 	"github.com/lncapital/torq/internal/core"
+	"github.com/lncapital/torq/internal/services_helpers"
 )
 
 type CommonService struct {
-	ServiceType       core.ServiceType   `json:"type"`
-	ServiceTypeString string             `json:"typeString"`
-	Status            core.ServiceStatus `json:"status"`
-	StatusString      string             `json:"statusString"`
-	BootTime          *time.Time         `json:"bootTime,omitempty"`
+	ServiceType       services_helpers.ServiceType   `json:"type"`
+	ServiceTypeString string                         `json:"typeString"`
+	Status            services_helpers.ServiceStatus `json:"status"`
+	StatusString      string                         `json:"statusString"`
+	BootTime          *time.Time                     `json:"bootTime,omitempty"`
 }
 type CoreService struct {
 	CommonService
@@ -24,15 +25,15 @@ type LndService struct {
 }
 
 type ServiceMismatch struct {
-	ServiceType         core.ServiceType   `json:"type"`
-	ServiceTypeString   string             `json:"typeString"`
-	Status              core.ServiceStatus `json:"status"`
-	StatusString        string             `json:"statusString"`
-	DesiredStatus       core.ServiceStatus `json:"desiredStatus"`
-	DesiredStatusString string             `json:"desiredStatusString"`
-	NodeId              *int               `json:"nodeId,omitempty"`
-	BitcoinNetwork      *core.Network      `json:"bitcoinNetwork,omitempty"`
-	FailureTime         *time.Time         `json:"failureTime,omitempty"`
+	ServiceType         services_helpers.ServiceType   `json:"type"`
+	ServiceTypeString   string                         `json:"typeString"`
+	Status              services_helpers.ServiceStatus `json:"status"`
+	StatusString        string                         `json:"statusString"`
+	DesiredStatus       services_helpers.ServiceStatus `json:"desiredStatus"`
+	DesiredStatusString string                         `json:"desiredStatusString"`
+	NodeId              *int                           `json:"nodeId,omitempty"`
+	BitcoinNetwork      *core.Network                  `json:"bitcoinNetwork,omitempty"`
+	FailureTime         *time.Time                     `json:"failureTime,omitempty"`
 }
 
 type Services struct {

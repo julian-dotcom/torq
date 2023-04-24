@@ -2,26 +2,15 @@ package nodes
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
-
-type LndAddress struct {
-	PubKey string `json:"pubKey"`
-	Host   string `json:"host"`
-}
-
-type ConnectNodeRequest struct {
-	NodeId     int        `json:"nodeId"`
-	LndAddress LndAddress `json:"lndAddress"`
-	Perm       *bool      `json:"perm"`
-	TimeOut    *uint64    `json:"timeOut"`
-}
 
 type NodeInformation struct {
 	NodeId    int            `json:"nodeId"`

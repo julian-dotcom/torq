@@ -347,8 +347,8 @@ func InitializeChannelsCache(db *sqlx.DB) error {
 		var channelId int
 		var shortChannelId *string
 		var lndShortChannelId *uint64
-		var fundingTransactionHash string
-		var fundingOutputIndex int
+		var fundingTransactionHash *string
+		var fundingOutputIndex *int
 		var fundingBlockHeight *uint32
 		var fundedOn *time.Time
 		var capacity int64
@@ -440,7 +440,7 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	customSettings core.NodeConnectionDetailCustomSettings,
 	status core.Status) (int64, error) {
 
-	connectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
+	connectionDetails := cache.GetNodeConnectionDetails(nodeId)
 	var err error
 	var res sql.Result
 	if status == core.Active {
@@ -465,7 +465,7 @@ func setNodeConnectionDetailsCustomSettingStatus(db *sqlx.DB,
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
-	cache.SetLndNodeConnectionDetails(nodeId, connectionDetails)
+	cache.SetNodeConnectionDetails(nodeId, connectionDetails)
 	return rowsAffected, nil
 }
 
@@ -484,9 +484,9 @@ func setCustomSettings(db *sqlx.DB,
 	if err != nil {
 		return 0, errors.Wrap(err, database.SqlAffectedRowsCheckError)
 	}
-	connectionDetails := cache.GetLndNodeConnectionDetails(nodeId)
+	connectionDetails := cache.GetNodeConnectionDetails(nodeId)
 	connectionDetails.CustomSettings = customSettings
-	cache.SetLndNodeConnectionDetails(nodeId, connectionDetails)
+	cache.SetNodeConnectionDetails(nodeId, connectionDetails)
 	return rowsAffected, nil
 }
 
@@ -495,22 +495,32 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
 		UPDATE node_connection_details
-		SET implementation = $1, name = $2, grpc_address = $3, tls_file_name = $4, tls_data = $5,
-		    macaroon_file_name = $6, macaroon_data = $7, status_id = $8, ping_system = $9, updated_on = $10,
-			custom_settings = $11, node_start_date = $12
-		WHERE node_id = $13;`,
-		ncd.Implementation, ncd.Name, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.UpdatedOn,
+		SET implementation = $1, name = $2, grpc_address = $3,
+		    tls_file_name = $4, tls_data = $5, macaroon_file_name = $6, macaroon_data = $7,
+		    certificate_file_name = $8, certificate_data = $9, key_file_name = $10, key_data = $11,
+			ca_certificate_file_name = $12, ca_certificate_data = $13,
+		    status_id = $14, ping_system = $15, updated_on = $16,
+			custom_settings = $17, node_start_date = $18
+		WHERE node_id = $19;`,
+		ncd.Implementation, ncd.Name, ncd.GRPCAddress,
+		ncd.TLSFileName, ncd.TLSDataBytes, ncd.MacaroonFileName, ncd.MacaroonDataBytes,
+		ncd.CertificateFileName, ncd.CertificateDataBytes, ncd.KeyFileName, ncd.KeyDataBytes,
+		ncd.CaCertificateFileName, ncd.CaCertificateDataBytes,
+		ncd.Status, ncd.PingSystem, ncd.UpdatedOn,
 		ncd.CustomSettings, ncd.NodeStartDate, ncd.NodeId)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
 	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
-		cache.SetLndNodeConnectionDetails(ncd.NodeId, cache.LndNodeConnectionDetails{
-			GRPCAddress:       *ncd.GRPCAddress,
-			TLSFileBytes:      ncd.TLSDataBytes,
-			MacaroonFileBytes: ncd.MacaroonDataBytes,
-			CustomSettings:    ncd.CustomSettings,
+		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
+			Implementation:         ncd.Implementation,
+			GRPCAddress:            *ncd.GRPCAddress,
+			TLSFileBytes:           ncd.TLSDataBytes,
+			MacaroonFileBytes:      ncd.MacaroonDataBytes,
+			CertificateFileBytes:   ncd.CertificateDataBytes,
+			KeyFileBytes:           ncd.KeyDataBytes,
+			CaCertificateFileBytes: ncd.CaCertificateDataBytes,
+			CustomSettings:         ncd.CustomSettings,
 		})
 	}
 	return ncd, nil
@@ -520,9 +530,11 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	db *sqlx.DB,
 	nodeId int,
 	status core.Status,
+	implementation core.Implementation,
 	grpcAddress string,
-	tlsDataBytes []byte,
-	macaroonDataBytes []byte) error {
+	certificate []byte,
+	authentication []byte,
+	caCertificate []byte) error {
 
 	ncd, err := getNodeConnectionDetails(db, nodeId)
 	if err != nil {
@@ -530,8 +542,16 @@ func SetNodeConnectionDetailsByConnectionDetails(
 	}
 	updatedOn := time.Now().UTC()
 	ncd.UpdatedOn = &updatedOn
-	ncd.MacaroonDataBytes = macaroonDataBytes
-	ncd.TLSDataBytes = tlsDataBytes
+	ncd.Implementation = implementation
+	switch implementation {
+	case core.LND:
+		ncd.TLSDataBytes = certificate
+		ncd.MacaroonDataBytes = authentication
+	case core.CLN:
+		ncd.CertificateDataBytes = certificate
+		ncd.KeyDataBytes = authentication
+		ncd.CaCertificateDataBytes = caCertificate
+	}
 	ncd.GRPCAddress = &grpcAddress
 	ncd.Status = status
 	_, err = SetNodeConnectionDetails(db, ncd)
@@ -543,21 +563,39 @@ func addNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	ncd.UpdatedOn = &updatedOn
 	_, err := db.Exec(`
 		INSERT INTO node_connection_details
-		    (node_id, name, implementation, grpc_address, tls_file_name, tls_data, macaroon_file_name, macaroon_data,
-		     status_id, ping_system, custom_settings, created_on, updated_on, node_start_date)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14);`,
-		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress, ncd.TLSFileName, ncd.TLSDataBytes,
-		ncd.MacaroonFileName, ncd.MacaroonDataBytes, ncd.Status, ncd.PingSystem, ncd.CustomSettings,
-		ncd.CreateOn, ncd.UpdatedOn, ncd.NodeStartDate)
+		    (node_id, name, implementation, grpc_address,
+		     tls_file_name, tls_data, macaroon_file_name, macaroon_data,
+		     certificate_file_name, certificate_data, key_file_name, key_data,
+		     ca_certificate_file_name, ca_certificate_data,
+		     status_id, ping_system, custom_settings, node_start_date, created_on, updated_on)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20);`,
+		ncd.NodeId, ncd.Name, ncd.Implementation, ncd.GRPCAddress,
+		ncd.TLSFileName, ncd.TLSDataBytes, ncd.MacaroonFileName, ncd.MacaroonDataBytes,
+		ncd.CertificateFileName, ncd.CertificateDataBytes, ncd.KeyFileName, ncd.KeyDataBytes,
+		ncd.CaCertificateFileName, ncd.CaCertificateDataBytes,
+		ncd.Status, ncd.PingSystem, ncd.CustomSettings, ncd.NodeStartDate,
+		ncd.CreateOn, ncd.UpdatedOn)
 	if err != nil {
 		return ncd, errors.Wrap(err, database.SqlExecutionError)
 	}
 	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
-		cache.SetLndNodeConnectionDetails(ncd.NodeId, cache.LndNodeConnectionDetails{
+		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
+			Implementation:    ncd.Implementation,
 			GRPCAddress:       *ncd.GRPCAddress,
 			TLSFileBytes:      ncd.TLSDataBytes,
 			MacaroonFileBytes: ncd.MacaroonDataBytes,
 			CustomSettings:    ncd.CustomSettings,
+		})
+	}
+	if ncd.GRPCAddress != nil &&
+		len(ncd.CertificateDataBytes) != 0 && len(ncd.KeyDataBytes) != 0 && len(ncd.CaCertificateDataBytes) != 0 {
+		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
+			Implementation:         ncd.Implementation,
+			GRPCAddress:            *ncd.GRPCAddress,
+			CertificateFileBytes:   ncd.CertificateDataBytes,
+			KeyFileBytes:           ncd.KeyDataBytes,
+			CaCertificateFileBytes: ncd.CaCertificateDataBytes,
+			CustomSettings:         ncd.CustomSettings,
 		})
 	}
 	return ncd, nil

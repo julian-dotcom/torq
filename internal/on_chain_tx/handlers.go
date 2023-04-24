@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
@@ -109,41 +108,4 @@ func getOnChainTxsHandler(c *gin.Context, db *sqlx.DB) {
 			Limit:  limit,
 			Offset: offset,
 		}})
-}
-
-func sendCoinsHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody core.PayOnChainRequest
-
-	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
-		return
-	}
-
-	resp, err := PayOnChain(db, requestBody)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Sending on-chain payment")
-		return
-	}
-
-	sendCoinsResp := core.PayOnChainResponse{Request: requestBody, TxId: resp}
-
-	c.JSON(http.StatusOK, sendCoinsResp)
-}
-
-func newAddressHandler(c *gin.Context, db *sqlx.DB) {
-	var requestBody NewAddressRequest
-
-	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
-		return
-	}
-
-	resp, err := NewAddress(db, requestBody)
-	if err != nil {
-		// TODO: Improve error handling. Can't find LND errors in the codebase
-		server_errors.LogAndSendServerError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
 }

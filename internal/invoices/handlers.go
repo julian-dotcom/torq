@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
@@ -158,22 +157,4 @@ func getInvoiceHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	c.JSON(http.StatusOK, r)
-}
-
-func newInvoiceHandler(c *gin.Context, db *sqlx.DB) {
-
-	var requestBody newInvoiceRequest
-
-	if err := c.BindJSON(&requestBody); err != nil {
-		server_errors.SendBadRequestFromError(c, errors.Wrap(err, server_errors.JsonParseError))
-		return
-	}
-
-	resp, err := newInvoice(db, requestBody)
-	if err != nil {
-		server_errors.WrapLogAndSendServerError(c, err, "Creating new invoice")
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
 }

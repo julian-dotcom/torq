@@ -1,9 +1,10 @@
-package invoices
+package lnd
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
 )
 
@@ -14,7 +15,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *DecodedInvoice
+		want lightning_helpers.DecodeInvoiceResponse
 	}{
 		{
 			name: "Decodes a full decoded invoice",
@@ -58,7 +59,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 					},
 				},
 			},
-			want: &DecodedInvoice{
+			want: lightning_helpers.DecodeInvoiceResponse{
 				PaymentRequest:    "",
 				DestinationPubKey: "test",
 				RHash:             "payment_hash",
@@ -70,14 +71,14 @@ func Test_constructDecodedInvoice(t *testing.T) {
 				Expiry:            120,
 				CltvExpiry:        124,
 				Private:           false,
-				Features: featureMap{
+				Features: lightning_helpers.FeatureMap{
 					1: {
 						Name:       "Feature A",
 						IsKnown:    false,
 						IsRequired: false,
 					},
 				},
-				RouteHints: []routeHint{{HopHints: []hopHint{
+				RouteHints: []lightning_helpers.RouteHint{{HopHints: []lightning_helpers.HopHint{
 					{
 						LNDShortChannelId: 72623859790382856,
 						NodeId:            "routing_hint_node_id_1",
@@ -117,7 +118,7 @@ func Test_constructDecodedInvoice(t *testing.T) {
 					Features: nil,
 				},
 			},
-			want: &DecodedInvoice{
+			want: lightning_helpers.DecodeInvoiceResponse{
 				PaymentRequest:    "",
 				DestinationPubKey: "test",
 				RHash:             "payment_hash",
@@ -129,14 +130,14 @@ func Test_constructDecodedInvoice(t *testing.T) {
 				Expiry:            120,
 				CltvExpiry:        124,
 				Private:           false,
-				Features:          featureMap{},
+				Features:          lightning_helpers.FeatureMap{},
 				RouteHints:        nil,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := constructDecodedInvoice(tt.args.decoded)
+			got := constructDecodedInvoice(tt.args.decoded, tt.want)
 			equal := reflect.DeepEqual(got, tt.want)
 			if !equal {
 				t.Errorf("constructDecodedInvoice() = \n%v\n, want\n%v", got, tt.want)

@@ -5,7 +5,7 @@ export const openChannelApi = torqApi.injectEndpoints({
   endpoints: (builder) => ({
     openChannel: builder.mutation<OpenChannelResponse, OpenChannelRequest>({
       query: (body) => ({
-        url: `channels/open`,
+        url: `lightning/open`,
         method: "POST",
         body: body,
       }),
