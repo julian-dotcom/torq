@@ -420,7 +420,7 @@ func ImportPendingChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc
 	return nil
 }
 
-func ImportOpenChannels(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
+func ImportOpenChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
 	nodeSettings cache.NodeSettingsCache) error {
 	r, err := client.ListChannels(ctx, &lnrpc.ListChannelsRequest{})
 	if err != nil {
@@ -434,7 +434,7 @@ func ImportOpenChannels(ctx context.Context, db *sqlx.DB, client lnrpc.Lightning
 	return nil
 }
 
-func ImportClosedChannels(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
+func ImportClosedChannelsFromLnd(ctx context.Context, db *sqlx.DB, client lnrpc.LightningClient,
 	nodeSettings cache.NodeSettingsCache) error {
 	r, err := client.ClosedChannels(ctx, &lnrpc.ClosedChannelsRequest{})
 	if err != nil {

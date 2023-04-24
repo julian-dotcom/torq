@@ -330,7 +330,7 @@ func updateChannelFunding(db *sqlx.DB, channelId int,
 		        funded_on IS NULL OR funded_on!=$5 OR
 		        flags!=$6
 			)`,
-		time.Now().UTC(), fundingBlockHeight, fundingTransactionHash, fundingOutputIndex, fundedOn, flags, channelId)
+		time.Now().UTC(), fundingTransactionHash, fundingOutputIndex, fundingBlockHeight, fundedOn, flags, channelId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}

@@ -1682,8 +1682,10 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportAllChann
 		return response
 	}
 
+	client := lnrpc.NewLightningClient(connection)
+
 	//Import Pending channels
-	err = ImportPendingChannelsFromLnd(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
+	err = ImportPendingChannelsFromLnd(ctx, request.Db, client, nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import pending channels.")
 		response.Error = err
@@ -1691,7 +1693,7 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportAllChann
 	}
 
 	//Import Open channels
-	err = ImportOpenChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
+	err = ImportOpenChannelsFromLnd(ctx, request.Db, client, nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import open channels.")
 		response.Error = err
@@ -1699,7 +1701,7 @@ func processImportAllChannelsRequest(ctx context.Context, request ImportAllChann
 	}
 
 	// Import Closed channels
-	err = ImportClosedChannels(ctx, request.Db, lnrpc.NewLightningClient(connection), nodeSettings)
+	err = ImportClosedChannelsFromLnd(ctx, request.Db, client, nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import closed channels.")
 		response.Error = err
@@ -1791,7 +1793,7 @@ func processImportChannelRoutingPoliciesRequest(ctx context.Context,
 		return response
 	}
 
-	err = ImportRoutingPolicies(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
+	err = ImportRoutingPoliciesFromLnd(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import routing policies.")
 		response.Error = err
@@ -1829,7 +1831,7 @@ func processImportNodeInformationRequest(ctx context.Context,
 		return response
 	}
 
-	err = ImportNodeInfo(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
+	err = ImportNodeInfoFromLnd(ctx, lnrpc.NewLightningClient(connection), request.Db, nodeSettings)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to import node information.")
 		response.Error = err

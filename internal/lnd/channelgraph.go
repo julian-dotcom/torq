@@ -88,7 +88,7 @@ func SubscribeAndStoreChannelGraph(ctx context.Context,
 	}
 }
 
-func ImportNodeInfo(ctx context.Context,
+func ImportNodeInfoFromLnd(ctx context.Context,
 	client lnrpc.LightningClient,
 	db *sqlx.DB,
 	nodeSettings cache.NodeSettingsCache) error {
