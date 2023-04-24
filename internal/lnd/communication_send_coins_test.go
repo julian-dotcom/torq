@@ -4,9 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/lncapital/torq/internal/lightning_helpers"
 	"github.com/lncapital/torq/proto/lnrpc"
-
-	"github.com/lncapital/torq/internal/core"
 )
 
 func Test_processSendRequest(t *testing.T) {
@@ -20,13 +19,13 @@ func Test_processSendRequest(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   core.PayOnChainRequest
+		input   lightning_helpers.OnChainPaymentRequest
 		want    *lnrpc.SendCoinsRequest
 		wantErr bool
 	}{
 		{
 			"Missing node ID",
-			core.PayOnChainRequest{
+			lightning_helpers.OnChainPaymentRequest{
 				Address:   "adadsdas",
 				AmountSat: 12,
 			},
@@ -38,10 +37,10 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Address not provided",
-			core.PayOnChainRequest{
-				NodeId:    1,
-				Address:   "",
-				AmountSat: 12,
+			lightning_helpers.OnChainPaymentRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Address:              "",
+				AmountSat:            12,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:   "",
@@ -51,10 +50,10 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Invalid amount",
-			core.PayOnChainRequest{
-				NodeId:    1,
-				Address:   "test",
-				AmountSat: 0,
+			lightning_helpers.OnChainPaymentRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Address:              "test",
+				AmountSat:            0,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -64,12 +63,12 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Both targetconf and satpervbyte provided",
-			core.PayOnChainRequest{
-				NodeId:      1,
-				Address:     "test",
-				AmountSat:   12,
-				TargetConf:  &targetConf,
-				SatPerVbyte: &satPerVbyte,
+			lightning_helpers.OnChainPaymentRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Address:              "test",
+				AmountSat:            12,
+				TargetConf:           &targetConf,
+				SatPerVbyte:          &satPerVbyte,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:        "",
@@ -81,10 +80,10 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"Only mandatory params",
-			core.PayOnChainRequest{
-				NodeId:    1,
-				Address:   "test",
-				AmountSat: amount,
+			lightning_helpers.OnChainPaymentRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Address:              "test",
+				AmountSat:            amount,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:   "test",
@@ -94,15 +93,15 @@ func Test_processSendRequest(t *testing.T) {
 		},
 		{
 			"All params",
-			core.PayOnChainRequest{
-				NodeId:           1,
-				Address:          "test",
-				AmountSat:        amount,
-				TargetConf:       &targetConf,
-				SendAll:          &sendAll,
-				Label:            &label,
-				MinConfs:         &minConfs,
-				SpendUnconfirmed: &spendUnco,
+			lightning_helpers.OnChainPaymentRequest{
+				CommunicationRequest: lightning_helpers.CommunicationRequest{NodeId: 1},
+				Address:              "test",
+				AmountSat:            amount,
+				TargetConf:           &targetConf,
+				SendAll:              &sendAll,
+				Label:                &label,
+				MinConfs:             &minConfs,
+				SpendUnconfirmed:     &spendUnco,
 			},
 			&lnrpc.SendCoinsRequest{
 				Addr:             "test",
