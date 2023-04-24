@@ -237,7 +237,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <LinkButton
                   intercomTarget={"inspect-update-channel"}
                   to={`${UPDATE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
-                  state={{ background: location }}
+                  state={{ background: location.state.background }}
                   hideMobileText={true}
                   icon={<UpdateIcon />}
                   buttonColor={ColorVariant.success}
@@ -255,7 +255,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <LinkButton
                   intercomTarget={"inspect-close-channel"}
                   to={`${CLOSE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
-                  state={{ background: location }}
+                  state={{ background: location.state.background }}
                   hideMobileText={true}
                   icon={<CloseIcon />}
                   buttonSize={SizeVariant.small}
@@ -281,7 +281,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <LinkButton
                   intercomTarget={"inspect-tag-channel"}
                   to={`/tag-channel/${chanId}`}
-                  state={{ background: location }}
+                  state={{ background: location.state.background }}
                   onClick={() => {
                     track("Navigate to Tag Channel", {
                       channelId: chanId,
@@ -294,7 +294,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <LinkButton
                   intercomTarget={"inspect-tag-node"}
                   to={`/tag-node/${channelDetail?.peerNodeId}`}
-                  state={{ background: location }}
+                  state={{ background: location.state.background }}
                   onClick={() => {
                     track("Navigate to Tag Node", {
                       nodeId: channelDetail?.peerNodeId,
