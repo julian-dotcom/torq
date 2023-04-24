@@ -49,7 +49,7 @@ export const tagsApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "peers"],
     }),
     untagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -57,7 +57,7 @@ export const tagsApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "peers"],
     }),
     untagChannel: builder.mutation<void, TagChannelRequest>({
       query: (tagChannel) => ({

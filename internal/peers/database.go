@@ -12,6 +12,7 @@ import (
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/database"
+	"github.com/lncapital/torq/internal/tags"
 )
 
 type PeerNode struct {
@@ -23,6 +24,7 @@ type PeerNode struct {
 	Setting          *core.NodeConnectionSetting `json:"setting" db:"setting"`
 	ConnectionStatus *ConnectionStatus           `json:"connectionStatus" db:"connection_status"`
 	Address          *string                     `json:"address" db:"address"`
+	Tags             []tags.Tag                  `json:"tags"`
 }
 
 func (p PeerNode) MarshalJSON() ([]byte, error) {

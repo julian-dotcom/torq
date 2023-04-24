@@ -46,6 +46,12 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		key: "pubKey",
 		valueType: "string",
 	},
+	{
+		heading: "Tags",
+		type: "TagsCell",
+		key: "tags",
+		valueType: "tag",
+	},
 ];
 
 
@@ -70,4 +76,5 @@ export const PeersFilterableColumns: Array<keyof Peer> = [
 	"torqNodeAlias",
 	"connectionStatus",
 	"setting",
+	"tags",
 ];

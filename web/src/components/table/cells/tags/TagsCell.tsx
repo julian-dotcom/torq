@@ -10,7 +10,7 @@ import { userEvents } from "utils/userEvents";
 import { track } from "mixpanel-browser";
 
 export type TagsCellProps = {
-  channelId: number;
+  channelId?: number;
   nodeId: number;
   tags: TagType[];
   totalCell?: boolean;
@@ -46,20 +46,22 @@ const TagsCell = (props: TagsCellProps) => {
 
       {!props.totalCell && (
         <>
-          <LinkButton
-            intercomTarget={"tag-cell-add-channel-tag-button"}
-            to={`/tag-channel/${props.channelId}`}
-            state={{ background: location }}
-            icon={<ChannelsIcon />}
-            title="Tag Channel"
-            buttonSize={SizeVariant.tiny}
-            buttonColor={ColorVariant.disabled}
-            onClick={() => {
-              track("Navigate to Tag Channel", {
-                channelId: props.channelId,
-              });
-            }}
-          />
+          {props.channelId && (
+            <LinkButton
+              intercomTarget={"tag-cell-add-channel-tag-button"}
+              to={`/tag-channel/${props.channelId}`}
+              state={{ background: location }}
+              icon={<ChannelsIcon />}
+              title="Tag Channel"
+              buttonSize={SizeVariant.tiny}
+              buttonColor={ColorVariant.disabled}
+              onClick={() => {
+                mixpanel.track("Navigate to Tag Channel", {
+                  channelId: props.channelId,
+                });
+              }}
+            />
+          )}
           <LinkButton
             intercomTarget={"tag-cell-add-node-tag-button"}
             to={`/tag-node/${props.nodeId}`}
