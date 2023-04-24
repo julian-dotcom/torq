@@ -24,7 +24,7 @@ function isOption(result: unknown): result is SelectOptionType {
   return result !== null && typeof result === "object" && "value" in result && "label" in result;
 }
 
-export default function AddTagModal() {
+export default function MangeTagsPopout() {
   const { t } = useTranslations();
   const navigate = useNavigate();
   const tagsResponse = useGetTagsQuery();

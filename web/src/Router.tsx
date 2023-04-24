@@ -29,7 +29,7 @@ import WorkflowPage from "pages/WorkflowPage/WorkflowPage";
 import WorkflowsTablePage from "pages/WorkflowPage/WorkflowsTablePage";
 import TagsPage from "pages/tags/tagsPage/TagsPage";
 import TagsModal from "pages/tags/tagPage/TagsModal";
-import AddTag from "pages/tags/addTagPage/AddTag";
+import ManageTags from "pages/tags/manageTagsPopout/ManageTags";
 import MessageVerificationModal from "pages/messageVerificationPage/MessageVerificationModal";
 import ClosedChannelsPage from "features/channelsClosed/ChannelsClosedPage";
 import ChannelsPendingPage from "features/channelsPending/ChannelsPendingPage";
@@ -71,8 +71,8 @@ const modalRoutes: RouteObject = {
     { path: routes.CLOSE_CHANNEL, element: <CloseChannelModal /> },
     { path: routes.TAG, element: <TagsModal /> },
     { path: routes.UPDATE_TAG, element: <TagsModal /> },
-    { path: routes.TAG_NODE, element: <AddTag /> },
-    { path: routes.TAG_CHANNEL, element: <AddTag /> },
+    { path: routes.TAG_NODE, element: <ManageTags /> },
+    { path: routes.TAG_CHANNEL, element: <ManageTags /> },
     { path: routes.INSPECT_CHANNEL, element: <ChannelPage /> },
     { path: routes.MESSAGE_VERIFICATION, element: <MessageVerificationModal /> },
     { path: routes.CONNECT_PEER, element: <PeerConnectModal /> },
