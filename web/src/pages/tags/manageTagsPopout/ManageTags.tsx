@@ -158,6 +158,7 @@ export default function MangeTagsPopout() {
             placeholder={"Select Tag"}
           />
           <Button
+            intercomTarget={"add-tag-add-tag"}
             type={"submit"}
             icon={<AddIcon />}
             buttonColor={ColorVariant.success}

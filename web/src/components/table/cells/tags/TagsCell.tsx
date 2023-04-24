@@ -1,3 +1,4 @@
+import mixpanel from "mixpanel-browser";
 import { MoleculeRegular as NodeIcon, ArrowRoutingRegular as ChannelsIcon } from "@fluentui/react-icons";
 import { Link, useLocation } from "react-router-dom";
 import cellStyles from "components/table/cells/cell.module.scss";
