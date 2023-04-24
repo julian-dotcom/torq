@@ -65,6 +65,7 @@
   "tag": "Tag",
   "channel": "Channel",
   "node": "Node",
+  "peer": "Peer",
   "add": "Add",
   "addFilter": "Add Filter",
   "addFilterGroup": "Add Group",

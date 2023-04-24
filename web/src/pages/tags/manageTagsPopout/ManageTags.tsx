@@ -84,7 +84,7 @@ export default function MangeTagsPopout() {
     }
   }
 
-  const title = channelId ? t.channel : t.node;
+  const title = channelId ? t.channel : t.peer;
 
   const removeTag = (tagId: number, tagName: string) => {
     if (channelId !== undefined) {
