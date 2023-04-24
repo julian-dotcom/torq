@@ -8,7 +8,6 @@ import Tag, { TagSize } from "components/tags/Tag";
 import { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import classNames from "classnames";
 import { userEvents } from "utils/userEvents";
-import { track } from "mixpanel-browser";
 
 export type TagsCellProps = {
   channelId?: number;
@@ -72,7 +71,7 @@ const TagsCell = (props: TagsCellProps) => {
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.disabled}
             onClick={() => {
-              track("Navigate to Tag Node", {
+              mixpanel.track("Navigate to Tag Node", {
                 nodeId: props.nodeId,
               });
             }}
