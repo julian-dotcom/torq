@@ -56,17 +56,6 @@
   align-items: center;
 }
 
-.removeTagWrapper {
-  display: flex;
-  .tagWrapper {
-    border-top-right-radius: 0px;
-    border-bottom-right-radius: 0px;
-  }
-  .iconWrapper {
-    border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;
-    border-top-right-radius: var(--radius-default);
-    border-bottom-right-radius: var(--radius-default);
-    background-color: var(--secondary-400);
-  }
+.removeTag {
+  cursor: pointer;
 }
