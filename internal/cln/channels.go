@@ -119,6 +119,21 @@ func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_List
 				return errors.Wrapf(err, "persisting dropped channel with channelId: %v for nodeId: %v",
 					openChannelId, nodeSettings.NodeId)
 			}
+
+			peerNodeId := channel.FirstNodeId
+			if peerNodeId == nodeSettings.NodeId {
+				peerNodeId = channel.SecondNodeId
+			}
+
+			// This stops the graph from listening to node updates
+			chans, err := channels.GetOpenChannelsForNodeId(db, nodeSettings.NodeId)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to verify if remote node still has open channels: %v", peerNodeId)
+			}
+			if len(chans) == 0 {
+				peerPublicKey := cache.GetNodeSettingsByNodeId(peerNodeId).PublicKey
+				cache.SetInactiveChannelPeerNode(peerNodeId, peerPublicKey, nodeSettings.Chain, nodeSettings.Network)
+			}
 		}
 	}
 
@@ -132,8 +147,8 @@ func listAndProcessChannels(ctx context.Context, db *sqlx.DB, client client_List
 func storeChannels(db *sqlx.DB,
 	clnChannels []*cln.ListchannelsChannels,
 	nodeSettings cache.NodeSettingsCache,
-	processedChannelIds map[int]bool,
-) error {
+	processedChannelIds map[int]bool) error {
+
 	processedShortChannelIds := make(map[string]bool)
 	for _, clnChannel := range clnChannels {
 		if clnChannel != nil {
@@ -159,7 +174,7 @@ func storeChannels(db *sqlx.DB,
 					return errors.Wrapf(err, "add new peer node for nodeId: %v", nodeSettings.NodeId)
 				}
 			}
-			channelId, err := processChannel(db, clnChannel, nodeSettings, peerNodeId)
+			channelId, err := processChannel(db, clnChannel, nodeSettings, peerNodeId, peerPublicKey)
 			if err != nil {
 				return errors.Wrapf(err, "process channel for nodeId: %v", nodeSettings.NodeId)
 			}
@@ -201,7 +216,8 @@ func storeChannels(db *sqlx.DB,
 func processChannel(db *sqlx.DB,
 	clnChannel *cln.ListchannelsChannels,
 	nodeSettings cache.NodeSettingsCache,
-	peerNodeId int) (int, error) {
+	peerNodeId int,
+	peerPublicKey string) (int, error) {
 
 	channelId := cache.GetChannelIdByShortChannelId(&clnChannel.ShortChannelId)
 	var channel channels.Channel
@@ -244,6 +260,7 @@ func processChannel(db *sqlx.DB,
 		return 0, errors.Wrapf(err, "update channel data for channelId: %v, nodeId: %v",
 			channelId, nodeSettings.NodeId)
 	}
+	cache.SetChannelPeerNode(peerNodeId, peerPublicKey, nodeSettings.Chain, nodeSettings.Network, core.Open)
 	return channelId, nil
 }
 
