@@ -28,7 +28,7 @@ import {
 import { channel } from "features/channels/channelsTypes";
 import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "features/network/networkSlice";
-import { nodeAddress, nodeStatus, nodeWalletBalances } from "apiTypes";
+import { lightningRequest, nodeAddress, nodeStatus, nodeWalletBalances } from "apiTypes";
 import { ChannelPending } from "../channelsPending/channelsPendingTypes";
 import classNames from "classnames";
 import React, { useEffect, useState } from "react";
@@ -189,9 +189,9 @@ function DashboardPage() {
     } as nodeSummary;
 
     const walletBalances =
-      nodesWalletBalances?.find((x) => x.nodeId === node.nodeId) ??
+      nodesWalletBalances?.find((x) => x.request.nodeId === node.nodeId) ??
       ({
-        nodeId: 0,
+        request: {nodeId: 0} as lightningRequest,
         totalBalance: 0,
         confirmedBalance: 0,
         unconfirmedBalance: 0,
