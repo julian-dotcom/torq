@@ -225,6 +225,33 @@ func GetNodeConnectionHistoryWithDetail(db *sqlx.DB,
 	return
 }
 
+func GetConnectedPeerNodeIs(db *sqlx.DB, network core.Network) ([]int, error) {
+	var nodeIds []int
+	err := db.Select(&nodeIds, `
+			SELECT n.node_id
+			FROM Node n
+			LEFT JOIN (
+				SELECT LAST(node_id, created_on) as node_id,
+					   LAST(torq_node_id, created_on) as torq_node_id,
+		       		   LAST(connection_status, created_on) as connection_status
+				FROM node_connection_history
+				GROUP BY node_id
+			) nch on nch.node_id = n.node_id
+			JOIN node_connection_details as ncd ON ncd.node_id = nch.torq_node_id
+			WHERE nch.torq_node_id IS NOT NULL
+				AND ncd.status_id NOT IN ($1, $2)
+				AND n.network = $3
+				AND nch.connection_status = $4;`,
+		core.Deleted, core.Archived, network, core.NodeConnectionStatusConnected)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nodeIds, errors.Wrapf(err, "obtaining existing peer status for network: %v", network)
+	}
+	return nodeIds, nil
+}
+
 func InitializeNodesCache(db *sqlx.DB) error {
 	nodeConnectionDetailsArray, err := GetAllNodeConnectionDetails(db, true)
 	if err == nil {
@@ -513,10 +540,18 @@ func SetNodeConnectionDetails(db *sqlx.DB, ncd NodeConnectionDetails) (NodeConne
 	}
 	if ncd.GRPCAddress != nil && len(ncd.TLSDataBytes) != 0 && len(ncd.MacaroonDataBytes) != 0 {
 		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
+			Implementation:    ncd.Implementation,
+			GRPCAddress:       *ncd.GRPCAddress,
+			TLSFileBytes:      ncd.TLSDataBytes,
+			MacaroonFileBytes: ncd.MacaroonDataBytes,
+			CustomSettings:    ncd.CustomSettings,
+		})
+	}
+	if ncd.GRPCAddress != nil &&
+		len(ncd.CertificateDataBytes) != 0 && len(ncd.KeyDataBytes) != 0 && len(ncd.CaCertificateDataBytes) != 0 {
+		cache.SetNodeConnectionDetails(ncd.NodeId, cache.NodeConnectionDetails{
 			Implementation:         ncd.Implementation,
 			GRPCAddress:            *ncd.GRPCAddress,
-			TLSFileBytes:           ncd.TLSDataBytes,
-			MacaroonFileBytes:      ncd.MacaroonDataBytes,
 			CertificateFileBytes:   ncd.CertificateDataBytes,
 			KeyFileBytes:           ncd.KeyDataBytes,
 			CaCertificateFileBytes: ncd.CaCertificateDataBytes,

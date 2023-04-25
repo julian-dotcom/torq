@@ -91,6 +91,7 @@ func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 		case core.CLN:
 			existingNodeConnectionDetails.CertificateDataBytes = certificate
 			existingNodeConnectionDetails.KeyDataBytes = authentication
+			existingNodeConnectionDetails.CaCertificateDataBytes = caCertificate
 		}
 		ncd, err := SetNodeConnectionDetails(db, existingNodeConnectionDetails)
 		if err != nil {
@@ -99,9 +100,15 @@ func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 		return ncd, nil
 	}
 
-	nodeStartDate, err := getNodeStartDateFromLndNode(grpcAddress, certificate, authentication)
-	if err != nil {
-		return NodeConnectionDetails{}, errors.Wrap(err, "Getting node start date from lnd node")
+	var nodeStartDate *time.Time
+	switch implementation {
+	case core.LND:
+		nodeStartDate, err = getNodeStartDateFromLndNode(grpcAddress, certificate, authentication)
+		if err != nil {
+			return NodeConnectionDetails{}, errors.Wrap(err, "Getting node start date from lnd node")
+		}
+	case core.CLN:
+		// TODO FIXME CLN implement this when offset is available
 	}
 
 	nodeConnectionDetailsData := NodeConnectionDetails{
@@ -120,6 +127,7 @@ func AddNodeToDB(db *sqlx.DB, implementation core.Implementation,
 	case core.CLN:
 		existingNodeConnectionDetails.CertificateDataBytes = certificate
 		existingNodeConnectionDetails.KeyDataBytes = authentication
+		existingNodeConnectionDetails.CaCertificateDataBytes = caCertificate
 	}
 	ncd, err := addNodeConnectionDetails(db, nodeConnectionDetailsData)
 	if err != nil {

@@ -2,7 +2,6 @@ package lnd
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -106,11 +105,15 @@ func setNodeConnectionHistory(db *sqlx.DB,
 			connected := core.NodeConnectionStatusConnected
 			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &connected)
 		}
+		eventNodeSettings := cache.GetNodeSettingsByNodeId(eventNodeId)
+		cache.SetConnectedPeerNode(eventNodeId, eventNodeSettings.PublicKey, eventNodeSettings.Chain, eventNodeSettings.Network)
 	case lnrpc.PeerEvent_PEER_OFFLINE:
 		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusDisconnected {
 			disconnected := core.NodeConnectionStatusDisconnected
 			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &disconnected)
 		}
+		eventNodeSettings := cache.GetNodeSettingsByNodeId(eventNodeId)
+		cache.RemoveConnectedPeerNode(eventNodeId, eventNodeSettings.PublicKey, eventNodeSettings.Chain, eventNodeSettings.Network)
 	}
 	if err != nil {
 		return errors.Wrap(err, "adding connection history")
@@ -148,30 +151,10 @@ func ImportPeerStatusFromLnd(ctx context.Context,
 		}
 	}
 
-	var nodeIds []int
-	err = db.Select(&nodeIds, `
-			SELECT n.node_id
-			FROM Node n
-			LEFT JOIN (
-				SELECT LAST(node_id, created_on) as node_id,
-					   LAST(torq_node_id, created_on) as torq_node_id,
-		       		   LAST(connection_status, created_on) as connection_status
-				FROM node_connection_history
-				GROUP BY node_id
-			) nch on nch.node_id = n.node_id
-			JOIN node_connection_details as ncd ON ncd.node_id = nch.torq_node_id
-			WHERE nch.torq_node_id IS NOT NULL
-				AND ncd.status_id NOT IN ($1, $2)
-				AND n.network = $3
-				AND nch.connection_status = $4;`,
-		core.Deleted, core.Archived, nodeSettings.Network, core.NodeConnectionStatusConnected)
+	nodeIds, err := settings.GetConnectedPeerNodeIs(db, nodeSettings.Network)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			nodeIds = []int{}
-		}
 		return errors.Wrapf(err, "obtaining existing peer status for nodeId: %v", nodeSettings.NodeId)
 	}
-
 	for _, peerNodeId := range nodeIds {
 		if processedPeerNodeIds[peerNodeId] {
 			continue

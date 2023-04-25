@@ -38,6 +38,7 @@ const (
 	readConnectedPeerNode
 	readAllConnectedPeerNodeIds
 	writeConnectedPeerNode
+	removeConnectedPeerNode
 )
 
 type NodeCache struct {
@@ -386,6 +387,21 @@ func handleNodeOperation(nodeCache NodeCache,
 				PublicKey: nodeCache.PublicKey,
 			}
 		}
+	case removeConnectedPeerNode:
+		if nodeCache.PublicKey == "" || nodeCache.NodeId == 0 || nodeCache.Chain == nil ||
+			nodeCache.Network == nil {
+			log.Error().Msgf("No empty publicKey (%v), chain (%v), network (%v) or nodeId (%v) allowed",
+				nodeCache.PublicKey, nodeCache.NodeId, nodeCache.Chain, nodeCache.Network)
+		} else {
+			initializeNodeIdCache(connectedPeerNodeIdCache, *nodeCache.Chain, *nodeCache.Network)
+			delete(connectedPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
+			nodeSettingsByNodeIdCache[nodeIdType(nodeCache.NodeId)] = NodeSettingsCache{
+				NodeId:    nodeCache.NodeId,
+				Network:   *nodeCache.Network,
+				Chain:     *nodeCache.Chain,
+				PublicKey: nodeCache.PublicKey,
+			}
+		}
 	case removeNodeFromCached:
 		delete(channelPeerNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
 		delete(allTorqNodeIdCache[*nodeCache.Chain][*nodeCache.Network], publicKey(nodeCache.PublicKey))
@@ -649,6 +665,16 @@ func SetConnectedPeerNode(nodeId int, publicKey string, chain core.Chain, networ
 		Chain:     &chain,
 		Network:   &network,
 		Type:      writeConnectedPeerNode,
+	}
+}
+
+func RemoveConnectedPeerNode(nodeId int, publicKey string, chain core.Chain, network core.Network) {
+	NodesCacheChannel <- NodeCache{
+		NodeId:    nodeId,
+		PublicKey: publicKey,
+		Chain:     &chain,
+		Network:   &network,
+		Type:      removeConnectedPeerNode,
 	}
 }
 
