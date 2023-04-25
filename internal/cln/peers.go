@@ -90,6 +90,7 @@ func listAndProcessPeers(ctx context.Context, db *sqlx.DB, client client_ListPee
 }
 
 func storePeers(db *sqlx.DB, peers []*cln.ListpeersPeers, nodeSettings cache.NodeSettingsCache) error {
+	processedPeerNodeIds := make(map[int]bool)
 	for _, peer := range peers {
 		peerPublicKey := hex.EncodeToString(peer.Id)
 		peerNodeId := cache.GetPeerNodeIdByPublicKey(peerPublicKey, nodeSettings.Chain, nodeSettings.Network)
@@ -135,6 +136,32 @@ func storePeers(db *sqlx.DB, peers []*cln.ListpeersPeers, nodeSettings cache.Nod
 				}
 			}
 		}
+		processedPeerNodeIds[peerNodeId] = true
 	}
+
+	nodeIds, err := settings.GetConnectedPeerNodeIs(db, nodeSettings.Network)
+	if err != nil {
+		return errors.Wrapf(err, "obtaining existing peer status for nodeId: %v", nodeSettings.NodeId)
+	}
+	for _, peerNodeId := range nodeIds {
+		if processedPeerNodeIds[peerNodeId] {
+			continue
+		}
+		address, setting, connectionStatus, err := settings.GetNodeConnectionHistoryWithDetail(db, nodeSettings.NodeId, peerNodeId)
+		if err != nil {
+			return errors.Wrapf(err, "obtaining node connection history for peerNodeId: %v, nodeId: %v",
+				peerNodeId, nodeSettings.NodeId)
+		}
+		peerPublicKey := cache.GetNodeSettingsByNodeId(peerNodeId).PublicKey
+		cache.RemoveConnectedPeerNode(peerNodeId, peerPublicKey, nodeSettings.Chain, nodeSettings.Network)
+		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusDisconnected {
+			disconnected := core.NodeConnectionStatusDisconnected
+			err = settings.AddNodeConnectionHistory(db, nodeSettings.NodeId, peerNodeId, address, setting, &disconnected)
+			if err != nil {
+				return errors.Wrapf(err, "add new node disconnection history for nodeId: %v", nodeSettings.NodeId)
+			}
+		}
+	}
+
 	return nil
 }
