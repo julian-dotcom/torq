@@ -3,7 +3,6 @@ package cln
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -112,8 +111,9 @@ func storeChannelFunds(db *sqlx.DB,
 			continue
 		}
 		remoteNodeId := cache.GetChannelPeerNodeIdByPublicKey(hex.EncodeToString(clnChannel.PeerId), nodeSettings.Chain, nodeSettings.Network)
-		if channelId == 0 {
-			return errors.New(fmt.Sprintf("obtaining remoteNodeId from peer public key: %v", hex.EncodeToString(clnChannel.PeerId)))
+		if remoteNodeId == 0 {
+			log.Info().Msgf("skipping funds import from peer public key: %v", hex.EncodeToString(clnChannel.PeerId))
+			continue
 		}
 		channelStateSettings := cache.ChannelStateSettingsCache{
 			NodeId:        nodeSettings.NodeId,
