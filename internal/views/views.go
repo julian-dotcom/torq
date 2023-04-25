@@ -1635,5 +1635,27 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PagePeers: 3,
 			},
 		},
+		{
+			key:        "daysSinceLastConnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Days Since Last Connected",
+			visualType: "NumericCell",
+			valueType:  "number",
+			pages: map[TableViewPage]int{
+				PagePeers: 7,
+			},
+		},
+		{
+			key:        "dateLastConnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Date Last Connected",
+			visualType: "DateCell",
+			valueType:  "date",
+			pages: map[TableViewPage]int{
+				PagePeers: 8,
+			},
+		},
 	}
 }

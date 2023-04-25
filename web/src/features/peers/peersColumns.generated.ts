@@ -52,6 +52,18 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		key: "tags",
 		valueType: "tag",
 	},
+	{
+		heading: "Days Since Last Connected",
+		type: "NumericCell",
+		key: "daysSinceLastConnected",
+		valueType: "number",
+	},
+	{
+		heading: "Date Last Connected",
+		type: "DateCell",
+		key: "dateLastConnected",
+		valueType: "date",
+	},
 ];
 
 
@@ -64,6 +76,8 @@ export const PeersSortableColumns: Array<keyof Peer> = [
 	"torqNodeAlias",
 	"connectionStatus",
 	"setting",
+	"daysSinceLastConnected",
+	"dateLastConnected",
 ];
 
 
@@ -77,4 +91,6 @@ export const PeersFilterableColumns: Array<keyof Peer> = [
 	"connectionStatus",
 	"setting",
 	"tags",
+	"daysSinceLastConnected",
+	"dateLastConnected",
 ];
