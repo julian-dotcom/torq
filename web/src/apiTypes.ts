@@ -69,8 +69,12 @@ export interface lndService {
   typeString: string;
 }
 
-export interface nodeWalletBalances {
+export interface lightningRequest {
   nodeId: number;
+}
+
+export interface nodeWalletBalances {
+  request: lightningRequest;
   totalBalance: number;
   confirmedBalance: number;
   unconfirmedBalance: number;
