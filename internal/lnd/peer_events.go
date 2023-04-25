@@ -106,11 +106,15 @@ func setNodeConnectionHistory(db *sqlx.DB,
 			connected := core.NodeConnectionStatusConnected
 			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &connected)
 		}
+		eventNodeSettings := cache.GetNodeSettingsByNodeId(eventNodeId)
+		cache.SetConnectedPeerNode(eventNodeId, eventNodeSettings.PublicKey, eventNodeSettings.Chain, eventNodeSettings.Network)
 	case lnrpc.PeerEvent_PEER_OFFLINE:
 		if connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusDisconnected {
 			disconnected := core.NodeConnectionStatusDisconnected
 			err = settings.AddNodeConnectionHistory(db, torqNodeId, eventNodeId, address, setting, &disconnected)
 		}
+		eventNodeSettings := cache.GetNodeSettingsByNodeId(eventNodeId)
+		cache.RemoveConnectedPeerNode(eventNodeId, eventNodeSettings.PublicKey, eventNodeSettings.Chain, eventNodeSettings.Network)
 	}
 	if err != nil {
 		return errors.Wrap(err, "adding connection history")

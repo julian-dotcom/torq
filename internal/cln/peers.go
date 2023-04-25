@@ -121,6 +121,7 @@ func storePeers(db *sqlx.DB, peers []*cln.ListpeersPeers, nodeSettings cache.Nod
 			if err != nil {
 				return errors.Wrapf(err, "add new node connection history for nodeId: %v", nodeSettings.NodeId)
 			}
+			cache.SetConnectedPeerNode(peerNodeId, peerPublicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
 		if !peer.Connected && (connectionStatus == nil || *connectionStatus != core.NodeConnectionStatusDisconnected) {
 			disconnected := core.NodeConnectionStatusDisconnected
@@ -128,6 +129,7 @@ func storePeers(db *sqlx.DB, peers []*cln.ListpeersPeers, nodeSettings cache.Nod
 			if err != nil {
 				return errors.Wrapf(err, "add new node disconnection history for nodeId: %v", nodeSettings.NodeId)
 			}
+			cache.RemoveConnectedPeerNode(peerNodeId, peerPublicKey, nodeSettings.Chain, nodeSettings.Network)
 		}
 
 		// TODO FIXME THIS IS NOT WORKING ON CLN RIGHT NOW THERE IS A PENDING GITHUB ISSUE FOR IT.

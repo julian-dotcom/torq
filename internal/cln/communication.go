@@ -768,6 +768,9 @@ func processConnectPeerRequest(ctx context.Context,
 		return response
 	}
 
+	nodeSettings := cache.GetNodeSettingsByNodeId(request.NodeId)
+	eventNodeId := cache.GetPeerNodeIdByPublicKey(request.PublicKey, nodeSettings.Chain, nodeSettings.Network)
+	cache.SetConnectedPeerNode(eventNodeId, request.PublicKey, nodeSettings.Chain, nodeSettings.Network)
 	response.Status = lightning_helpers.Active
 	return response
 }
@@ -808,6 +811,8 @@ func processDisconnectPeerRequest(ctx context.Context,
 		return response
 	}
 
+	peer := cache.GetNodeSettingsByNodeId(request.PeerNodeId)
+	cache.RemoveConnectedPeerNode(peer.NodeId, peer.PublicKey, peer.Chain, peer.Network)
 	response.Status = lightning_helpers.Active
 	return response
 }
@@ -918,21 +923,8 @@ func processNewAddressRequest(ctx context.Context,
 
 	// TODO FIXME CLN implementation is temporary
 	clnAddressRequest := &cln.NewaddrRequest{}
-	segwit := cln.NewaddrRequest_P2SH_SEGWIT
 	bech32 := cln.NewaddrRequest_BECH32
-	switch request.Type {
-	case lightning_helpers.P2WPKH:
-		clnAddressRequest.Addresstype = &segwit
-	case lightning_helpers.P2WKH:
-		clnAddressRequest.Addresstype = &segwit
-	case lightning_helpers.NP2WKH:
-		clnAddressRequest.Addresstype = &segwit
-	case lightning_helpers.P2TR:
-		clnAddressRequest.Addresstype = &bech32
-	default:
-		response.Error = "unknown address type"
-		return response
-	}
+	clnAddressRequest.Addresstype = &bech32
 
 	rsp, err := cln.NewNodeClient(connection).NewAddr(ctx, clnAddressRequest)
 	if err != nil {
