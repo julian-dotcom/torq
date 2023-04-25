@@ -180,6 +180,7 @@ function ConnectPeerModal() {
                 intercomTarget={"connect-peer-confirm-button"}
                 disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
                 onClick={() => {
+                  setFormErrorState({} as FormErrors);
                   setStepIndex(1);
                   setConnectState(ProgressStepState.completed);
                   handleConnectPeer();
