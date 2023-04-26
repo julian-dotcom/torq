@@ -11,10 +11,12 @@ import {
 import styles from "./views.module.scss";
 import { AllViewsResponse } from "./types";
 import { useDeleteTableViewMutation } from "./viewsApiSlice";
-import { useAppDispatch } from "store/hooks";
-import { deleteView, updateSelectedView, updateViewTitle } from "./viewSlice";
+import { useAppDispatch, useAppSelector } from "store/hooks";
+import { deleteView, selectViews, updateSelectedView, updateViewTitle } from "./viewSlice";
 import Input from "components/forms/input/Input";
 import { InputSizeVariant } from "components/forms/input/variants";
+import { userEvents } from "utils/userEvents";
+import { deserialiseQuery } from "../sidebar/sections/filter/filter";
 
 type ViewRow = {
   id?: number;
@@ -32,7 +34,9 @@ export default function ViewRowComponent(props: ViewRow) {
   const [deleteTableView] = useDeleteTableViewMutation();
   const [editView, setEditView] = useState(false);
   const [localTitle, setLocalTitle] = useState(props.title);
-
+  const viewResponse = useAppSelector(selectViews)(props.page);
+  const view = viewResponse.views[props.viewIndex].view;
+  const { track } = userEvents();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleInputChange(e: any) {
     setLocalTitle(e.target.value);
@@ -41,14 +45,49 @@ export default function ViewRowComponent(props: ViewRow) {
   function handleInputSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEditView(false);
+    track(`View Update Title`, {
+      viewPage: props.page,
+      viewIndex: props.viewIndex,
+      viewNewTitle: localTitle,
+      viewOldTitle: props.title,
+    });
     dispatch(updateViewTitle({ page: props.page, viewIndex: props.viewIndex, title: localTitle }));
   }
 
   function handleSelectView(event: MouseEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
+    track(`View Selected`, {
+      viewPage: props.page,
+      newSelectedView: props.viewIndex,
+      newSelectedViewTitle: props.title,
+      previousView: props.selected,
+      previousViewTitle: props.title,
+    });
     dispatch(updateSelectedView({ page: props.page, viewIndex: props.viewIndex }));
   }
+
+  const handleDeleteView = () => {
+    if (props.id) {
+      deleteTableView({ page: props.page, id: props.id });
+    } else {
+      if (view) {
+        track(`View Deleted`, {
+          viewPage: props.page,
+          viewCount: viewResponse.views.length,
+          viewIndex: props.viewIndex,
+          viewName: viewResponse.views[props.viewIndex].view.title,
+          viewColumns: (view.columns || []).map((c) => c.heading),
+          viewSortedBy: (view.sortBy || []).map((s) => {
+            return { key: s.key, direction: s.direction };
+          }),
+          viewFilterCount: deserialiseQuery(view.filters).length,
+        });
+      }
+
+      dispatch(deleteView({ page: props.page, viewIndex: props.viewIndex }));
+    }
+  };
 
   return (
     <Draggable draggableId={`draggable-view-id-${props.viewIndex}`} index={props.viewIndex} isDragDisabled={!props.id}>
@@ -108,11 +147,7 @@ export default function ViewRowComponent(props: ViewRow) {
               data-intercom-target={"delete-view-button"}
               className={styles.removeView}
               onClick={() => {
-                if (props.id) {
-                  deleteTableView({ page: props.page, id: props.id });
-                } else {
-                  dispatch(deleteView({ page: props.page, viewIndex: props.viewIndex }));
-                }
+                handleDeleteView();
               }}
             >
               <RemoveIcon />

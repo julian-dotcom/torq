@@ -14,6 +14,7 @@ import { addView, selectViews, updateViewsOrder } from "./viewSlice";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import useTranslations from "services/i18n/useTranslations";
 import { useState } from "react";
+import { userEvents } from "utils/userEvents";
 
 type ViewSection<T> = {
   page: keyof AllViewsResponse;
@@ -24,6 +25,7 @@ function ViewsPopover<T>(props: ViewSection<T>) {
   const [draftCount, setDraftcount] = useState(1);
   const { t } = useTranslations();
   const dispatch = useAppDispatch();
+  const { track } = userEvents();
   const viewResponse = useAppSelector(selectViews)(props.page);
 
   const [updateTableViewsOrder] = useUpdateTableViewsOrderMutation();
@@ -67,6 +69,13 @@ function ViewsPopover<T>(props: ViewSection<T>) {
     newViewsOrder.splice(destination.index, 0, view as ViewResponse<TableResponses>);
     const order: ViewOrderInterface[] = newViewsOrder.map((v, index: number) => {
       return { id: v.id, viewOrder: index };
+    });
+    track(`View Update Order`, {
+      viewPage: props.page,
+      viewCount: viewResponse.views.length,
+      viewName: viewResponse.views[destination.index].view.title,
+      viewFromIndex: source.index,
+      viewToIndex: destination.index,
     });
     dispatch(updateViewsOrder({ page: props.page, fromIndex: source.index, toIndex: destination.index }));
     updateTableViewsOrder(order);
@@ -146,6 +155,9 @@ function ViewsPopover<T>(props: ViewSection<T>) {
                 } as ViewResponse<TableResponses>["view"],
               };
               dispatch(addView({ view: view }));
+              track(`View Create Draft`, {
+                viewPage: view.page,
+              });
               setDraftcount(draftCount + 1);
             }}
           >

@@ -2,8 +2,9 @@ import { VirtualNetwork20Regular as ChannelsIcon, Iot20Regular as PeersIcon } fr
 import styles from "./group-section.module.scss";
 import classNames from "classnames";
 import { AllViewsResponse } from "features/viewManagement/types";
-import { updateGroupBy } from "features/viewManagement/viewSlice";
-import { useAppDispatch } from "store/hooks";
+import { selectViews, updateGroupBy } from "features/viewManagement/viewSlice";
+import { useAppDispatch, useAppSelector } from "store/hooks";
+import { userEvents } from "utils/userEvents";
 
 type GroupPopoverProps = {
   page: keyof AllViewsResponse;
@@ -13,7 +14,20 @@ type GroupPopoverProps = {
 
 function GroupBySection(props: GroupPopoverProps) {
   const dispatch = useAppDispatch();
+  const viewResponse = useAppSelector(selectViews)(props.page);
+  const view = viewResponse?.views[props.viewIndex]?.view;
+  const { track } = userEvents();
+
   const handleUpdate = (by: "channels" | "peers") => {
+    if (view) {
+      track(`View Update Group By`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewGroupBy: by,
+      });
+    }
+
     dispatch(
       updateGroupBy({
         page: props.page,
