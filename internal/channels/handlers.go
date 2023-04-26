@@ -27,7 +27,8 @@ type ChannelBody struct {
 	ChannelId                    int                  `json:"channelId"`
 	ChannelPoint                 string               `json:"channelPoint"`
 	NodeName                     string               `json:"nodeName"`
-	Tags                         []tags.Tag           `json:"tags"`
+	ChannelTags                  []tags.Tag           `json:"channelTags"`
+	PeerTags                     []tags.Tag           `json:"peerTags"`
 	Active                       bool                 `json:"active"`
 	RemoteActive                 bool                 `json:"remoteActive"`
 	CurrentBlockHeight           uint32               `json:"currentBlockHeight"`
@@ -128,36 +129,10 @@ type NodeForTag struct {
 	Type   string `json:"type" db:"type"`
 }
 
-type ClosedChannel struct {
+type PendingOrClosedChannel struct {
 	ChannelID               int        `json:"channelId"`
-	Tags                    []tags.Tag `json:"tags"`
-	ShortChannelID          *string    `json:"shortChannelId"`
-	FundingTransactionHash  string     `json:"fundingTransactionHash"`
-	ClosingTransactionHash  *string    `json:"closingTransactionHash"`
-	LNDShortChannelID       string     `json:"lndShortChannelId"`
-	Capacity                int64      `json:"capacity"`
-	FirstNodeId             int        `json:"nodeId"`
-	SecondNodeId            int        `json:"peerNodeId"`
-	InitiatingNodeId        *int       `json:"initiatingNodeId"`
-	AcceptingNodeId         *int       `json:"acceptingNodeId"`
-	ClosingNodeId           *int       `json:"closingNodeId"`
-	Status                  string     `json:"status"`
-	ClosingBlockHeight      *uint32    `json:"closingBlockHeight"`
-	ClosedOn                *time.Time `json:"closedOn"`
-	FundedOn                *time.Time `json:"fundedOn"`
-	NodeName                string     `json:"nodeName"`
-	PublicKey               string     `json:"pubKey"`
-	PeerAlias               string     `json:"peerAlias"`
-	ClosingNodeName         string     `json:"closingNodeName"`
-	FundedOnSecondsDelta    *uint64    `json:"fundedOnSecondsDelta"`
-	FundingBlockHeightDelta *uint32    `json:"fundingBlockHeightDelta"`
-	ClosingBlockHeightDelta *uint32    `json:"closingBlockHeightDelta"`
-	ClosedOnSecondsDelta    *uint64    `json:"closedOnSecondsDelta"`
-}
-
-type PendingChannel struct {
-	ChannelID               int        `json:"channelId"`
-	Tags                    []tags.Tag `json:"tags"`
+	ChannelTags             []tags.Tag `json:"channelTags"`
+	PeerTags                []tags.Tag `json:"peerTags"`
 	ShortChannelID          *string    `json:"shortChannelId"`
 	FundingTransactionHash  string     `json:"fundingTransactionHash"`
 	ClosingTransactionHash  *string    `json:"closingTransactionHash"`
@@ -230,7 +205,8 @@ func GetChannelsByIds(nodeId int, channelIds []int) ([]ChannelBody, error) {
 		chanBody := ChannelBody{
 			NodeId:                       nodeId,
 			PeerNodeId:                   channel.RemoteNodeId,
-			Tags:                         tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(channel.RemoteNodeId, channelSettings.ChannelId)),
+			ChannelTags:                  tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(channelSettings.ChannelId)),
+			PeerTags:                     tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(channel.RemoteNodeId)),
 			ChannelId:                    channelSettings.ChannelId,
 			NodeName:                     *cache.GetNodeSettingsByNodeId(nodeId).Name,
 			Active:                       !channel.LocalDisabled,
@@ -341,7 +317,7 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	closedChannels := make([]ClosedChannel, len(channels))
+	closedChannels := make([]PendingOrClosedChannel, len(channels))
 	torqNodeIds := cache.GetAllTorqNodeIds()
 
 	for i, channel := range channels {
@@ -359,9 +335,10 @@ func getClosedChannelsListHandler(c *gin.Context, db *sqlx.DB) {
 			fundingTransactionHash = *channel.FundingTransactionHash
 		}
 
-		closedChannels[i] = ClosedChannel{
+		closedChannels[i] = PendingOrClosedChannel{
 			ChannelID:              channel.ChannelID,
-			Tags:                   channel.Tags,
+			ChannelTags:            tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(channel.ChannelID)),
+			PeerTags:               tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(channel.SecondNodeId)),
 			ShortChannelID:         channel.ShortChannelID,
 			FundingTransactionHash: fundingTransactionHash,
 			ClosingTransactionHash: channel.ClosingTransactionHash,
@@ -422,7 +399,7 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 		return
 	}
 
-	closedChannels := make([]PendingChannel, len(channels))
+	closedChannels := make([]PendingOrClosedChannel, len(channels))
 	torqNodeIds := cache.GetAllTorqNodeIds()
 
 	for i, channel := range channels {
@@ -440,9 +417,10 @@ func getChannelsPendingListHandler(c *gin.Context, db *sqlx.DB) {
 			fundingTransactionHash = *channel.FundingTransactionHash
 		}
 
-		closedChannels[i] = PendingChannel{
+		closedChannels[i] = PendingOrClosedChannel{
 			ChannelID:              channel.ChannelID,
-			Tags:                   channel.Tags,
+			ChannelTags:            tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(channel.ChannelID)),
+			PeerTags:               tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(channel.SecondNodeId)),
 			ShortChannelID:         channel.ShortChannelID,
 			FundingTransactionHash: fundingTransactionHash,
 			ClosingTransactionHash: channel.ClosingTransactionHash,

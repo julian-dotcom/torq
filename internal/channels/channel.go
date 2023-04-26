@@ -5,7 +5,6 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
-	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/internal/vector"
 
 	"github.com/cockroachdb/errors"
@@ -38,7 +37,6 @@ func GetClosureStatus(lndClosureType lnrpc.ChannelCloseSummary_ClosureType) core
 type Channel struct {
 	// ChannelID A database primary key. NOT a channel_id as specified in BOLT 2
 	ChannelID              int                `json:"channelId" db:"channel_id"`
-	Tags                   []tags.Tag         `json:"tags" db:"tags"`
 	ShortChannelID         *string            `json:"shortChannelId" db:"short_channel_id"`
 	FundingTransactionHash *string            `json:"fundingTransactionHash" db:"funding_transaction_hash"`
 	FundingOutputIndex     *int               `json:"fundingOutputIndex" db:"funding_output_index"`
@@ -212,14 +210,13 @@ func addChannelOrUpdateChannelStatus(db *sqlx.DB,
 				channel.FundingTransactionHash, channel.FundingOutputIndex)
 		}
 	}
-	if channel.FundingTransactionHash != nil && channel.FundingOutputIndex != nil && (
-		existingChannelSettings.FundingTransactionHash == nil ||
-			*existingChannelSettings.FundingTransactionHash != *channel.FundingTransactionHash ||
-			existingChannelSettings.FundingOutputIndex == nil ||
-			*existingChannelSettings.FundingOutputIndex != *channel.FundingOutputIndex ||
-			existingChannelSettings.FundingBlockHeight == nil && channel.FundingBlockHeight != nil ||
-			existingChannelSettings.FundedOn == nil && channel.FundedOn != nil ||
-			!existingChannelSettings.HasChannelFlags(core.FundedOn) && channel.HasChannelFlags(core.FundedOn)) {
+	if channel.FundingTransactionHash != nil && channel.FundingOutputIndex != nil && (existingChannelSettings.FundingTransactionHash == nil ||
+		*existingChannelSettings.FundingTransactionHash != *channel.FundingTransactionHash ||
+		existingChannelSettings.FundingOutputIndex == nil ||
+		*existingChannelSettings.FundingOutputIndex != *channel.FundingOutputIndex ||
+		existingChannelSettings.FundingBlockHeight == nil && channel.FundingBlockHeight != nil ||
+		existingChannelSettings.FundedOn == nil && channel.FundedOn != nil ||
+		!existingChannelSettings.HasChannelFlags(core.FundedOn) && channel.HasChannelFlags(core.FundedOn)) {
 		err := updateChannelFunding(db, existingChannelId, channel.FundingTransactionHash, channel.FundingOutputIndex,
 			channel.FundingBlockHeight, channel.FundedOn, channel.Flags)
 		if err != nil {
@@ -227,13 +224,12 @@ func addChannelOrUpdateChannelStatus(db *sqlx.DB,
 				"Updating channel status and closing transaction hash %v.", existingChannelId)
 		}
 	}
-	if channel.ClosingTransactionHash != nil && (
-		existingChannelSettings.ClosingTransactionHash == nil ||
-			*existingChannelSettings.ClosingTransactionHash != *channel.ClosingTransactionHash ||
-			existingChannelSettings.ClosingBlockHeight == nil && channel.ClosingBlockHeight != nil ||
-			existingChannelSettings.ClosedOn == nil && channel.ClosedOn != nil ||
-			existingChannelSettings.ClosingNodeId == nil && channel.ClosingNodeId != nil ||
-			!existingChannelSettings.HasChannelFlags(core.ClosedOn) && channel.HasChannelFlags(core.ClosedOn)) {
+	if channel.ClosingTransactionHash != nil && (existingChannelSettings.ClosingTransactionHash == nil ||
+		*existingChannelSettings.ClosingTransactionHash != *channel.ClosingTransactionHash ||
+		existingChannelSettings.ClosingBlockHeight == nil && channel.ClosingBlockHeight != nil ||
+		existingChannelSettings.ClosedOn == nil && channel.ClosedOn != nil ||
+		existingChannelSettings.ClosingNodeId == nil && channel.ClosingNodeId != nil ||
+		!existingChannelSettings.HasChannelFlags(core.ClosedOn) && channel.HasChannelFlags(core.ClosedOn)) {
 		err := updateChannelClosing(db, existingChannelId,
 			*channel.ClosingTransactionHash, channel.ClosingBlockHeight, channel.ClosedOn, channel.ClosingNodeId,
 			channel.Flags)

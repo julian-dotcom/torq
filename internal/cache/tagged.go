@@ -214,11 +214,10 @@ func GetTagIdsByNodeId(nodeId int) []int {
 	return <-tagIdsResponseChannel
 }
 
-func GetTagIdsByChannelId(nodeId int, channelId int) []int {
+func GetTagIdsByChannelId(channelId int) []int {
 	tagIdsResponseChannel := make(chan []int)
 	taggedCache := TaggedCache{
 		ChannelId: channelId,
-		NodeId:    nodeId,
 		Type:      readTagged,
 		Out:       tagIdsResponseChannel,
 	}

@@ -40,7 +40,8 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 		if err != nil {
 			return nil, errors.Wrapf(err, "Running getChannels query StructScan all: %v, channelIds: %v", all, channelIds)
 		}
-		c.Tags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.SecondNodeId, c.ChannelID))
+		c.ChannelTags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.ChannelID))
+		c.PeerTags = tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(c.SecondNodeId))
 		r = append(r, c)
 	}
 	return r, nil
@@ -55,6 +56,9 @@ func GetChannel(db *sqlx.DB, channelId int) (Channel, error) {
 		}
 		return Channel{}, errors.Wrap(err, database.SqlExecutionError)
 	}
+	c.ChannelTags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.ChannelID))
+	c.PeerTags = tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(c.SecondNodeId))
+
 	return c, nil
 }
 

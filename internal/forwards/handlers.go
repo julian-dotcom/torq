@@ -53,7 +53,8 @@ func getForwardsTableHandler(c *gin.Context, db *sqlx.DB) {
 type forwardsTableRow struct {
 	// Alias of remote peer
 	Alias        null.String `json:"alias"`
-	Tags         []tags.Tag  `json:"tags"`
+	ChannelTags  []tags.Tag  `json:"channelTags"`
+	PeerTags     []tags.Tag  `json:"peerTags"`
 	FirstNodeId  int         `json:"firstNodeId"`
 	SecondNodeId int         `json:"secondNodeId"`
 	// Database primary key of channel
@@ -248,8 +249,9 @@ func getForwardsTableData(db *sqlx.DB, nodeIds []int,
 
 		c.LocalNodeIds = nodeIds
 		if c.ChannelID != nil {
-			c.Tags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.SecondNodeId, *c.ChannelID))
+			c.ChannelTags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(*c.ChannelID))
 		}
+		c.PeerTags = tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(c.SecondNodeId))
 
 		// Append to the result
 		r = append(r, c)
