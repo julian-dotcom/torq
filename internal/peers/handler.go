@@ -13,6 +13,7 @@ import (
 	"github.com/lncapital/torq/internal/core"
 	"github.com/lncapital/torq/internal/lightning"
 	"github.com/lncapital/torq/internal/settings"
+	"github.com/lncapital/torq/internal/tags"
 	"github.com/lncapital/torq/pkg/server_errors"
 )
 
@@ -67,6 +68,9 @@ func getAllPeersHandler(c *gin.Context, db *sqlx.DB) {
 	if err != nil {
 		server_errors.WrapLogAndSendServerError(c, err, "Getting all Peer nodes.")
 		return
+	}
+	for peerIndex, peer := range peerNodes {
+		peerNodes[peerIndex].Tags = tags.GetTagsByTagIds(cache.GetTagIdsByNodeId(peer.NodeId))
 	}
 
 	c.JSON(http.StatusOK, peerNodes)

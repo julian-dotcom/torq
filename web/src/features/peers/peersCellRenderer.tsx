@@ -3,6 +3,7 @@ import { Peer } from "features/peers/peersTypes";
 import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import TextCell from "components/table/cells/text/TextCell";
 import PeersAliasCell from "components/table/cells/peersCell/PeersAliasCell";
+import TagsCell from "components/table/cells/tags/TagsCell";
 
 export default function peerCellRenderer(
   row: Peer,
@@ -22,6 +23,9 @@ export default function peerCellRenderer(
         connectionStatus={row.connectionStatus}
       />
     );
+  }
+  if (column.key === "tags") {
+    return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} nodeId={row.nodeId} />;
   }
 
   if (column.key === "connectionStatus") {

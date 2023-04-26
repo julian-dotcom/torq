@@ -290,7 +290,9 @@ function ChannelPage(_: ChannelPageProps) {
                   icon={<ChannelsIcon />}
                   buttonSize={SizeVariant.small}
                   buttonColor={ColorVariant.disabled}
-                />
+                >
+                  Tag Channel
+                </LinkButton>
                 <LinkButton
                   intercomTarget={"inspect-tag-node"}
                   to={`/tag-node/${channelDetail?.peerNodeId}`}
@@ -303,7 +305,9 @@ function ChannelPage(_: ChannelPageProps) {
                   icon={<NodeIcon />}
                   buttonSize={SizeVariant.small}
                   buttonColor={ColorVariant.disabled}
-                />
+                >
+                  Tag Peer
+                </LinkButton>
               </>
             )}
           </div>

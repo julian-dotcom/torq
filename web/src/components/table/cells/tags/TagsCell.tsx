@@ -1,3 +1,4 @@
+import mixpanel from "mixpanel-browser";
 import { MoleculeRegular as NodeIcon, ArrowRoutingRegular as ChannelsIcon } from "@fluentui/react-icons";
 import { Link, useLocation } from "react-router-dom";
 import cellStyles from "components/table/cells/cell.module.scss";
@@ -7,10 +8,9 @@ import Tag, { TagSize } from "components/tags/Tag";
 import { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import classNames from "classnames";
 import { userEvents } from "utils/userEvents";
-import { track } from "mixpanel-browser";
 
 export type TagsCellProps = {
-  channelId: number;
+  channelId?: number;
   nodeId: number;
   tags: TagType[];
   totalCell?: boolean;
@@ -46,28 +46,32 @@ const TagsCell = (props: TagsCellProps) => {
 
       {!props.totalCell && (
         <>
-          <LinkButton
-            intercomTarget={"tag-cell-add-channel-tag-button"}
-            to={`/tag-channel/${props.channelId}`}
-            state={{ background: location }}
-            icon={<ChannelsIcon />}
-            buttonSize={SizeVariant.tiny}
-            buttonColor={ColorVariant.disabled}
-            onClick={() => {
-              track("Navigate to Tag Channel", {
-                channelId: props.channelId,
-              });
-            }}
-          />
+          {props.channelId && (
+            <LinkButton
+              intercomTarget={"tag-cell-add-channel-tag-button"}
+              to={`/tag-channel/${props.channelId}`}
+              state={{ background: location }}
+              icon={<ChannelsIcon />}
+              title="Tag Channel"
+              buttonSize={SizeVariant.tiny}
+              buttonColor={ColorVariant.disabled}
+              onClick={() => {
+                mixpanel.track("Navigate to Tag Channel", {
+                  channelId: props.channelId,
+                });
+              }}
+            />
+          )}
           <LinkButton
             intercomTarget={"tag-cell-add-node-tag-button"}
             to={`/tag-node/${props.nodeId}`}
             state={{ background: location }}
             icon={<NodeIcon />}
+            title="Tag Peer"
             buttonSize={SizeVariant.tiny}
             buttonColor={ColorVariant.disabled}
             onClick={() => {
-              track("Navigate to Tag Node", {
+              mixpanel.track("Navigate to Tag Node", {
                 nodeId: props.nodeId,
               });
             }}

@@ -323,6 +323,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			pages: map[TableViewPage]int{
 				PageChannels: 4,
 				PageForwards: 7,
+				PagePeers:    6,
 			},
 		},
 		{
