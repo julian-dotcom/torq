@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -29,6 +30,7 @@ func MaintenanceServiceStart(ctx context.Context, db *sqlx.DB) {
 		case <-ticker.C:
 			// TODO get forwards/invoices/payments without firstNodeId/secondNodeId/nodeId and assign correctly
 			processMissingChannelData(db)
+			processMissingTransactionData(db)
 			deleteWorkflowLogs(db)
 		}
 	}
@@ -70,8 +72,7 @@ func processMissingChannelData(db *sqlx.DB) {
 	torqNodeIds := cache.GetAllTorqNodeIds()
 	for _, torqNodeId := range torqNodeIds {
 		nodeSettings := cache.GetNodeSettingsByNodeId(torqNodeId)
-		if cache.GetVectorUrlBase() == vector.VectorUrl && (nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
-			log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
+		if !isVectorAvailable(nodeSettings) {
 			continue
 		}
 		channelSettings := cache.GetChannelSettingsByNodeId(torqNodeId)
@@ -80,7 +81,8 @@ func processMissingChannelData(db *sqlx.DB) {
 				transactionDetails := vector.GetTransactionDetailsFromVector(*channelSetting.ClosingTransactionHash, nodeSettings)
 				err := updateClosingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
+					log.Error().Err(err).Msgf(
+						"Failed to update closing details from vector for channelId: %v", channelSetting.ChannelId)
 				}
 				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
@@ -88,7 +90,8 @@ func processMissingChannelData(db *sqlx.DB) {
 				transactionDetails := vector.GetTransactionDetailsFromVector(*channelSetting.FundingTransactionHash, nodeSettings)
 				err := updateFundingDetails(db, channelSetting, transactionDetails)
 				if err != nil {
-					log.Error().Err(err).Msgf("Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
+					log.Error().Err(err).Msgf(
+						"Failed to update funding details from vector for channelId: %v", channelSetting.ChannelId)
 				}
 				time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
 			}
@@ -115,7 +118,10 @@ func hasMissingClosingDetails(channelSetting cache.ChannelSettingsCache) bool {
 	return false
 }
 
-func updateClosingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, transactionDetails vector.TransactionDetailsHttpResponse) error {
+func updateClosingDetails(db *sqlx.DB,
+	channel cache.ChannelSettingsCache,
+	transactionDetails vector.TransactionDetailsHttpResponse) error {
+
 	if transactionDetails.BlockHeight != 0 {
 		channel.ClosedOn = &transactionDetails.BlockTimestamp
 		channel.ClosingBlockHeight = &transactionDetails.BlockHeight
@@ -155,7 +161,10 @@ func hasMissingFundingDetails(channelSetting cache.ChannelSettingsCache) bool {
 	return false
 }
 
-func updateFundingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, transactionDetails vector.TransactionDetailsHttpResponse) error {
+func updateFundingDetails(db *sqlx.DB,
+	channel cache.ChannelSettingsCache,
+	transactionDetails vector.TransactionDetailsHttpResponse) error {
+
 	if transactionDetails.BlockHeight != 0 {
 		channel.FundedOn = &transactionDetails.BlockTimestamp
 		channel.FundingBlockHeight = &transactionDetails.BlockHeight
@@ -177,4 +186,50 @@ func updateFundingDetails(db *sqlx.DB, channel cache.ChannelSettingsCache, trans
 			channel.Flags)
 	}
 	return nil
+}
+
+func processMissingTransactionData(db *sqlx.DB) {
+	torqNodeIds := cache.GetAllTorqNodeIds()
+	for _, torqNodeId := range torqNodeIds {
+		nodeSettings := cache.GetNodeSettingsByNodeId(torqNodeId)
+		if !isVectorAvailable(nodeSettings) {
+			continue
+		}
+		ncd := cache.GetNodeConnectionDetails(torqNodeId)
+		if ncd.Implementation == core.LND {
+			continue
+		}
+
+		// TODO FIXME We could add block height endpoint rather then transaction hash to vector.
+		var transactionHashes []string
+		err := db.Select(&transactionHashes, `SELECT tx_hash FROM tx WHERE flags=0`)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			log.Error().Err(err).Msgf("Could not obtain transactions that have incorrect timestamp for nodeId: %v",
+				nodeSettings.NodeId)
+			continue
+		}
+		for _, transactionHash := range transactionHashes {
+			transactionDetails := vector.GetTransactionDetailsFromVector(transactionHash, nodeSettings)
+			if transactionDetails.BlockHeight != 0 {
+				_, err = db.Exec(`UPDATE tx SET timestamp=$2, flags=$3 WHERE tx_hash=$1;`,
+					transactionHash, transactionDetails.BlockTimestamp, core.TransactionTime)
+				if err != nil {
+					log.Error().Err(err).Msgf(
+						"Failed to update transaction details from vector for transactionHash: %v", transactionHash)
+				}
+			}
+			time.Sleep(maintenanceVectorDelayMilliseconds * time.Millisecond)
+		}
+	}
+}
+
+func isVectorAvailable(nodeSettings cache.NodeSettingsCache) bool {
+	if cache.GetVectorUrlBase() == vector.VectorUrl && (nodeSettings.Chain != core.Bitcoin || nodeSettings.Network != core.MainNet) {
+		log.Info().Msgf("Skipping verification of funding and closing details from vector for nodeId: %v", nodeSettings.NodeId)
+		return false
+	}
+	return true
 }

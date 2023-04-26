@@ -63,6 +63,42 @@ func GetChain(chain string) Chain {
 	return Bitcoin
 }
 
+// override to get human readable enum
+func (s ChannelStatus) String() string {
+	switch s {
+	case Opening:
+		return "Opening"
+	case Open:
+		return "Open"
+	case Closing:
+		return "Closing"
+	case CooperativeClosed:
+		return "Cooperative Closed"
+	case LocalForceClosed:
+		return "Local Force Closed"
+	case RemoteForceClosed:
+		return "Remote Force Closed"
+	case BreachClosed:
+		return "Breach Closed"
+	case FundingCancelledClosed:
+		return "Funding Cancelled Closed"
+	case AbandonedClosed:
+		return "Abandoned Closed"
+	}
+	return UnknownEnumString
+}
+
+// NodeConnectionStatus is the status of a node connection.
+func (s NodeConnectionSetting) String() string {
+	switch s {
+	case NodeConnectionSettingAlwaysReconnect:
+		return "AlwaysReconnect"
+	case NodeConnectionSettingDisableReconnect:
+		return "DisableReconnect"
+	}
+	return UnknownEnumString
+}
+
 const mutexLocked = 1
 
 func MutexLocked(m *sync.Mutex) bool {

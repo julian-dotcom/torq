@@ -60,30 +60,12 @@ const (
 )
 const ChannelFlagsMax = int(ClosedOn)*2 - 1
 
-// override to get human readable enum
-func (s ChannelStatus) String() string {
-	switch s {
-	case Opening:
-		return "Opening"
-	case Open:
-		return "Open"
-	case Closing:
-		return "Closing"
-	case CooperativeClosed:
-		return "Cooperative Closed"
-	case LocalForceClosed:
-		return "Local Force Closed"
-	case RemoteForceClosed:
-		return "Remote Force Closed"
-	case BreachClosed:
-		return "Breach Closed"
-	case FundingCancelledClosed:
-		return "Funding Cancelled Closed"
-	case AbandonedClosed:
-		return "Abandoned Closed"
-	}
-	return UnknownEnumString
-}
+type TransactionFlags uint32
+
+const (
+	TransactionTime TransactionFlags = 1 << iota
+)
+const TransactionFlagsMax = int(TransactionTime)*2 - 1
 
 type PingSystem uint32
 
@@ -133,17 +115,6 @@ const (
 	NodeConnectionSettingAlwaysReconnect = NodeConnectionSetting(iota)
 	NodeConnectionSettingDisableReconnect
 )
-
-// NodeConnectionStatus is the status of a node connection.
-func (s NodeConnectionSetting) String() string {
-	switch s {
-	case NodeConnectionSettingAlwaysReconnect:
-		return "AlwaysReconnect"
-	case NodeConnectionSettingDisableReconnect:
-		return "DisableReconnect"
-	}
-	return UnknownEnumString
-}
 
 type NodeConnectionStatus int
 

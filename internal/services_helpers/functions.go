@@ -65,6 +65,7 @@ func GetClnServiceTypes() []ServiceType {
 		ClnServiceChannelsService,
 		ClnServiceFundsService,
 		ClnServiceNodesService,
+		ClnServiceTransactionsService,
 	}
 }
 
@@ -133,6 +134,8 @@ func (st *ServiceType) String() string {
 		return "ClnServiceFundsService"
 	case ClnServiceNodesService:
 		return "ClnServiceNodesService"
+	case ClnServiceTransactionsService:
+		return "ClnServiceTransactionsService"
 	}
 	return core.UnknownEnumString
 }
@@ -147,7 +150,8 @@ func (st *ServiceType) IsChannelBalanceCache() bool {
 		*st == ClnServicePeersService ||
 		*st == ClnServiceChannelsService ||
 		*st == ClnServiceFundsService ||
-		*st == ClnServiceNodesService) {
+		*st == ClnServiceNodesService ||
+		*st == ClnServiceTransactionsService) {
 		return true
 	}
 	return false
@@ -178,7 +182,8 @@ func (st *ServiceType) IsClnService() bool {
 		*st == ClnServicePeersService ||
 		*st == ClnServiceChannelsService ||
 		*st == ClnServiceFundsService ||
-		*st == ClnServiceNodesService) {
+		*st == ClnServiceNodesService ||
+		*st == ClnServiceTransactionsService) {
 		return true
 	}
 	return false
