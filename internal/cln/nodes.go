@@ -81,7 +81,7 @@ func listAndProcessNodes(ctx context.Context, db *sqlx.DB, client client_ListNod
 
 		err = storeNodes(db, clnNodes.Nodes, peerNodeId, nodeSettings)
 		if err != nil {
-			return errors.Wrapf(err, "storing source channels for nodeId: %v", nodeSettings.NodeId)
+			return errors.Wrapf(err, "storing nodes for nodeId: %v", nodeSettings.NodeId)
 		}
 
 		if bootStrapping {

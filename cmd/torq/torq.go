@@ -840,6 +840,8 @@ func bootService(db *sqlx.DB, serviceType services_helpers.ServiceType, nodeId i
 		go subscribe.StartFundsService(ctx, conn, db, nodeId)
 	case services_helpers.ClnServiceNodesService:
 		go subscribe.StartNodesService(ctx, conn, db, nodeId)
+	case services_helpers.ClnServiceTransactionsService:
+		go subscribe.StartTransactionsService(ctx, conn, db, nodeId)
 	}
 }
 
@@ -871,7 +873,8 @@ func isBootable(serviceType services_helpers.ServiceType, nodeId int) bool {
 		services_helpers.ClnServicePeersService,
 		services_helpers.ClnServiceChannelsService,
 		services_helpers.ClnServiceFundsService,
-		services_helpers.ClnServiceNodesService:
+		services_helpers.ClnServiceNodesService,
+		services_helpers.ClnServiceTransactionsService:
 		nodeConnectionDetails := cache.GetNodeConnectionDetails(nodeId)
 		if nodeConnectionDetails.Implementation == core.CLN &&
 			(nodeConnectionDetails.GRPCAddress == "" ||

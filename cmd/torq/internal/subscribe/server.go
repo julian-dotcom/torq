@@ -340,3 +340,22 @@ func StartChannelBalanceCacheMaintenance(ctx context.Context,
 
 	lnd.ChannelBalanceCacheMaintenance(ctx, lnrpc.NewLightningClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
 }
+
+func StartTransactionsService(ctx context.Context, conn *grpc.ClientConn, db *sqlx.DB, nodeId int) {
+
+	serviceType := services_helpers.ClnServiceTransactionsService
+
+	defer log.Info().Msgf("%v terminated for nodeId: %v", serviceType.String(), nodeId)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error().Msgf("%v is panicking (nodeId: %v) %v", serviceType.String(), nodeId, string(debug.Stack()))
+			cache.SetFailedNodeServiceState(serviceType, nodeId)
+			return
+		}
+	}()
+
+	cache.SetPendingNodeServiceState(serviceType, nodeId)
+
+	cln2.SubscribeAndStoreTransactions(ctx, cln.NewNodeClient(conn), db, cache.GetNodeSettingsByNodeId(nodeId))
+}
