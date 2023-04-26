@@ -5,15 +5,15 @@ import cellStyles from "components/table/cells/cell.module.scss";
 import styles from "./balance_cell.module.scss";
 
 export type BalanceCellProps = {
-  capacity: number;
   remote: number;
+  capacity: number;
   local: number;
   totalCell?: boolean;
   className?: string;
 };
 
-const calculateAvailableBalance = (amount: number, capacity: number) => {
-  const calculate = amount / capacity;
+const calculateAvailableBalance = (local: number, remote: number) => {
+  const calculate = local / (local + remote);
   return format(".2%")(calculate);
 };
 
@@ -46,13 +46,13 @@ const BalanceCell = (props: BalanceCellProps) => {
       <div className={classNames(styles.bar)}>
         <div
           className={classNames(styles.percentage)}
-          style={{ width: calculateAvailableBalance(props.local, props.capacity) }}
+          style={{ width: calculateAvailableBalance(props.local, props.remote) }}
         />
       </div>
       <div className={classNames(styles.capacity)}>
-        <div className={classNames(styles.remote)}>{calculateAvailableBalance(props.remote, props.capacity)}</div>
+        <div className={classNames(styles.remote)}>{calculateAvailableBalance(props.remote, props.local)}</div>
         <div className={classNames(styles.total)}>{formatAmount(props.capacity)}</div>
-        <div className={classNames(styles.local)}>{calculateAvailableBalance(props.local, props.capacity)}</div>
+        <div className={classNames(styles.local)}>{calculateAvailableBalance(props.local, props.remote)}</div>
       </div>
     </div>
   );
