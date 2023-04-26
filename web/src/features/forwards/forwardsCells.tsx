@@ -4,21 +4,24 @@ import DefaultCellRenderer from "features/table/DefaultCellRenderer";
 import AliasCell from "components/table/cells/alias/AliasCell";
 import { Forward } from "./forwardsTypes";
 import TagsCell from "components/table/cells/tags/TagsCell";
+import { GroupByOptions } from "features/viewManagement/types";
 
+/* nodeIds={row.localNodeIds.filter((id) => [row.firstNodeId, row.secondNodeId].includes(id))} */
 export default function channelsCellRenderer(
   row: Forward,
   rowIndex: number,
   column: ColumnMetaData<Forward>,
   columnIndex: number,
   isTotalsRow?: boolean,
-  maxRow?: Forward
+  maxRow?: Forward,
+  groupedBy?: GroupByOptions
 ): JSX.Element {
   if (column.key === "alias") {
     return (
       <AliasCell
         current={row["alias"] as string}
         channelId={row.channelId}
-        nodeIds={row.localNodeIds.filter((id) => [row.firstNodeId, row.secondNodeId].includes(id))}
+        nodeIds={[1]}
         open={row["open"]}
         key={"alias" + rowIndex + columnIndex}
         className={column.locked ? styles.locked : ""}
@@ -27,6 +30,7 @@ export default function channelsCellRenderer(
     );
   }
 
+  console.log(row.channelId);
   if (column.key === "tags") {
     return (
       <TagsCell

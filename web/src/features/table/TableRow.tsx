@@ -30,7 +30,15 @@ function Row<T>(props: RowProp<T>) {
 
   rowContent.push(
     ...props.columns.map((columnMeta: ColumnMetaData<T>, columnIndex) => {
-      return props.cellRenderer(props.row, props.rowIndex, columnMeta, columnIndex, props.isTotalsRow, props.maxRow);
+      return props.cellRenderer(
+        props.row,
+        props.rowIndex,
+        columnMeta,
+        columnIndex,
+        props.isTotalsRow,
+        props.maxRow,
+        props.groupedBy
+      );
     })
   );
 

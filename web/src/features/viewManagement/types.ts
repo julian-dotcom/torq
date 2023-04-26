@@ -40,12 +40,14 @@ export type CreateViewRequest = {
 };
 export type UpdateViewRequest = { id: number; view: ViewInterface<TableResponses> };
 
+export type GroupByOptions = "channels" | "peers" | undefined;
+
 export type ViewInterface<T> = {
   title: string;
   filters?: SerialisableFilterQuery;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
-  groupBy?: "channels" | "peers" | undefined;
+  groupBy?: GroupByOptions;
 };
 
 export interface ViewOrderInterface {

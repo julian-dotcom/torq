@@ -1,8 +1,10 @@
-const nonSummableFields: Array<string> = ["alias", "pub_key", "color"];
-const arrayAggKeys: Array<string> = ["channelId", "channel_point", "shortChannelId", "chan_id"];
+import { GroupByOptions } from "features/viewManagement/types";
+
+const nonSummableFields: Array<string> = ["alias", "pubKey", "color"];
+const arrayAggKeys: Array<string> = ["channelId", "channelPoint", "shortChannelId", "tags", "peerTags"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useGroupBy<T>(data: Array<any>, by: string | undefined): Array<T> {
+export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined): Array<T> {
   if (by !== "peers") {
     return data;
   }
@@ -10,9 +12,9 @@ export function useGroupBy<T>(data: Array<any>, by: string | undefined): Array<T
   const summedPubKey: typeof data = [];
 
   for (const chan of data) {
-    const pub_key = String(chan["pub_key" as keyof typeof chan]);
+    const pub_key = String(chan["pubKey" as keyof typeof chan]);
 
-    const summedChan = summedPubKey.find((sc) => sc["pub_key" as keyof typeof sc] == pub_key);
+    const summedChan = summedPubKey.find((sc) => sc["pubKey" as keyof typeof sc] == pub_key);
     if (!summedChan) {
       summedPubKey.push(chan);
       continue;

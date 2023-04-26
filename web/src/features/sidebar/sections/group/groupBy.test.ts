@@ -5,69 +5,69 @@ const testData: Array<any> = [
   {
     alias: "Some Node",
     channelId: 32,
-    channel_point: "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e288:0",
-    pub_key: "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
+    channelPoint: "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e288:0",
+    pubKey: "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
     shortChannelId: "699616:2052:0",
-    chan_id: "769235927112613888",
+    lndShortChannelId: "769235927112613888",
     color: "#68f442",
     open: 1,
     capacity: 10000000,
-    count_total: 20,
-    htlc_fail_all_in: 10,
-    htlc_fail_all_out: 150,
+    countTotal: 20,
+    htlcFailAllIn: 10,
+    htlcFailAllOut: 150,
   },
   {
     alias: "Another Node",
     channelId: 40,
-    channel_point: "f1c17e33b03bb3722eee187d5cceaaeab7b1e3e72d6efcbebf263747122a770f:0",
-    pub_key: "033f405aae705d96d4338efb236645a61c9b0a2303e3185211ed3b02c0803a4a2a",
+    channelPoint: "f1c17e33b03bb3722eee187d5cceaaeab7b1e3e72d6efcbebf263747122a770f:0",
+    pubKey: "033f405aae705d96d4338efb236645a61c9b0a2303e3185211ed3b02c0803a4a2a",
     shortChannelId: "707781:900:1",
-    chan_id: "778213439477907457",
+    lndShortChannelId: "778213439477907457",
     color: "#68f4a2",
     open: 1,
     capacity: 2000000,
-    count_total: 10,
-    htlc_fail_all_in: 5,
-    htlc_fail_all_out: 50,
+    countTotal: 10,
+    htlcFailAllIn: 5,
+    htlcFailAllOut: 50,
   },
   {
     alias: "Some Node",
     channelId: 33,
-    channel_point: "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e289:0",
-    pub_key: "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
+    channelPoint: "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e289:0",
+    pubKey: "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
     shortChannelId: "699616:2053:0",
-    chan_id: "769235927112613889",
+    lndShortChannelId: "769235927112613889",
     color: "#68f442",
     open: 0,
     capacity: 5000000,
-    count_total: 10,
-    htlc_fail_all_in: 10,
-    htlc_fail_all_out: 100,
+    countTotal: 10,
+    htlcFailAllIn: 10,
+    htlcFailAllOut: 100,
   },
   {
     alias: "Some Node",
     channelId: 34,
-    channel_point: "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e290:0",
-    pub_key: "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
+    channelPoint: "448e5a0842cc46ccd16eba686a9ff312ac5f3d27ba67e43b25c91e008a92e290:0",
+    pubKey: "02ab38160e8f24f9cce8d851a091ec927748e78507adc7f7ee01664728a981a597",
     shortChannelId: "699616:2054:0",
-    chan_id: "769235927112613890",
+    lndShortChannelId: "769235927112613890",
     color: "#68f442",
     open: 0,
     capacity: 5000000,
-    count_total: 0,
-    htlc_fail_all_in: 0,
-    htlc_fail_all_out: 0,
+    countTotal: 0,
+    htlcFailAllIn: 0,
+    htlcFailAllOut: 0,
   },
 ];
 
 test("Unknown by param returns exactly what was input", () => {
-  const result = useGroupBy(testData, "");
+  const result = useGroupBy(testData, undefined);
 
   expect(result).toStrictEqual(testData);
 });
 
 test("grouping by channels returns exactly what was input", () => {
-  const result = useGroupBy(testData, "channel");
+  const result = useGroupBy(testData, "channels");
 
   expect(result).toStrictEqual(testData);
 });
