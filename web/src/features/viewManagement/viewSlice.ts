@@ -14,7 +14,6 @@ import { ColumnMetaData } from "features/table/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { deserialiseQuery, SerialisableFilterQuery } from "features/sidebar/sections/filter/filter";
 import { DefaultPeersView } from "features/peers/peersDefaults";
-import { userEvents } from "utils/userEvents";
 
 const initialState = {
   initiated: false,
@@ -76,10 +75,6 @@ export const viewsSlice = createSlice({
       const { view } = action.payload;
       const views = state.pages[view.page].views;
       state.pages[view.page].views = <Array<ViewResponse<TableResponses>>>[...views, view];
-      const { track } = userEvents();
-      track(`View Create Draft`, {
-        viewPage: view.page,
-      });
     },
     updateViewTitle: (
       state: ViewSliceState,
@@ -87,13 +82,6 @@ export const viewsSlice = createSlice({
     ) => {
       const { page, viewIndex, title } = action.payload;
       if (state.pages[page].views[viewIndex].view.title !== title) {
-        const { track } = userEvents();
-        track(`View Update Title`, {
-          viewPage: page,
-          viewIndex: viewIndex,
-          viewNewTitle: title,
-          viewOldTitle: state.pages[page].views[viewIndex].view.title,
-        });
         state.pages[page].views[viewIndex].dirty = true;
         state.pages[page].views[viewIndex].view.title = title;
       }
@@ -106,14 +94,6 @@ export const viewsSlice = createSlice({
       }>
     ) => {
       const { page, viewIndex } = actions.payload;
-      const { track } = userEvents();
-      track(`View Selected`, {
-        viewPage: page,
-        newSelectedView: viewIndex,
-        newSelectedViewTitle: state.pages[page].views[viewIndex].view.title,
-        previousView: state.pages[page].selected,
-        previousViewTitle: state.pages[page].views[state.pages[page].selected].view.title,
-      });
       state.pages[page].selected = viewIndex;
     },
     updateViewsOrder: (
@@ -126,14 +106,6 @@ export const viewsSlice = createSlice({
       views.splice(fromIndex, 1);
       views.splice(toIndex, 0, view);
       state.pages[page].views = views;
-      const { track } = userEvents();
-      track(`View Update Order`, {
-        viewPage: page,
-        viewCount: state.pages[page].views.length,
-        viewName: state.pages[page].views[toIndex].view.title,
-        viewFromIndex: fromIndex,
-        viewToIndex: toIndex,
-      });
     },
     deleteView: (
       state: ViewSliceState,
@@ -145,24 +117,10 @@ export const viewsSlice = createSlice({
       const { page, viewIndex } = actions.payload;
       if (state.pages[page].views.length !== 1) {
         const views = state.pages[page].views.slice();
-        const spliceResult = views.splice(viewIndex, 1);
-        const deletedView = spliceResult[0];
         state.pages[page].views = <Array<ViewResponse<TableResponses>>>[...views];
         if (state.pages[page].selected === viewIndex) {
           state.pages[page].selected = 0;
         }
-        const { track } = userEvents();
-        track(`View Deleted`, {
-          viewPage: page,
-          viewCount: state.pages[page].views.length,
-          viewIndex: viewIndex,
-          viewName: deletedView?.view.title,
-          viewColumns: (deletedView?.view.columns || []).map((c) => c.heading),
-          viewSortedBy: (deletedView?.view.sortBy || []).map((s) => {
-            return { key: s.key, direction: s.direction };
-          }),
-          viewFilterCount: deserialiseQuery(deletedView.view.filters).length,
-        });
       }
     },
     // --------------------- Columns ---------------------
@@ -181,12 +139,6 @@ export const viewsSlice = createSlice({
       } else {
         state.pages[page].views[viewIndex].view.columns = [...(columns as Array<typeof newColumn>), newColumn];
       }
-      const { track } = userEvents();
-      track(`View Add Column`, {
-        viewColumnCount: columns?.length || 0,
-        viewColumnList: (columns || []).map((column) => column.heading),
-        viewColumnName: newColumn.heading,
-      });
       state.pages[page].views[viewIndex].dirty = true;
     },
     updateColumn: (
@@ -205,15 +157,6 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.columns[columnIndex] = { ...column, ...columnUpdate };
       }
       state.pages[page].views[viewIndex].dirty = true;
-      const { track } = userEvents();
-      track(`View Update Column`, {
-        viewPage: page,
-        viewIndex: viewIndex,
-        viewColumnIndex: columnIndex,
-        viewColumnCellType: columnUpdate.type,
-        viewColumnName: columnUpdate.heading,
-        viewColumnValueType: columnUpdate.valueType,
-      });
     },
     updateColumnsOrder: (
       state: ViewSliceState,
@@ -227,18 +170,7 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, fromIndex, toIndex } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns.slice();
       const column = columns[fromIndex];
-      const columnNames = columns.map((column) => column.heading);
-      const { track } = userEvents();
-      track(`View Update Column Order`, {
-        viewPage: page,
-        viewIndex: viewIndex,
-        viewTitle: state.pages[page].views[viewIndex].view.title,
-        viewColumnCount: columns.length || 0,
-        viewColumnList: columnNames,
-        viewColumnName: columnNames[fromIndex],
-        viewColumnPositionOld: fromIndex,
-        viewColumnPositionNew: toIndex,
-      });
+
       columns.splice(fromIndex, 1);
       columns.splice(toIndex, 0, column as ColumnMetaData<TableResponses>);
       state.pages[page].views[viewIndex].view.columns = columns;
@@ -255,13 +187,6 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, columnIndex } = actions.payload;
       const columns = state.pages[page].views[viewIndex].view.columns;
       if (columns) {
-        const { track } = userEvents();
-        track(`View Remove Column`, {
-          viewPage: page,
-          viewColumnCount: columns.length,
-          viewColumnList: columns.map((column) => column.heading),
-          viewColumnName: columns[columnIndex].heading,
-        });
         columns.splice(columnIndex, 1);
         state.pages[page].views[viewIndex].view.columns = columns;
       }
@@ -280,12 +205,6 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.filters = undefined;
       }
       state.pages[page].views[viewIndex].dirty = true;
-      const { track } = userEvents();
-      track(`View Filters Updated`, {
-        viewPage: page,
-        viewIndex: viewIndex,
-        viewFilterCount: q.length,
-      });
     },
     // --------------------- Sort ---------------------
     addSortBy: (
@@ -300,18 +219,6 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.sortBy = <Array<OrderBy>>[sortBy];
       }
       state.pages[page].views[viewIndex].dirty = true;
-      const { track } = userEvents();
-      track(`View Add Sort By`, {
-        viewPage: page,
-        viewIndex: viewIndex,
-        viewTitle: state.pages[page].views[viewIndex].view.title,
-        viewSortCount: state.pages[page].views[viewIndex].view.sortBy?.length || 0,
-        viewSortedBy: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
-          return { key: s.key, direction: s.direction };
-        }),
-        viewNewSortKey: sortBy.key,
-        viewNewSortDirection: sortBy.direction,
-      });
     },
     updateSortBy: (
       state: ViewSliceState,
@@ -331,18 +238,6 @@ export const viewsSlice = createSlice({
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
       }
       state.pages[page].views[viewIndex].dirty = true;
-      const { track } = userEvents();
-      track(`View Update Sort By`, {
-        viewPage: page,
-        viewIndex: viewIndex,
-        viewTitle: state.pages[page].views[viewIndex].view.title,
-        viewSortCount: state.pages[page].views[viewIndex].view.sortBy?.length || 0,
-        viewSortedBy: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
-          return { key: s.key, direction: s.direction };
-        }),
-        viewUpdatedSortKey: sortByUpdate.key,
-        viewUpdatedSortDirection: sortByUpdate.direction,
-      });
     },
     deleteSortBy: (
       state: ViewSliceState,
@@ -352,27 +247,13 @@ export const viewsSlice = createSlice({
         sortByIndex: number;
       }>
     ) => {
-      const { page, viewIndex, sortByIndex } = actions.payload;
+      const { page, viewIndex } = actions.payload;
       // Find the current array of sort by
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       // Delete the sort by if it exists
       if (currentSortBy) {
-        const deletedSortBy = currentSortBy.splice(sortByIndex, 1);
-        currentSortBy.splice(sortByIndex, 1);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
         state.pages[page].views[viewIndex].dirty = true;
-        const { track } = userEvents();
-        track(`View Delete Sort By`, {
-          viewPage: page,
-          viewIndex: viewIndex,
-          viewTitle: state.pages[page].views[viewIndex].view.title,
-          viewSortCount: currentSortBy.length || 0,
-          viewSortedBy: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
-            return { key: s.key, direction: s.direction };
-          }),
-          viewDeletedSortKey: deletedSortBy[0].key,
-          viewDeletedSortDirection: deletedSortBy[0].direction,
-        });
       }
     },
     updateSortByOrder: (
@@ -383,20 +264,6 @@ export const viewsSlice = createSlice({
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       if (currentSortBy) {
         const sortBy = currentSortBy[fromIndex];
-        const { track } = userEvents();
-        track(`View Update Sort By Order`, {
-          viewPage: page,
-          viewIndex: viewIndex,
-          viewTitle: state.pages[page].views[viewIndex].view.title,
-          viewSortCount: currentSortBy.length || 0,
-          viewSortedBy: (state.pages[page].views[viewIndex].view.sortBy || []).map((s) => {
-            return { key: s.key, direction: s.direction };
-          }),
-          viewFromIndex: fromIndex,
-          viewToIndex: toIndex,
-          viewSortKey: sortBy.key,
-          viewSortDirection: sortBy.direction,
-        });
         currentSortBy.splice(fromIndex, 1);
         currentSortBy.splice(toIndex, 0, sortBy);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
@@ -415,13 +282,6 @@ export const viewsSlice = createSlice({
       const { page, viewIndex, groupByUpdate } = actions.payload;
       state.pages[page].views[viewIndex].view.groupBy = groupByUpdate;
       state.pages[page].views[viewIndex].dirty = true;
-      const { track } = userEvents();
-      track(`View Update Group By`, {
-        viewPage: page,
-        viewIndex: viewIndex,
-        viewTitle: state.pages[page].views[viewIndex].view.title,
-        viewGroupBy: groupByUpdate,
-      });
     },
   },
   // // The `extraReducers` field lets the slice handle actions defined elsewhere,
@@ -471,19 +331,6 @@ export const viewsSlice = createSlice({
     builder.addMatcher(viewApi.endpoints.deleteTableView.matchPending, (state, { meta }) => {
       const views = state.pages[meta.arg.originalArgs.page].views;
       const index = views.findIndex((view) => view.id === meta.arg.originalArgs.id);
-      const view = views[index];
-      const { track } = userEvents();
-      track(`View Deleted`, {
-        viewPage: meta.arg.originalArgs.page,
-        viewCount: state.pages[meta.arg.originalArgs.page].views.length,
-        viewId: view.id,
-        viewName: view.view.title,
-        viewColumns: (view.view.columns || []).map((c: { heading: string }) => c.heading) as string[],
-        viewSortedBy: (view.view.sortBy || []).map((s) => {
-          return { key: s.key, direction: s.direction };
-        }),
-        filter_count: deserialiseQuery(view.view.filters).length,
-      });
       views.splice(index, 1);
       state.pages[meta.arg.originalArgs.page].views = views;
       state.pages[meta.arg.originalArgs.page].selected = 0;
@@ -492,19 +339,6 @@ export const viewsSlice = createSlice({
     builder.addMatcher(viewApi.endpoints.updateTableView.matchFulfilled, (state, { payload }) => {
       const views = state.pages[payload.page].views;
       const index = views.findIndex((view) => view.id === payload.id);
-      const view = views[index];
-      const { track } = userEvents();
-      track(`View Saved`, {
-        viewPage: view.page,
-        viewCount: views.length,
-        viewId: view.id,
-        viewName: view.view.title,
-        viewColumns: (view.view.columns || []).map((c: { heading: string }) => c.heading) as string[],
-        viewSortedBy: (view.view.sortBy || []).map((s) => {
-          return { key: s.key, direction: s.direction };
-        }),
-        viewFilterCount: deserialiseQuery(view.view.filters).length,
-      });
       views[index] = payload;
       views[index].dirty = false;
       state.pages[payload.page].views = views;
@@ -512,18 +346,6 @@ export const viewsSlice = createSlice({
 
     builder.addMatcher(viewApi.endpoints.createTableView.matchFulfilled, (state, { meta, payload }) => {
       const view = payload;
-      const { track } = userEvents();
-      track(`View Created`, {
-        viewPage: meta.arg.originalArgs.page,
-        viewCount: state.pages[meta.arg.originalArgs.page].views.length,
-        viewId: view.id,
-        viewName: view.view.title,
-        viewColumns: (view.view.columns || []).map((c: { heading: string }) => c.heading) as string[],
-        viewSortedBy: (view.view.sortBy || []).map((s) => {
-          return { key: s.key, direction: s.direction };
-        }),
-        viewFilterCount: deserialiseQuery(view.view.filters).length,
-      });
       view.dirty = false;
       state.pages[payload.page].views[meta.arg.originalArgs.index] = view;
     });

@@ -5,6 +5,7 @@ import { updateFilters } from "features/viewManagement/viewSlice";
 import { AllViewsResponse } from "features/viewManagement/types";
 import { AndClause, OrClause, FilterInterface } from "./filter";
 import { useAppDispatch } from "store/hooks";
+import { userEvents } from "utils/userEvents";
 
 type FilterSectionProps<T> = {
   page: keyof AllViewsResponse;
@@ -16,7 +17,13 @@ type FilterSectionProps<T> = {
 
 function FilterSection<T>(props: FilterSectionProps<T>) {
   const dispatch = useAppDispatch();
+  const { track } = userEvents();
   const handleFilterUpdate = (filters: AndClause | OrClause) => {
+    track(`View Filters Updated`, {
+      viewPage: props.page,
+      viewIndex: props.viewIndex,
+      viewFilterCount: filters.length,
+    });
     dispatch(
       updateFilters({
         page: props.page,

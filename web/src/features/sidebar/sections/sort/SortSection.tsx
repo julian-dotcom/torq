@@ -12,10 +12,17 @@ import Button, { ColorVariant, SizeVariant } from "components/buttons/Button";
 import styles from "./sort.module.scss";
 import classNames from "classnames";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
-import { useAppDispatch } from "store/hooks";
+import { useAppDispatch, useAppSelector } from "store/hooks";
 import { AllViewsResponse } from "features/viewManagement/types";
-import { addSortBy, updateSortBy, deleteSortBy, updateSortByOrder } from "features/viewManagement/viewSlice";
+import {
+  addSortBy,
+  updateSortBy,
+  deleteSortBy,
+  updateSortByOrder,
+  selectViews,
+} from "features/viewManagement/viewSlice";
 import useTranslations from "services/i18n/useTranslations";
+import { userEvents } from "utils/userEvents";
 
 export type OrderBy = {
   key: string;
@@ -37,12 +44,30 @@ type SortRowProps = {
 
 function SortRow(props: SortRowProps) {
   const dispatch = useAppDispatch();
+  const viewResponse = useAppSelector(selectViews)(props.page);
+  const view = viewResponse?.views[props.viewIndex]?.view;
+  const { track } = userEvents();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUpdate = (newValue: any, _: unknown) => {
     const newOrderBy: OrderBy = {
       ...props.orderBy,
       key: newValue.value,
     };
+
+    if (view) {
+      track(`View Update Sort By`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewSortCount: view.sortBy?.length || 0,
+        viewSortedBy: (view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        viewNewSortKey: newOrderBy.key,
+        viewNewSortDirection: newOrderBy.direction,
+      });
+    }
+
     dispatch(
       updateSortBy({ page: props.page, viewIndex: props.viewIndex, sortByUpdate: newOrderBy, sortByIndex: props.index })
     );
@@ -54,9 +79,42 @@ function SortRow(props: SortRowProps) {
       ...props.orderBy,
       direction: direction,
     };
+    if (view) {
+      track(`View Update Sort By`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewSortCount: view.sortBy?.length || 0,
+        viewSortedBy: (view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        viewNewSortKey: newOrderBy.key,
+        viewNewSortDirection: newOrderBy.direction,
+      });
+    }
     dispatch(
       updateSortBy({ page: props.page, viewIndex: props.viewIndex, sortByUpdate: newOrderBy, sortByIndex: props.index })
     );
+  };
+
+  const handleDeleteSortBy = () => {
+    if (view) {
+      const deletedSortBy = view.sortBy?.splice(props.index, 1);
+      if (deletedSortBy) {
+        track(`View Delete Sort By`, {
+          viewPage: props.page,
+          viewIndex: props.viewIndex,
+          viewTitle: view.title,
+          viewSortCount: view.sortBy?.length || 0,
+          viewSortedBy: (view.sortBy || []).map((s) => {
+            return { key: s.key, direction: s.direction };
+          }),
+          viewDeletedSortKey: deletedSortBy[0].key,
+          viewDeletedSortDirection: deletedSortBy[0].direction,
+        });
+      }
+    }
+    dispatch(deleteSortBy({ page: props.page, viewIndex: props.viewIndex, sortByIndex: props.index }));
   };
 
   return (
@@ -103,7 +161,7 @@ function SortRow(props: SortRowProps) {
           <div className={styles.dismissIconWrapper} data-intercom-target={"view-sort--row-delete"}>
             <DismissIcon
               onClick={() => {
-                dispatch(deleteSortBy({ page: props.page, viewIndex: props.viewIndex, sortByIndex: props.index }));
+                handleDeleteSortBy();
               }}
             />
           </div>
@@ -124,6 +182,9 @@ type SortSectionProps<T> = {
 function SortSection<T>(props: SortSectionProps<T>) {
   const { t } = useTranslations();
   const dispatch = useAppDispatch();
+  const viewResponse = useAppSelector(selectViews)(props.page);
+  const view = viewResponse?.views[props.viewIndex]?.view;
+  const { track } = userEvents();
 
   const [options, _] = useMemo(() => {
     const options: Array<OrderByOption> = [];
@@ -139,6 +200,19 @@ function SortSection<T>(props: SortSectionProps<T>) {
   }, [props.columns]);
 
   const handleAddSort = () => {
+    if (view) {
+      track(`View Add Sort By`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewSortCount: view.sortBy?.length || 0,
+        viewSortedBy: (view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        viewNewSortKey: props.defaultSortBy.key,
+        viewNewSortDirection: props.defaultSortBy.direction,
+      });
+    }
     dispatch(addSortBy({ page: props.page, viewIndex: props.viewIndex, sortBy: props.defaultSortBy }));
   };
 
@@ -156,6 +230,20 @@ function SortSection<T>(props: SortSectionProps<T>) {
     // Position not changed
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
+    }
+
+    if (view) {
+      track(`View Update Sort By`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewSortCount: view.sortBy?.length || 0,
+        viewSortedBy: (view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        viewNewSortKey: props.defaultSortBy.key,
+        viewNewSortDirection: props.defaultSortBy.direction,
+      });
     }
 
     // Update sort by order

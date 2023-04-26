@@ -13,15 +13,17 @@ import Select, { SelectOptionType } from "./ColumnDropDown";
 import { ColumnMetaData } from "features/table/types";
 import { useState } from "react";
 import { useStrictDroppable } from "utils/UseStrictDroppable";
-import { useAppDispatch } from "store/hooks";
+import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
   addColumn,
   deleteColumn,
+  selectViews,
   updateColumn,
   updateColumnsOrder,
   ViewSliceStatePages,
 } from "features/viewManagement/viewSlice";
 import { TableResponses } from "features/viewManagement/types";
+import { userEvents } from "utils/userEvents";
 
 const CellOptions: SelectOptionType[] = [
   { label: "Alias", value: "AliasCell" },
@@ -67,7 +69,7 @@ type ColumnRow<T> = {
 // TODO: Fix bug that causes incorrect rendering of locked cells when they are removed and then added back
 function LockedColumnRow<T>(props: ColumnRow<T>) {
   const dispatch = useAppDispatch();
-
+  const { track } = userEvents();
   const selectedOption = CellOptions.filter((option) => {
     if (option.value === props.column.type) {
       return true;
@@ -75,6 +77,14 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
   })[0];
 
   function handleCellTypeChange(newValue: unknown) {
+    track(`View Update Column`, {
+      viewPage: props.page,
+      viewIndex: props.viewIndex,
+      viewColumnIndex: props.index,
+      viewColumnCellType: props.column.type,
+      viewColumnName: props.column.heading,
+      viewColumnValueType: props.column.valueType,
+    });
     dispatch(
       updateColumn({
         page: props.page,
@@ -121,7 +131,9 @@ function LockedColumnRow<T>(props: ColumnRow<T>) {
 
 function ColumnRow<T>(props: ColumnRow<T>) {
   const dispatch = useAppDispatch();
-
+  const { track } = userEvents();
+  const viewResponse = useAppSelector(selectViews)(props.page);
+  const view = viewResponse.views[props.viewIndex].view;
   const selectedOption: { value: string; label: string } = CellOptions.filter((option) => {
     if (option.value === props.column.type) {
       return true;
@@ -129,7 +141,42 @@ function ColumnRow<T>(props: ColumnRow<T>) {
   })[0];
 
   function handleRemoveColumn() {
+    if (view) {
+      track(`View Remove Column`, {
+        viewPage: props.page,
+        viewColumnCount: view.columns.length,
+        viewColumnList: view.columns.map((column) => column.heading),
+        viewColumnName: view.columns[props.index].heading,
+      });
+    }
     dispatch(deleteColumn({ page: props.page, viewIndex: props.viewIndex, columnIndex: props.index }));
+  }
+
+  function handleUpdateColumn(newValue: unknown) {
+    const columnUpdate = {
+      type: (newValue as { value: string; label: string }).value,
+      heading: props.column.heading,
+      valueType: props.column.valueType,
+    };
+
+    if (view) {
+      track(`View Update Column`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewColumnIndex: props.index,
+        viewColumnCellType: columnUpdate.type,
+        viewColumnName: columnUpdate.heading,
+        viewColumnValueType: columnUpdate.valueType,
+      });
+    }
+    dispatch(
+      updateColumn({
+        page: props.page,
+        viewIndex: props.viewIndex,
+        columnIndex: props.index,
+        columnUpdate: columnUpdate,
+      })
+    );
   }
 
   const [expanded, setExpanded] = useState(false);
@@ -179,16 +226,7 @@ function ColumnRow<T>(props: ColumnRow<T>) {
               options={Options.get(props.column.valueType)}
               value={selectedOption}
               onChange={(newValue) => {
-                dispatch(
-                  updateColumn({
-                    page: props.page,
-                    viewIndex: props.viewIndex,
-                    columnIndex: props.index,
-                    columnUpdate: {
-                      type: (newValue as { value: string; label: string }).value,
-                    },
-                  })
-                );
+                handleUpdateColumn(newValue);
               }}
             />
           </div>
@@ -232,6 +270,10 @@ type ColumnsSectionProps<T> = {
 
 function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
   const dispatch = useAppDispatch();
+  const viewResponse = useAppSelector(selectViews)(props.page);
+  const view = viewResponse?.views[props.viewIndex]?.view;
+  const { track } = userEvents();
+
   const droppableContainerId = "column-list-droppable";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -246,6 +288,20 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
     // Position not changed
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
+    }
+
+    if (view) {
+      const columnNames = view.columns.map((column) => column.heading);
+      track(`View Update Column Order`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewColumnCount: view.columns.length || 0,
+        viewColumnList: columnNames,
+        viewColumnName: columnNames[source.index],
+        viewColumnPositionOld: source.index,
+        viewColumnPositionNew: destination.index,
+      });
     }
 
     dispatch(
@@ -263,6 +319,14 @@ function ColumnsSection<T>(props: ColumnsSectionProps<T>) {
   const [strictDropEnabled] = useStrictDroppable(!props.activeColumns);
 
   function handleAddColumn(column: ColumnMetaData<T>) {
+    if (view) {
+      track(`View Add Column`, {
+        viewColumnCount: view.columns?.length || 0,
+        viewColumnList: (view.columns || []).map((column) => column.heading),
+        viewColumnName: column.heading,
+      });
+    }
+
     dispatch(
       addColumn({
         page: props.page,
