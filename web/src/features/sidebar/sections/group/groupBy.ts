@@ -1,7 +1,7 @@
 import { GroupByOptions } from "features/viewManagement/types";
 
-const nonSummableFields: Array<string> = ["alias", "pubKey", "color"];
-const arrayAggKeys: Array<string> = ["channelId", "channelPoint", "shortChannelId", "tags", "peerTags"];
+const nonSummableFields: Array<string> = ["alias", "pubKey", "color", "secondNodeId", "firstNodeId"];
+const arrayAggKeys: Array<string> = ["channelId", "channelPoint", "shortChannelId", "tags", "channelTags", "peerTags"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined): Array<T> {
@@ -37,7 +37,7 @@ export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined):
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], value];
+        (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], ...value];
         continue;
       }
 
