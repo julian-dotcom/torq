@@ -67,6 +67,7 @@ type TableViewStructured struct {
 	Columns     []TableViewColumn  `json:"columns"`
 	Filters     []TableViewFilter  `json:"filters"`
 	Sortings    []TableViewSorting `json:"sortings"`
+	GroupBy     *string            `json:"groupBy"`
 }
 
 type TableView struct {

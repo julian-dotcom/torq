@@ -25,6 +25,7 @@ type TableViewDetail struct {
 	Page    string          `json:"page"`
 	SortBy  []ViewOrder     `json:"sortBy"`
 	Id      int             `json:"id"`
+	GroupBy *string         `json:"groupBy"`
 	Filters *types.JSONText `json:"filters,omitempty"`
 }
 
@@ -219,6 +220,7 @@ func convertLegacyTableView(tx *sqlx.Tx, tableViewLayout TableViewLayout) (Table
 	if tableView.Page == "" {
 		tableView.Page = tableViewDetail.Page
 	}
+	tableView.GroupBy = tableViewDetail.GroupBy
 
 	tableView, err = addTableView(tx, tableView)
 	if err != nil {
