@@ -1,7 +1,15 @@
 import { GroupByOptions } from "features/viewManagement/types";
 
 const nonSummableFields: Array<string> = ["alias", "pubKey", "color", "secondNodeId", "firstNodeId"];
-const arrayAggKeys: Array<string> = ["channelId", "channelPoint", "shortChannelId", "tags", "channelTags", "peerTags"];
+const arrayAggKeys: Array<string> = [
+  "channelId",
+  "channelPoint",
+  "shortChannelId",
+  "lndShortChannelId",
+  "tags",
+  "channelTags",
+  "peerTags",
+];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined): Array<T> {
