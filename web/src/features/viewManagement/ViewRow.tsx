@@ -1,4 +1,4 @@
-import { FormEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, FormEvent, MouseEvent, useState } from "react";
 import classNames from "classnames";
 import { Draggable } from "react-beautiful-dnd";
 import {
@@ -37,8 +37,8 @@ export default function ViewRowComponent(props: ViewRow) {
   const viewResponse = useAppSelector(selectViews)(props.page);
   const view = viewResponse.views[props.viewIndex].view;
   const { track } = userEvents();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function handleInputChange(e: any) {
+
+  function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
     setLocalTitle(e.target.value);
   }
 

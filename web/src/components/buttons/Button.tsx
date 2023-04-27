@@ -111,11 +111,13 @@ export function ExternalLinkButton({
   children,
   hideMobileText,
   hideMobile,
+  intercomTarget,
   ...buttonProps
 }: ButtonProps & DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>) {
   return (
     <a
       {...buttonProps}
+      data-intercom-target={intercomTarget}
       className={classNames(
         styles.button,
         GetColorClass(buttonColor),
