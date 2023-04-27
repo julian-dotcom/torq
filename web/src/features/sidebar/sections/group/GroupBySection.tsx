@@ -15,7 +15,6 @@ type GroupPopoverProps = {
 };
 
 function GroupBySection(props: GroupPopoverProps) {
-  console.log(props.groupBy);
   const dispatch = useAppDispatch();
   const viewResponse = useAppSelector(selectViews)(props.page);
   const view = viewResponse?.views[props.viewIndex]?.view;

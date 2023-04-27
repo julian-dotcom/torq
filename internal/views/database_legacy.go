@@ -60,6 +60,7 @@ type TableViewDetailLegacy struct {
 	SortBy  []ViewOrder         `json:"sortBy"`
 	Id      int                 `json:"id"`
 	Filters FilterClausesLegacy `json:"filters"`
+	GroupBy *string             `json:"groupBy"`
 }
 
 // TODO: delete when tables are switched to v2
@@ -265,11 +266,12 @@ func updateLegacyTableView(tx *sqlx.Tx, tableViewId int, tableViewLayout TableVi
 		return TableViewLayout{}, errors.Wrap(err, "JSON unmarshal")
 	}
 	tableView.Title = tableViewDetail.Title
+	tableView.GroupBy = tableViewDetail.GroupBy
 	if tableView.Page == "" {
 		tableView.Page = tableViewDetail.Page
 	}
 
-	err = updateTableView(tx, tableView.TableViewId, tableView.Title)
+	err = updateTableView(tx, tableView.TableViewId, tableView.Title, tableView.GroupBy)
 	if err != nil {
 		return TableViewLayout{}, errors.Wrap(err, "Updating tableView.")
 	}

@@ -166,9 +166,9 @@ func addTableView(tx *sqlx.Tx, tableView TableView) (TableView, error) {
 	return tableView, nil
 }
 
-func updateTableView(tx *sqlx.Tx, tableViewId int, title string) error {
-	_, err := tx.Exec(`UPDATE table_view SET title=$1, updated_on=$2 WHERE table_view_id = $3;`,
-		title, time.Now(), tableViewId)
+func updateTableView(tx *sqlx.Tx, tableViewId int, title string, groupBy *string) error {
+	_, err := tx.Exec(`UPDATE table_view SET title=$1, group_by=$2, updated_on=$3 WHERE table_view_id = $4;`,
+		title, groupBy, time.Now(), tableViewId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
