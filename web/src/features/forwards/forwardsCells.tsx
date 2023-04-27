@@ -26,6 +26,7 @@ export default function channelsCellRenderer(
         key={"alias" + rowIndex + columnIndex}
         className={column.locked ? styles.locked : ""}
         isTotalsRow={isTotalsRow}
+        hideChannelControls={groupedBy === "peer"}
       />
     );
   }

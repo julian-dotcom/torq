@@ -18,9 +18,10 @@ interface AliasCell {
   open?: boolean;
   className?: string;
   isTotalsRow?: boolean;
+  hideChannelControls?: boolean;
 }
 
-function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }: AliasCell) {
+function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow, hideChannelControls }: AliasCell) {
   const { t } = useTranslations();
   const location = useLocation();
   const { track } = userEvents();
@@ -28,70 +29,72 @@ function AliasCell({ current, nodeIds, channelId, open, className, isTotalsRow }
     <div className={styles.alias}>
       <div className={classNames(styles.current, styles.text)}>{current}</div>
 
-      <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
-        <LinkButton
-          intercomTarget={"inspect-channel-navigate"}
-          key={"buttons-node-inspect"}
-          state={{ background: location }}
-          to={"/analyse/inspect/" + channelId}
-          icon={<InspectIcon />}
-          hideMobileText={true}
-          buttonSize={SizeVariant.tiny}
-          buttonColor={ColorVariant.accent1}
-          buttonPosition={ButtonPosition.center}
-          onClick={() => {
-            track("Navigate to Inspect Channel", {
-              channelId: channelId,
-            });
-          }}
-        >
-          {t.inspect}
-        </LinkButton>
-        {open &&
-          (nodeIds || []).map((nodeId) => {
-            return (
-              <div className={styles.editChannelButton} key={"buttons-node-" + nodeId}>
-                <LinkButton
-                  intercomTarget={"update-channel-navigate"}
-                  to={`${UPDATE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
-                  state={{ background: location }}
-                  className={classNames(styles.action, styles.updateLink)}
-                  buttonSize={SizeVariant.tiny}
-                  buttonColor={ColorVariant.success}
-                  hideMobileText={true}
-                  icon={<EditIcon />}
-                  onClick={() => {
-                    track("Navigate to Update Channel", {
-                      nodeId: nodeId,
-                      channelId: channelId,
-                    });
-                  }}
-                >
-                  {t.update}
-                </LinkButton>
+      {!hideChannelControls && (
+        <div className={classNames(styles.buttonWrapper, { [styles.totalCell]: isTotalsRow })}>
+          <LinkButton
+            intercomTarget={"inspect-channel-navigate"}
+            key={"buttons-node-inspect"}
+            state={{ background: location }}
+            to={"/analyse/inspect/" + channelId}
+            icon={<InspectIcon />}
+            hideMobileText={true}
+            buttonSize={SizeVariant.tiny}
+            buttonColor={ColorVariant.accent1}
+            buttonPosition={ButtonPosition.center}
+            onClick={() => {
+              track("Navigate to Inspect Channel", {
+                channelId: channelId,
+              });
+            }}
+          >
+            {t.inspect}
+          </LinkButton>
+          {open &&
+            (nodeIds || []).map((nodeId) => {
+              return (
+                <div className={styles.editChannelButton} key={"buttons-node-" + nodeId}>
+                  <LinkButton
+                    intercomTarget={"update-channel-navigate"}
+                    to={`${UPDATE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
+                    state={{ background: location }}
+                    className={classNames(styles.action, styles.updateLink)}
+                    buttonSize={SizeVariant.tiny}
+                    buttonColor={ColorVariant.success}
+                    hideMobileText={true}
+                    icon={<EditIcon />}
+                    onClick={() => {
+                      track("Navigate to Update Channel", {
+                        nodeId: nodeId,
+                        channelId: channelId,
+                      });
+                    }}
+                  >
+                    {t.update}
+                  </LinkButton>
 
-                <LinkButton
-                  intercomTarget={"close-channel-navigate"}
-                  to={`${CLOSE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
-                  state={{ background: location }}
-                  className={classNames(styles.action, styles.closeChannelLink)}
-                  buttonSize={SizeVariant.tiny}
-                  buttonColor={ColorVariant.error}
-                  hideMobileText={true}
-                  icon={<CloseIcon />}
-                  onClick={() => {
-                    track("Navigate to Close Channel", {
-                      nodeId: nodeId,
-                      channelId: channelId,
-                    });
-                  }}
-                >
-                  {t.close}
-                </LinkButton>
-              </div>
-            );
-          })}
-      </div>
+                  <LinkButton
+                    intercomTarget={"close-channel-navigate"}
+                    to={`${CLOSE_CHANNEL}?nodeId=${nodeId}&channelId=${channelId}`}
+                    state={{ background: location }}
+                    className={classNames(styles.action, styles.closeChannelLink)}
+                    buttonSize={SizeVariant.tiny}
+                    buttonColor={ColorVariant.error}
+                    hideMobileText={true}
+                    icon={<CloseIcon />}
+                    onClick={() => {
+                      track("Navigate to Close Channel", {
+                        nodeId: nodeId,
+                        channelId: channelId,
+                      });
+                    }}
+                  >
+                    {t.close}
+                  </LinkButton>
+                </div>
+              );
+            })}
+        </div>
+      )}
     </div>
   );
 
