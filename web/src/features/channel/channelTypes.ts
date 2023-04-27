@@ -70,6 +70,7 @@ export type ChannelBalanceResponse = {
 
 type ChannelBalance = {
   channelId: string;
+  shortChannelId: string;
   balances: Balance[];
 };
 

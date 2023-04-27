@@ -18,8 +18,9 @@ type Balance struct {
 }
 
 type ChannelBalance struct {
-	ChannelId string     `json:"channelId"`
-	Balances  []*Balance `json:"balances"`
+	ChannelId      string     `json:"channelId"`
+	ShortChannelId string     `json:"shortChannelId"`
+	Balances       []*Balance `json:"balances"`
 }
 
 func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to time.Time) (ChannelBalance, error) {
@@ -98,6 +99,18 @@ func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to t
 			cb.Balances = append(cb.Balances, &b)
 		}
 
+	}
+
+	// To integer but check that the number will fit into int64
+	channelIdInt, err := strconv.Atoi(channelIdString)
+	if err != nil {
+		panic(err)
+	}
+
+	// Get the short channel id using the cache
+	channel := cache.GetChannelSettingByChannelId(channelIdInt)
+	if channel.ShortChannelId != nil {
+		cb.ShortChannelId = *channel.ShortChannelId
 	}
 
 	return cb, nil

@@ -11,25 +11,28 @@ import { addDays, format } from "date-fns";
 import DetailsPageTemplate from "features/templates/detailsPageTemplate/DetailsPageTemplate";
 import { useParams } from "react-router";
 import { Link, Outlet } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "store/hooks";
+import { useAppSelector } from "store/hooks";
 import Select from "components/forms/select/Select";
 import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import styles from "./channel-page.module.scss";
-import { selectFlowKeys, selectProfitChartKey, updateFlowKey, updateProfitChartKey } from "./channelSlice";
-import FlowChart from "./flowChart/FlowChart";
-import ProfitsChart from "./revenueChart/ProfitsChart";
+import FlowChart, { FlowChartKeyOptions } from "./flowChart/FlowChart";
+import ProfitsChart, { ProfitChartKeyOptions } from "./revenueChart/ProfitsChart";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import { InputSizeVariant } from "components/forms/forms";
+import useLocalStorage from "utils/useLocalStorage";
+import { userEvents } from "utils/userEvents";
+import { IsStringOption } from "utils/typeChecking";
 
 const ft = d3.format(",.0f");
 
 function FowardsSummaryPage() {
   const activeNetwork = useAppSelector(selectActiveNetwork);
-
   const currentPeriod = useAppSelector(selectTimeInterval);
+  const { track } = userEvents();
+  const [profitChartKey, setProfitChartKey] = useLocalStorage(`profitChartKey`, { value: "amount", label: "Amount" });
+  const [flowChartKey, setFlowChartKey] = useLocalStorage(`flowChartKey`, { value: "amount", label: "Amount" });
 
-  const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   const { chanId } = useParams();
@@ -56,9 +59,6 @@ function FowardsSummaryPage() {
   const { data: history } = useGetChannelHistoryQuery(getChannelHistoryData);
   const { data: rebalancing } = useGetChannelRebalancingQuery(getChannelHistoryData);
 
-  const flowKey = useAppSelector(selectFlowKeys);
-  const profitKey = useAppSelector(selectProfitChartKey);
-
   const profit: number =
     history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost
       ? history?.revenueOut - onChainCost?.onChainCost - rebalancing?.rebalancingCost / 1000
@@ -83,6 +83,7 @@ function FowardsSummaryPage() {
       Summary
     </Link>,
   ];
+
   return (
     <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
       <div className={styles.channelWrapper}>
@@ -161,24 +162,14 @@ function FowardsSummaryPage() {
                 <Select
                   intercomTarget={"forwards-summary-chart-select"}
                   sizeVariant={InputSizeVariant.small}
-                  value={profitKey}
+                  value={profitChartKey}
                   onChange={(newValue) => {
-                    if (newValue) {
-                      dispatch(
-                        updateProfitChartKey({
-                          key: (newValue as { value: string; label: string }) || {
-                            value: "amount",
-                            label: "Amount",
-                          },
-                        })
-                      );
+                    if (IsStringOption(newValue)) {
+                      track("Update ProfitChart Key", { oldKey: profitChartKey.value, key: newValue.value });
+                      setProfitChartKey(newValue);
                     }
                   }}
-                  options={[
-                    { value: "amount", label: "Amount" },
-                    { value: "revenue", label: "Revenue" },
-                    { value: "count", label: "Count" },
-                  ]}
+                  options={ProfitChartKeyOptions}
                 />
               </div>
               {/*<div className={styles.profitChartRightControls}>*/}
@@ -187,7 +178,15 @@ function FowardsSummaryPage() {
               {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
-              {history && <ProfitsChart data={history.history} dashboard={true} from={from} to={to} />}
+              {history && (
+                <ProfitsChart
+                  dataKey={profitChartKey.value}
+                  data={history.history}
+                  dashboard={true}
+                  from={from}
+                  to={to}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -201,25 +200,15 @@ function FowardsSummaryPage() {
               >
                 <Select
                   intercomTarget={"forwards-summary-flow-chart-key-select"}
-                  value={flowKey}
+                  value={flowChartKey}
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
-                    if (newValue) {
-                      dispatch(
-                        updateFlowKey({
-                          flowKey: (newValue as { value: string; label: string }) || {
-                            value: "amount",
-                            label: "Amount",
-                          },
-                        })
-                      );
+                    if (IsStringOption(newValue)) {
+                      track("Update FlowChart Key", { oldKey: flowChartKey.value, key: newValue.value });
+                      setFlowChartKey(newValue);
                     }
                   }}
-                  options={[
-                    { value: "amount", label: "Amount" },
-                    { value: "revenue", label: "Revenue" },
-                    { value: "count", label: "Count" },
-                  ]}
+                  options={FlowChartKeyOptions}
                 />
               </div>
               <div className={styles.profitChartRightControls}>
@@ -238,7 +227,7 @@ function FowardsSummaryPage() {
               <div className="destinations">Destinations</div>
             </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
-              {!isLoading && data && <FlowChart data={data} />}
+              {!isLoading && data && <FlowChart flowKey={flowChartKey.value} data={data} />}
             </div>
           </div>
         </div>

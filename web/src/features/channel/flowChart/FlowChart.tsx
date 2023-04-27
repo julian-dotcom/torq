@@ -4,19 +4,23 @@ import { useEffect } from "react";
 import { Selection } from "d3";
 import FlowChartCanvas from "features/charts/flowChartCanvas";
 import { FlowData } from "features/channel/channelTypes";
-import { useAppSelector } from "store/hooks";
-import { selectFlowKeys } from "../channelSlice";
 import { useLocation, useNavigate } from "react-router-dom";
 import { userEvents } from "utils/userEvents";
 
+export const FlowChartKeyOptions = [
+  { value: "amount", label: "Amount" },
+  { value: "revenue", label: "Revenue" },
+  { value: "count", label: "Count" },
+];
+
 type FlowChart = {
+  flowKey: string;
   data: Array<FlowData>;
 };
 
-function FlowChart({ data }: FlowChart) {
+function FlowChart({ flowKey, data }: FlowChart) {
   let flowChart: FlowChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
-  const flowKey = useAppSelector(selectFlowKeys);
   const navigate = useNavigate();
   const location = useLocation();
   const { track } = userEvents();
@@ -43,11 +47,11 @@ function FlowChart({ data }: FlowChart) {
   const ref = useD3(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (container: Selection<HTMLDivElement, Record<string, never>, HTMLElement, any>) => {
-      const keyOut = (flowKey.value + "Out") as keyof Omit<
+      const keyOut = (flowKey + "Out") as keyof Omit<
         FlowData,
         "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash"
       >;
-      const keyIn = (flowKey.value + "In") as keyof Omit<
+      const keyIn = (flowKey + "In") as keyof Omit<
         FlowData,
         "alias" | "lndShortChannelId" | "pubKey" | "fundingTransactionHash"
       >;

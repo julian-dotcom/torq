@@ -19,9 +19,9 @@ import type { GetChannelHistoryData, GetFlowQueryParams } from "types/api";
 import classNames from "classnames";
 import * as d3 from "d3";
 import { addDays, format } from "date-fns";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
-import { useAppDispatch, useAppSelector } from "store/hooks";
+import { useAppSelector } from "store/hooks";
 import Button, { ColorVariant, LinkButton, SizeVariant } from "components/buttons/Button";
 import EventsCard from "features/eventsCard/EventsCard";
 import { InputColorVaraint, InputSizeVariant, Select, Switch } from "components/forms/forms";
@@ -30,19 +30,9 @@ import TimeIntervalSelect from "features/timeIntervalSelect/TimeIntervalSelect";
 import { selectTimeInterval } from "features/timeIntervalSelect/timeIntervalSlice";
 import BalanceChart from "./balanceChart/BalanceChart";
 import styles from "./channel-page.module.scss";
-import {
-  selectBalanceChanID,
-  selectEventChartKey,
-  selectFlowKeys,
-  selectProfitChartKey,
-  updateBalanceChanID,
-  updateEventChartKey,
-  updateFlowKey,
-  updateProfitChartKey,
-} from "./channelSlice";
-import EventsChart from "./eventsChart/EventsChart";
-import FlowChart from "./flowChart/FlowChart";
-import ProfitsChart from "./revenueChart/ProfitsChart";
+import EventsChart, { EventChartKeyOptions } from "./eventsChart/EventsChart";
+import FlowChart, { FlowChartKeyOptions } from "./flowChart/FlowChart";
+import ProfitsChart, { ProfitChartKeyOptions } from "./revenueChart/ProfitsChart";
 import { selectActiveNetwork } from "features/network/networkSlice";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
 import PageTitle from "features/templates/PageTitle";
@@ -50,6 +40,8 @@ import useTranslations from "services/i18n/useTranslations";
 import Tag, { TagColor } from "components/tags/Tag";
 import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 import { userEvents } from "utils/userEvents";
+import useLocalStorage from "utils/useLocalStorage";
+import { IsNumericOption, IsStringOption } from "utils/typeChecking";
 
 const ft = d3.format(",.0f");
 
@@ -72,7 +64,6 @@ function ChannelPage(_: ChannelPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPeriod = useAppSelector(selectTimeInterval);
-  const dispatch = useAppDispatch();
   const from = format(new Date(currentPeriod.from), "yyyy-MM-dd");
   const to = format(new Date(currentPeriod.to), "yyyy-MM-dd");
   const activeNetwork = useAppSelector(selectActiveNetwork);
@@ -119,14 +110,10 @@ function ChannelPage(_: ChannelPageProps) {
 
   const { data: event } = useGetChannelEventQuery(channelHistoryQueryData);
 
-  const flowKey = useAppSelector(selectFlowKeys);
-  const profitKey = useAppSelector(selectProfitChartKey);
-  const eventKey = useAppSelector(selectEventChartKey);
-  let balanceChanId = useAppSelector(selectBalanceChanID);
-
-  if (balanceChanId.label === "") {
-    balanceChanId = { value: 0, label: balance?.channelBalances ? balance.channelBalances[0]?.channelId : "" };
-  }
+  const [profitChartKey, setProfitChartKey] = useLocalStorage(`profitChartKey`, { value: "amount", label: "Amount" });
+  const [eventChartKey, setEventChartKey] = useLocalStorage(`eventChartKey`, { value: "amount", label: "Amount" });
+  const [flowChartKey, setFlowChartKey] = useLocalStorage(`flowChartKey`, { value: "amount", label: "Amount" });
+  const [balanceChannelId, setBalanceChannelId] = useState({ value: 0, label: "" });
 
   let totalCapacity = 0;
   if (history?.channels) {
@@ -178,7 +165,7 @@ function ChannelPage(_: ChannelPageProps) {
     history?.countIn && history?.countOut
       ? Math.min(history?.countIn, history?.countOut) / Math.max(history?.countIn, history?.countOut)
       : 0;
-  const historyCapacity = history?.channels?.length ? history?.channels[balanceChanId.value].capacity : 0;
+  const historyCapacity = history?.channels?.length ? history?.channels[balanceChannelId.value].capacity : 0;
 
   const breadcrumbs =
     (!isLoading &&
@@ -187,19 +174,24 @@ function ChannelPage(_: ChannelPageProps) {
         .map((d: Channel, _: number) => {
           return d.shortChannelId;
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((value: any, index: number, self: any[]) => {
+        .filter((value, index, self) => {
           return self.indexOf(value) === index;
         })
         .join(", ")) ||
     "";
   let channelBalanceOptions = [{ value: 0, label: "" }];
   if (balance?.channelBalances) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    channelBalanceOptions = balance.channelBalances.map((d: any, i: number) => {
-      return { value: i, label: d.channelId };
+    channelBalanceOptions = balance.channelBalances.map((d, i) => {
+      return { value: i, label: d.shortChannelId };
     });
   }
+
+  // Useeffect to set the balanceChannelId to the first channel in the list
+  useEffect(() => {
+    if (balance?.channelBalances) {
+      setBalanceChannelId({ value: 0, label: balance.channelBalances[0].shortChannelId });
+    }
+  }, [balance?.channelBalances]);
 
   const isSingleChannel = channelDetails?.length && history?.channels?.length === 1;
   return (
@@ -237,7 +229,7 @@ function ChannelPage(_: ChannelPageProps) {
                 <LinkButton
                   intercomTarget={"inspect-update-channel"}
                   to={`${UPDATE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
-                  state={{ background: location.state.background }}
+                  state={{ background: location?.state?.background || "/" }}
                   hideMobileText={true}
                   icon={<UpdateIcon />}
                   buttonColor={ColorVariant.success}
@@ -447,24 +439,14 @@ function ChannelPage(_: ChannelPageProps) {
                 <Select
                   intercomTarget={"inspect-channel-summary-chart-key-select"}
                   sizeVariant={InputSizeVariant.small}
-                  value={profitKey}
+                  value={profitChartKey}
                   onChange={(newValue) => {
-                    if (newValue) {
-                      dispatch(
-                        updateProfitChartKey({
-                          key: (newValue as { value: string; label: string }) || {
-                            value: "amount",
-                            label: t.channelPage.chart.amount,
-                          },
-                        })
-                      );
+                    if (IsStringOption(newValue)) {
+                      track("Update ProfitChart Key", { oldKey: profitChartKey.value, key: newValue.value });
+                      setProfitChartKey(newValue);
                     }
                   }}
-                  options={[
-                    { value: "amount", label: t.channelPage.chart.amount },
-                    { value: "revenue", label: t.channelPage.chart.revenue },
-                    { value: "count", label: t.channelPage.chart.count },
-                  ]}
+                  options={ProfitChartKeyOptions}
                 />
               </div>
               {/*<div className={styles.profitChartRightControls}>*/}
@@ -473,7 +455,7 @@ function ChannelPage(_: ChannelPageProps) {
               {/*</div>*/}
             </div>
             <div className={styles.chartContainer}>
-              {history && <ProfitsChart data={history.history} from={from} to={to} />}
+              {history && <ProfitsChart dataKey={profitChartKey.value} data={history.history} from={from} to={to} />}
             </div>
           </div>
         </div>
@@ -576,25 +558,15 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.profitChartLeftControls}>
                 <Select
                   intercomTarget={"inspect-channel-event-summary-chart-key"}
-                  value={eventKey}
+                  value={eventChartKey}
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
-                    if (newValue) {
-                      dispatch(
-                        updateEventChartKey({
-                          key: (newValue as { value: string; label: string }) || {
-                            value: "amount",
-                            label: t.channelPage.chart.amount,
-                          },
-                        })
-                      );
+                    if (IsStringOption(newValue)) {
+                      track("Update EventChart Key", { oldKey: eventChartKey.value, key: newValue.value });
+                      setEventChartKey(newValue);
                     }
                   }}
-                  options={[
-                    { value: "amount", label: t.channelPage.chart.amount },
-                    { value: "revenue", label: t.channelPage.chart.revenue },
-                    { value: "count", label: t.channelPage.chart.count },
-                  ]}
+                  options={EventChartKeyOptions}
                 />
               </div>
               <div className={styles.profitChartRightControls}>
@@ -661,6 +633,7 @@ function ChannelPage(_: ChannelPageProps) {
             <div className={styles.chartContainer} data-intercom-target={"inspect-channel-event-chart"}>
               {history && (
                 <EventsChart
+                  eventKey={eventChartKey.value}
                   from={from}
                   to={to}
                   data={history.history}
@@ -678,17 +651,11 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.profitChartLeftControls}>
                 <Select
                   intercomTarget={"inspect-channel-balance-chart-key"}
-                  value={balanceChanId}
+                  value={balanceChannelId}
                   onChange={(newValue) => {
-                    if (newValue) {
-                      dispatch(
-                        updateBalanceChanID({
-                          key: (newValue as { value: string; label: string }) || {
-                            value: 0,
-                            label: balance?.channelBalances ? balance.channelBalances[0]?.channelId.toString() : "",
-                          },
-                        })
-                      );
+                    if (IsNumericOption(newValue)) {
+                      track("Update ProfitChart Key", { oldKey: balanceChannelId.value, key: newValue.value });
+                      setBalanceChannelId(newValue);
                     }
                   }}
                   isDisabled={channelBalanceOptions.length < 2}
@@ -699,7 +666,7 @@ function ChannelPage(_: ChannelPageProps) {
             <div className={classNames(styles.chartContainer)}>
               {!isLoading && balance?.channelBalances?.length && (
                 <BalanceChart
-                  data={balance.channelBalances[balanceChanId.value].balances}
+                  data={balance.channelBalances[balanceChannelId?.value].balances}
                   totalCapacity={historyCapacity}
                   from={from}
                   to={to}
@@ -715,25 +682,15 @@ function ChannelPage(_: ChannelPageProps) {
               <div className={styles.profitChartLeftControls}>
                 <Select
                   intercomTarget={"inspect-channel-flow-chart-key"}
-                  value={flowKey}
+                  value={flowChartKey}
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
-                    if (newValue) {
-                      dispatch(
-                        updateFlowKey({
-                          flowKey: (newValue as { value: string; label: string }) || {
-                            value: "amount",
-                            label: t.channelPage.chart.amount,
-                          },
-                        })
-                      );
+                    if (IsStringOption(newValue)) {
+                      track("Update FlowChart Key", { oldKey: flowChartKey.value, key: newValue.value });
+                      setFlowChartKey(newValue);
                     }
                   }}
-                  options={[
-                    { value: "amount", label: t.channelPage.chart.amount },
-                    { value: "revenue", label: t.channelPage.chart.revenue },
-                    { value: "count", label: t.channelPage.chart.count },
-                  ]}
+                  options={FlowChartKeyOptions}
                 />
               </div>
               <div className={styles.profitChartRightControls}>
@@ -752,7 +709,7 @@ function ChannelPage(_: ChannelPageProps) {
               <div className="destinations">{t.channelPage.legendsContainer.destinations}</div>
             </div>
             <div className={classNames(styles.chartWrapper, styles.flowChartWrapper)}>
-              {!isLoading && data && <FlowChart data={data} />}
+              {!isLoading && data && <FlowChart flowKey={flowChartKey.value} data={data} />}
             </div>
           </div>
         </div>

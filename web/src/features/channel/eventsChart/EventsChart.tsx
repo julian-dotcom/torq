@@ -1,17 +1,22 @@
 // https://www.pluralsight.com/guides/using-d3.js-inside-a-react-app
 import { useD3 } from "features/charts/useD3";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Selection } from "d3";
 import { ChartCanvas, EventsPlot, LinePlot, BarPlot } from "features/charts/charts";
 import "features/charts/chart.scss";
-import { useAppSelector } from "store/hooks";
-import { selectEventChartKey } from "../channelSlice";
 import { useGetSettingsQuery } from "apiSlice";
 import { ChannelEventResponse } from "features/channel/channelTypes";
+
+export const EventChartKeyOptions = [
+  { value: "amount", label: "Amount" },
+  { value: "revenue", label: "Revenue" },
+  { value: "count", label: "Count" },
+];
 
 type EventsChart = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
+  eventKey: string;
   events: ChannelEventResponse;
   selectedEventTypes: {
     feeRate: boolean;
@@ -25,10 +30,10 @@ type EventsChart = {
   to: string;
 };
 
-function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart) {
+function EventsChart({ data, eventKey, events, selectedEventTypes, from, to }: EventsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
-  const eventKey = useAppSelector(selectEventChartKey);
+  const [eventKeyLabel, setEventKeyLabel] = useState<string>("Amount");
   const settings = useGetSettingsQuery();
 
   // Check and update the chart size if the navigation changes the container size
@@ -44,6 +49,10 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
     };
   };
 
+  useEffect(() => {
+    setEventKeyLabel(EventChartKeyOptions.find((d) => d.value === eventKey)?.label || "Amount");
+  }, [eventKey]);
+
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,29 +61,29 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
         from: new Date(from),
         to: new Date(to),
         timezone: settings?.data?.preferredTimezone || "UTC",
-        yScaleKey: eventKey.value + "Total",
-        rightYScaleKey: eventKey.value + "Total",
-        rightYAxisKeys: [eventKey.value + "Out", eventKey.value + "In", eventKey.value + "Total"],
+        yScaleKey: eventKey + "Total",
+        rightYScaleKey: eventKey + "Total",
+        rightYAxisKeys: [eventKey + "Out", eventKey + "In", eventKey + "Total"],
         xAxisPadding: 12,
       });
       chart.plot(BarPlot, {
-        id: eventKey.value + "Total",
-        key: eventKey.value + "Total",
-        legendLabel: eventKey.label + " Total",
+        id: eventKey + "Total",
+        key: eventKey + "Total",
+        legendLabel: eventKeyLabel + " Total",
         barColor: "rgba(133, 196, 255, 0.5)",
         // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
       });
       chart.plot(LinePlot, {
-        id: eventKey.value + "Out",
-        key: eventKey.value + "Out",
-        legendLabel: eventKey.label + " Out",
+        id: eventKey + "Out",
+        key: eventKey + "Out",
+        legendLabel: eventKeyLabel + " Out",
         lineColor: "#BA93FA",
         // rightAxis: true,
       });
       chart.plot(LinePlot, {
-        id: eventKey.value + "In",
-        key: eventKey.value + "In",
-        legendLabel: eventKey.label + " In",
+        id: eventKey + "In",
+        key: eventKey + "In",
+        legendLabel: eventKeyLabel + " In",
         lineColor: "#FAAE93",
       });
       const filteredEvents =
@@ -101,7 +110,15 @@ function EventsChart({ data, events, selectedEventTypes, from, to }: EventsChart
       chart.draw();
       setInterval(navCheck(container), 200);
     },
-    [data, eventKey, data ? data[0].date : "", data ? data[data.length - 1].date : "", selectedEventTypes, settings]
+    [
+      data,
+      eventKey,
+      data ? data[0].date : "",
+      data ? data[data.length - 1].date : "",
+      selectedEventTypes,
+      settings,
+      eventKeyLabel,
+    ]
   );
 
   useEffect(() => {

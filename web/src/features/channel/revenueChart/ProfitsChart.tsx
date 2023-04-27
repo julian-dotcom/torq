@@ -1,27 +1,32 @@
 // https://www.pluralsight.com/guides/using-d3.js-inside-a-react-app
 import { useD3 } from "features/charts/useD3";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Selection } from "d3";
 import ChartCanvas from "features/charts/chartCanvas";
 import "features/charts/chart.scss";
 import { BarPlot, LinePlot } from "features/charts/charts";
-import { selectProfitChartKey } from "../channelSlice";
-import { useAppSelector } from "store/hooks";
 import { useGetSettingsQuery } from "apiSlice";
+import { AnyObject } from "utils/types";
 
 type ProfitsChart = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any[];
+  data: AnyObject[];
+  dataKey: string;
   dashboard?: boolean;
   from: string;
   to: string;
 };
 
-function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
+export const ProfitChartKeyOptions = [
+  { value: "amount", label: "Amount" },
+  { value: "revenue", label: "Revenue" },
+  { value: "count", label: "Count" },
+];
+
+function ProfitsChart({ data, dashboard, dataKey, to, from }: ProfitsChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
-  const profitKey = useAppSelector(selectProfitChartKey);
   const settings = useGetSettingsQuery();
+  const [label, setLabel] = useState<string>(ProfitChartKeyOptions[0].label);
 
   // Check and update the chart size if the navigation changes the container size
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +41,10 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
     };
   };
 
+  useEffect(() => {
+    setLabel(ProfitChartKeyOptions.find((o) => o.value === dataKey)?.label || "Amount");
+  }, [dataKey]);
+
   // TODO: Change this so that we can update the data without redrawing the entire chart
   const ref = useD3(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,15 +54,15 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
           from: new Date(from),
           to: new Date(to),
           timezone: settings?.data?.preferredTimezone || "UTC",
-          yScaleKey: profitKey.value + "Out",
-          rightYScaleKey: profitKey.value + "Out",
-          rightYAxisKeys: [profitKey.value + "Out"],
+          yScaleKey: dataKey + "Out",
+          rightYScaleKey: dataKey + "Out",
+          rightYAxisKeys: [dataKey + "Out"],
           xAxisPadding: 12,
         });
         chart.plot(BarPlot, {
-          id: profitKey.value + "Out",
-          key: profitKey.value + "Out",
-          legendLabel: profitKey.label + " out",
+          id: dataKey + "Out",
+          key: dataKey + "Out",
+          legendLabel: label + " out",
           barColor: "rgba(186, 147, 250, 0.6)",
           barHoverColor: "rgba(186, 147, 250, 0.8)",
           // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
@@ -64,28 +73,28 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
           from: new Date(from),
           to: new Date(to),
           timezone: settings?.data?.preferredTimezone || "UTC",
-          yScaleKey: profitKey.value + "Total",
-          rightYScaleKey: profitKey.value + "Total",
-          rightYAxisKeys: [profitKey.value + "Out", profitKey.value + "In"],
+          yScaleKey: dataKey + "Total",
+          rightYScaleKey: dataKey + "Total",
+          rightYAxisKeys: [dataKey + "Out", dataKey + "In"],
           xAxisPadding: 12,
         });
         chart.plot(BarPlot, {
-          id: profitKey.value + "Total",
-          key: profitKey.value + "Total",
-          legendLabel: profitKey.label + " total",
+          id: dataKey + "Total",
+          key: dataKey + "Total",
+          legendLabel: label + " total",
           // areaGradient: ["rgba(133, 196, 255, 0.5)", "rgba(87, 211, 205, 0.5)"],
           barColor: "rgba(133, 196, 255, 0.5)",
         });
         chart.plot(LinePlot, {
-          id: profitKey.value + "Out",
-          key: profitKey.value + "Out",
-          legendLabel: profitKey.label + " out",
+          id: dataKey + "Out",
+          key: dataKey + "Out",
+          legendLabel: label + " out",
           lineColor: "#BA93FA",
         });
         chart.plot(LinePlot, {
-          id: profitKey.value + "In",
-          key: profitKey.value + "In",
-          legendLabel: profitKey.label + " in",
+          id: dataKey + "In",
+          key: dataKey + "In",
+          legendLabel: label + " in",
           lineColor: "#FAAE93",
         });
         chart.draw();
@@ -93,7 +102,7 @@ function ProfitsChart({ data, dashboard, to, from }: ProfitsChart) {
 
       setInterval(navCheck(container), 200);
     },
-    [data, data ? data[0].date : "", data ? data[data.length - 1].date : "", profitKey, settings]
+    [data, data ? data[0].date : "", data ? data[data.length - 1].date : "", dataKey, settings, label]
   );
 
   useEffect(() => {
