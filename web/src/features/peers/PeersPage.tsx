@@ -38,15 +38,15 @@ import { userEvents } from "utils/userEvents";
 
 function PeersPage() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { isSuccess } = useGetTableViewsQuery<{ isSuccess: boolean }>();
-  const { viewResponse, selectedViewIndex } = useAppSelector(selectPeersViews);
-  const peersView = useAppSelector(selectViews)("peers");
   const activeNetwork = useAppSelector(selectActiveNetwork);
   const [updateTableView] = useUpdateTableViewMutation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { track } = userEvents();
+  const { viewResponse, selectedViewIndex } = useAppSelector(selectPeersViews);
+  const peersView = useAppSelector(selectViews)("peers");
 
   const peersResponse = useGetPeersQuery<{
     data: Array<Peer>;
