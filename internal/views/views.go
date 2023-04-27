@@ -1636,14 +1636,25 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			},
 		},
 		{
-			key:        "daysSinceLastConnected",
+			key:        "secondsConnected",
 			sortable:   true,
 			filterable: true,
-			heading:    "Days Since Last Connected",
-			visualType: "NumericCell",
+			heading:    "Seconds Connected",
+			visualType: "DurationCell",
 			valueType:  "number",
 			pages: map[TableViewPage]int{
 				PagePeers: 7,
+			},
+		},
+		{
+			key:        "secondsDisconnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Seconds Disconnected",
+			visualType: "DurationCell",
+			valueType:  "number",
+			pages: map[TableViewPage]int{
+				PagePeers: 8,
 			},
 		},
 		{
@@ -1654,7 +1665,18 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			visualType: "DateCell",
 			valueType:  "date",
 			pages: map[TableViewPage]int{
-				PagePeers: 8,
+				PagePeers: 9,
+			},
+		},
+		{
+			key:        "dateLastDisconnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Date Last Disconnected",
+			visualType: "DateCell",
+			valueType:  "date",
+			pages: map[TableViewPage]int{
+				PagePeers: 10,
 			},
 		},
 	}

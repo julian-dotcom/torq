@@ -10,8 +10,10 @@ export type Peer = {
   connectionStatus: ConnectionStatus;
   setting: NodeConnectionSetting;
   tags: Tag[]; // TODO: Add tags to the peers api endpoint.
-  daysSinceLastConnected: number;
+  secondsConnected: number;
   dateLastConnected?: Date;
+  secondsDisconnected: number;
+  dateLastDisconnected?: Date;
 };
 
 export type ConnectPeerRequest = {
