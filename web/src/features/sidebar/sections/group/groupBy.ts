@@ -29,15 +29,22 @@ export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined):
 
       // Values fround in arrayAggKeys should be converted to an array of values
       if (arrayAggKeys.includes(key)) {
+        let valueArr = [];
+        if (Array.isArray(value)) {
+          valueArr = [...value];
+        } else {
+          valueArr = [value];
+        }
+
         // If the previous result is not already an Array, create a new one
         if (!Array.isArray(summedChan[key as keyof typeof summedChan])) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (summedChan as { [key: string]: any })[key] = [summedChan[key as keyof typeof summedChan], value];
+          (summedChan as { [key: string]: any })[key] = [summedChan[key as keyof typeof summedChan], ...valueArr];
           continue;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], ...value];
+        (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], ...valueArr];
         continue;
       }
 
