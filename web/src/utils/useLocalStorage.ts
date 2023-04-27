@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { AnyObject } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function useLocalStorage(key: any, initialValue: any) {
+export default function useLocalStorage<T>(key: string, initialValue: T) {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState(() => {
@@ -11,6 +11,11 @@ export default function useLocalStorage(key: any, initialValue: any) {
     try {
       // Get from local storage by key
       const item = window.localStorage.getItem(key);
+
+      // if (item === null) {
+      //   setValue(initialValue);
+      // }
+
       // Parse stored json or if none return initialValue
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
@@ -22,9 +27,9 @@ export default function useLocalStorage(key: any, initialValue: any) {
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to localStorage.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const setValue = (value: any) => {
+  const setValue = (value: AnyObject) => {
     try {
-      // Allow value to be a function so we have same API as useState
+      // Allow value to be a function, so we have same API as useState
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       // Save state
       setStoredValue(valueToStore);

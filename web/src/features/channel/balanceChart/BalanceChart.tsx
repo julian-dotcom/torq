@@ -6,8 +6,6 @@ import { NumberValue, Selection } from "d3";
 import ChartCanvas from "features/charts/chartCanvas";
 import "features/charts/chart.scss";
 import { AreaPlot } from "features/charts/charts";
-import { selectProfitChartKey } from "../channelSlice";
-import { useAppSelector } from "store/hooks";
 import clone from "clone";
 import { useGetSettingsQuery } from "apiSlice";
 
@@ -22,7 +20,6 @@ type BalanceChart = {
 function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
   let chart: ChartCanvas;
   let currentSize: [number | undefined, number | undefined] = [undefined, undefined];
-  const profitKey = useAppSelector(selectProfitChartKey);
   const settings = useGetSettingsQuery();
 
   // Check and update the chart size if the navigation changes the container size
@@ -85,7 +82,7 @@ function BalanceChart({ data, totalCapacity, from, to }: BalanceChart) {
 
       setInterval(navCheck(container), 200);
     },
-    [data, data ? data[0].date : "", data ? data[data.length - 1].date : "", profitKey]
+    [data, data ? data[0].date : "", data ? data[data.length - 1].date : ""]
   );
 
   useEffect(() => {
