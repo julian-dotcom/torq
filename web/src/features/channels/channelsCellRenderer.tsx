@@ -63,7 +63,7 @@ export default function channelsCellRenderer(
         key={"tagsCell" + rowIndex}
         channelId={row.channelId}
         nodeId={row.peerNodeId}
-        displayChannelTags={groupedBy !== "peers"}
+        displayChannelTags={groupedBy !== "peer"}
       />
     );
   }

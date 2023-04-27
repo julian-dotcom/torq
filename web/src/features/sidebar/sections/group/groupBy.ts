@@ -5,7 +5,7 @@ const arrayAggKeys: Array<string> = ["channelId", "channelPoint", "shortChannelI
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined): Array<T> {
-  if (by !== "peers") {
+  if (by !== "peer") {
     return data;
   }
 

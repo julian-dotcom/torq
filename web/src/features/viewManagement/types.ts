@@ -40,7 +40,7 @@ export type CreateViewRequest = {
 };
 export type UpdateViewRequest = { id: number; view: ViewInterface<TableResponses> };
 
-export type GroupByOptions = "channels" | "peers" | undefined;
+export type GroupByOptions = "channel" | "peer" | undefined;
 
 export type ViewInterface<T> = {
   title: string;

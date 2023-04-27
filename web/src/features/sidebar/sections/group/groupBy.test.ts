@@ -67,13 +67,13 @@ test("Unknown by param returns exactly what was input", () => {
 });
 
 test("grouping by channels returns exactly what was input", () => {
-  const result = useGroupBy(testData, "channels");
+  const result = useGroupBy(testData, "channel");
 
   expect(result).toStrictEqual(testData);
 });
 
 test("grouping by peers returns correctly grouped channels", () => {
-  const result = useGroupBy(testData, "peers");
+  const result = useGroupBy(testData, "peer");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const expected: Array<any> = [

@@ -39,7 +39,7 @@ export default function channelsCellRenderer(
         channelId={row.channelId}
         nodeId={row.secondNodeId}
         totalCell={isTotalsRow}
-        displayChannelTags={groupedBy !== "peers"}
+        displayChannelTags={groupedBy !== "peer"}
       />
     );
   }
