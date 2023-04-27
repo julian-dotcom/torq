@@ -247,11 +247,12 @@ export const viewsSlice = createSlice({
         sortByIndex: number;
       }>
     ) => {
-      const { page, viewIndex } = actions.payload;
+      const { page, viewIndex, sortByIndex } = actions.payload;
       // Find the current array of sort by
       const currentSortBy = state.pages[page].views[viewIndex].view.sortBy;
       // Delete the sort by if it exists
       if (currentSortBy) {
+        currentSortBy.splice(sortByIndex, 1);
         state.pages[page].views[viewIndex].view.sortBy = currentSortBy;
         state.pages[page].views[viewIndex].dirty = true;
       }
@@ -322,6 +323,10 @@ export const viewsSlice = createSlice({
 
         if (payload.channelsPending) {
           state.pages["channelsPending"].views = payload.channelsPending;
+        }
+
+        if (payload.peers) {
+          state.pages["peers"].views = payload.peers;
         }
         state.initiated = true;
       }

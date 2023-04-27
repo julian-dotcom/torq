@@ -4,12 +4,16 @@ export type Peer = {
   nodeId: number;
   torqNodeId: number;
   peerAlias: string;
-  torqNodeAlias: string;
+  nodeName: string;
   pubKey: string;
   address: string;
   connectionStatus: ConnectionStatus;
   setting: NodeConnectionSetting;
   tags: Tag[];
+  secondsConnected: number;
+  dateLastConnected?: Date;
+  secondsDisconnected: number;
+  dateLastDisconnected?: Date;
 };
 
 export type ConnectPeerRequest = {

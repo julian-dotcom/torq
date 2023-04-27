@@ -23,7 +23,7 @@ import { useGetPeersQuery, useUpdatePeerMutation } from "./peersApi";
 import clone from "clone";
 import { useSearchParams } from "react-router-dom";
 import { NodeConnectionSetting, Peer } from "./peersTypes";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector } from "store/hooks";
 import { selectActiveNetwork } from "../network/networkSlice";
 
 const updateStatusClass = {
@@ -120,12 +120,12 @@ function PeerUpdateModal() {
           <FormRow>
             <div className={styles.card}>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Node alias</div>
+                <div className={styles.rowLabel}>Peer alias</div>
                 <div className={styles.rowValue}>{peer?.peerAlias}</div>
               </div>
               <div className={styles.cardRow}>
-                <div className={styles.rowLabel}>Torq node alias</div>
-                <div className={classNames(styles.rowValue)}>{peer?.torqNodeAlias}</div>
+                <div className={styles.rowLabel}>Torq node name</div>
+                <div className={classNames(styles.rowValue)}>{peer?.nodeName}</div>
               </div>
             </div>
           </FormRow>

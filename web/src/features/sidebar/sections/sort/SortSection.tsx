@@ -98,23 +98,20 @@ function SortRow(props: SortRowProps) {
   };
 
   const handleDeleteSortBy = () => {
-    if (view) {
-      const deletedSortBy = view.sortBy?.splice(props.index, 1);
-      if (deletedSortBy) {
-        track(`View Delete Sort By`, {
-          viewPage: props.page,
-          viewIndex: props.viewIndex,
-          viewTitle: view.title,
-          viewSortCount: view.sortBy?.length || 0,
-          viewSortedBy: (view.sortBy || []).map((s) => {
-            return { key: s.key, direction: s.direction };
-          }),
-          viewDeletedSortKey: deletedSortBy[0].key,
-          viewDeletedSortDirection: deletedSortBy[0].direction,
-        });
-      }
+    if (view?.sortBy?.length) {
+      track(`View Delete Sort By`, {
+        viewPage: props.page,
+        viewIndex: props.viewIndex,
+        viewTitle: view.title,
+        viewSortCount: view.sortBy?.length || 0,
+        viewSortedBy: (view.sortBy || []).map((s) => {
+          return { key: s.key, direction: s.direction };
+        }),
+        viewDeletedSortKey: view.sortBy[props.index].key,
+        viewDeletedSortDirection: view.sortBy[props.index].direction,
+      });
+      dispatch(deleteSortBy({ page: props.page, viewIndex: props.viewIndex, sortByIndex: props.index }));
     }
-    dispatch(deleteSortBy({ page: props.page, viewIndex: props.viewIndex, sortByIndex: props.index }));
   };
 
   return (
@@ -158,12 +155,14 @@ function SortRow(props: SortRowProps) {
           >
             {<SortDescIcon />}
           </div>
-          <div className={styles.dismissIconWrapper} data-intercom-target={"view-sort--row-delete"}>
-            <DismissIcon
-              onClick={() => {
-                handleDeleteSortBy();
-              }}
-            />
+          <div
+            className={styles.dismissIconWrapper}
+            data-intercom-target={"view-sort--row-delete"}
+            onClick={() => {
+              handleDeleteSortBy();
+            }}
+          >
+            <DismissIcon />
           </div>
         </div>
       )}

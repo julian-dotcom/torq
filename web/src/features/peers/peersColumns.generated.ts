@@ -15,9 +15,9 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		locked: true,
 	},
 	{
-		heading: "Torq Alias",
-		type: "AliasCell",
-		key: "torqNodeAlias",
+		heading: "Node Name",
+		type: "TextCell",
+		key: "nodeName",
 		valueType: "string",
 	},
 	{
@@ -52,6 +52,30 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		key: "tags",
 		valueType: "tag",
 	},
+	{
+		heading: "Seconds Connected",
+		type: "DurationCell",
+		key: "secondsConnected",
+		valueType: "duration",
+	},
+	{
+		heading: "Seconds Disconnected",
+		type: "DurationCell",
+		key: "secondsDisconnected",
+		valueType: "duration",
+	},
+	{
+		heading: "Date Last Connected",
+		type: "DateCell",
+		key: "dateLastConnected",
+		valueType: "date",
+	},
+	{
+		heading: "Date Last Disconnected",
+		type: "DateCell",
+		key: "dateLastDisconnected",
+		valueType: "date",
+	},
 ];
 
 
@@ -61,9 +85,13 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 
 export const PeersSortableColumns: Array<keyof Peer> = [
 	"peerAlias",
-	"torqNodeAlias",
+	"nodeName",
 	"connectionStatus",
 	"setting",
+	"secondsConnected",
+	"secondsDisconnected",
+	"dateLastConnected",
+	"dateLastDisconnected",
 ];
 
 
@@ -73,8 +101,12 @@ export const PeersSortableColumns: Array<keyof Peer> = [
 
 export const PeersFilterableColumns: Array<keyof Peer> = [
 	"peerAlias",
-	"torqNodeAlias",
+	"nodeName",
 	"connectionStatus",
 	"setting",
 	"tags",
+	"secondsConnected",
+	"secondsDisconnected",
+	"dateLastConnected",
+	"dateLastDisconnected",
 ];

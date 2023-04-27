@@ -56,6 +56,7 @@ type TableViewResponses struct {
 	OnChain         []TableViewLayout `json:"onChain"`
 	ChannelsClosed  []TableViewLayout `json:"channelsClosed"`
 	ChannelsPending []TableViewLayout `json:"channelsPending"`
+	Peers           []TableViewLayout `json:"peers"`
 }
 
 type TableViewStructured struct {
@@ -827,6 +828,7 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 				PageChannels:        45,
 				PageChannelsClosed:  16,
 				PageChannelsPending: 17,
+				PagePeers:           2,
 			},
 		},
 		{
@@ -1597,17 +1599,6 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			},
 		},
 		{
-			key:        "torqNodeAlias",
-			sortable:   true,
-			filterable: true,
-			heading:    "Torq Alias",
-			visualType: "AliasCell",
-			valueType:  "string",
-			pages: map[TableViewPage]int{
-				PagePeers: 2,
-			},
-		},
-		{
 			key:        "setting",
 			sortable:   true,
 			filterable: true,
@@ -1635,6 +1626,50 @@ func getTableViewColumnDefinitions() []tableViewColumnDefinition {
 			},
 			pages: map[TableViewPage]int{
 				PagePeers: 3,
+			},
+		},
+		{
+			key:        "secondsConnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Seconds Connected",
+			visualType: "DurationCell",
+			valueType:  "duration",
+			pages: map[TableViewPage]int{
+				PagePeers: 7,
+			},
+		},
+		{
+			key:        "secondsDisconnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Seconds Disconnected",
+			visualType: "DurationCell",
+			valueType:  "duration",
+			pages: map[TableViewPage]int{
+				PagePeers: 8,
+			},
+		},
+		{
+			key:        "dateLastConnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Date Last Connected",
+			visualType: "DateCell",
+			valueType:  "date",
+			pages: map[TableViewPage]int{
+				PagePeers: 9,
+			},
+		},
+		{
+			key:        "dateLastDisconnected",
+			sortable:   true,
+			filterable: true,
+			heading:    "Date Last Disconnected",
+			visualType: "DateCell",
+			valueType:  "date",
+			pages: map[TableViewPage]int{
+				PagePeers: 10,
 			},
 		},
 	}
