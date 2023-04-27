@@ -115,7 +115,7 @@ function ChannelCell(props: ChannelCell) {
   );
 
   return (
-    <div className={classNames(styles.cell, styles.alignLeft, props.className, styles.channelCellWrapper)}>
+    <div className={classNames(styles.cell, styles.alignLeft, props.className, styles.channelCellWrapper, styles.locked)}>
       {content}
     </div>
   );
