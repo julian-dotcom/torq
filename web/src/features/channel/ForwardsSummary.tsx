@@ -204,7 +204,7 @@ function FowardsSummaryPage() {
                   sizeVariant={InputSizeVariant.small}
                   onChange={(newValue) => {
                     if (IsStringOption(newValue)) {
-                      track("Update FlowChart Key", { oldKey: flowChartKey, key: newValue.value });
+                      track("Update FlowChart Key", { oldKey: flowChartKey.value, key: newValue.value });
                       setFlowChartKey(newValue);
                     }
                   }}
