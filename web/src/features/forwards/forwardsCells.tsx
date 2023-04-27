@@ -30,15 +30,16 @@ export default function channelsCellRenderer(
     );
   }
 
-  console.log(row.channelId);
   if (column.key === "tags") {
     return (
       <TagsCell
-        tags={row.tags || []}
+        channelTags={row.channelTags}
+        peerTags={row.peerTags}
         key={"tags" + rowIndex + columnIndex}
         channelId={row.channelId}
         nodeId={row.secondNodeId}
         totalCell={isTotalsRow}
+        displayChannelTags={groupedBy !== "peers"}
       />
     );
   }

@@ -12,7 +12,9 @@ import { userEvents } from "utils/userEvents";
 export type TagsCellProps = {
   channelId?: number;
   nodeId: number;
-  tags: TagType[];
+  channelTags: TagType[];
+  peerTags: TagType[];
+  displayChannelTags: boolean;
   totalCell?: boolean;
 };
 
@@ -40,13 +42,27 @@ function EditTag(props: { tag: TagType }) {
 
 const TagsCell = (props: TagsCellProps) => {
   const location = useLocation();
+
+  let channelTags = props.channelTags;
+  if (!props.displayChannelTags) {
+    channelTags = [];
+  }
+  const allTags: TagType[] = [];
+
+  // peer and channel might have the same tag, de-dupe so we don't show it twice
+  for (const item of [...channelTags, ...props.peerTags]) {
+    if (!allTags.some((t) => t.tagId === item.tagId)) {
+      allTags.push(item);
+    }
+  }
+
   return (
     <div className={classNames(cellStyles.cell, styles.tagCell, { [cellStyles.totalCell]: props.totalCell })}>
-      {!props.totalCell && (props.tags || []).map((tag) => <EditTag tag={tag} key={"tag-" + tag.tagId} />)}
+      {!props.totalCell && allTags.map((tag) => <EditTag tag={tag} key={"tag-" + tag.tagId} />)}
 
       {!props.totalCell && (
         <>
-          {props.channelId && (
+          {props.displayChannelTags && (
             <LinkButton
               intercomTarget={"tag-cell-add-channel-tag-button"}
               to={`/tag-channel/${props.channelId}`}

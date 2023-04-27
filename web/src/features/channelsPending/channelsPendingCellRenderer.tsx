@@ -28,7 +28,16 @@ export default function channelsPendingCellRenderer(
         />
       );
     case "tags":
-      return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} channelId={row.channelId} nodeId={row.peerNodeId} />;
+      return (
+        <TagsCell
+          channelTags={row.channelTags}
+          peerTags={row.peerTags}
+          key={"tagsCell" + rowIndex}
+          channelId={row.channelId}
+          nodeId={row.peerNodeId}
+          displayChannelTags={true}
+        />
+      );
     case "fundingTransactionHash":
       if (column.type === "LongTextCell") {
         return (

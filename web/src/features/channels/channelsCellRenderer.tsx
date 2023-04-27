@@ -8,6 +8,7 @@ import TagsCell from "components/table/cells/tags/TagsCell";
 import LinkCell from "components/table/cells/link/LinkCell";
 import TextCell from "components/table/cells/text/TextCell";
 import useTranslations from "services/i18n/useTranslations";
+import { GroupByOptions } from "features/viewManagement/types";
 
 const MEMPOOL_SPACE = "mempoolSpace";
 const AMBOSS_SPACE = "ambossSpace";
@@ -25,7 +26,8 @@ export default function channelsCellRenderer(
   column: ColumnMetaData<channel>,
   columnIndex: number,
   isTotalsRow?: boolean,
-  maxRow?: channel
+  maxRow?: channel,
+  groupedBy?: GroupByOptions
 ): JSX.Element {
   const { t } = useTranslations();
   if (column.key === "peerAlias") {
@@ -54,7 +56,16 @@ export default function channelsCellRenderer(
   }
 
   if (column.key === "tags") {
-    return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} channelId={row.channelId} nodeId={row.peerNodeId} />;
+    return (
+      <TagsCell
+        channelTags={row.channelTags}
+        peerTags={row.peerTags}
+        key={"tagsCell" + rowIndex}
+        channelId={row.channelId}
+        nodeId={row.peerNodeId}
+        displayChannelTags={groupedBy !== "peers"}
+      />
+    );
   }
 
   if ([MEMPOOL_SPACE, AMBOSS_SPACE, ONE_ML].includes(column.key)) {
