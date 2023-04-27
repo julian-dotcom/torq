@@ -5,7 +5,7 @@ import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 import { AllPeersColumns, PeersFilterableColumns, PeersSortableColumns } from "./peersColumns.generated";
 
-const defaultColumns: Array<keyof Peer> = ["peerAlias", "connectionStatus", "torqNodeAlias", "pubKey", "tags"];
+const defaultColumns: Array<keyof Peer> = ["peerAlias", "connectionStatus", "nodeName", "pubKey", "tags"];
 
 export const DefaultPeersColumns = defaultColumns.map((col) => AllPeersColumns.find((x) => x.key === col)) as Array<
   ColumnMetaData<Peer>

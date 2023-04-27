@@ -21,7 +21,7 @@ type PeerNode struct {
 	Alias                *string                     `json:"peerAlias" db:"alias"`
 	PublicKey            string                      `json:"pubKey" db:"public_key"`
 	TorqNodeId           *int                        `json:"torqNodeId" db:"torq_node_id"`
-	TorqNodeAlias        *string                     `json:"torqNodeAlias" db:"torq_node_alias"`
+	TorqNodeAlias        *string                     `json:"nodeName" db:"node_name"`
 	Setting              *core.NodeConnectionSetting `json:"setting" db:"setting"`
 	ConnectionStatus     *ConnectionStatus           `json:"connectionStatus" db:"connection_status"`
 	Address              *string                     `json:"address" db:"address"`
@@ -72,7 +72,7 @@ func GetPeerNodes(db *sqlx.DB, network core.Network) ([]PeerNode, error) {
 		n.node_id,
 		ne.alias,
 		nch.torq_node_id,
-		netorq.alias AS torq_node_alias,
+		netorq.alias AS node_name, -- TODO: Rename to torq node name in all table requests throughout Torq. 
 		n.public_key,
 		nch.connection_status,
 		nch.setting,

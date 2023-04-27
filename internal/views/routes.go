@@ -84,6 +84,8 @@ func getTableViewsHandler(c *gin.Context, db *sqlx.DB) {
 			response.ChannelsClosed = append(response.ChannelsClosed, view)
 		case "channelsPending":
 			response.ChannelsPending = append(response.ChannelsPending, view)
+		case "peers":
+			response.Peers = append(response.Peers, view)
 		}
 
 	}

@@ -4,7 +4,7 @@ export type Peer = {
   nodeId: number;
   torqNodeId: number;
   peerAlias: string;
-  torqNodeAlias: string;
+  nodeName: string;
   pubKey: string;
   address: string;
   connectionStatus: ConnectionStatus;

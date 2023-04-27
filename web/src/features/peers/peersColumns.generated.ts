@@ -15,9 +15,9 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 		locked: true,
 	},
 	{
-		heading: "Torq Alias",
-		type: "AliasCell",
-		key: "torqNodeAlias",
+		heading: "Node Name",
+		type: "TextCell",
+		key: "nodeName",
 		valueType: "string",
 	},
 	{
@@ -85,7 +85,7 @@ export const AllPeersColumns: ColumnMetaData<Peer>[] = [
 
 export const PeersSortableColumns: Array<keyof Peer> = [
 	"peerAlias",
-	"torqNodeAlias",
+	"nodeName",
 	"connectionStatus",
 	"setting",
 	"secondsConnected",
@@ -101,7 +101,7 @@ export const PeersSortableColumns: Array<keyof Peer> = [
 
 export const PeersFilterableColumns: Array<keyof Peer> = [
 	"peerAlias",
-	"torqNodeAlias",
+	"nodeName",
 	"connectionStatus",
 	"setting",
 	"tags",
