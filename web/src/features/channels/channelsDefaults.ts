@@ -1,6 +1,10 @@
 import { ViewResponse } from "features/viewManagement/types";
 import { channel } from "features/channels/channelsTypes";
-import { AllChannelsColumns, ChannelsSortableColumns, ChannelsFilterableColumns } from "features/channels/channelsColumns.generated";
+import {
+  AllChannelsColumns,
+  ChannelsSortableColumns,
+  ChannelsFilterableColumns,
+} from "features/channels/channelsColumns.generated";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 
