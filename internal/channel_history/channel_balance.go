@@ -101,8 +101,12 @@ func getChannelBalance(db *sqlx.DB, channelIdString string, from time.Time, to t
 
 	}
 
-	// To integer
-	channelIdInt := int(channelId)
+	// To integer but check that the number will fit into int64
+	channelIdInt, err := strconv.Atoi(channelIdString)
+	if err != nil {
+		panic(err)
+	}
+
 	// Get the short channel id using the cache
 	channel := cache.GetChannelSettingByChannelId(channelIdInt)
 	if channel.ShortChannelId != nil {
