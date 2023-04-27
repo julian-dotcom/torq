@@ -7,7 +7,6 @@ import ChannelCell from "components/table/cells/channelCell/ChannelCell";
 import TagsCell from "components/table/cells/tags/TagsCell";
 import LinkCell from "components/table/cells/link/LinkCell";
 import TextCell from "components/table/cells/text/TextCell";
-import useTranslations from "services/i18n/useTranslations";
 
 const MEMPOOL_SPACE = "mempoolSpace";
 const AMBOSS_SPACE = "ambossSpace";
@@ -27,7 +26,6 @@ export default function channelsCellRenderer(
   isTotalsRow?: boolean,
   maxRow?: channel
 ): JSX.Element {
-  const { t } = useTranslations();
   if (column.key === "peerAlias") {
     return (
       <ChannelCell
@@ -60,7 +58,11 @@ export default function channelsCellRenderer(
   if ([MEMPOOL_SPACE, AMBOSS_SPACE, ONE_ML].includes(column.key)) {
     if (row.private)
       return (
-        <TextCell key={column.key + rowIndex} className={cellStyles.cell} current={t.privateChannelLinksUnavailable} />
+        <TextCell
+          key={column.key + rowIndex}
+          className={cellStyles.cell}
+          current={"Channel private, links unavailable"}
+        />
       );
 
     return (
