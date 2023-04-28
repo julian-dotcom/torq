@@ -8,6 +8,7 @@ import {
   ChannelsPendingSortableColumns,
 } from "features/channelsPending/channelsPendingColumns.generated";
 import { ChannelPending } from "./channelsPendingTypes";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 const defaultColumns: Array<keyof ChannelPending> = [
   "peerAlias",
@@ -42,10 +43,12 @@ export const ChannelsPendingFilterTemplate: FilterInterface = {
   key: "capacity",
 };
 
-export const ChannelsPendingSortTemplate: { key: keyof ChannelPending; direction: "desc" | "asc" } = {
-  key: "peerAlias",
-  direction: "asc",
-};
+export const ChannelsPendingSortTemplate: Array<OrderBy> = [
+  {
+    key: "peerAlias",
+    direction: "asc",
+  },
+];
 
 export const DefaultPendingChannelsView: ViewResponse<ChannelPending> = {
   page: "channelsPending",
@@ -53,7 +56,7 @@ export const DefaultPendingChannelsView: ViewResponse<ChannelPending> = {
   view: {
     title: "Pending Channels",
     columns: DefaultChannelsPendingColumns,
-    sortBy: [ChannelsPendingSortTemplate],
+    sortBy: ChannelsPendingSortTemplate,
   },
 };
 

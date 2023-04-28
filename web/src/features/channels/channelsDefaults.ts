@@ -7,6 +7,7 @@ import {
 } from "features/channels/channelsColumns.generated";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 const defaultColumns: Array<keyof channel> = [
   "peerAlias",
@@ -33,10 +34,16 @@ export const ChannelsFilterTemplate: FilterInterface = {
   key: "capacity",
 };
 
-export const ChannelsSortTemplate: { key: keyof channel; direction: "desc" | "asc" } = {
-  key: "peerAlias",
-  direction: "asc",
-};
+export const ChannelsSortTemplate: OrderBy[] = [
+  {
+    key: "peerAlias",
+    direction: "asc",
+  },
+  {
+    key: "shortChannelId",
+    direction: "desc",
+  },
+];
 
 export const DefaultChannelsView: ViewResponse<channel> = {
   page: "channel",
@@ -44,7 +51,7 @@ export const DefaultChannelsView: ViewResponse<channel> = {
   view: {
     title: "Draft View",
     columns: DefaultChannelsColumns,
-    sortBy: [ChannelsSortTemplate],
+    sortBy: ChannelsSortTemplate,
   },
 };
 

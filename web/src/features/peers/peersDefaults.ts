@@ -4,6 +4,7 @@ import { Peer } from "features/peers/peersTypes";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import { ColumnMetaData } from "features/table/types";
 import { AllPeersColumns, PeersFilterableColumns, PeersSortableColumns } from "./peersColumns.generated";
+import { OrderBy } from "../sidebar/sections/sort/SortSection";
 
 const defaultColumns: Array<keyof Peer> = ["peerAlias", "connectionStatus", "nodeName", "pubKey", "tags"];
 
@@ -22,10 +23,12 @@ export const PeersFilterTemplate: FilterInterface = {
   key: "value",
 };
 
-export const PeersSortTemplate: { key: keyof Peer; direction: "desc" | "asc" } = {
-  key: "peerAlias",
-  direction: "desc",
-};
+export const PeersSortTemplate: Array<OrderBy> = [
+  {
+    key: "peerAlias",
+    direction: "desc",
+  },
+];
 
 export const DefaultPeersView: ViewResponse<Peer> = {
   page: "peers",
@@ -33,7 +36,7 @@ export const DefaultPeersView: ViewResponse<Peer> = {
   view: {
     title: "Peers",
     columns: DefaultPeersColumns,
-    sortBy: [PeersSortTemplate],
+    sortBy: PeersSortTemplate,
   },
 };
 

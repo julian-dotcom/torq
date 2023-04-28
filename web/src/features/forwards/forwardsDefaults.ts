@@ -2,7 +2,7 @@ import { AndClause, FilterInterface } from "features/sidebar/sections/filter/fil
 import { ViewResponse } from "features/viewManagement/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
-import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated"
+import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated";
 
 export const ForwardsFilterTemplate: FilterInterface = {
   funcName: "gte",
@@ -22,7 +22,7 @@ const defaultColumns: Array<keyof Forward> = [
   "capacity",
 ];
 
-export const ForwardsSortByTemplate: OrderBy = { key: "revenueOut", direction: "desc" };
+export const ForwardsSortByTemplate: Array<OrderBy> = [{ key: "revenueOut", direction: "desc" }];
 
 export const DefaultForwardsColumns = AllForwardsColumns.filter((c) => defaultColumns.includes(c.key));
 
@@ -33,7 +33,7 @@ export const DefaultForwardsView: ViewResponse<Forward> = {
     title: "Draft View",
     filters: new AndClause().toJSON(),
     columns: DefaultForwardsColumns,
-    sortBy: [ForwardsSortByTemplate],
+    sortBy: ForwardsSortByTemplate,
     groupBy: "channels",
   },
 };

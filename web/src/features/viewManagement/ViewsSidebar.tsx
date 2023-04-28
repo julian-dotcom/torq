@@ -28,7 +28,7 @@ type ViewSidebarProps<T> = {
   allColumns: Array<ColumnMetaData<T>>;
   filterableColumns: ColumnMetaData<T>[];
   sortableColumns: ColumnMetaData<T>[];
-  sortByTemplate: OrderBy;
+  sortByTemplate: Array<OrderBy>;
   filterTemplate: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   enableGroupBy?: boolean;
 };

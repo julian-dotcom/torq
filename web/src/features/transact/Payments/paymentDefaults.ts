@@ -2,7 +2,12 @@ import { ColumnMetaData } from "features/table/types";
 import { Payment } from "features/transact/Payments/types";
 import { ViewResponse } from "features/viewManagement/types";
 import { FilterCategoryType, FilterInterface } from "features/sidebar/sections/filter/filter";
-import { AllPaymentsColumns, PaymentsSortableColumns, PaymentsFilterableColumns } from "features/transact/Payments/paymentsColumns.generated";
+import {
+  AllPaymentsColumns,
+  PaymentsSortableColumns,
+  PaymentsFilterableColumns,
+} from "features/transact/Payments/paymentsColumns.generated";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 const defaultColumns: Array<keyof Payment> = [
   "date",
@@ -49,10 +54,12 @@ export const FailureReasonLabels = new Map<string, string>([
   ["FAILURE_REASON_UNKNOWN", "Unknown"],
 ]);
 
-export const PaymentsSortTemplate: { key: keyof Payment; direction: "desc" | "asc" } = {
-  key: "date",
-  direction: "desc",
-};
+export const PaymentsSortTemplate: Array<OrderBy> = [
+  {
+    key: "date",
+    direction: "desc",
+  },
+];
 
 export const ActivePaymentsColumns: Array<ColumnMetaData<Payment>> = AllPaymentsColumns.filter((item) => {
   return defaultColumns.includes(item.key);
@@ -64,6 +71,6 @@ export const DefaultPaymentView: ViewResponse<Payment> = {
   view: {
     title: "Draft View",
     columns: ActivePaymentsColumns,
-    sortBy: [PaymentsSortTemplate],
+    sortBy: PaymentsSortTemplate,
   },
 };
