@@ -23,6 +23,9 @@ import { InputSizeVariant } from "components/forms/forms";
 import useLocalStorage from "utils/useLocalStorage";
 import { userEvents } from "utils/userEvents";
 import { IsStringOption } from "utils/typeChecking";
+import { TableControlsButtonGroup, TableControlSection } from "../templates/tablePageTemplate/TablePageTemplate";
+import Button, { ColorVariant } from "components/buttons/Button";
+import { ArrowSync20Regular as RefreshIcon } from "@fluentui/react-icons";
 
 const ft = d3.format(",.0f");
 
@@ -44,7 +47,7 @@ function FowardsSummaryPage() {
     network: activeNetwork,
   };
 
-  const { data, isLoading } = useGetFlowQuery(flowQueryParams);
+  const { data, isLoading, refetch: flowRefetch } = useGetFlowQuery(flowQueryParams);
 
   const getChannelHistoryData: GetChannelHistoryData = {
     params: { chanId: chanId || "all" },
@@ -55,9 +58,9 @@ function FowardsSummaryPage() {
     },
   };
 
-  const { data: onChainCost } = useGetChannelOnChainCostQuery(getChannelHistoryData);
-  const { data: history } = useGetChannelHistoryQuery(getChannelHistoryData);
-  const { data: rebalancing } = useGetChannelRebalancingQuery(getChannelHistoryData);
+  const { data: onChainCost, refetch: onChainRefetch } = useGetChannelOnChainCostQuery(getChannelHistoryData);
+  const { data: history, refetch: historyRefetch } = useGetChannelHistoryQuery(getChannelHistoryData);
+  const { data: rebalancing, refetch: rebalanceRefetch } = useGetChannelRebalancingQuery(getChannelHistoryData);
 
   const profit: number =
     history?.revenueOut && onChainCost?.onChainCost && rebalancing?.rebalancingCost
@@ -84,8 +87,31 @@ function FowardsSummaryPage() {
     </Link>,
   ];
 
+  const refreshData = () => {
+    flowRefetch();
+    onChainRefetch();
+    historyRefetch();
+    rebalanceRefetch();
+  };
+
   return (
-    <DetailsPageTemplate title={"Forwards Summary"} titleContent={<TimeIntervalSelect />} breadcrumbs={breadcrumbs}>
+    <DetailsPageTemplate title={"Forwards Summary"} breadcrumbs={breadcrumbs}>
+      <TableControlSection intercomTarget={"table-page-controls"}>
+        <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+          <TimeIntervalSelect />
+        </TableControlsButtonGroup>
+        <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
+          <Button
+            intercomTarget="refresh-page-data"
+            buttonColor={ColorVariant.primary}
+            icon={<RefreshIcon />}
+            onClick={() => {
+              track("Refresh forwards summary data", { page: "ForwardsSummary" });
+              refreshData();
+            }}
+          />
+        </TableControlsButtonGroup>
+      </TableControlSection>
       <div className={styles.channelWrapper}>
         <div
           className={classNames(styles.pageRow, styles.channelSummary)}
