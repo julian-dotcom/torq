@@ -41,7 +41,7 @@ export const tagsApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagChannel,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "tagsForChannel", "channelHistory", "forwards"],
     }),
     tagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -49,7 +49,7 @@ export const tagsApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "peers"],
+      invalidatesTags: ["tags", "tag", "tagsForNode", "channels", "channelHistory", "forwards", "peers"],
     }),
     untagNode: builder.mutation<void, TagNodeRequest>({
       query: (tagNode) => ({
@@ -57,7 +57,7 @@ export const tagsApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagNode,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards", "peers"],
+      invalidatesTags: ["tags", "tag", "tagsForNode", "channels", "channelHistory", "forwards", "peers"],
     }),
     untagChannel: builder.mutation<void, TagChannelRequest>({
       query: (tagChannel) => ({
@@ -65,7 +65,7 @@ export const tagsApi = torqApi.injectEndpoints({
         method: "POST",
         body: tagChannel,
       }),
-      invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
+      invalidatesTags: ["tags", "tag", "channels", "tagsForChannel", "channelHistory", "forwards"],
     }),
     getChannelTags: builder.query<Array<TagResponse>, number>({
       query: (channelId) => `tags/channel/${channelId}`,
@@ -73,7 +73,7 @@ export const tagsApi = torqApi.injectEndpoints({
     }),
     getNodeTags: builder.query<Array<TagResponse>, number>({
       query: (nodeId) => `tags/node/${nodeId}`,
-      providesTags: ["tagsForNodes"],
+      providesTags: ["tagsForNode"],
     }),
     getNodesChannels: builder.query<ChannelNode, void>({
       query: () => ({
