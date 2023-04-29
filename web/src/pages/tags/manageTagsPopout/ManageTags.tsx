@@ -1,4 +1,3 @@
-import mixpanel from "mixpanel-browser";
 import { Tag24Regular as TagHeaderIcon } from "@fluentui/react-icons";
 import useTranslations from "services/i18n/useTranslations";
 import PopoutPageTemplate from "features/templates/popoutPageTemplate/PopoutPageTemplate";
@@ -19,6 +18,7 @@ import RemoveTag from "components/tags/RemoveTag";
 import Button, { ColorVariant, ButtonPosition } from "components/buttons/Button";
 import { AddSquare20Regular as AddIcon } from "@fluentui/react-icons";
 import styles from "./manageTags.module.scss";
+import { userEvents } from "utils/userEvents";
 
 function isOption(result: unknown): result is SelectOptionType {
   return result !== null && typeof result === "object" && "value" in result && "label" in result;
@@ -26,6 +26,7 @@ function isOption(result: unknown): result is SelectOptionType {
 
 export default function MangeTagsPopout() {
   const { t } = useTranslations();
+  const { track } = userEvents();
   const navigate = useNavigate();
   const tagsResponse = useGetTagsQuery();
   const { channelId: channelIdParam } = useParams<{ channelId: string }>();
@@ -88,7 +89,7 @@ export default function MangeTagsPopout() {
 
   const removeTag = (tagId: number, tagName: string) => {
     if (channelId !== undefined) {
-      mixpanel.track("Untag", {
+      track("Untag", {
         tagId: tagId,
         tagName: tagName,
         channelId: channelId,
@@ -97,7 +98,7 @@ export default function MangeTagsPopout() {
       untagChannel({ tagId: tagId, channelId: channelId });
     }
     if (nodeId !== undefined) {
-      mixpanel.track("Untag", {
+      track("Untag", {
         tagId: tagId,
         tagName: tagName,
         nodeId: nodeId,
