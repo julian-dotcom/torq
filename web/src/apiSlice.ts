@@ -75,8 +75,8 @@ export const torqApi = createApi({
     "onChainTx",
     "invoices",
     "peers",
-    // "tagsForChannel",
-    // "tagsForNodes",
+    "tagsForChannel",
+    "tagsForNodes",
   ],
   endpoints: (builder) => ({
     getFlow: builder.query<FlowData[], GetFlowQueryParams>({

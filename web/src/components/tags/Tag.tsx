@@ -122,7 +122,6 @@ export default function Tag(props: TagProps) {
       handleUntagPeer();
     } else if (props.channelId) {
       handleUntagChannel();
-      console.log("Untagging");
     }
   };
 
