@@ -1,3 +1,5 @@
+import { GroupByOptions } from "features/viewManagement/types";
+
 export type ColumnMetaData<T> = {
   heading: string;
   key: keyof T;
@@ -24,6 +26,7 @@ export type TableProps<T> = {
   selectable?: boolean;
   selectedRowIds?: Array<number>;
   intercomTarget?: string;
+  groupedBy?: GroupByOptions;
 };
 
 export type CellRendererFunction<T> = (
@@ -32,7 +35,8 @@ export type CellRendererFunction<T> = (
   columnMeta: ColumnMetaData<T>,
   columnIndex: number,
   isTotalsRow?: boolean,
-  maxValues?: T
+  maxValues?: T,
+  groupedBy?: GroupByOptions
 ) => JSX.Element;
 
 export type RowProp<T> = {
@@ -44,4 +48,5 @@ export type RowProp<T> = {
   cellRenderer: CellRendererFunction<T>;
   isTotalsRow?: boolean;
   maxRow?: T;
+  groupedBy: GroupByOptions;
 };

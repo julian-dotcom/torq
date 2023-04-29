@@ -38,7 +38,7 @@ type History = {
 export type Channel = {
   alias: string;
   tags: Tag[];
-  channelId: string;
+  channelId: number;
   fundingTransactionHash: string;
   fundingOutputIndex: string;
   pubKey: string;
@@ -106,7 +106,7 @@ export type Event = {
   fundingTransactionHash: string;
   fundingOutputIndex: number;
   shortChannelId: string;
-  channelId: string;
+  channelId: number;
   type: string;
   outbound: boolean;
   announcingPubKey: string;

@@ -50,7 +50,7 @@ type eventCardType = {
 
 function EventsCard({ events, selectedEvents, channels }: eventCardType) {
   let prev: string;
-  let prevAlias: string;
+  let prevAlias: number;
 
   return (
     <div className={classNames(styles.card, styles.scroll)} style={{ height: "600px" }}>

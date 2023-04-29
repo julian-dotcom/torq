@@ -9,7 +9,7 @@ export type Peer = {
   address: string;
   connectionStatus: ConnectionStatus;
   setting: NodeConnectionSetting;
-  tags: Tag[]; // TODO: Add tags to the peers api endpoint.
+  tags: Tag[];
   secondsConnected: number;
   dateLastConnected?: Date;
   secondsDisconnected: number;

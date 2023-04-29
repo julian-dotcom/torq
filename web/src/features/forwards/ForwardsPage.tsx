@@ -224,6 +224,7 @@ function ForwardsPage() {
         cellRenderer={forwardsCellRenderer}
         isLoading={forwardsResponse.isLoading || forwardsResponse.isFetching || forwardsResponse.isUninitialized}
         showTotals={true}
+        groupedBy={viewResponse.view.groupBy}
       />
       {/*<ForwardsDataWrapper viewResponse={viewResponse} loadingViews={!isSuccess} />*/}
     </TablePageTemplate>

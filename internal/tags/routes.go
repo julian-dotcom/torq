@@ -166,11 +166,10 @@ func getChannelTagsHandler(c *gin.Context, db *sqlx.DB) {
 	}
 
 	var tagIds []int
-	if req.NodeId == nil {
-		tagIds = cache.GetTagIdsByChannelId(0, req.ChannelId)
-	} else {
-		tagIds = cache.GetTagIdsByChannelId(*req.NodeId, req.ChannelId)
+	if req.NodeId != nil {
+		tagIds = cache.GetTagIdsByNodeId(*req.NodeId)
 	}
+	tagIds = append(tagIds, cache.GetTagIdsByChannelId(req.ChannelId)...)
 	if len(tagIds) == 0 {
 		c.JSON(http.StatusOK, []Tag{})
 		return

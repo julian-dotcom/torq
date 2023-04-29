@@ -75,6 +75,7 @@ function Table<T>(props: TableProps<T>) {
               selected={false}
               isTotalsRow={false}
               maxRow={props.maxRow}
+              groupedBy={props.groupedBy}
             />
           );
         })}
@@ -119,6 +120,7 @@ function Table<T>(props: TableProps<T>) {
             selectable={props.selectable}
             selected={false}
             isTotalsRow={true}
+            groupedBy={props.groupedBy}
           />
         )}
       </div>

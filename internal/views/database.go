@@ -45,6 +45,7 @@ func getTableViewsStructured(db *sqlx.DB) ([]TableViewStructured, error) {
 			Columns:     tableViewColumns,
 			Filters:     tableViewFilters,
 			Sortings:    tableViewSortings,
+			GroupBy:     tableView.GroupBy,
 		})
 	}
 	return tableViewsStructured, nil
@@ -147,17 +148,17 @@ func addTableView(tx *sqlx.Tx, tableView TableView) (TableView, error) {
 	tableView.UpdateOn = tableView.CreatedOn
 	var err error
 	if tableView.Order == 0 {
-		err = tx.QueryRowx(`INSERT INTO table_view (page, title, "order", created_on, updated_on)
-			SELECT $1, $2, COALESCE(MAX(t."order")+1, 1), $3, $4
+		err = tx.QueryRowx(`INSERT INTO table_view (page, title, "order", group_by, created_on, updated_on)
+			SELECT $1, $2, COALESCE(MAX(t."order")+1, 1), $3, $4, $5
 			FROM table_view t
 			WHERE t.page = $1
 			RETURNING table_view_id, "order";`,
-			tableView.Page, tableView.Title,
+			tableView.Page, tableView.Title, tableView.GroupBy,
 			tableView.CreatedOn, tableView.UpdateOn).Scan(&tableView.TableViewId, &tableView.Order)
 	} else {
-		err = tx.QueryRowx(`INSERT INTO table_view (page, title, "order", created_on, updated_on)
-			VALUES ($1, $2, $3, $4, $5) RETURNING table_view_id;`,
-			tableView.Page, tableView.Title, tableView.Order,
+		err = tx.QueryRowx(`INSERT INTO table_view (page, title, "order", group_by, created_on, updated_on)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING table_view_id;`,
+			tableView.Page, tableView.Title, tableView.Order, tableView.GroupBy,
 			tableView.CreatedOn, tableView.UpdateOn).Scan(&tableView.TableViewId)
 	}
 	if err != nil {
@@ -166,9 +167,9 @@ func addTableView(tx *sqlx.Tx, tableView TableView) (TableView, error) {
 	return tableView, nil
 }
 
-func updateTableView(tx *sqlx.Tx, tableViewId int, title string) error {
-	_, err := tx.Exec(`UPDATE table_view SET title=$1, updated_on=$2 WHERE table_view_id = $3;`,
-		title, time.Now(), tableViewId)
+func updateTableView(tx *sqlx.Tx, tableViewId int, title string, groupBy *string) error {
+	_, err := tx.Exec(`UPDATE table_view SET title=$1, group_by=$2, updated_on=$3 WHERE table_view_id = $4;`,
+		title, groupBy, time.Now(), tableViewId)
 	if err != nil {
 		return errors.Wrap(err, database.SqlExecutionError)
 	}
@@ -290,10 +291,11 @@ func getTableViews(db *sqlx.DB) ([]TableViewLayout, error) {
 		tableViewJson := TableViewJson{
 			Id: tableView.TableViewId,
 			View: TableViewDetail{
-				Title: tableView.Title,
-				Saved: true,
-				Page:  tableView.Page,
-				Id:    tableView.TableViewId,
+				Title:   tableView.Title,
+				Saved:   true,
+				Page:    tableView.Page,
+				Id:      tableView.TableViewId,
+				GroupBy: tableView.GroupBy,
 			},
 		}
 

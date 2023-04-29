@@ -1,6 +1,6 @@
 import { channel } from "features/channels/channelsTypes";
 
-export type ChannelPending = Omit<channel, "tag"> & {
+export type ChannelPending = channel & {
   pubKey: string;
   status: string;
 };

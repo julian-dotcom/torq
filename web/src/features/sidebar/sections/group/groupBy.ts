@@ -1,18 +1,28 @@
-const nonSummableFields: Array<string> = ["alias", "pub_key", "color"];
-const arrayAggKeys: Array<string> = ["channelId", "channel_point", "shortChannelId", "chan_id"];
+import { GroupByOptions } from "features/viewManagement/types";
+
+const nonSummableFields: Array<string> = ["alias", "pubKey", "color", "secondNodeId", "firstNodeId"];
+const arrayAggKeys: Array<string> = [
+  "channelId",
+  "channelPoint",
+  "shortChannelId",
+  "lndShortChannelId",
+  "tags",
+  "channelTags",
+  "peerTags",
+];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useGroupBy<T>(data: Array<any>, by: string | undefined): Array<T> {
-  if (by !== "peers") {
+export function useGroupBy<T>(data: Array<any>, by: GroupByOptions | undefined): Array<T> {
+  if (by !== "peer") {
     return data;
   }
 
   const summedPubKey: typeof data = [];
 
   for (const chan of data) {
-    const pub_key = String(chan["pub_key" as keyof typeof chan]);
+    const pub_key = String(chan["pubKey" as keyof typeof chan]);
 
-    const summedChan = summedPubKey.find((sc) => sc["pub_key" as keyof typeof sc] == pub_key);
+    const summedChan = summedPubKey.find((sc) => sc["pubKey" as keyof typeof sc] == pub_key);
     if (!summedChan) {
       summedPubKey.push(chan);
       continue;
@@ -27,15 +37,22 @@ export function useGroupBy<T>(data: Array<any>, by: string | undefined): Array<T
 
       // Values fround in arrayAggKeys should be converted to an array of values
       if (arrayAggKeys.includes(key)) {
+        let valueArr = [];
+        if (Array.isArray(value)) {
+          valueArr = [...value];
+        } else {
+          valueArr = [value];
+        }
+
         // If the previous result is not already an Array, create a new one
         if (!Array.isArray(summedChan[key as keyof typeof summedChan])) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (summedChan as { [key: string]: any })[key] = [summedChan[key as keyof typeof summedChan], value];
+          (summedChan as { [key: string]: any })[key] = [summedChan[key as keyof typeof summedChan], ...valueArr];
           continue;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], value];
+        (summedChan as { [key: string]: any })[key] = [...summedChan[key as keyof typeof summedChan], ...valueArr];
         continue;
       }
 

@@ -68,6 +68,7 @@ type TableViewStructured struct {
 	Columns     []TableViewColumn  `json:"columns"`
 	Filters     []TableViewFilter  `json:"filters"`
 	Sortings    []TableViewSorting `json:"sortings"`
+	GroupBy     *string            `json:"groupBy"`
 }
 
 type TableView struct {
@@ -75,6 +76,7 @@ type TableView struct {
 	Page        string    `json:"page" db:"page"`
 	Title       string    `json:"title" db:"title"`
 	Order       int       `json:"order" db:"order"`
+	GroupBy     *string   `json:"groupBy" db:"group_by"`
 	CreatedOn   time.Time `json:"createdOn" db:"created_on"`
 	UpdateOn    time.Time `json:"updatedOn" db:"updated_on"`
 }

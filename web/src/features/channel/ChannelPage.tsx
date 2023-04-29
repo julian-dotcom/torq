@@ -42,6 +42,7 @@ import { CLOSE_CHANNEL, UPDATE_CHANNEL } from "constants/routes";
 import { userEvents } from "utils/userEvents";
 import useLocalStorage from "utils/useLocalStorage";
 import { IsNumericOption, IsStringOption } from "utils/typeChecking";
+import { useGetChannelTagsQuery, useGetNodeTagsQuery } from "pages/tags/tagsApi";
 
 const ft = d3.format(",.0f");
 
@@ -100,6 +101,12 @@ function ChannelPage(_: ChannelPageProps) {
     },
   };
 
+  // Conditionally create a channel id if it's only one item in the chanId array convert it to a number
+  const channelId = chanId?.split(",")?.length === 1 ? Number(chanId) : 0;
+
+  // Fetch all tags for a channel from the API
+  const { data: channelTags } = useGetChannelTagsQuery(channelId, { skip: chanId?.split(",")?.length !== 1 });
+
   const { data: balance } = useGetChannelBalanceQuery(channelHistoryQueryData);
 
   const { data: onChainCost } = useGetChannelOnChainCostQuery(channelHistoryQueryData);
@@ -114,6 +121,10 @@ function ChannelPage(_: ChannelPageProps) {
   const [eventChartKey, setEventChartKey] = useLocalStorage(`eventChartKey`, { value: "amount", label: "Amount" });
   const [flowChartKey, setFlowChartKey] = useLocalStorage(`flowChartKey`, { value: "amount", label: "Amount" });
   const [balanceChannelId, setBalanceChannelId] = useState({ value: 0, label: "" });
+
+  const { data: peerTags } = useGetNodeTagsQuery(channelDetail ? channelDetail?.peerNodeId : 0, {
+    skip: channelDetail?.peerNodeId === undefined,
+  });
 
   let totalCapacity = 0;
   if (history?.channels) {
@@ -265,8 +276,27 @@ function ChannelPage(_: ChannelPageProps) {
             )}
           </div>
           <div className={styles.tags} data-intercom-target={"inspect-channel-tag-list"}>
-            {((history?.channels && history.channels[0].tags) || []).map((tag) => (
-              <Tag key={"tag-" + tag.tagId} label={tag.name} colorVariant={TagColor[tag.style]} />
+            {(channelTags || []).map((tag) => (
+              <Tag
+                key={"tag-" + tag.tagId}
+                tagId={tag.tagId || 0}
+                deletable={true}
+                channelId={history?.channels[0]?.channelId || 0}
+                label={tag.name}
+                colorVariant={TagColor[tag.style as keyof typeof TagColor]}
+                icon={<ChannelsIcon />}
+              />
+            ))}
+            {(peerTags || []).map((tag) => (
+              <Tag
+                key={"tag-" + tag.tagId}
+                tagId={tag.tagId || 0}
+                deletable={true}
+                peerId={channelDetail?.nodeId || 0}
+                label={tag.name}
+                colorVariant={TagColor[tag.style as keyof typeof TagColor]}
+                icon={<NodeIcon />}
+              />
             ))}
             {isSingleChannel && (
               <>
