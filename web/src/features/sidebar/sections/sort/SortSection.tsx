@@ -175,7 +175,7 @@ type SortSectionProps<T> = {
   viewIndex: number;
   columns: Array<ColumnMetaData<T>>;
   sortBy?: Array<OrderBy>;
-  defaultSortBy: OrderBy;
+  defaultSortBy: Array<OrderBy>;
 };
 
 function SortSection<T>(props: SortSectionProps<T>) {
@@ -199,6 +199,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
   }, [props.columns]);
 
   const handleAddSort = () => {
+    const defaultSortPlaceholder = props.defaultSortBy[0];
     if (view) {
       track(`View Add Sort By`, {
         viewPage: props.page,
@@ -208,11 +209,11 @@ function SortSection<T>(props: SortSectionProps<T>) {
         viewSortedBy: (view.sortBy || []).map((s) => {
           return { key: s.key, direction: s.direction };
         }),
-        viewNewSortKey: props.defaultSortBy.key,
-        viewNewSortDirection: props.defaultSortBy.direction,
+        viewNewSortKey: defaultSortPlaceholder.key,
+        viewNewSortDirection: defaultSortPlaceholder.direction,
       });
     }
-    dispatch(addSortBy({ page: props.page, viewIndex: props.viewIndex, sortBy: props.defaultSortBy }));
+    dispatch(addSortBy({ page: props.page, viewIndex: props.viewIndex, sortBy: defaultSortPlaceholder }));
   };
 
   const droppableContainerId = "sort-list-droppable";
@@ -232,6 +233,7 @@ function SortSection<T>(props: SortSectionProps<T>) {
     }
 
     if (view) {
+      const defaultSortPlaceholder = props.defaultSortBy[0];
       track(`View Update Sort By`, {
         viewPage: props.page,
         viewIndex: props.viewIndex,
@@ -240,8 +242,8 @@ function SortSection<T>(props: SortSectionProps<T>) {
         viewSortedBy: (view.sortBy || []).map((s) => {
           return { key: s.key, direction: s.direction };
         }),
-        viewNewSortKey: props.defaultSortBy.key,
-        viewNewSortDirection: props.defaultSortBy.direction,
+        viewNewSortKey: defaultSortPlaceholder.key,
+        viewNewSortDirection: defaultSortPlaceholder.direction,
       });
     }
 

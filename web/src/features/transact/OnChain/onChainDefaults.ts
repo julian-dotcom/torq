@@ -5,8 +5,9 @@ import { FilterInterface } from "features/sidebar/sections/filter/filter";
 import {
   AllOnChainTransactionsColumns,
   OnChainTransactionsSortableColumns,
-  OnChainTransactionsFilterableColumns
+  OnChainTransactionsFilterableColumns,
 } from "features/transact/OnChain/onChainColumns.generated";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 const defaultColumns: Array<keyof OnChainTx> = [
   "date",
@@ -28,10 +29,12 @@ export const FilterableOnChainColumns = AllOnChainTransactionsColumns.filter((co
   OnChainTransactionsFilterableColumns.includes(column.key)
 );
 
-export const OnChainSortTemplate: { key: keyof OnChainTx; direction: "desc" | "asc" } = {
-  key: "date",
-  direction: "desc",
-};
+export const OnChainSortTemplate: Array<OrderBy> = [
+  {
+    key: "date",
+    direction: "desc",
+  },
+];
 
 export const OnChainFilterTemplate: FilterInterface = {
   funcName: "gte",
@@ -46,6 +49,6 @@ export const DefaultOnChainView: ViewResponse<OnChainTx> = {
   view: {
     title: "Draft View",
     columns: DefaultOnChainColumns,
-    sortBy: [OnChainSortTemplate],
+    sortBy: OnChainSortTemplate,
   },
 };

@@ -8,6 +8,7 @@ import {
   ChannelsClosedFilterableColumns,
   ChannelsClosedSortableColumns,
 } from "./channelsClosedColumns.generated";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 const defaultColumns: Array<keyof ChannelClosed> = [
   "peerAlias",
@@ -37,10 +38,12 @@ export const ChannelsClosedFilterTemplate: FilterInterface = {
   key: "capacity",
 };
 
-export const ChannelsClosedSortTemplate: { key: keyof ChannelClosed; direction: "desc" | "asc" } = {
-  key: "closedOnSecondsDelta",
-  direction: "desc",
-};
+export const ChannelsClosedSortTemplate: Array<OrderBy> = [
+  {
+    key: "closedOnSecondsDelta",
+    direction: "desc",
+  },
+];
 
 export const DefaultClosedChannelsView: ViewResponse<ChannelClosed> = {
   page: "channelsClosed",
@@ -48,7 +51,7 @@ export const DefaultClosedChannelsView: ViewResponse<ChannelClosed> = {
   view: {
     title: "Closed Channels",
     columns: DefaultChannelsClosedColumns,
-    sortBy: [ChannelsClosedSortTemplate],
+    sortBy: ChannelsClosedSortTemplate,
   },
 };
 

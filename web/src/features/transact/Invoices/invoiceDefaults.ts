@@ -8,6 +8,7 @@ import {
 } from "features/transact/Invoices/invoicesColumns.generated";
 import { ColumnMetaData } from "features/table/types";
 import { FilterInterface } from "features/sidebar/sections/filter/filter";
+import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 
 const defaultKeys: Array<keyof Invoice> = [
   "creationDate",
@@ -31,10 +32,12 @@ export const FilterableInvoiceColumns = AllInvoicesColumns.filter((column: Colum
   return InvoicesFilterableColumns.includes(column.key);
 });
 
-export const InvoiceSortTemplate: { key: keyof Invoice; direction: "desc" | "asc" } = {
-  key: "creationDate",
-  direction: "desc",
-};
+export const InvoiceSortTemplate: Array<OrderBy> = [
+  {
+    key: "creationDate",
+    direction: "desc",
+  },
+];
 
 export const InvoiceFilterTemplate: FilterInterface = {
   key: "value",
@@ -49,6 +52,6 @@ export const DefaultInvoiceView: ViewResponse<Invoice> = {
   view: {
     title: "Draft View",
     columns: DefaultInvoicesColumns,
-    sortBy: [InvoiceSortTemplate],
+    sortBy: InvoiceSortTemplate,
   },
 };
