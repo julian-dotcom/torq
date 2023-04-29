@@ -24,7 +24,9 @@ type FailedRequest = {
 
 export type channel = {
   active: boolean;
-  tags: Tag[];
+  tags: Tag[]; // this column only exists on the frontend to render the tags cell
+  channelTags: Tag[];
+  peerTags: Tag[];
   ambossSpace: string;
   feeBase: number;
   capacity: number;

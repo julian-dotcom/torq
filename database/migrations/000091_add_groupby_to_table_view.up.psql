@@ -1,0 +1,2 @@
+ALTER TABLE table_view ADD COLUMN group_by TEXT;
+UPDATE table_view SET group_by = 'channel' where page = 'forwards';

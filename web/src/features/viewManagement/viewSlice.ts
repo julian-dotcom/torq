@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "store/store";
-import { TableResponses, ViewResponse } from "./types";
+import { GroupByOptions, TableResponses, ViewResponse } from "./types";
 import { viewApi } from "./viewsApiSlice";
 import { DefaultForwardsView } from "features/forwards/forwardsDefaults";
 import { DefaultOnChainView } from "features/transact/OnChain/onChainDefaults";
@@ -277,7 +277,7 @@ export const viewsSlice = createSlice({
       actions: PayloadAction<{
         page: ViewSliceStatePages;
         viewIndex: number;
-        groupByUpdate: "channels" | "peers";
+        groupByUpdate: Exclude<GroupByOptions, undefined>;
       }>
     ) => {
       const { page, viewIndex, groupByUpdate } = actions.payload;

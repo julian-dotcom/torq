@@ -2,7 +2,7 @@ import { AndClause, FilterInterface } from "features/sidebar/sections/filter/fil
 import { ViewResponse } from "features/viewManagement/types";
 import { OrderBy } from "features/sidebar/sections/sort/SortSection";
 import { Forward } from "features/forwards/forwardsTypes";
-import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated"
+import { AllForwardsColumns } from "features/forwards/forwardsColumns.generated";
 
 export const ForwardsFilterTemplate: FilterInterface = {
   funcName: "gte",
@@ -34,6 +34,6 @@ export const DefaultForwardsView: ViewResponse<Forward> = {
     filters: new AndClause().toJSON(),
     columns: DefaultForwardsColumns,
     sortBy: [ForwardsSortByTemplate],
-    groupBy: "channels",
+    groupBy: "channel",
   },
 };

@@ -25,7 +25,15 @@ export default function peerCellRenderer(
     );
   }
   if (column.key === "tags") {
-    return <TagsCell tags={row.tags} key={"tagsCell" + rowIndex} nodeId={row.nodeId} />;
+    return (
+      <TagsCell
+        channelTags={[]}
+        peerTags={row.tags}
+        key={"tagsCell" + rowIndex}
+        nodeId={row.nodeId}
+        displayChannelTags={false}
+      />
+    );
   }
 
   if (column.key === "connectionStatus") {

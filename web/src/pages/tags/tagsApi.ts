@@ -67,14 +67,14 @@ export const tagsApi = torqApi.injectEndpoints({
       }),
       invalidatesTags: ["tags", "tag", "channels", "channelHistory", "forwards"],
     }),
-    // getChannelsForTag: builder.query<ChannelNode, number>({
-    //   query: (tagId) => `tags/${tagId}/channels`,
-    //   providesTags: ["tagsForChannel"],
-    // }),
-    // getNodesForTag: builder.query<ChannelNode, number>({
-    //   query: (tagId) => `tags/${tagId}/nodes`,
-    //   providesTags: ["tagsForNodes"],
-    // }),
+    getChannelTags: builder.query<Array<TagResponse>, number>({
+      query: (channelId) => `tags/channel/${channelId}`,
+      providesTags: ["tagsForChannel"],
+    }),
+    getNodeTags: builder.query<Array<TagResponse>, number>({
+      query: (nodeId) => `tags/node/${nodeId}`,
+      providesTags: ["tagsForNodes"],
+    }),
     getNodesChannels: builder.query<ChannelNode, void>({
       query: () => ({
         url: `channels/nodes`,
@@ -95,5 +95,7 @@ export const {
   useAddTagMutation,
   useDeleteTagMutation,
   useSetTagMutation,
+  useGetChannelTagsQuery,
+  useGetNodeTagsQuery,
   useGetNodesChannelsQuery,
 } = tagsApi;

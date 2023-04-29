@@ -6,7 +6,6 @@ import (
 
 	"github.com/lncapital/torq/internal/cache"
 	"github.com/lncapital/torq/internal/core"
-	"github.com/lncapital/torq/internal/tags"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -40,7 +39,6 @@ func GetChannels(db *sqlx.DB, nodeIds []int, all bool, channelIds []int) ([]*Cha
 		if err != nil {
 			return nil, errors.Wrapf(err, "Running getChannels query StructScan all: %v, channelIds: %v", all, channelIds)
 		}
-		c.Tags = tags.GetTagsByTagIds(cache.GetTagIdsByChannelId(c.SecondNodeId, c.ChannelID))
 		r = append(r, c)
 	}
 	return r, nil
