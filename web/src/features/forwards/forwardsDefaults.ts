@@ -34,6 +34,6 @@ export const DefaultForwardsView: ViewResponse<Forward> = {
     filters: new AndClause().toJSON(),
     columns: DefaultForwardsColumns,
     sortBy: ForwardsSortByTemplate,
-    groupBy: "channels",
+    groupBy: "channel",
   },
 };
