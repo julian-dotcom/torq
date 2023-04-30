@@ -101,7 +101,7 @@ func TestMain(m *testing.M) {
 			"--torq.password", "password",
 			"--torq.port", torqPort,
 			"start"},
-		torqPort,
+		torqPort+":"+torqPort,
 		"",
 	)
 
