@@ -85,11 +85,10 @@
   background-color: var(--header-background-color);
   border: 2px solid var(--header-active-background-color);
   border-radius: 50%;
-  top: 10px;
+  top: 12.5px;
   left: 10px;
   box-shadow: none !important;
   z-index: 10;
-
 }
 .selectedNonDraggable {
   border: 3px solid var(--header-hover-background-color);
