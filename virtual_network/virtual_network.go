@@ -17,12 +17,18 @@ import (
 func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvironment, err error) {
 
 	btcdName := name + "-btcd"
+
 	aliceName := name + "-alice"
 	aliceColor := "#AA0000"
+	alicePort := "10008:10009"
+
 	bobName := name + "-bob"
 	bobColor := "#BB0000"
+	bobPort := "10009:10009"
+
 	carolName := name + "-carol"
 	carolColor := "#CC0000"
+	carolPort := "10010:10009"
 
 	ctx := context.Background()
 
@@ -45,7 +51,8 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 			nil,
 			[]string{"POSTGRES_PASSWORD=password", "PGPORT=5444"},
 			nil,
-			"5444",
+			// Map port 5444 to 5444 on 0.0.0.0
+			"5444:5444",
 			"",
 		)
 	}
@@ -74,7 +81,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 		},
 		[]string{"NETWORK=simnet", "COLOR=" + aliceColor},
 		nil,
-		"",
+		alicePort,
 		"",
 	)
 
@@ -88,7 +95,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 		},
 		[]string{"NETWORK=simnet", "COLOR=" + bobColor},
 		nil,
-		"10009",
+		bobPort,
 		"",
 	)
 
@@ -102,7 +109,7 @@ func createDockerEnvironment(name string, createDatabase bool) (de DockerDevEnvi
 		},
 		[]string{"NETWORK=simnet", "COLOR=" + carolColor},
 		nil,
-		"",
+		carolPort,
 		"",
 	)
 
@@ -251,9 +258,18 @@ func StartVirtualNetwork(name string, withDatabase bool) error {
 		return errors.Wrap(err, "Checking that Carol is a peer of Bob")
 	}
 
-	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
+	if err = WriteConnectionDetails(ctx, de.Client, aliceName); err != nil {
 		return errors.Wrap(err, "Write connection details")
 	}
+
+	if err = WriteConnectionDetails(ctx, de.Client, bobName); err != nil {
+		return errors.Wrap(err, "Write connection details")
+	}
+
+	if err = WriteConnectionDetails(ctx, de.Client, carolName); err != nil {
+		return errors.Wrap(err, "Write connection details")
+	}
+
 	PrintInstructions(carolPubkey, carolIPAddress, bobPubkey, bobIPAddress, alicePubkey, aliceIPAddress)
 
 	return nil
@@ -764,9 +780,18 @@ func CreateNewVirtualNetwork(name string, createDatabase bool, purge bool) error
 
 	log.Println("Cluster setup complete")
 
-	if err = WriteConnectionDetails(ctx, de.Client, bobName, bobIPAddress); err != nil {
+	if err = WriteConnectionDetails(ctx, de.Client, aliceName); err != nil {
 		log.Fatalf("Unable to write connection details: %v", err)
 	}
+
+	if err = WriteConnectionDetails(ctx, de.Client, bobName); err != nil {
+		log.Fatalf("Unable to write connection details: %v", err)
+	}
+
+	if err = WriteConnectionDetails(ctx, de.Client, carolName); err != nil {
+		log.Fatalf("Unable to write connection details: %v", err)
+	}
+
 	PrintInstructions(carolPubkey, carolIPAddress, bobPubkey, bobIPAddress, alicePubkey, aliceIPAddress)
 
 	return nil

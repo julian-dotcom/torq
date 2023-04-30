@@ -132,18 +132,23 @@ func (de *DockerDevEnvironment) CreateContainer(ctx context.Context, container *
 	hostConfig := &dockercontainer.HostConfig{
 		Binds: container.Binds,
 	}
+	// Map ports
 	openPorts := nat.PortSet{}
 	if container.MappedPort != "" {
+		// Split MappedPort port into host and container port
+		hostPort := strings.Split(container.MappedPort, ":")[0]
+		containerPort := strings.Split(container.MappedPort, ":")[1]
+
 		hostConfig.PortBindings = nat.PortMap{
-			nat.Port(container.MappedPort) + "/tcp": []nat.PortBinding{
+			nat.Port(containerPort) + "/tcp": []nat.PortBinding{
 				{
 					HostIP:   "0.0.0.0",
-					HostPort: container.MappedPort,
+					HostPort: hostPort,
 				},
 			},
 		}
 		openPorts = nat.PortSet{
-			nat.Port(container.MappedPort) + "/tcp": struct{}{},
+			nat.Port(containerPort) + "/tcp": struct{}{},
 		}
 	}
 
@@ -446,7 +451,7 @@ func Retry(operation func() error, delayMilliseconds int, maxWaitMilliseconds in
 	return nil
 }
 
-func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string, nodeIp string) error {
+func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string) error {
 	// Copy bobs macaroon and tls file to local directory
 	tlsFileReader, _, err := cli.CopyFromContainer(ctx, name, "/root/.lnd/tls.cert")
 	if err != nil {
@@ -472,7 +477,7 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 		return errors.Wrap(err, "Reading tls tar")
 	}
 	// write the whole body at once
-	err = os.WriteFile("virtual_network/generated_files/tls.cert", tlsBuf.Bytes(), 0600)
+	err = os.WriteFile(fmt.Sprintf("virtual_network/generated_files/%v-tls.cert", name), tlsBuf.Bytes(), 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -504,16 +509,10 @@ func WriteConnectionDetails(ctx context.Context, cli *client.Client, name string
 	}
 
 	// write the whole body at once
-	err = os.WriteFile("virtual_network/generated_files/admin.macaroon", macaroonBuf.Bytes(), 0600)
+	err = os.WriteFile(fmt.Sprintf("virtual_network/generated_files/%v-admin.macaroon", name), macaroonBuf.Bytes(), 0600)
 	if err != nil {
 		panic(err)
 	}
 
-	//// write the whole body at once
-	//err = ioutil.WriteFile("virtual_network/generated_files/conn_details.txt", []byte("Connect to localhost:10009"),
-	//	0644)
-	//if err != nil {
-	//	panic(err)
-	//}
 	return nil
 }
