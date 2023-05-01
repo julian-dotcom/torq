@@ -68,7 +68,7 @@ function WorkflowLink(props: WorkflowLinkProp) {
   const { link } = props;
   const shadowLinkRef = useRef<SVGLineElement>(null);
   const linkRef = useRef<SVGLineElement>(null);
-  const circleRef = useRef<SVGCircleElement>(null);
+  const endCircleRef = useRef<SVGCircleElement>(null);
   const iconRef = useRef<SVGGElement>(null);
   const parentEventName = `parentLinkMove-${props.link.parentWorkflowVersionNodeId.toString()}-${
     props.link.parentOutput
@@ -128,12 +128,11 @@ function WorkflowLink(props: WorkflowLinkProp) {
       const pathCommands = (linkRef?.current?.getAttribute("d") || initialPath).split(" ");
       const x1 = parseFloat(pathCommands[1]);
       const y1 = parseFloat(pathCommands[2]);
-
       setPath({ x1, y1, x2, y2 });
     }
-    if (circleRef !== null && circleRef.current !== null) {
-      circleRef.current.setAttribute("cx", x2.toString());
-      circleRef.current.setAttribute("cy", y2.toString());
+    if (endCircleRef !== null && endCircleRef.current !== null) {
+      endCircleRef.current.setAttribute("cx", x2.toString());
+      endCircleRef.current.setAttribute("cy", y2.toString());
     }
   }
 
@@ -146,7 +145,7 @@ function WorkflowLink(props: WorkflowLinkProp) {
       window.removeEventListener(parentEventName, handleParentPositionUpdate);
       window.removeEventListener(childEventName, handleChildPositionUpdate);
     };
-  }, [circleRef, linkRef, shadowLinkRef, iconRef]);
+  }, [endCircleRef, linkRef, shadowLinkRef, iconRef]);
 
   return (
     <g className={styles.linkWrapper}>
@@ -162,7 +161,6 @@ function WorkflowLink(props: WorkflowLinkProp) {
         key={"shadow-link-" + link.workflowVersionNodeLinkId}
         className={styles.shadowLink}
       />
-      <circle r="7" ref={circleRef} />
       <g ref={iconRef} className={styles.deleteLinksWrapper} onClick={() => handleDeleteLink()}>
         <circle r={24} cx={12} cy={12} strokeWidth={1} stroke={"transparent"} className={styles.shadowDeleteLink} />
         <circle r={10} cx={12} cy={12} strokeWidth={1} stroke={"transparent"} />
@@ -190,6 +188,10 @@ function WorkflowLinks(props: WorkflowLinkProps) {
   const [scale, setScale] = useState(1 / window.devicePixelRatio || 1);
 
   const handleResize = () => {
+    if (/Firefox\/\d+[\d.]*/.test(navigator.userAgent)) {
+      setScale(1);
+      return;
+    }
     const scale = window.devicePixelRatio || 1;
 
     if (scale < 1.5) setScale(1 / scale);

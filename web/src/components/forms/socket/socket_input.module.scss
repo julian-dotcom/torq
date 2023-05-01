@@ -52,10 +52,11 @@ label {
   z-index: 2;
   box-shadow: none;
   background-color: var(--color-primary-layer-4);
-  &.dragOver {
-    background-color: var(--input-hover-background);
-  }
 }
+.dragOver .socketDot {
+  background-color: var(--color-primary-faint);
+}
+
 .connectedNodeNames {
   display: flex;
   flex-direction: row;

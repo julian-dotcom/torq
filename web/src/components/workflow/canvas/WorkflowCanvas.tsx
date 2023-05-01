@@ -22,9 +22,11 @@ type WorkflowCanvasProps = {
 export const CanvasContext = React.createContext<{
   canvasRef: MutableRefObject<HTMLDivElement> | null;
   svgRef: MutableRefObject<SVGSVGElement> | null;
+  blankImgRef: MutableRefObject<HTMLCanvasElement> | null;
 }>({
   canvasRef: null,
   svgRef: null,
+  blankImgRef: null,
 });
 
 function WorkflowCanvas(props: WorkflowCanvasProps) {
@@ -43,6 +45,9 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
   // svgRef is used to place connecting lines between workflow nodes
   const svgRef = createRef() as MutableRefObject<SVGSVGElement>;
 
+  // blankImgRef is used to store a blank image to remove the default drag-and-drop cursor
+  const blankImgRef = createRef() as MutableRefObject<HTMLCanvasElement>;
+
   // wrapperRef is used to refer to the wrapper element that surrounds the canvas
   const wrapperRef = useRef() as MutableRefObject<HTMLDivElement>;
 
@@ -58,6 +63,8 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
     const canvasPosition = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - canvasPosition.left;
     const y = e.clientY - canvasPosition.top;
+    // Set the image that is shown as the element is being dragged
+    e.dataTransfer.setDragImage(blankImgRef.current, x, y);
 
     // Set the isDragging and canvasPositionBB state variables
     setIsDragging(true);
@@ -142,6 +149,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
       value={{
         canvasRef: canvasRef,
         svgRef: svgRef,
+        blankImgRef: blankImgRef,
       }}
     >
       <div
@@ -167,7 +175,7 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
           <div
             style={{
               transform: "translate(" + position.x + "px, " + position.y + "px)",
-              zIndex: 999,
+              zIndex: 100,
               position: "relative",
             }}
             ref={canvasRef}
@@ -182,7 +190,12 @@ function WorkflowCanvas(props: WorkflowCanvasProps) {
             version={props.version}
             workflowVersionId={props.workflowVersionId}
           />
-          <canvas style={{ width: "1px", height: "1px" }} />
+          <canvas
+            ref={blankImgRef}
+            style={{ width: "1px", height: "1px", border: "1px solid transaparent" }}
+            width={"1px"}
+            height={"1px"}
+          />
         </div>
       </div>
     </CanvasContext.Provider>

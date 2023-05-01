@@ -60,7 +60,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   });
 
   // Canvas and blankRef are used to calculate the position of the node. They are passed down from the canvas
-  const { canvasRef } = useContext(CanvasContext);
+  const { canvasRef, blankImgRef } = useContext(CanvasContext);
 
   // nodeRef is used by the NodeConnector to allow for drag and drop interaction between nodes.
   const nodeRef = createRef() as MutableRefObject<HTMLDivElement>;
@@ -74,6 +74,10 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const [deleteNode] = useDeleteNodeMutation();
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    if (blankImgRef) {
+      e.dataTransfer.setDragImage(blankImgRef.current, 0, 0);
+    }
+
     setNodeIsSelected(true);
     // Don't initiate dragging with the user is editing the node name
     if (nameInputVisible) {
