@@ -27,6 +27,8 @@ import { Status } from "constants/backend";
 import { useClickOutside } from "utils/hooks";
 import useTranslations from "services/i18n/useTranslations";
 import { userEvents } from "utils/userEvents";
+import ToastContext from "features/toast/context";
+import { toastCategory } from "features/toast/Toasts";
 
 type nodeRefType = { nodeRef: MutableRefObject<HTMLDivElement> | null; nodeName: string };
 export const NodeContext = React.createContext<nodeRefType>({
@@ -48,6 +50,7 @@ export type WorkflowNodeProps = WorkflowVersionNode & {
 function WorkflowNodeWrapper(props: WorkflowNodeProps) {
   const { t } = useTranslations();
   const { track } = userEvents();
+  const toastRef = useContext(ToastContext);
   const [nodeIsSelected, setNodeIsSelected] = useState<boolean>(false);
 
   const [collapsed, setCollapsed] = useState(props.visibilitySettings.collapsed);
@@ -168,6 +171,14 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
     setNodeIsSelected(false);
   });
 
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    // if the dropped item is a node button create a toast and return
+    if (e.dataTransfer.getData("item") === "nodeButton") {
+      toastRef?.current?.addToast(t.workflowDetails.cannotDropNodeOnSocket, toastCategory.error);
+      return;
+    }
+  }
+
   return (
     <NodeContext.Provider
       value={{
@@ -185,6 +196,7 @@ function WorkflowNodeWrapper(props: WorkflowNodeProps) {
         })}
         style={{ transform: `${transform}` }}
         ref={nodeRef}
+        onDrop={handleDrop}
       >
         <div
           data-intercom-target="workflow-node-header"

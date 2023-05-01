@@ -48,6 +48,7 @@ function WorkflowNodeButtonWrapper(props: WorkflowNodeButtonProps) {
     e.dataTransfer.setData("node/event", "add");
     e.dataTransfer.setData("node/name", props.title);
     e.dataTransfer.setData("node/parameters", props.parameters || "{}");
+    e.dataTransfer.setData("item", "nodeButton");
   }
 
   function handleDragEnd() {

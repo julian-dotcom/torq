@@ -85,6 +85,17 @@ function Socket(props: SocketProps) {
       return;
     }
 
+    // if the dropped item is a node button create a toast and return
+    if (e.dataTransfer.getData("node/event") !== "") {
+      toastRef?.current?.addToast(t.workflowDetails.cannotDropNodeOnSocket, toastCategory.error);
+      return;
+    }
+
+    if (e.dataTransfer.getData("item") !== "connector") {
+      toastRef?.current?.addToast(t.workflowDetails.cannotDropNodeOnSocket, toastCategory.error);
+      return;
+    }
+
     // Get the id of the nodes connector that was dropped
     const parentWorkflowVersionNodeId = parseInt(e.dataTransfer.getData("node/parentWorkflowVersionNodeId"));
     const parentOutput = e.dataTransfer.getData("node/parentOutput");

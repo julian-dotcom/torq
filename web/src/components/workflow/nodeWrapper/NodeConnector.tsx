@@ -35,6 +35,7 @@ function NodeConnector(props: NodeConnectorProps) {
     e.dataTransfer.setData("node/parentOutput", props.outputName);
     nodeRef?.current?.classList.add(styles.connecting);
     e.dataTransfer.setData("node/name", props.name);
+    e.dataTransfer.setData("item", "connector");
 
     if (canvasRef !== null) {
       const { x, y } = getConnectorPosition();
@@ -51,7 +52,7 @@ function NodeConnector(props: NodeConnectorProps) {
   function updatePreviewLink(connBB: DOMRect, canvasBB: DOMRect, newX: number, newY: number) {
     if (connBB !== null) {
       const x = connBB.x - canvasBB.x + connBB.width / 2 + -2; // -14 because of the 16 padding right on the connector and 4px line width
-      const y = connBB.y - canvasBB.y + connBB.height / 2 - 15;
+      const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
 
       const previewEvent = new CustomEvent("previewLinkEvent", {
         detail: {
@@ -73,8 +74,8 @@ function NodeConnector(props: NodeConnectorProps) {
 
     if (canvasRef !== null && e.clientX !== 0 && e.clientY !== 0) {
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
-      const newX = e.clientX - connBB.x - 14; // value 14 needed to compensate for the padding otherwise alignment issue
-      const newY = e.clientY - connBB.y;
+      const newX = e.clientX - connBB.x - 15; // value 14 needed to compensate for the padding otherwise alignment issue
+      const newY = e.clientY - connBB.y - 10;
 
       setPosition({ x: newX, y: newY });
       updatePreviewLink(connBB, canvasBB, newX, newY);
@@ -117,8 +118,8 @@ function NodeConnector(props: NodeConnectorProps) {
 
     const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
     const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
-    const x = connBB.x - canvasBB.x + connBB.width / 2 + -2; // -14 because of the 16 padding right on the connector and 4px line width
-    const y = connBB.y - canvasBB.y + connBB.height / 2 - 15;
+    const x = connBB.x - canvasBB.x + connBB.width / 2; // -14 because of the 16 padding right on the connector and 4px line width
+    const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
     return { x, y };
   }
 

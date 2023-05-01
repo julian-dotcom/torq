@@ -271,7 +271,8 @@
     "confirmWorkflowDeactivate": "Are you sure you want to deactivate this workflow?",
     "cantDropActionOnDriggerContainer": "You can only add triggers to the trigger container.",
     "manualTriggerSuccess": "Workflow triggered successfully.",
-    "manualTriggerError": "Error, could not trigger workflow."
+    "manualTriggerError": "Error, could not trigger workflow.",
+    "cannotDropNodeOnSocket": "Please drop nodes on the canvas (blue background), not on other nodes."
   },
   "updateChannelPolicy": {
     "title": "Update Channel Policy",
