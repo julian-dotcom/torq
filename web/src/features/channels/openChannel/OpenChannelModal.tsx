@@ -9,7 +9,7 @@ import {
   Note20Regular as NoteIcon,
 } from "@fluentui/react-icons";
 import { useGetNodeConfigurationsQuery } from "apiSlice";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import Button, { ButtonWrapper, ColorVariant, ExternalLinkButton } from "components/buttons/Button";
 import ProgressHeader, { ProgressStepState, Step } from "features/progressTabs/ProgressHeader";
 import ProgressTabs, { ProgressTabContainer } from "features/progressTabs/ProgressTab";
@@ -25,9 +25,8 @@ import { NumberFormatValues } from "react-number-format";
 import Input from "components/forms/input/Input";
 import { SectionContainer } from "features/section/SectionContainer";
 import Switch from "components/forms/switch/Switch";
-import FormRow from "features/forms/FormWrappers";
 import Note, { NoteType } from "features/note/Note";
-import { Select, TextArea } from "components/forms/forms";
+import { Form, Select, TextArea } from "components/forms/forms";
 import { InputSizeVariant } from "components/forms/input/variants";
 import { useOpenChannelMutation } from "./openChannelApi";
 import { RtqToServerError } from "components/errors/errors";
@@ -73,7 +72,7 @@ function OpenChannelModal() {
   const [localFundingAmount, setLocalFundingAmount] = useState<number>(0);
   const [pushSat, setPushSat] = useState<number | undefined>();
   const [minHtlcMsat, setMinHtlcMsat] = useState<number | undefined>();
-  const [closeAddress, setCloseAddress] = useState<string | undefined>();
+  const [closeAddress, setCloseAddress] = useState<string | undefined>("");
   const [spendUnconfirmed, setSpendUnconfirmed] = useState<boolean>(false);
   const [privateChan, setPrivate] = useState<boolean>(false);
   const [satPerVbyte, setSatPerVbyte] = useState<number | undefined>();
@@ -132,7 +131,8 @@ function OpenChannelModal() {
     setHost(undefined);
   };
 
-  function handleOpenChannel() {
+  function handleOpenChannel(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     if (!selectedNodeId) return;
 
     setStepIndex(2);
@@ -171,111 +171,97 @@ function OpenChannelModal() {
 
       <ProgressTabs showTabIndex={stepIndex}>
         <ProgressTabContainer>
-          <div className={styles.openChannelTableRow}>
-            <FormRow>
-              <Select
-                intercomTarget={"open-channel-node-select"}
-                label={t.yourNode}
-                onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
-                  // Check if newValue is of type SelectOptions
-                  if (isOption(newValue)) {
-                    const selectOptions = newValue as SelectOptions;
-                    handleNodeSelection(selectOptions?.value as number);
-                  }
-                }}
-                options={nodeConfigurationOptions}
-                value={nodeConfigurationOptions?.find((option) => option.value === selectedNodeId)}
-              />
-            </FormRow>
-          </div>
-          <div className={styles.openChannelTableRow}>
-            <FormRow>
-              <div className={styles.openChannelTableSingle}>
-                <div className={styles.input}>
-                  <TextArea
-                    intercomTarget={"open-channel-connection-string"}
-                    label={t.ConnectionString}
-                    helpText={t.NodeConnectionStringHelp}
-                    sizeVariant={InputSizeVariant.normal}
-                    value={connectionString}
-                    rows={4}
-                    placeholder={"03aab7e9327716ee946b8fbfae039b01235356549e72c5cca113ea67893d0821e5@123.1.3.65:9735"}
-                    onChange={(e) => {
-                      setConnectionString(e.target.value);
-                      if (!e.target.value) {
-                        setNodePubKey("");
-                      }
-                      if (e.target.value) {
-                        const split = e.target.value.split("@");
-                        split[0] && setNodePubKey(split[0]);
-                        split[1] && setHost(split[1]);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </FormRow>
-          </div>
-          <ButtonWrapper
-            className={styles.customButtonWrapperStyles}
-            rightChildren={
-              <Button
-                intercomTarget={"open-channel-connect-button"}
-                disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
-                onClick={() => {
-                  setStepIndex(1);
-                  setConnectState(ProgressStepState.completed);
-                  setDetailState(ProgressStepState.active);
-                }}
-                buttonColor={ColorVariant.primary}
-              >
-                {t.confirm}
-              </Button>
-            }
-          />
+          <Form
+            intercomTarget={"open-channel-connection-details"}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setStepIndex(1);
+              setConnectState(ProgressStepState.completed);
+              setDetailState(ProgressStepState.active);
+            }}
+          >
+            <Select
+              intercomTarget={"open-channel-node-select"}
+              label={t.yourNode}
+              onChange={(newValue: unknown, _: ActionMeta<unknown>) => {
+                // Check if newValue is of type SelectOptions
+                if (isOption(newValue)) {
+                  const selectOptions = newValue as SelectOptions;
+                  handleNodeSelection(selectOptions?.value as number);
+                }
+              }}
+              options={nodeConfigurationOptions}
+              value={nodeConfigurationOptions?.find((option) => option.value === selectedNodeId)}
+            />
+            <TextArea
+              intercomTarget={"open-channel-connection-string"}
+              label={t.ConnectionString}
+              helpText={t.NodeConnectionStringHelp}
+              sizeVariant={InputSizeVariant.normal}
+              value={connectionString}
+              rows={4}
+              placeholder={"03aab7e9327716ee946b8fbfae039b01235356549e72c5cca113ea67893d0821e5@123.1.3.65:9735"}
+              onChange={(e) => {
+                setConnectionString(e.target.value);
+                if (!e.target.value) {
+                  setNodePubKey("");
+                }
+                if (e.target.value) {
+                  const split = e.target.value.split("@");
+                  split[0] && setNodePubKey(split[0]);
+                  split[1] && setHost(split[1]);
+                }
+              }}
+            />
+            <ButtonWrapper
+              className={styles.customButtonWrapperStyles}
+              rightChildren={
+                <Button
+                  type={"submit"}
+                  intercomTarget={"open-channel-connect-button"}
+                  disabled={host == "" || nodePubKey == "" || selectedNodeId === undefined}
+                  buttonColor={ColorVariant.primary}
+                >
+                  {t.confirm}
+                </Button>
+              }
+            />
+          </Form>
         </ProgressTabContainer>
         <ProgressTabContainer>
-          <div className={styles.activeColumns} data-intercom-target={"open-channel-details"}>
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-                <div className={styles.openChannelTableSingle}>
-                  <span className={styles.label}>{t.ChannelSize}</span>
-                  <div className={styles.input}>
-                    <Input
-                      intercomTarget={"open-channel-channel-size"}
-                      formatted={true}
-                      className={styles.single}
-                      thousandSeparator={","}
-                      value={localFundingAmount}
-                      suffix={" sat"}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setLocalFundingAmount(values.floatValue as number);
-                      }}
-                    />
-                  </div>
-                </div>
-              </FormRow>
-            </div>
-            <div className={styles.openChannelTableRow}>
-              <FormRow>
-                <div className={styles.openChannelTableSingle}>
-                  <div className={styles.input}>
-                    <Input
-                      intercomTarget={"open-channel-sat-per-vbyte"}
-                      label={t.SatPerVbyte}
-                      formatted={true}
-                      className={styles.single}
-                      thousandSeparator={","}
-                      value={satPerVbyte}
-                      suffix={" sat"}
-                      onValueChange={(values: NumberFormatValues) => {
-                        setSatPerVbyte(values.floatValue as number);
-                      }}
-                    />
-                  </div>
-                </div>
-              </FormRow>
-            </div>
+          <Form intercomTarget={"open-channel-details"} onSubmit={handleOpenChannel}>
+            <Input
+              label={t.ChannelSize}
+              intercomTarget={"open-channel-channel-size"}
+              formatted={true}
+              className={styles.single}
+              thousandSeparator={","}
+              value={localFundingAmount}
+              suffix={" sat"}
+              onValueChange={(values: NumberFormatValues) => {
+                setLocalFundingAmount(values.floatValue as number);
+              }}
+            />
+            <Input
+              intercomTarget={"open-channel-sat-per-vbyte"}
+              label={t.SatPerVbyte}
+              formatted={true}
+              className={styles.single}
+              thousandSeparator={","}
+              value={satPerVbyte}
+              suffix={" sat"}
+              onValueChange={(values: NumberFormatValues) => {
+                setSatPerVbyte(values.floatValue as number);
+              }}
+            />
+            <Switch
+              intercomTarget={"open-channel-private-channel"}
+              label={t.Private}
+              checked={privateChan}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setPrivate(e.target.checked);
+              }}
+            />
             <SectionContainer
               intercomTarget={"open-channel-advanced-options"}
               title={t.AdvancedOptions}
@@ -285,115 +271,71 @@ function OpenChannelModal() {
                 setExpandAdvancedOptions(!expandAdvancedOptions);
               }}
             >
-              <div className={styles.openChannelTableRow}>
-                <FormRow>
-                  <div className={styles.openChannelTableSingle}>
-                    <div className={styles.input}>
-                      <Input
-                        intercomTarget={"open-channel-push-amount"}
-                        label={t.PushAmount}
-                        formatted={true}
-                        className={styles.single}
-                        helpText={t.PushAmountHelpText}
-                        thousandSeparator={","}
-                        suffix={" sat"}
-                        value={pushSat}
-                        onValueChange={(values: NumberFormatValues) => {
-                          setPushSat(values.floatValue as number);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </FormRow>
-              </div>
-              <div className={styles.openChannelTableRow}>
-                <FormRow>
-                  <div className={styles.openChannelTableSingle}>
-                    <div className={styles.input}>
-                      <Input
-                        intercomTarget={"open-channel-htlc-min-sat"}
-                        label={t.HTLCMinSat}
-                        formatted={true}
-                        className={styles.single}
-                        suffix={" sat"}
-                        thousandSeparator={","}
-                        value={minHtlcMsat}
-                        onValueChange={(values: NumberFormatValues) => {
-                          setMinHtlcMsat(values.floatValue as number);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </FormRow>
-              </div>
-              <div className={styles.openChannelTableRow}>
-                <FormRow>
-                  <div className={styles.openChannelTableSingle}>
-                    <div className={styles.input}>
-                      <Input
-                        intercomTarget={"open-channel-min-confirmations"}
-                        label={t.MinimumConfirmations}
-                        formatted={true}
-                        className={styles.single}
-                        thousandSeparator={","}
-                        value={minConfs}
-                        onValueChange={(values: NumberFormatValues) => {
-                          setMinConfs(values.floatValue as number);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </FormRow>
-              </div>
-              <div className={styles.openChannelTableRow}>
-                <FormRow>
-                  <div className={styles.openChannelTableSingle}>
-                    <div className={styles.input}>
-                      <Input
-                        intercomTarget={"open-channel-close-address"}
-                        label={t.ChannelCloseAddress}
-                        value={closeAddress}
-                        type={"text"}
-                        placeholder={"e.g. bc1q..."}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setCloseAddress(e.target.value);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </FormRow>
-              </div>
-              <div className={styles.openChannelTableRow}>
-                <FormRow className={styles.switchRow}>
-                  <Switch
-                    intercomTarget={"open-channel-private-channel"}
-                    label={t.Private}
-                    checked={privateChan}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      setPrivate(e.target.checked);
-                    }}
-                  />
-                </FormRow>
-                <FormRow className={styles.switchRow}>
-                  <Switch
-                    intercomTarget={"open-channel-spend-unconfirmed"}
-                    label={"Spend unconfirmed outputs"}
-                    checked={spendUnconfirmed}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      setSpendUnconfirmed(e.target.checked);
-                    }}
-                  />
-                </FormRow>
-              </div>
+              <Input
+                intercomTarget={"open-channel-push-amount"}
+                label={t.PushAmount}
+                formatted={true}
+                className={styles.single}
+                helpText={t.PushAmountHelpText}
+                thousandSeparator={","}
+                suffix={" sat"}
+                value={pushSat}
+                onValueChange={(values: NumberFormatValues) => {
+                  setPushSat(values.floatValue as number);
+                }}
+              />
+
+              <Input
+                intercomTarget={"open-channel-htlc-min-sat"}
+                label={t.HTLCMinSat}
+                formatted={true}
+                className={styles.single}
+                suffix={" sat"}
+                thousandSeparator={","}
+                value={minHtlcMsat}
+                onValueChange={(values: NumberFormatValues) => {
+                  setMinHtlcMsat(values.floatValue as number);
+                }}
+              />
+
+              <Input
+                intercomTarget={"open-channel-min-confirmations"}
+                label={t.MinimumConfirmations}
+                formatted={true}
+                className={styles.single}
+                thousandSeparator={","}
+                value={minConfs}
+                onValueChange={(values: NumberFormatValues) => {
+                  setMinConfs(values.floatValue as number);
+                }}
+              />
+              <Input
+                intercomTarget={"open-channel-close-address"}
+                label={t.ChannelCloseAddress}
+                value={closeAddress}
+                type={"text"}
+                placeholder={"e.g. bc1q..."}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setCloseAddress(e.target.value);
+                }}
+              />
+              <Switch
+                intercomTarget={"open-channel-spend-unconfirmed"}
+                label={"Spend unconfirmed outputs"}
+                checked={spendUnconfirmed}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setSpendUnconfirmed(e.target.checked);
+                }}
+              />
             </SectionContainer>
             <ButtonWrapper
               rightChildren={
-                <Button onClick={handleOpenChannel} buttonColor={ColorVariant.success} intercomTarget={"open-channel-confirm"}>
+                <Button type={"submit"} buttonColor={ColorVariant.success} intercomTarget={"open-channel-confirm"}>
                   {t.confirm}
                 </Button>
               }
             />
-          </div>
+          </Form>
         </ProgressTabContainer>
         <ProgressTabContainer>
           <div
