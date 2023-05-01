@@ -110,7 +110,7 @@ function Socket(props: SocketProps) {
     if (canvasRef !== null) {
       const canvasBB = canvasRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const connBB = connectorRef?.current?.getBoundingClientRect() || { left: 0, top: 0 };
-      const x = connBB.x - canvasBB.x + connBB.width / 2 - 8; // -14 because of the 16 padding right on the connector and 4px line width
+      const x = connBB.x - canvasBB.x + connBB.width / 2 - 12.5; // -14 because of the 16 padding right on the connector and 4px line width
       const y = connBB.y - canvasBB.y + connBB.height / 2 - 12.5;
       const eventNameInput = `childLinkMove-${props.workflowVersionNodeId}-${props.inputName}`;
       const eventInput = new CustomEvent(eventNameInput, {

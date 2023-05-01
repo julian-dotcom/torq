@@ -1,6 +1,7 @@
 .workflowLinks {
   display: inline-block;
   pointer-events: all;
+  user-select: none;
   overflow: visible;
   position: relative;
   z-index: 1;
@@ -8,6 +9,10 @@
   height: 1px;
 }
 .linkWrapper {
+  // prevent text selection
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
   path.link {
     stroke: var(--color-primary-faint);
     stroke-width: 4px;
@@ -54,6 +59,7 @@
     }
   }
   .shadowDeleteLink {
+    pointer-events: all;
     fill: transparent !important;
     //fill-opacity: 0.33;
   }
