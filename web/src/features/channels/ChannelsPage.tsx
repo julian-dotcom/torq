@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Options20Regular as OptionsIcon,
-  ArrowRouting20Regular as ChannelsIcon,
+  Add20Regular as AddChannelIcon,
   ArrowDownload20Regular as DownloadCsvIcon,
   ArrowSync20Regular as RefreshIcon,
 } from "@fluentui/react-icons";
@@ -136,7 +136,7 @@ function ChannelsPage() {
         <Button
           buttonColor={ColorVariant.success}
           hideMobileText={true}
-          icon={<ChannelsIcon />}
+          icon={<AddChannelIcon />}
           onClick={() => {
             track("Navigate to Open Channel");
             navigate(Routes.OPEN_CHANNEL, { state: { background: location } });
