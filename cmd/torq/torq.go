@@ -95,6 +95,11 @@ func main() {
 			Usage: "Password used to access the API and frontend",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:  "torq.network-interface",
+			Value: "0.0.0.0",
+			Usage: "Network interface to serve the HTTP API",
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:  "torq.port",
 			Value: "8080",
 			Usage: "Port to serve the HTTP API",
@@ -236,7 +241,7 @@ func main() {
 				go pprofStartup(c)
 			}
 
-			if err = torqsrv.Start(c.Int("torq.port"), c.String("torq.password"),
+			if err = torqsrv.Start(c.String("torq.network-interface"), c.Int("torq.port"), c.String("torq.password"),
 				c.String("torq.cookie-path"),
 				db, c.Bool("torq.auto-login")); err != nil {
 				return errors.Wrap(err, "Starting torq webserver")
