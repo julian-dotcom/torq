@@ -43,6 +43,8 @@ import { userEvents } from "utils/userEvents";
 import useLocalStorage from "utils/useLocalStorage";
 import { IsNumericOption, IsStringOption } from "utils/typeChecking";
 import { useGetChannelTagsQuery, useGetNodeTagsQuery } from "pages/tags/tagsApi";
+import { TableControlsButtonGroup, TableControlSection } from "features/templates/tablePageTemplate/TablePageTemplate";
+import { ArrowSync20Regular as RefreshIcon } from "@fluentui/react-icons";
 
 const ft = d3.format(",.0f");
 
@@ -105,26 +107,31 @@ function ChannelPage(_: ChannelPageProps) {
   const channelId = chanId?.split(",")?.length === 1 ? Number(chanId) : 0;
 
   // Fetch all tags for a channel from the API
-  const { data: channelTags } = useGetChannelTagsQuery(channelId, { skip: chanId?.split(",")?.length !== 1 });
+  const { data: channelTags, refetch: channelTagRefetch } = useGetChannelTagsQuery(channelId, {
+    skip: chanId?.split(",")?.length !== 1,
+  });
 
-  const { data: balance } = useGetChannelBalanceQuery(channelHistoryQueryData);
+  const { data: balance, refetch: channelBalanceRefetch } = useGetChannelBalanceQuery(channelHistoryQueryData);
 
-  const { data: onChainCost } = useGetChannelOnChainCostQuery(channelHistoryQueryData);
+  const { data: onChainCost, refetch: onChainCostRefetch } = useGetChannelOnChainCostQuery(channelHistoryQueryData);
 
-  const { data: history } = useGetChannelHistoryQuery(channelHistoryQueryData);
+  const { data: history, refetch: historyRefetch } = useGetChannelHistoryQuery(channelHistoryQueryData);
 
-  const { data: rebalancing } = useGetChannelRebalancingQuery(channelHistoryQueryData);
+  const { data: rebalancing, refetch: rebalancingRefetch } = useGetChannelRebalancingQuery(channelHistoryQueryData);
 
-  const { data: event } = useGetChannelEventQuery(channelHistoryQueryData);
+  const { data: event, refetch: channelHistoryRefetch } = useGetChannelEventQuery(channelHistoryQueryData);
 
   const [profitChartKey, setProfitChartKey] = useLocalStorage(`profitChartKey`, { value: "amount", label: "Amount" });
   const [eventChartKey, setEventChartKey] = useLocalStorage(`eventChartKey`, { value: "amount", label: "Amount" });
   const [flowChartKey, setFlowChartKey] = useLocalStorage(`flowChartKey`, { value: "amount", label: "Amount" });
   const [balanceChannelId, setBalanceChannelId] = useState({ value: 0, label: "" });
 
-  const { data: peerTags } = useGetNodeTagsQuery(channelDetail ? channelDetail?.peerNodeId : 0, {
-    skip: channelDetail?.peerNodeId === undefined,
-  });
+  const { data: peerTags, refetch: peerTagsRefetch } = useGetNodeTagsQuery(
+    channelDetail ? channelDetail?.peerNodeId : 0,
+    {
+      skip: channelDetail?.peerNodeId === undefined,
+    }
+  );
 
   let totalCapacity = 0;
   if (history?.channels) {
@@ -204,6 +211,16 @@ function ChannelPage(_: ChannelPageProps) {
     }
   }, [balance?.channelBalances]);
 
+  const refreshData = () => {
+    channelHistoryRefetch();
+    onChainCostRefetch();
+    rebalancingRefetch();
+    peerTagsRefetch();
+    channelTagRefetch();
+    channelBalanceRefetch();
+    historyRefetch();
+  };
+
   const isSingleChannel = channelDetails?.length && history?.channels?.length === 1;
   return (
     <PopoutPageTemplate
@@ -228,53 +245,69 @@ function ChannelPage(_: ChannelPageProps) {
         }
         className={styles.detailsPageTitle}
         breadcrumbs={[breadcrumbs || ""]}
-      >
-        <TimeIntervalSelect />
-      </PageTitle>
+      ></PageTitle>
+
+      <TableControlSection intercomTarget={"table-page-controls"}>
+        <TableControlsButtonGroup intercomTarget={"table-page-controls-left"}>
+          <TimeIntervalSelect />
+        </TableControlsButtonGroup>
+        <TableControlsButtonGroup intercomTarget={"table-page-controls-right"}>
+          {isSingleChannel && (
+            <>
+              <LinkButton
+                intercomTarget={"inspect-update-channel"}
+                to={`${UPDATE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
+                state={{ background: location?.state?.background || "/" }}
+                hideMobileText={true}
+                icon={<UpdateIcon />}
+                buttonColor={ColorVariant.success}
+                buttonSize={SizeVariant.small}
+                onClick={() => {
+                  track("Navigate to Update Channel", {
+                    nodeId: channelDetail?.nodeId,
+                    channelId: channelDetail?.channelId,
+                  });
+                }}
+              >
+                {t.update}
+              </LinkButton>
+
+              <LinkButton
+                intercomTarget={"inspect-close-channel"}
+                to={`${CLOSE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
+                state={{ background: location.state.background }}
+                hideMobileText={true}
+                icon={<CloseIcon />}
+                buttonSize={SizeVariant.small}
+                buttonColor={ColorVariant.error}
+                onClick={() => {
+                  track("Navigate to Close Channel", {
+                    nodeId: channelDetail?.nodeId,
+                    channelId: channelDetail?.channelId,
+                  });
+                }}
+              >
+                {t.close}
+              </LinkButton>
+            </>
+          )}
+          <Button
+            intercomTarget="refresh-page-data"
+            buttonColor={ColorVariant.primary}
+            buttonSize={SizeVariant.small}
+            icon={<RefreshIcon />}
+            onClick={() => {
+              track("Refresh channel summary data", { page: "ChannelPage" });
+              refreshData();
+            }}
+          >
+            {t.refresh}
+          </Button>
+        </TableControlsButtonGroup>
+      </TableControlSection>
 
       <div className={styles.channelWrapper}>
         <div className={styles.actionRow}>
-          <div className={styles.actionButtons}>
-            {isSingleChannel && (
-              <>
-                <LinkButton
-                  intercomTarget={"inspect-update-channel"}
-                  to={`${UPDATE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
-                  state={{ background: location?.state?.background || "/" }}
-                  hideMobileText={true}
-                  icon={<UpdateIcon />}
-                  buttonColor={ColorVariant.success}
-                  buttonSize={SizeVariant.small}
-                  onClick={() => {
-                    track("Navigate to Update Channel", {
-                      nodeId: channelDetail?.nodeId,
-                      channelId: channelDetail?.channelId,
-                    });
-                  }}
-                >
-                  {t.update}
-                </LinkButton>
-
-                <LinkButton
-                  intercomTarget={"inspect-close-channel"}
-                  to={`${CLOSE_CHANNEL}?nodeId=${channelDetail?.nodeId}&channelId=${channelDetail?.channelId}`}
-                  state={{ background: location.state.background }}
-                  hideMobileText={true}
-                  icon={<CloseIcon />}
-                  buttonSize={SizeVariant.small}
-                  buttonColor={ColorVariant.error}
-                  onClick={() => {
-                    track("Navigate to Close Channel", {
-                      nodeId: channelDetail?.nodeId,
-                      channelId: channelDetail?.channelId,
-                    });
-                  }}
-                >
-                  {t.close}
-                </LinkButton>
-              </>
-            )}
-          </div>
           <div className={styles.tags} data-intercom-target={"inspect-channel-tag-list"}>
             {(channelTags || []).map((tag) => (
               <Tag

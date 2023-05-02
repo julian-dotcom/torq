@@ -470,5 +470,6 @@
     "close": "Close",
     "setting": "Setting"
   },
-  "privateChannelLinksUnavailable": "Channel private, links unavailable"
+  "privateChannelLinksUnavailable": "Channel private, links unavailable",
+  "refresh": "Refresh"
 }
