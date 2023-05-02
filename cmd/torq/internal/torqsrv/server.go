@@ -41,7 +41,7 @@ import (
 	"github.com/lncapital/torq/web"
 )
 
-func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, autoLogin bool) error {
+func Start(host string, port int, apiPswd string, cookiePath string, db *sqlx.DB, autoLogin bool) error {
 	r := gin.Default()
 
 	if err := auth.RefreshCookieFile(cookiePath); err != nil {
@@ -57,7 +57,7 @@ func Start(port int, apiPswd string, cookiePath string, db *sqlx.DB, autoLogin b
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 
-	if err := r.Run(":" + strconv.Itoa(port)); err != nil {
+	if err := r.Run(host + ":" + strconv.Itoa(port)); err != nil {
 		return errors.Wrap(err, "Running gin webserver")
 	}
 	return nil
