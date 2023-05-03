@@ -77,6 +77,7 @@ It is also possible not to use any TOML configuration files and use command like
  - **--db.port**: Port of the database (default: "5432")
  - **--db.host**: Host of the database (default: "localhost")
  - **--torq.password**: Password used to access the API and frontend (example: "C44y78A4JXHCVziRcFqaJfFij5HpJhF6VwKjz4vR")
+ - **--torq.network-interface**: The nework interface to serve the HTTP API (default: "0.0.0.0")
  - **--torq.port**: Port to serve the HTTP API (default: "8080")
  - **--torq.pprof.path**: When pprof path is set then pprof is loaded when Torq boots. (example: "localhost:6060")
  - **--torq.debuglevel**: Specify different debug levels (panic|fatal|error|warn|info|debug|trace) (default: "info")
