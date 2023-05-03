@@ -18,7 +18,16 @@ export function createCsvFile<T extends ChannelClosed | ChannelPending | channel
   // Convert objects to arrays of values
   const rows = data.map((obj: T) =>
     headers.map((header) => {
-      if (header === "tags" && obj[header]) {
+      // Using multiple if-statements, TypeScript complains if merged into one
+      if ("tags" in obj && header === "tags") {
+        return `"${(obj[header] || []).map((tag) => tag.name).join(",")}"`;
+      }
+
+      if ("channelTags" in obj && header === "channelTags") {
+        return `"${(obj[header] || []).map((tag) => tag.name).join(",")}"`;
+      }
+
+      if ("peerTags" in obj && header === "peerTags") {
         return `"${(obj[header] || []).map((tag) => tag.name).join(",")}"`;
       }
       return obj[header as keyof T] ?? "";
